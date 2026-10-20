@@ -219,8 +219,8 @@
     }
 
     const PACKAGES = {
-        basic: { label: 'Basic', sizeLabel: '~60MB', files: () => [...CORE_FILES, ...SFX_FILES] },
-        full:  { label: 'Full', sizeLabel: '~210MB (includes all music)', files: () => [...CORE_FILES, ...SFX_FILES, ...bgmFiles()] },
+        basic: { label: 'Basic', sizeLabel: '~66MB', files: () => [...CORE_FILES, ...SFX_FILES] },
+        full:  { label: 'Full', sizeLabel: '~219MB (includes all music)', files: () => [...CORE_FILES, ...SFX_FILES, ...bgmFiles()] },
     };
 
     // Was a hand-kept literal ('pisces-cache-v2') that had to be bumped by

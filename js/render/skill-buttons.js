@@ -260,7 +260,7 @@ function drawSkillButtons() {
         ctx.restore();
     }
 
-    _pill(rowY(0), skillShiftActive ? '⏸ SH' : 'SH', '#A855F7', {
+    _pill(rowY(0), skillShiftActive ? '‖ SH' : 'SH', '#A855F7', {
         slot: 'SH',
         cd: skillShiftCooldown, lastAct: lastSkillShift,
         active: skillShiftActive, activeLabel: 'SHIFT',
@@ -365,7 +365,7 @@ function drawSkillButtons() {
     let _spaceOpts;
     if (laserActive) {
         const _laserRem = Math.max(0, laserDuration - (now - laserStartTime));
-        _spaceOpts = { active: true, activeLabel: '⚡ ' + (_laserRem / 1000).toFixed(1) + 's' };
+        _spaceOpts = { active: true, activeLabel: (_laserRem / 1000).toFixed(1) + 's' };
     } else if (charging) {
         const _chargeRatio = Math.min(100, (now - chargeStartTime) / overloadChargeTime * 100);
         _spaceOpts = { charge: _chargeRatio, active: false };
@@ -377,7 +377,7 @@ function drawSkillButtons() {
             : { cd: laserCooldownDuration, lastAct: now - (laserCooldownDuration - _spcRem * 1000), active: false };
     }
     _spaceOpts.slot = 'SPC';
-    _pill(_spaceY, '⎵ SPC', '#3B82F6', _spaceOpts);
+    _pill(_spaceY, 'SPC', '#3B82F6', _spaceOpts);
     if (window._tidalSurgeReady) _pillReadyWash(_spaceY, [
         [0, 'rgba(3,50,80,1)'], [0.35, 'rgba(0,140,180,1)'], [0.65, 'rgba(0,220,235,1)'], [0.85, 'rgba(94,234,212,1)'], [1, 'rgba(220,255,250,1)'],
     ]);

@@ -681,8 +681,8 @@ function _drawPickerCards(p, slideEase, dealElapsed) {
     ctx.fillStyle = canReroll ? '#ffe9b0' : '#444860';
     ctx.font = `bold ${isMob ? 10 : 12}px "Courier New", monospace`;
     ctx.letterSpacing = isMob ? '0px' : '1px';
-    const rLabel = isMob ? `↻ ${_tt('sigilPicker.reroll')} ${rerollsLeft}` : `↻ ${_tt('sigilPicker.reroll')} (${rerollsLeft})`;
-    ctx.fillText(rLabel, rbtn.x + rbtn.w / 2, rbtn.y + rbtn.h / 2 + 4);
+    const rLabel = isMob ? `${_tt('sigilPicker.reroll')} ${rerollsLeft}` : `${_tt('sigilPicker.reroll')} (${rerollsLeft})`;
+    _iconText('cycle', rLabel, rbtn.x + rbtn.w / 2, rbtn.y + rbtn.h / 2 + 4, isMob ? 9 : 11);
     ctx.letterSpacing = '0px';
 
     // Reroll flash: brief white overlay across the cards on a successful reroll
@@ -1603,7 +1603,7 @@ document.addEventListener('DOMContentLoaded', () => {
             } else {
                 _handleSigilPickerClick(ex, ey);
             }
-            try { navigator.vibrate && navigator.vibrate(18); } catch (_) {}
+            try { window._vibrateEnabled !== false && navigator.vibrate && navigator.vibrate(18); } catch (_) {}
         }, { passive: false });
 
         ov.addEventListener('touchmove', (e) => {

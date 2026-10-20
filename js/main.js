@@ -1531,7 +1531,7 @@ function update(rawDeltaTime) {
                     player._rooted = true;
                     _setShake(6, 250);
                     if (window.AudioMgr) window.AudioMgr.playSfxAt('dargruel-chain-root', player.x, player.y);
-                    try { navigator.vibrate && navigator.vibrate(30); } catch (e) { }
+                    try { window._vibrateEnabled !== false && navigator.vibrate && navigator.vibrate(30); } catch (e) { }
                 }
                 // Chain is NOT consumed by hitting player, can still hit sentinel
             }
@@ -3498,6 +3498,7 @@ function gameLoop(timeStamp) {
     }
 
     lastTimeStamp = timeStamp;
+    if (window._fpsTick) window._fpsTick(timeStamp);
 
     // deltaTime quá lớn → tab bị ẩn hoặc máy lag → pause và reset clock
     // Only pause for a genuinely backgrounded tab (document.hidden was true

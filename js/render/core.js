@@ -2005,7 +2005,7 @@ function _drawYogSothothDomainClassic() {
         // C4. ORBITING CURSED RUNE RINGS (3 orbits, different speeds/dirs)
         {
             const runeAlpha = Math.min(elapsed / 450, 1);
-            const runes = ['∞', '✦', '⬡', '✺', '∑', '⌬', '⊗', '◈', 'Ω', '⚡', '꩜', '⌖'];
+            const runes = ['∞', '✦', '⬡', '✺', '∑', '⌬', '⊗', '◈', 'Ω', 'ϟ', '꩜', '⌖'];
             [[70, 4, 1], [130, 5, -0.65], [200, 7, 0.4]].forEach(([orbitR, count, dir], oi) => {
                 const rotSpeed = dir * (now / (2200 + oi * 500));
                 for (let i = 0; i < count; i++) {
@@ -2234,6 +2234,111 @@ function _captureFreezeSnapshot() {
     g.clearRect(0, 0, _freezeSnap.width, _freezeSnap.height);
     g.drawImage(canvas, 0, 0);
     _freezeSnap._filled = true;
+}
+
+// Small UI icons drawn as paths so phones never swap in an emoji glyph.
+// They take the current fillStyle. _iconText puts one in front of a label
+// and works with whichever textAlign is set.
+function _drawUiIcon(icon, cx, cy, s) {
+    const r = s * 0.5;
+    ctx.save();
+    ctx.strokeStyle = ctx.fillStyle;
+    ctx.lineWidth = Math.max(1.2, s * 0.13);
+    ctx.lineCap = 'round';
+    ctx.lineJoin = 'round';
+    ctx.beginPath();
+    switch (icon) {
+        case 'clock':
+            ctx.arc(cx, cy + r * 0.08, r * 0.82, 0, Math.PI * 2);
+            ctx.moveTo(cx, cy + r * 0.08); ctx.lineTo(cx, cy - r * 0.42);
+            ctx.moveTo(cx, cy + r * 0.08); ctx.lineTo(cx + r * 0.36, cy + r * 0.24);
+            ctx.moveTo(cx - r * 0.28, cy - r * 1.02); ctx.lineTo(cx + r * 0.28, cy - r * 1.02);
+            ctx.stroke();
+            break;
+        case 'cycle': {
+            const R = r * 0.74, e = Math.PI * 1.62;
+            ctx.arc(cx, cy, R, Math.PI * 0.12, e);
+            ctx.stroke();
+            const px = cx + Math.cos(e) * R, py = cy + Math.sin(e) * R;
+            const tx = -Math.sin(e), ty = Math.cos(e), nx = Math.cos(e), ny = Math.sin(e);
+            ctx.beginPath();
+            ctx.moveTo(px + tx * r * 0.5, py + ty * r * 0.5);
+            ctx.lineTo(px + nx * r * 0.34, py + ny * r * 0.34);
+            ctx.lineTo(px - nx * r * 0.34, py - ny * r * 0.34);
+            ctx.closePath();
+            ctx.fill();
+            break;
+        }
+        case 'target':
+            ctx.arc(cx, cy, r * 0.8, 0, Math.PI * 2);
+            ctx.stroke();
+            ctx.beginPath();
+            ctx.arc(cx, cy, r * 0.32, 0, Math.PI * 2);
+            ctx.fill();
+            break;
+        case 'diamond':
+            ctx.moveTo(cx, cy - r); ctx.lineTo(cx + r * 0.72, cy); ctx.lineTo(cx, cy + r); ctx.lineTo(cx - r * 0.72, cy);
+            ctx.closePath();
+            ctx.fill();
+            break;
+        case 'heart':
+            ctx.moveTo(cx, cy + r * 0.86);
+            ctx.bezierCurveTo(cx - r * 1.3, cy - r * 0.08, cx - r * 0.56, cy - r * 1.05, cx, cy - r * 0.36);
+            ctx.bezierCurveTo(cx + r * 0.56, cy - r * 1.05, cx + r * 1.3, cy - r * 0.08, cx, cy + r * 0.86);
+            ctx.fill();
+            break;
+        case 'plus':
+            ctx.arc(cx, cy, r * 0.82, 0, Math.PI * 2);
+            ctx.moveTo(cx - r * 0.82, cy); ctx.lineTo(cx + r * 0.82, cy);
+            ctx.moveTo(cx, cy - r * 0.82); ctx.lineTo(cx, cy + r * 0.82);
+            ctx.stroke();
+            break;
+        case 'bolt':
+            ctx.moveTo(cx + r * 0.18, cy - r);
+            ctx.lineTo(cx - r * 0.58, cy + r * 0.14);
+            ctx.lineTo(cx - r * 0.02, cy + r * 0.14);
+            ctx.lineTo(cx - r * 0.2, cy + r);
+            ctx.lineTo(cx + r * 0.58, cy - r * 0.16);
+            ctx.lineTo(cx + r * 0.04, cy - r * 0.16);
+            ctx.closePath();
+            ctx.fill();
+            break;
+        case 'swords':
+            ctx.moveTo(cx - r * 0.85, cy - r * 0.85); ctx.lineTo(cx + r * 0.6, cy + r * 0.6);
+            ctx.moveTo(cx + r * 0.85, cy - r * 0.85); ctx.lineTo(cx - r * 0.6, cy + r * 0.6);
+            ctx.moveTo(cx + r * 0.2, cy + r * 0.72); ctx.lineTo(cx + r * 0.72, cy + r * 0.2);
+            ctx.moveTo(cx - r * 0.2, cy + r * 0.72); ctx.lineTo(cx - r * 0.72, cy + r * 0.2);
+            ctx.stroke();
+            break;
+        case 'pisces':
+            ctx.arc(cx - r * 1.15, cy, r * 0.95, -0.85, 0.85);
+            ctx.moveTo(cx + r * 1.15 + Math.cos(Math.PI - 0.85) * r * 0.95, cy + Math.sin(Math.PI - 0.85) * r * 0.95);
+            ctx.arc(cx + r * 1.15, cy, r * 0.95, Math.PI - 0.85, Math.PI + 0.85);
+            ctx.moveTo(cx - r * 0.45, cy); ctx.lineTo(cx + r * 0.45, cy);
+            ctx.stroke();
+            break;
+        case 'hex':
+            for (let i = 0; i < 6; i++) {
+                const a = Math.PI / 3 * i - Math.PI / 2;
+                const hx = cx + Math.cos(a) * r * 0.9, hy = cy + Math.sin(a) * r * 0.9;
+                if (i === 0) ctx.moveTo(hx, hy); else ctx.lineTo(hx, hy);
+            }
+            ctx.closePath();
+            ctx.stroke();
+            break;
+    }
+    ctx.restore();
+}
+function _iconText(icon, text, x, y, size) {
+    const w = ctx.measureText(text).width;
+    const gap = size * 0.5;
+    const a = ctx.textAlign;
+    let left, tx;
+    if (a === 'right' || a === 'end') { left = x - w - gap - size; tx = x; }
+    else if (a === 'center') { left = x - (w + gap + size) / 2; tx = x + (size + gap) / 2; }
+    else { left = x; tx = x + size + gap; }
+    _drawUiIcon(icon, left + size / 2, y - size * 0.36, size);
+    ctx.fillText(text, tx, y);
 }
 
 function draw(deltaTime) {
@@ -2812,7 +2917,7 @@ function draw(deltaTime) {
         const _tss = String(_elSec % 60).padStart(2, '0');
         ctx.font = _hMob ? 'bold 13px monospace' : 'bold 18px monospace';
         ctx.fillStyle = '#7ab8f5';
-        ctx.fillText(`⏱ ${_tmm}:${_tss}`, _hX + _hW - _hPad, _ry + (_hMob ? 13 : 17));
+        _iconText('clock', `${_tmm}:${_tss}`, _hX + _hW - _hPad, _ry + (_hMob ? 13 : 17), _hMob ? 12 : 16);
         _ry += _rH + 2;
 
         // Divider
@@ -2839,7 +2944,7 @@ function draw(deltaTime) {
         if (_wavePhase === 'rest') {
             const _restSec = Math.ceil(_waveRestTimer / 1000);
             ctx.fillStyle = '#667788';
-            ctx.fillText(`↻ ${_restSec}s  ·  ${_aliveCount} alive`, _hX + _hW - _hPad, _ry + (_hMob ? 11 : 13));
+            _iconText('cycle', `${_restSec}s  ·  ${_aliveCount} alive`, _hX + _hW - _hPad, _ry + (_hMob ? 11 : 13), _hMob ? 10 : 12);
         } else {
             // _waveQueue is only populated for the old fixed-15s queue - waves
             // now always use the trickle spawner instead (_WAVE_TRICKLE_MIN
@@ -2849,7 +2954,7 @@ function draw(deltaTime) {
             const _total = _aliveCount + (_waveSpawnBudget ? _waveTrickleBudgetLeft() : _waveQueue.length);
             const _pulseCnt = 0.7 + 0.3 * Math.abs(Math.sin(performance.now() / 600));
             ctx.fillStyle = _total > 0 ? `rgba(255,160,80,${_pulseCnt})` : '#446644';
-            ctx.fillText(_total > 0 ? `◉ ${_total} enemies` : '◉ clearing...', _hX + _hW - _hPad, _ry + (_hMob ? 11 : 13));
+            _iconText('target', _total > 0 ? `${_total} enemies` : 'clearing...', _hX + _hW - _hPad, _ry + (_hMob ? 11 : 13), _hMob ? 10 : 12);
         }
         _ry += (_hMob ? 16 : 20);
 
@@ -2863,7 +2968,7 @@ function draw(deltaTime) {
         const _fH = _hMob ? 12 : 16;
 
         ctx.fillStyle = '#cccccc';
-        ctx.fillText(`◆  ${score.toLocaleString()}`, _hX + _hW - _hPad, _ry + _fH);
+        _iconText('diamond', score.toLocaleString(), _hX + _hW - _hPad, _ry + _fH, _hMob ? 10 : 13);
         _ry += _rH;
 
         if (lives < 5) {
@@ -2871,20 +2976,20 @@ function draw(deltaTime) {
             const _blink = 0.7 + 0.3 * Math.abs(Math.sin(_bt / 380));
             ctx.fillStyle = `rgb(255,${Math.round(40 * _blink)},${Math.round(40 * _blink)})`;
         } else { ctx.fillStyle = '#cccccc'; }
-        ctx.fillText(`♥  ${lives}`, _hX + _hW - _hPad, _ry + _fH);
+        _iconText('heart', String(lives), _hX + _hW - _hPad, _ry + _fH, _hMob ? 11 : 14);
         _ry += _rH;
 
         ctx.fillStyle = '#88ccff';
-        ctx.fillText(`⊕  ${sentinels.length}`, _hX + _hW - _hPad, _ry + _fH);
+        _iconText('plus', String(sentinels.length), _hX + _hW - _hPad, _ry + _fH, _hMob ? 10 : 13);
         _ry += _rH;
 
         ctx.fillStyle = '#ffdd55';
-        ctx.fillText(`⚡  ${teslaCoils.length}`, _hX + _hW - _hPad, _ry + _fH);
+        _iconText('bolt', String(teslaCoils.length), _hX + _hW - _hPad, _ry + _fH, _hMob ? 11 : 14);
 
         if (_yuukiRow > 0) {
             _ry += _rH;
             ctx.fillStyle = '#ffaaaa';
-            ctx.fillText(`⚔ Yuuki +${Math.round(_yuukiBonus * 100)}%`, _hX + _hW - _hPad, _ry + _fH);
+            _iconText('swords', `Yuuki +${Math.round(_yuukiBonus * 100)}%`, _hX + _hW - _hPad, _ry + _fH, _hMob ? 10 : 13);
         }
 
         if (_walpurgisRow > 0) {
@@ -3088,7 +3193,7 @@ function _drawStartScreen() {
     ctx.font = '11px monospace';
     ctx.fillStyle = `rgba(100,200,255,${0.25 + 0.12 * Math.sin(now / 2000)})`;
     ctx.letterSpacing = '3px';
-    ctx.fillText('♓  PISCES', offX + piscesStars[14][0] * scale + 30, offY + piscesStars[14][1] * scale - 14);
+    _iconText('pisces', 'PISCES', offX + piscesStars[14][0] * scale + 30, offY + piscesStars[14][1] * scale - 14, 9);
     ctx.restore();
 
     // Title text

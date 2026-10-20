@@ -2,7 +2,8 @@
 // js/background.js — PIXI.js v8 parallax space background
 // Layers (back→front): gradient · galaxies · nebulas · stars-far · dust ·
 //   stars-mid · asteroids-far · stars-near · asteroids-mid · asteroids-near · brightness
-// Exposes: window._bgSetBrightness(0.01–1.0), window._bgReady
+// Exposes: window._bgSetBrightness(0.01–1.0), window._bgSetDetail('low'|'detail'|'full'),
+//   window._bgSetGlow(0–1), window._bgReady
 
 (async function initBackground() {
     'use strict';
@@ -111,7 +112,28 @@
     };
     const _isTouchDevice = (navigator.maxTouchPoints > 0) ||
         (window.matchMedia && window.matchMedia('(pointer: coarse)').matches);
-    let CFG = _isTouchDevice ? MOBILE_CFG : DESKTOP_CFG;
+    // Settings' background level scales the platform counts: Full keeps
+    // them, Detail trims every layer, Low keeps a sparse starfield with a
+    // few nebulas and no dust or near asteroids.
+    const DETAIL_SCALE = {
+        low:    { galaxyCount: 0.25, nebulaCount: 0.3, starsFar: 0.35, starsMid: 0.3, starsNear: 0.25, dustCount: 0, asteroidsFar: 0.5, asteroidsMid: 0, asteroidsNear: 0 },
+        detail: { galaxyCount: 0.75, nebulaCount: 0.6, starsFar: 0.65, starsMid: 0.65, starsNear: 0.65, dustCount: 0.5, asteroidsFar: 1, asteroidsMid: 0.67, asteroidsNear: 0.34 },
+    };
+    function _scaleCfg(base, level) {
+        const f = DETAIL_SCALE[level];
+        if (!f) return base;
+        const out = { gSpeed: base.gSpeed };
+        for (const k in f) out[k] = Math.round(base[k] * f[k]);
+        return out;
+    }
+    let _bgDetail = 'full';
+    try {
+        const savedDetail = localStorage.getItem('pisces_bg_detail');
+        if (savedDetail === 'low' || savedDetail === 'detail') _bgDetail = savedDetail;
+    } catch (_) {}
+    window._bgDetail = _bgDetail;
+    let _baseCfg = _isTouchDevice ? MOBILE_CFG : DESKTOP_CFG;
+    let CFG = _scaleCfg(_baseCfg, _bgDetail);
 
     // LAYERS (back → front)
     const bgLayer           = new PIXI.Container();
@@ -628,9 +650,23 @@
     // the untouched DESKTOP_CFG numbers, never a reduced count.
     window._bgSetDensity = function (platform) {
         const next = platform === 'mobile' ? MOBILE_CFG : DESKTOP_CFG;
-        if (next === CFG) return; // already matches, nothing to rebuild
-        CFG = next;
+        if (next === _baseCfg) return; // already matches, nothing to rebuild
+        _baseCfg = next;
+        _rebuildObjects();
+    };
 
+    // Settings' background level: 'low', 'detail' or 'full'. Kept on this device.
+    window._bgSetDetail = function (level) {
+        if (level !== 'low' && level !== 'detail') level = 'full';
+        try { localStorage.setItem('pisces_bg_detail', level); } catch (_) {}
+        if (level === _bgDetail) return;
+        _bgDetail = level;
+        window._bgDetail = level;
+        _rebuildObjects();
+    };
+
+    function _rebuildObjects() {
+        CFG = _scaleCfg(_baseCfg, _bgDetail);
         galaxyLayer.removeChildren();
         for (const g of galaxies) g.tex.destroy(true);
         nebulaLayer.removeChildren();
@@ -659,7 +695,21 @@
             ...Array.from({ length: CFG.asteroidsMid  }, () => new AsteroidObj('mid')),
             ...Array.from({ length: CFG.asteroidsNear }, () => new AsteroidObj('near')),
         ];
+    }
+
+    // Light patches: how strongly the nebulas and galaxies glow, 0 to 1.
+    window._bgGlow = 1;
+    window._bgSetGlow = function (val) {
+        window._bgGlow = Math.max(0, Math.min(1, parseFloat(val)));
+        if (isNaN(window._bgGlow)) window._bgGlow = 1;
+        nebulaLayer.alpha = window._bgGlow;
+        galaxyLayer.alpha = window._bgGlow;
+        try { localStorage.setItem('pisces_bg_glow', window._bgGlow); } catch (_) {}
     };
+    try {
+        const savedGlow = parseFloat(localStorage.getItem('pisces_bg_glow'));
+        if (!isNaN(savedGlow)) window._bgSetGlow(savedGlow);
+    } catch (_) {}
 
     // Re-spread every existing object across the CURRENT W()/H() without
     // recreating textures/sprites (cheap — just repositions). Needed because

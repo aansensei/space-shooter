@@ -1059,7 +1059,7 @@ function drawEnemy(enemy) {
         ctx.save();
         ctx.fillStyle = '#00ff88'; ctx.font = 'bold 10px monospace';
         ctx.textAlign = 'center';
-        ctx.fillText('⬡' + Math.ceil(enemy.shield), enemy.x, enemy.y - enemy.size / 2 - 24);
+        _iconText('hex', String(Math.ceil(enemy.shield)), enemy.x, enemy.y - enemy.size / 2 - 24, 9);
         ctx.restore();
     }
 

@@ -427,12 +427,12 @@ window.debugSetYuukiBonus = function () {
       padding:16px 16px 40px;">
     <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
       <div style="color:#00e5ff; font-weight:bold; font-size:14px; letter-spacing:1px;">DEBUG CONSOLE</div>
-      <button onclick="closeDebugConsole()" style="background:none; border:1px solid rgba(0,229,255,0.4); color:#00e5ff; border-radius:6px; width:26px; height:26px; cursor:pointer;">✕</button>
+      <button onclick="closeDebugConsole()" style="background:none; border:1px solid rgba(0,229,255,0.4); color:#00e5ff; border-radius:6px; width:26px; height:26px; cursor:pointer;"><svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
     </div>
     <div style="opacity:0.6; font-size:10px; margin-bottom:6px;">\` toggles this panel · P freezes/unfreezes the game.</div>
     <div id="dbgSessionStatus" style="font-size:10px; margin-bottom:10px; padding:5px 8px; border-radius:6px; background:rgba(0,229,255,0.08); border:1px solid rgba(0,229,255,0.2);"></div>
     <div class="dbg-row" style="margin-bottom:14px;">
-      <button class="dbg-btn" id="dbgPauseBtn" onclick="debugTogglePause()" style="min-width:110px; font-weight:bold;">⏸ Pause Game</button>
+      <button class="dbg-btn" id="dbgPauseBtn" onclick="debugTogglePause()" style="min-width:110px; font-weight:bold;">Pause Game</button>
       <span style="opacity:0.55; font-size:10px;">or press P</span>
     </div>
     <div class="dbg-row" style="margin-bottom:14px;">
@@ -774,16 +774,16 @@ window.debugSetYuukiBonus = function () {
                 el.textContent = 'Not in a match — click "Initiate Hyperjump" for a normal run, or "Start Debug Sandbox" below for an empty hands-off one.';
                 el.style.color = '#ffcc66';
             } else if (window._debugSessionActive) {
-                el.textContent = (gamePaused ? '⏸ PAUSED — ' : '▶ Running — ') + 'debug sandbox (auto-spawn off, sigil picker skipped).';
+                el.textContent = (gamePaused ? 'PAUSED — ' : 'Running — ') + 'debug sandbox (auto-spawn off, sigil picker skipped).';
                 el.style.color = gamePaused ? '#ffcc66' : '#7fffb0';
             } else {
-                el.textContent = (gamePaused ? '⏸ PAUSED — ' : '▶ Running — ') + 'normal match.';
+                el.textContent = (gamePaused ? 'PAUSED — ' : 'Running — ') + 'normal match.';
                 el.style.color = gamePaused ? '#ffcc66' : '#7fffb0';
             }
         }
         const pauseBtn = document.getElementById('dbgPauseBtn');
         if (pauseBtn) {
-            pauseBtn.textContent = gamePaused ? '▶ Resume Game' : '⏸ Pause Game';
+            pauseBtn.textContent = gamePaused ? 'Resume Game' : 'Pause Game';
             pauseBtn.classList.toggle('active', !!gamePaused);
         }
         document.querySelectorAll('.dbg-speed-btn').forEach(b => {

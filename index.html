@@ -90,7 +90,7 @@
     </script>
 
     <link
-        href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700&family=Roboto:wght@400;500&family=Courier+New&display=swap"
+        href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700&family=Roboto:wght@400;500&display=swap"
         rel="stylesheet">
     <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;700;900&display=swap" rel="stylesheet">
     <link href="https://fonts.googleapis.com/css2?family=LXGW+WenKai+TC:wght@700&text=%E5%A4%A9%E7%A9%BA%E5%B4%A9%E5%A1%8C&display=swap" rel="stylesheet">
@@ -191,6 +191,20 @@
             transform: skewX(-20deg); pointer-events: none; opacity: 0;
         }
         .menu-btn-ico { display: inline-block; transition: transform 0.45s ease; }
+        /* Drawn icons sit on the text line and take the button's colour. */
+        .ui-ico { display: inline-block; width: 1.15em; height: 1.15em; vertical-align: -0.2em; }
+        .menu-btn-ico .ui-ico { vertical-align: -0.22em; }
+        #view-position-btn::before {
+            content: "";
+            display: inline-block;
+            width: 9px;
+            height: 9px;
+            margin-right: 7px;
+            vertical-align: -1px;
+            border: 1.5px solid currentColor;
+            border-radius: 50%;
+            background: radial-gradient(circle, currentColor 0 1.6px, transparent 2px);
+        }
         @media (hover: hover) and (pointer: fine) {
             #guideBtn:hover, #settingsBtn:hover {
                 color: #e6fdff !important;
@@ -712,7 +726,7 @@
 
     <canvas id="gameCanvas"></canvas>
     <div id="pause-overlay">
-        <button id="view-position-btn" data-i18n="pause.viewPosition">◎ View Position</button>
+        <button id="view-position-btn" data-i18n="pause.viewPosition">View Position</button>
         <h2 id="pause-title" data-i18n="pause.title">SYSTEM TERMINATED</h2>
         <p id="pause-subtitle" data-i18n="pause.subtitle">Press RESUME to continue</p>
         <div id="pause-guide-btns" style="display:flex; gap:16px; margin-top:8px; margin-bottom:24px;">
@@ -725,7 +739,7 @@
                 cursor:pointer; backdrop-filter:blur(8px);
                 box-shadow:0 0 20px rgba(0,229,255,0.15);
                 transition:all 0.25s;
-            ">⬡ Guide</button>
+            "><svg class="ui-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round" aria-hidden="true"><path d="M12 2.8l8 4.6v9.2l-8 4.6-8-4.6V7.4z"/><path d="M12 8.6l3 1.7v3.4L12 15.4l-3-1.7v-3.4z" fill="currentColor" stroke="none"/></svg> Guide</button>
             <button onclick="openSettings()" style="
                 padding:10px 24px;
                 font-family:'Orbitron',sans-serif; font-size:11px; font-weight:700;
@@ -735,7 +749,7 @@
                 cursor:pointer; backdrop-filter:blur(8px);
                 box-shadow:0 0 20px rgba(0,229,255,0.15);
                 transition:all 0.25s;
-            ">⚙ Settings</button>
+            "><svg class="ui-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2.2" fill="currentColor" stroke="none"/><path d="M12 2.6v2.6M12 18.8v2.6M2.6 12h2.6M18.8 12h2.6M5.4 5.4l1.8 1.8M16.8 16.8l1.8 1.8M5.4 18.6l1.8-1.8M16.8 7.2l1.8-1.8"/></svg> Settings</button>
         </div>
         <div id="pause-main-btns" style="display:none; gap:16px; align-items:center; justify-content:center;">
             <button id="resume-btn">RESUME</button>
@@ -826,7 +840,7 @@
                         cursor:pointer; backdrop-filter:blur(8px);
                         box-shadow:0 0 20px rgba(0,229,255,0.15);
                         transition:all 0.25s;
-                    "><span class="menu-btn-ico">⬡</span> Guide</button>
+                    "><span class="menu-btn-ico"><svg class="ui-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round" aria-hidden="true"><path d="M12 2.8l8 4.6v9.2l-8 4.6-8-4.6V7.4z"/><path d="M12 8.6l3 1.7v3.4L12 15.4l-3-1.7v-3.4z" fill="currentColor" stroke="none"/></svg></span> Guide</button>
                     <button id="settingsBtn" onclick="openSettings()" style="
                         flex:1; padding:12px 0;
                         font-family:'Orbitron',sans-serif; font-size:12px; font-weight:700;
@@ -836,7 +850,7 @@
                         cursor:pointer; backdrop-filter:blur(8px);
                         box-shadow:0 0 20px rgba(0,229,255,0.15);
                         transition:all 0.25s;
-                    "><span class="menu-btn-ico">⚙</span> Settings</button>
+                    "><span class="menu-btn-ico"><svg class="ui-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2.2" fill="currentColor" stroke="none"/><path d="M12 2.6v2.6M12 18.8v2.6M2.6 12h2.6M18.8 12h2.6M5.4 5.4l1.8 1.8M16.8 16.8l1.8 1.8M5.4 18.6l1.8-1.8M16.8 7.2l1.8-1.8"/></svg></span> Settings</button>
                 </div>
 
                 <button id="start-hyperjump-btn">Initiate Hyperjump</button>
@@ -855,7 +869,7 @@
                         color:#ff6666; font-size:20px; cursor:pointer;
                         display:flex; align-items:center; justify-content:center;
                         transition:all 0.2s;
-                    ">✕</button>
+                    "><svg class="ui-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
                     <iframe id="guideFrame" src="" style="
                         width:100%; height:88vh; border:1px solid rgba(0,200,255,0.18);
                         border-radius:14px; background:#03030f; display:block;
@@ -934,495 +948,799 @@
                 });
             </script>
 
-            <!-- SETTINGS OVERLAY -->
-            <div id="settingsOverlay" style="display:none; position:fixed; inset:0; z-index:999999999;
-                background:rgba(0,3,10,0.45); backdrop-filter:blur(6px);
-                justify-content:center; align-items:center;">
-                <div id="settings-panel" style="
-                    position:relative; width:min(90vw,400px);
-                    max-height:90vh; max-height:90dvh; overflow-y:auto;
-                    background:rgba(0,12,28,0.95);
-                    border:1.5px solid rgba(0,229,255,0.25);
-                    border-radius:18px; padding:28px 28px 24px;
-                    box-shadow:0 0 40px rgba(0,100,200,0.2);
-                    font-family:'Courier New',monospace;
-                ">
-                    <!-- Close button. Was position:absolute with negative
-                         top/right (hanging off the panel corner as a
-                         "badge") but the panel has overflow-y:auto for
-                         mobile scrolling, which per the CSS spec forces the
-                         other axis to clip too — so the negative offsets
-                         got cut off, leaving only a sliver visible. Kept
-                         fully inside the panel bounds instead. -->
-                    <button onclick="closeSettings()" style="
-                        position:absolute; top:10px; right:10px; z-index:10;
-                        width:34px; height:34px; background:rgba(255,60,60,0.15);
-                        border:1px solid rgba(255,60,60,0.4); border-radius:8px;
-                        color:#ff6666; font-size:18px; cursor:pointer;
-                        display:flex; align-items:center; justify-content:center;
-                        transition:all 0.2s;
-                    ">✕</button>
+            <!-- SETTINGS OVERLAY: same plate, mark and hex button language as
+                 the Voyage Recap (css/recap.css supplies .rc-btn). Ids and the
+                 stg- classes the settings script reads are kept as they were. -->
+            <div id="settingsOverlay" style="display:none;">
+                <div id="settings-panel">
+                    <header class="st-head">
+                        <div class="st-title"><i class="st-mark"></i><span data-i18n="settings.title">Settings</span></div>
+                        <div class="st-sub"><span data-i18n="settings.subtitlePre">Press</span> <kbd class="st-kbd">ESC</kbd>
+                            <span data-i18n="settings.subtitlePost">to pause / resume game</span></div>
+                        <button type="button" class="st-close" onclick="closeSettings()" aria-label="Close"><svg width="13"
+                                height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
+                                <path d="M18 6L6 18M6 6L18 18" />
+                            </svg></button>
+                    </header>
 
-                    <h2 style="margin:0 0 6px; text-align:center; color:#00e5ff;
-                        font-size:14px; letter-spacing:4px; text-transform:uppercase;
-                        text-shadow:0 0 12px rgba(0,229,255,0.5);" data-i18n="settings.title">⚙ Settings</h2>
-                    <p style="margin:0 0 18px; text-align:center; color:rgba(0,229,255,0.45);
-                        font-size:10px; letter-spacing:2px;"><span data-i18n="settings.subtitlePre">Press</span> <kbd
-                            style="
-                            background:rgba(0,229,255,0.1); border:1px solid rgba(0,229,255,0.35);
-                            border-radius:4px; padding:1px 5px; font-family:monospace;
-                            color:#00e5ff; font-size:10px;">ESC</kbd> <span data-i18n="settings.subtitlePost">to pause
-                            / resume game</span></p>
-
-                    <!-- LANGUAGE -->
-                    <select id="lang-select" style="display:none;">
-                        <option value="en">English</option>
-                        <option value="vi">Tiếng Việt</option>
-                    </select>
-                    <div
-                        style="display:flex; align-items:center; justify-content:space-between; gap:10px; margin-bottom:18px;">
-                        <span class="stg-section-label" style="margin-bottom:0;"
-                            data-i18n="language.section">Language</span>
-                        <div id="lang-select-wrap" style="position:relative; width:150px;">
-                            <button type="button" id="lang-select-btn" class="stg-music-btn"
-                                onclick="toggleLangDropdown()">
-                                <span id="lang-select-label" class="stg-music-label">English</span>
-                                <span class="stg-music-chevron">▾</span>
-                            </button>
-                            <div id="lang-dropdown" class="stg-music-dropdown" style="display:none;"></div>
-                        </div>
-                    </div>
-
-                    <div class="stg-divider"></div>
-
-                    <!-- GRAPHICS -->
-                    <div class="stg-section-label" data-i18n="graphics.section">Graphics</div>
-
-                    <div style="display:flex; align-items:center; gap:10px; margin-bottom:8px;">
-                        <label class="stg-toggle-row"
-                            style="cursor:pointer; display:flex; align-items:center; gap:10px; flex:1;">
-                            <div class="stg-toggle-wrap" id="sq-wrap">
-                                <input type="checkbox" id="sq-check" checked
-                                    onchange="onSmartQualityChange(this.checked)">
-                                <div class="stg-toggle-track"></div>
-                                <div class="stg-toggle-thumb"></div>
+                    <div class="st-body">
+                        <!-- AUDIO -->
+                        <section class="st-card">
+                            <div class="st-card-head"><i class="st-mark"></i><span data-i18n="audio.section">Audio</span></div>
+                            <div class="st-row st-row-slider">
+                                <span class="st-label" data-i18n="audio.global">Global</span>
+                                <input type="range" id="vol-global-slider" min="0" max="100" value="100" class="stg-slider"
+                                    oninput="onAudioSlider('global', this.value)" style="--pct:100%;">
+                                <span id="vol-global-label" class="st-val">100%</span>
                             </div>
-                            <span style="color:#e0f4ff; font-size:12px; letter-spacing:1px;"
-                                data-i18n="graphics.smartQuality">Smart Quality</span>
-                        </label>
-                    </div>
-                    <div style="font-size:10px; color:rgba(0,229,255,0.45); margin-bottom:12px; padding-left:2px; line-height:1.5;"
-                        data-i18n="graphics.smartQualityDesc">
-                        Auto-adjusts graphics to maintain smooth performance.
-                    </div>
-
-                    <!-- Quality buttons. q-per (mobile only, tier 4) is hidden by
-                         default and shown from JS once window._platform is known
-                         to be 'mobile' - see the platform-select code below. -->
-                    <div id="quality-row"
-                        style="display:flex; gap:8px; margin-bottom:6px; opacity:0.35; pointer-events:none;">
-                        <button class="stg-q-btn" id="q-per" onclick="onQualitySelect(4)" data-i18n="graphics.per"
-                            style="display:none;">PER</button>
-                        <button class="stg-q-btn" id="q-low" onclick="onQualitySelect(2)"
-                            data-i18n="graphics.low">LOW</button>
-                        <button class="stg-q-btn" id="q-med" onclick="onQualitySelect(1)"
-                            data-i18n="graphics.medium">MEDIUM</button>
-                        <button class="stg-q-btn" id="q-high" onclick="onQualitySelect(0)"
-                            data-i18n="graphics.high">HIGH</button>
-                    </div>
-                    <div id="quality-note"
-                        style="font-size:10px; color:rgba(255,200,74,0.5); margin-bottom:18px; padding-left:2px; line-height:1.5; display:block;"
-                        data-i18n="graphics.qualityNote">
-                        To choose a specific quality, please turn off Smart Quality.
-                    </div>
-
-                    <div style="display:flex; align-items:center; gap:10px; margin-bottom:8px;">
-                        <label class="stg-toggle-row"
-                            style="cursor:pointer; display:flex; align-items:center; gap:10px; flex:1;">
-                            <div class="stg-toggle-wrap" id="highfps-wrap">
-                                <input type="checkbox" id="highfps-check" checked>
-                                <div class="stg-toggle-track"></div>
-                                <div class="stg-toggle-thumb"></div>
+                            <div class="st-row st-row-slider">
+                                <span class="st-label" data-i18n="audio.bgm">BGM</span>
+                                <input type="range" id="vol-bgm-slider" min="0" max="100" value="100" class="stg-slider"
+                                    oninput="onAudioSlider('bgm', this.value)" style="--pct:100%;">
+                                <span id="vol-bgm-label" class="st-val">100%</span>
                             </div>
-                            <span style="color:#e0f4ff; font-size:12px; letter-spacing:1px;"
-                                data-i18n="graphics.highFps">High FPS</span>
-                        </label>
-                    </div>
-                    <div style="font-size:10px; color:rgba(0,229,255,0.45); margin-bottom:12px; padding-left:2px; line-height:1.5;"
-                        data-i18n="graphics.highFpsDesc">
-                        Removes the ~45fps cap on mobile. Smoother on a strong device, uses more battery.
+                            <div class="st-row st-row-slider">
+                                <span class="st-label" data-i18n="audio.sfx">SFX</span>
+                                <input type="range" id="vol-sfx-slider" min="0" max="100" value="100" class="stg-slider"
+                                    oninput="onAudioSlider('sfx', this.value)" style="--pct:100%;">
+                                <span id="vol-sfx-label" class="st-val">100%</span>
+                            </div>
+                            <div class="st-row st-row-stack">
+                                <span class="st-label" data-i18n="audio.inGameMusic">In-Game Music</span>
+                                <div id="music-select-wrap" class="st-dd">
+                                    <button type="button" id="music-select-btn" class="stg-music-btn" onclick="toggleMusicDropdown()">
+                                        <span id="music-select-label" class="stg-music-label">Random</span>
+                                        <span class="stg-music-chevron"></span>
+                                    </button>
+                                    <div id="music-dropdown" class="stg-music-dropdown" style="display:none;"></div>
+                                </div>
+                            </div>
+                        </section>
+
+                        <!-- GRAPHICS -->
+                        <section class="st-card">
+                            <div class="st-card-head"><i class="st-mark"></i><span data-i18n="graphics.section">Graphics</span></div>
+
+                            <label class="st-row st-row-click">
+                                <span class="st-row-text">
+                                    <span class="st-label" data-i18n="graphics.smartQuality">Smart Quality</span>
+                                    <span class="st-desc" data-i18n="graphics.smartQualityDesc">Auto-adjusts graphics to maintain smooth performance.</span>
+                                </span>
+                                <span class="stg-toggle-wrap" id="sq-wrap">
+                                    <input type="checkbox" id="sq-check" checked onchange="onSmartQualityChange(this.checked)">
+                                    <span class="stg-toggle-track"></span>
+                                    <span class="stg-toggle-thumb"></span>
+                                </span>
+                            </label>
+
+                            <!-- q-per (mobile only, tier 4) is hidden by default and shown
+                                 from JS once window._platform is known to be 'mobile'. -->
+                            <div id="quality-row" class="st-seg" style="opacity:0.35; pointer-events:none;">
+                                <button class="stg-q-btn" id="q-per" onclick="onQualitySelect(4)" data-i18n="graphics.per"
+                                    style="display:none;">PER</button>
+                                <button class="stg-q-btn" id="q-low" onclick="onQualitySelect(2)" data-i18n="graphics.low">LOW</button>
+                                <button class="stg-q-btn" id="q-med" onclick="onQualitySelect(1)" data-i18n="graphics.medium">MEDIUM</button>
+                                <button class="stg-q-btn" id="q-high" onclick="onQualitySelect(0)" data-i18n="graphics.high">HIGH</button>
+                            </div>
+                            <div id="quality-note" class="st-note st-note-warn" data-i18n="graphics.qualityNote">To choose a
+                                specific quality, please turn off Smart Quality.</div>
+
+                            <label class="st-row st-row-click">
+                                <span class="st-row-text">
+                                    <span class="st-label" data-i18n="graphics.highFps">High FPS</span>
+                                    <span class="st-desc" data-i18n="graphics.highFpsDesc">Removes the ~45fps cap on mobile.</span>
+                                </span>
+                                <span class="stg-toggle-wrap" id="highfps-wrap">
+                                    <input type="checkbox" id="highfps-check" checked>
+                                    <span class="stg-toggle-track"></span>
+                                    <span class="stg-toggle-thumb"></span>
+                                </span>
+                            </label>
+
+                            <label class="st-row st-row-click">
+                                <span class="st-row-text">
+                                    <span class="st-label" data-i18n="graphics.showFps">Show FPS</span>
+                                    <span class="st-desc" data-i18n="graphics.showFpsDesc">Frame rate next to the sound button.</span>
+                                </span>
+                                <span class="stg-toggle-wrap">
+                                    <input type="checkbox" id="showfps-check">
+                                    <span class="stg-toggle-track"></span>
+                                    <span class="stg-toggle-thumb"></span>
+                                </span>
+                            </label>
+
+                            <div class="st-adv" id="st-adv">
+                                <button type="button" class="st-adv-head" id="st-adv-head" onclick="toggleAdvancedGraphics()" aria-expanded="false">
+                                    <span class="st-adv-title" data-i18n="graphics.advanced">Advanced Graphics</span>
+                                    <span class="st-adv-tag" data-i18n="graphics.advancedSoon">Preview</span>
+                                    <span class="stg-music-chevron"></span>
+                                </button>
+                                <div class="st-adv-body" id="st-adv-body" style="display:none;">
+                                    <div class="st-note" data-i18n="graphics.advancedNote">These switches are being wired into the game and do nothing yet. Enemy attack warnings always stay on.</div>
+                                    <div class="st-adv-actions">
+                                        <button type="button" class="stg-btn-sm" onclick="setAllFx(true)" data-i18n="graphics.fxByLevel">Follow Graphics Level</button>
+                                        <button type="button" class="stg-btn-sm" onclick="setAllFx(false)" data-i18n="graphics.fxAllOff">Turn All Off</button>
+                                    </div>
+                                    <div id="st-fx-rows"></div>
+                                    <div class="st-row st-row-slider">
+                                        <span class="st-label" data-i18n="graphics.fxBrightness">Effect Brightness</span>
+                                        <input type="range" id="fx-bright-slider" min="20" max="100" value="100" class="stg-slider"
+                                            oninput="onFxSlider('fx-bright', this.value)" style="--pct:100%;">
+                                        <span id="fx-bright-label" class="st-val">100%</span>
+                                    </div>
+                                    <div class="st-row st-row-slider">
+                                        <span class="st-label" data-i18n="graphics.flashIntensity">Flash Intensity</span>
+                                        <input type="range" id="fx-flash-slider" min="0" max="100" value="100" class="stg-slider"
+                                            oninput="onFxSlider('fx-flash', this.value)" style="--pct:100%;">
+                                        <span id="fx-flash-label" class="st-val">100%</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </section>
+
+                        <!-- BACKGROUND: applies live so the space behind the panel shows it. -->
+                        <section class="st-card">
+                            <div class="st-card-head"><i class="st-mark"></i><span data-i18n="background.section">Background</span></div>
+                            <div class="st-row st-row-stack">
+                                <span class="st-row-text">
+                                    <span class="st-label" data-i18n="background.detail">Background Detail</span>
+                                    <span class="st-desc" data-i18n="background.detailDesc">How many stars, nebulas and asteroids drift behind the battle. Lower is lighter on weak devices.</span>
+                                </span>
+                                <div class="st-seg st-seg-bg">
+                                    <button class="stg-q-bg" id="bg-detail-low" onclick="onBgDetailSelect('low')" data-i18n="background.low">LOW</button>
+                                    <button class="stg-q-bg" id="bg-detail-detail" onclick="onBgDetailSelect('detail')" data-i18n="background.mid">DETAIL</button>
+                                    <button class="stg-q-bg" id="bg-detail-full" onclick="onBgDetailSelect('full')" data-i18n="background.full">FULL</button>
+                                </div>
+                            </div>
+                            <div class="st-row st-row-slider">
+                                <span class="st-label" data-i18n="background.brightness">Brightness</span>
+                                <input type="range" id="bg-bright-slider" min="1" max="100" value="100" class="stg-slider"
+                                    oninput="onBgBrightnessChange(this.value)" style="--pct:100%;">
+                                <span id="bg-bright-label" class="st-val">100%</span>
+                            </div>
+                            <div class="st-row st-row-slider">
+                                <span class="st-label" data-i18n="background.glow">Light Patches</span>
+                                <input type="range" id="bg-glow-slider" min="0" max="100" value="100" class="stg-slider"
+                                    oninput="onBgGlowChange(this.value)" style="--pct:100%;">
+                                <span id="bg-glow-label" class="st-val">100%</span>
+                            </div>
+                        </section>
+
+                        <!-- GAMEPLAY -->
+                        <section class="st-card">
+                            <div class="st-card-head"><i class="st-mark"></i><span data-i18n="gameplay.section">Gameplay</span></div>
+                            <div class="st-row">
+                                <span class="st-row-text">
+                                    <span class="st-label" data-i18n="gameplay.screenShake">Screen Shake</span>
+                                    <span class="st-desc st-desc-warn" data-i18n="gameplay.screenShakeWarn">Turning on screen shake may cause lag on some devices.</span>
+                                </span>
+                                <span class="st-pair">
+                                    <button class="stg-onoff-btn" id="shake-on" onclick="onShakeChange(true)" data-i18n="gameplay.on">ON</button>
+                                    <button class="stg-onoff-btn stg-onoff-active" id="shake-off" onclick="onShakeChange(false)" data-i18n="gameplay.off">OFF</button>
+                                </span>
+                            </div>
+                            <!-- Phones that can vibrate only; iPhone browsers cannot. -->
+                            <div class="st-row" id="vibrate-row" style="display:none;">
+                                <span class="st-row-text">
+                                    <span class="st-label" data-i18n="gameplay.vibrate">Vibration</span>
+                                    <span class="st-desc" data-i18n="gameplay.vibrateDesc">Short buzz on hits, sigil picks and skill buttons.</span>
+                                </span>
+                                <span class="st-pair">
+                                    <button class="stg-onoff-btn stg-onoff-active" id="vibrate-on" onclick="onVibrateChange(true)" data-i18n="gameplay.on">ON</button>
+                                    <button class="stg-onoff-btn" id="vibrate-off" onclick="onVibrateChange(false)" data-i18n="gameplay.off">OFF</button>
+                                </span>
+                            </div>
+                            <!-- Only shown once the player has actually watched Kanade's
+                                 cutscene through once; before that it is not an option. -->
+                            <div class="st-row" id="kanade-skip-row" style="display:none;">
+                                <span class="st-row-text">
+                                    <span class="st-label" data-i18n="gameplay.skipKanade">Skip Kanade Animation</span>
+                                    <span class="st-desc" id="kanade-skip-note" data-i18n="gameplay.skipKanadeNote">The boss wave still rolls and applies its Timeline Distortion either way.</span>
+                                </span>
+                                <span class="st-pair">
+                                    <button class="stg-onoff-btn" id="kanade-skip-on" onclick="onKanadeSkipChange(true)" data-i18n="gameplay.on">ON</button>
+                                    <button class="stg-onoff-btn stg-onoff-active" id="kanade-skip-off" onclick="onKanadeSkipChange(false)" data-i18n="gameplay.off">OFF</button>
+                                </span>
+                            </div>
+                        </section>
+
+                        <!-- SYSTEM: language, offline play, defaults -->
+                        <section class="st-card">
+                            <div class="st-card-head"><i class="st-mark"></i><span data-i18n="system.section">System</span></div>
+                            <select id="lang-select" style="display:none;">
+                                <option value="en">English</option>
+                                <option value="vi">Tiếng Việt</option>
+                            </select>
+                            <div class="st-row">
+                                <span class="st-label" data-i18n="language.section">Language</span>
+                                <div id="lang-select-wrap" class="st-dd st-dd-sm">
+                                    <button type="button" id="lang-select-btn" class="stg-music-btn" onclick="toggleLangDropdown()">
+                                        <span id="lang-select-label" class="stg-music-label">English</span>
+                                        <span class="stg-music-chevron"></span>
+                                    </button>
+                                    <div id="lang-dropdown" class="stg-music-dropdown" style="display:none;"></div>
+                                </div>
+                            </div>
+
+                            <div class="st-row st-row-stack">
+                                <span class="st-row-text">
+                                    <span class="st-label" data-i18n="offline.section">Offline Play</span>
+                                    <span class="st-desc" data-i18n="offline.desc">Download in advance to play without internet.</span>
+                                </span>
+                                <select id="offline-pkg-select" style="display:none;">
+                                    <option value="basic" data-i18n="offline.pkgBasic">Basic (~66MB)</option>
+                                    <option value="full" data-i18n="offline.pkgFull">Full (~219MB)</option>
+                                </select>
+                                <div class="st-offline">
+                                    <div id="offline-pkg-select-wrap" class="st-dd">
+                                        <button type="button" id="offline-pkg-select-btn" class="stg-music-btn" onclick="toggleOfflinePkgDropdown()">
+                                            <span id="offline-pkg-select-label" class="stg-music-label">Basic (~66MB)</span>
+                                            <span class="stg-music-chevron"></span>
+                                        </button>
+                                        <div id="offline-pkg-dropdown" class="stg-music-dropdown" style="display:none;"></div>
+                                    </div>
+                                    <button class="stg-btn-sm" id="offline-download-btn" onclick="downloadOfflinePackage()" data-i18n="offline.downloadBtn">Download</button>
+                                </div>
+                                <div class="stg-offline-bar-track"><div class="stg-offline-bar-fill" id="offline-fill"></div></div>
+                                <div id="offline-status-text" class="st-note"></div>
+                            </div>
+
+                            <div class="st-row">
+                                <span class="st-row-text">
+                                    <span class="st-label" data-i18n="settings.reset">Restore Defaults</span>
+                                    <span class="st-desc" data-i18n="settings.resetDesc">Puts every setting back as it was on first launch. Language stays.</span>
+                                </span>
+                                <button class="stg-btn-sm st-btn-reset" id="settings-reset-btn" onclick="onResetSettings()" data-i18n="settings.resetBtn">Restore</button>
+                            </div>
+                        </section>
                     </div>
 
-                    <div class="stg-divider"></div>
+                    <footer class="st-foot">
+                        <button type="button" class="rc-btn rc-btn-primary st-apply" onclick="applySettings()" data-i18n="settings.apply">Apply</button>
+                    </footer>
 
-                    <!-- AUDIO -->
-                    <div class="stg-section-label" data-i18n="audio.section">Audio</div>
-
-                    <div style="display:flex; align-items:center; gap:12px; margin-bottom:10px;">
-                        <span style="color:#a0cce0; font-size:11px; letter-spacing:1px; min-width:56px;"
-                            data-i18n="audio.bgm">BGM</span>
-                        <input type="range" id="vol-bgm-slider" min="0" max="100" value="100" class="stg-slider"
-                            oninput="onAudioSlider('bgm', this.value)" style="--pct:100%;">
-                        <span id="vol-bgm-label"
-                            style="color:#00e5ff; font-size:11px; min-width:32px; text-align:right;">100%</span>
-                    </div>
-                    <div style="display:flex; align-items:center; gap:12px; margin-bottom:10px;">
-                        <span style="color:#a0cce0; font-size:11px; letter-spacing:1px; min-width:56px;"
-                            data-i18n="audio.sfx">SFX</span>
-                        <input type="range" id="vol-sfx-slider" min="0" max="100" value="100" class="stg-slider"
-                            oninput="onAudioSlider('sfx', this.value)" style="--pct:100%;">
-                        <span id="vol-sfx-label"
-                            style="color:#00e5ff; font-size:11px; min-width:32px; text-align:right;">100%</span>
-                    </div>
-                    <div style="display:flex; align-items:center; gap:12px; margin-bottom:18px;">
-                        <span style="color:#a0cce0; font-size:11px; letter-spacing:1px; min-width:56px;"
-                            data-i18n="audio.global">Global</span>
-                        <input type="range" id="vol-global-slider" min="0" max="100" value="100" class="stg-slider"
-                            oninput="onAudioSlider('global', this.value)" style="--pct:100%;">
-                        <span id="vol-global-label"
-                            style="color:#00e5ff; font-size:11px; min-width:32px; text-align:right;">100%</span>
-                    </div>
-
-                    <div style="margin-bottom:18px;">
-                        <span
-                            style="color:#a0cce0; font-size:11px; letter-spacing:1px; display:block; margin-bottom:8px;"
-                            data-i18n="audio.inGameMusic">In-Game Music</span>
-                        <div id="music-select-wrap" style="position:relative;">
-                            <button type="button" id="music-select-btn" class="stg-music-btn"
-                                onclick="toggleMusicDropdown()">
-                                <span id="music-select-label">Random</span>
-                                <span class="stg-music-chevron">▾</span>
-                            </button>
-                            <div id="music-dropdown" class="stg-music-dropdown" style="display:none;"></div>
+                    <div class="st-confirm" id="st-reset-confirm">
+                        <div class="st-confirm-box">
+                            <div class="st-confirm-title"><i class="st-mark"></i><span data-i18n="settings.reset">Restore Defaults</span></div>
+                            <p class="st-confirm-msg" data-i18n="settings.resetAsk">Put every setting back as it was on first launch? Language stays as it is.</p>
+                            <div class="st-confirm-btns">
+                                <button type="button" class="rc-btn rc-btn-secondary" onclick="closeResetConfirm()" data-i18n="confirmMenu.no">NO</button>
+                                <button type="button" class="rc-btn rc-btn-primary" onclick="confirmResetSettings()" data-i18n="confirmMenu.yes">YES</button>
+                            </div>
                         </div>
                     </div>
-
-                    <div class="stg-divider"></div>
-
-                    <!-- BACKGROUND -->
-                    <div class="stg-section-label" data-i18n="background.section">Background</div>
-
-                    <div style="display:flex; align-items:center; gap:12px; margin-bottom:18px;">
-                        <span style="color:#a0cce0; font-size:11px; letter-spacing:1px; min-width:56px;"
-                            data-i18n="background.brightness">Brightness</span>
-                        <input type="range" id="bg-bright-slider" min="1" max="100" value="100" class="stg-slider"
-                            oninput="onBgBrightnessChange(this.value)" style="--pct:100%;">
-                        <span id="bg-bright-label"
-                            style="color:#00e5ff; font-size:11px; min-width:32px; text-align:right;">100%</span>
-                    </div>
-
-                    <div class="stg-divider"></div>
-
-                    <!-- GAMEPLAY -->
-                    <div class="stg-section-label" data-i18n="gameplay.section">Gameplay</div>
-
-                    <div style="display:flex; align-items:center; gap:10px; margin-bottom:4px;">
-                        <span style="color:#a0cce0; font-size:11px; letter-spacing:1px; flex:1;"
-                            data-i18n="gameplay.screenShake">Screen Shake</span>
-                        <div style="display:flex; gap:6px;">
-                            <button class="stg-onoff-btn" id="shake-on" onclick="onShakeChange(true)"
-                                data-i18n="gameplay.on">ON</button>
-                            <button class="stg-onoff-btn stg-onoff-active" id="shake-off" onclick="onShakeChange(false)"
-                                data-i18n="gameplay.off">OFF</button>
-                        </div>
-                    </div>
-                    <div style="font-size:10px; color:rgba(255,180,50,0.55); margin-bottom:4px; line-height:1.5;"
-                        data-i18n="gameplay.screenShakeWarn">
-                        ⚠ Turning on screen shake may cause unexpected lag on some devices.
-                    </div>
-
-                    <!-- Only shown once the player has actually watched Kanade's
-                         cutscene through once; before that it is not an option. -->
-                    <div id="kanade-skip-row"
-                        style="display:none; align-items:center; gap:10px; margin-top:14px; margin-bottom:4px;">
-                        <span style="color:#a0cce0; font-size:11px; letter-spacing:1px; flex:1;"
-                            data-i18n="gameplay.skipKanade">Skip Kanade Animation</span>
-                        <div style="display:flex; gap:6px;">
-                            <button class="stg-onoff-btn" id="kanade-skip-on" onclick="onKanadeSkipChange(true)"
-                                data-i18n="gameplay.on">ON</button>
-                            <button class="stg-onoff-btn stg-onoff-active" id="kanade-skip-off"
-                                onclick="onKanadeSkipChange(false)" data-i18n="gameplay.off">OFF</button>
-                        </div>
-                    </div>
-                    <div id="kanade-skip-note"
-                        style="display:none; font-size:10px; color:rgba(0,229,255,0.45); margin-bottom:4px; line-height:1.5;"
-                        data-i18n="gameplay.skipKanadeNote">
-                        The boss wave still rolls and applies its Timeline Distortion either way.
-                    </div>
-
-                    <div class="stg-divider"></div>
-
-                    <!-- OFFLINE PLAY -->
-                    <div class="stg-section-label" data-i18n="offline.section">Offline Play</div>
-                    <div style="font-size:10px; color:rgba(0,229,255,0.45); margin-bottom:12px; padding-left:2px; line-height:1.5;"
-                        data-i18n="offline.desc">
-                        Download in advance to play without internet.
-                    </div>
-                    <div style="color:#a0cce0; font-size:11px; letter-spacing:1px; margin-bottom:8px;"
-                        data-i18n="offline.downloadLabel">Download offline resources</div>
-                    <select id="offline-pkg-select" style="display:none;">
-                        <option value="basic" data-i18n="offline.pkgBasic">Basic (~33MB)</option>
-                        <option value="full" data-i18n="offline.pkgFull">Full (~196MB)</option>
-                    </select>
-                    <div style="display:flex; gap:8px; margin-bottom:8px;">
-                        <div id="offline-pkg-select-wrap" style="position:relative; flex:1;">
-                            <button type="button" id="offline-pkg-select-btn" class="stg-music-btn"
-                                onclick="toggleOfflinePkgDropdown()">
-                                <span id="offline-pkg-select-label" class="stg-music-label">Basic (~33MB)</span>
-                                <span class="stg-music-chevron">▾</span>
-                            </button>
-                            <div id="offline-pkg-dropdown" class="stg-music-dropdown" style="display:none;"></div>
-                        </div>
-                        <button class="stg-btn-sm" id="offline-download-btn" onclick="downloadOfflinePackage()"
-                            data-i18n="offline.downloadBtn">Download</button>
-                    </div>
-                    <div class="stg-offline-bar-track">
-                        <div class="stg-offline-bar-fill" id="offline-fill"></div>
-                    </div>
-                    <div id="offline-status-text"
-                        style="font-size:10px; color:rgba(0,229,255,0.5); margin-top:5px; margin-bottom:12px;"></div>
-
-                    <div class="stg-divider"></div>
-
-                    <button onclick="applySettings()" style="
-                        width:100%; padding:10px 0; border-radius:10px;
-                        font-family:'Courier New',monospace; font-size:12px;
-                        font-weight:700; letter-spacing:2px; text-transform:uppercase;
-                        color:#fff; background:linear-gradient(45deg,rgba(0,200,255,0.25),rgba(0,100,200,0.25));
-                        border:1.5px solid #00e5ff; cursor:pointer;
-                        box-shadow:0 0 15px rgba(0,229,255,0.2);
-                        transition:all 0.2s;
-                    " onmouseover="this.style.background='linear-gradient(45deg,rgba(0,200,255,0.45),rgba(0,100,200,0.45))'"
-                        onmouseout="this.style.background='linear-gradient(45deg,rgba(0,200,255,0.25),rgba(0,100,200,0.25))'"
-                        data-i18n="settings.apply">
-                        Apply
-                    </button>
                 </div>
             </div>
+            <div id="fpsCounter" aria-hidden="true"></div>
 
             <style>
-                .stg-section-label {
-                    font-size: 10px;
-                    letter-spacing: 3px;
-                    text-transform: uppercase;
-                    color: rgba(0, 229, 255, 0.4);
-                    margin-bottom: 10px;
+                /* Settings: an opaque plate with two clipped corners, lit edge
+                   drawn by the outer layer, the fill by ::before. Colours and
+                   fonts follow the Voyage Recap. */
+                #settingsOverlay {
+                    position: fixed;
+                    inset: 0;
+                    z-index: 999999999;
+                    justify-content: center;
+                    align-items: center;
+                    padding: 12px;
+                    background: rgba(1, 3, 10, 0.72);
                 }
 
-                .stg-divider {
+                #settings-panel {
+                    --rc-electric: #00E5FF;
+                    --rc-turquoise: #3FA9F5;
+                    --rc-silver: #DCE8F5;
+                    --rc-silver-dim: #8CA6C6;
+                    --rc-gold: #E8C46A;
+                    --rc-crimson: #FF4D6D;
+                    --rc-font-title: 'Cinzel', 'Palatino Linotype', Georgia, serif;
+                    --st-font: 'Segoe UI', system-ui, -apple-system, 'Helvetica Neue', sans-serif;
+                    position: relative;
+                    isolation: isolate;
+                    width: min(94vw, 480px);
+                    max-height: 92vh;
+                    max-height: 92dvh;
+                    display: flex;
+                    flex-direction: column;
+                    font-family: var(--st-font);
+                    color: var(--rc-silver);
+                    background: linear-gradient(160deg, rgba(0, 229, 255, 0.6) 0%, rgba(63, 169, 245, 0.18) 30%, rgba(63, 169, 245, 0.14) 72%, rgba(232, 196, 106, 0.55) 100%);
+                    clip-path: polygon(18px 0, 100% 0, 100% calc(100% - 18px), calc(100% - 18px) 100%, 0 100%, 0 18px);
+                    user-select: none;
+                    -webkit-user-select: none;
+                    text-align: left;
+                    letter-spacing: normal;
+                    line-height: 1.3;
+                }
+
+                #settings-panel.st-vi {
+                    --rc-font-title: 'Playfair Display', Georgia, serif;
+                }
+
+                #settings-panel::before {
+                    content: "";
+                    position: absolute;
+                    inset: 1px;
+                    z-index: -1;
+                    background: linear-gradient(180deg, #081430 0%, #040a1c 55%, #030714 100%);
+                    clip-path: polygon(17.5px 0, 100% 0, 100% calc(100% - 17.5px), calc(100% - 17.5px) 100%, 0 100%, 0 17.5px);
+                }
+
+                .st-mark {
+                    display: inline-block;
+                    width: 7px;
+                    height: 7px;
+                    flex-shrink: 0;
+                    transform: rotate(45deg);
+                    border: 1px solid var(--rc-gold);
+                    background: var(--rc-gold);
+                    box-shadow: inset 0 0 0 1.5px #071026;
+                }
+
+                .st-head {
+                    position: relative;
+                    padding: 18px 52px 12px;
+                    text-align: center;
+                }
+
+                .st-head::after {
+                    content: "";
+                    position: absolute;
+                    left: 18px;
+                    right: 18px;
+                    bottom: 0;
                     height: 1px;
-                    background: rgba(0, 229, 255, 0.12);
-                    margin: 16px 0;
+                    background: linear-gradient(90deg, rgba(63, 169, 245, 0) 0%, rgba(63, 169, 245, 0.45) 30%, rgba(232, 196, 106, 0.65) 50%, rgba(63, 169, 245, 0.45) 70%, rgba(63, 169, 245, 0) 100%);
                 }
 
-                /* Toggle switch */
+                .st-title {
+                    display: inline-flex;
+                    align-items: center;
+                    gap: 10px;
+                    font-family: var(--rc-font-title);
+                    font-size: 19px;
+                    font-weight: 700;
+                    letter-spacing: 0.2em;
+                    text-transform: uppercase;
+                    color: #F4FBFF;
+                    text-shadow: 0 0 16px rgba(0, 229, 255, 0.45);
+                }
+
+                .st-sub {
+                    margin-top: 6px;
+                    font-size: 11px;
+                    letter-spacing: 0.04em;
+                    color: var(--rc-silver-dim);
+                }
+
+                .st-kbd {
+                    display: inline-block;
+                    padding: 0 6px;
+                    font-family: var(--st-font);
+                    font-size: 10px;
+                    font-weight: 700;
+                    letter-spacing: 0.08em;
+                    color: var(--rc-electric);
+                    border: 1px solid rgba(0, 229, 255, 0.4);
+                    background: rgba(0, 229, 255, 0.08);
+                }
+
+                /* Diamond close button, the icon turned back so it reads as an X. */
+                .st-close {
+                    position: absolute;
+                    top: 20px;
+                    right: 20px;
+                    width: 24px;
+                    height: 24px;
+                    display: inline-flex;
+                    align-items: center;
+                    justify-content: center;
+                    background: none;
+                    border: 1px solid rgba(140, 166, 198, 0.45);
+                    color: var(--rc-silver-dim);
+                    transform: rotate(45deg);
+                    cursor: pointer;
+                    transition: color 0.18s ease, border-color 0.18s ease;
+                }
+
+                .st-close svg {
+                    transform: rotate(-45deg);
+                }
+
+                .st-close:hover {
+                    color: var(--rc-electric);
+                    border-color: var(--rc-electric);
+                }
+
+                .st-body {
+                    flex: 1;
+                    min-height: 0;
+                    overflow-y: auto;
+                    padding: 14px 16px 6px;
+                    display: flex;
+                    flex-direction: column;
+                    gap: 12px;
+                    scrollbar-width: thin;
+                    scrollbar-color: rgba(63, 169, 245, 0.45) transparent;
+                }
+
+                .st-body::-webkit-scrollbar {
+                    width: 5px;
+                }
+
+                .st-body::-webkit-scrollbar-thumb {
+                    background: rgba(63, 169, 245, 0.45);
+                }
+
+                /* Sections are open groups: a marked heading with a hairline,
+                   then rows. No boxes inside the plate. */
+                .st-card {
+                    padding: 2px 4px 0;
+                }
+
+                .st-card + .st-card {
+                    margin-top: 10px;
+                }
+
+                .st-card-head {
+                    display: flex;
+                    align-items: center;
+                    gap: 10px;
+                    margin-bottom: 2px;
+                    font-family: var(--rc-font-title);
+                    font-size: 13px;
+                    font-weight: 700;
+                    letter-spacing: 0.2em;
+                    text-transform: uppercase;
+                    color: var(--rc-gold);
+                }
+
+                .st-card-head::after {
+                    content: "";
+                    flex: 1;
+                    height: 1px;
+                    background: linear-gradient(90deg, rgba(232, 196, 106, 0.45) 0%, rgba(63, 169, 245, 0.2) 45%, rgba(63, 169, 245, 0) 100%);
+                }
+
+                .st-row {
+                    display: flex;
+                    align-items: center;
+                    justify-content: space-between;
+                    gap: 16px;
+                    padding: 11px 0;
+                }
+
+                .st-row + .st-row,
+                .st-seg + .st-note + .st-row {
+                    border-top: 1px solid rgba(140, 166, 198, 0.08);
+                }
+
+                .st-row-click {
+                    cursor: pointer;
+                }
+
+                .st-row-text {
+                    display: flex;
+                    flex-direction: column;
+                    gap: 3px;
+                    min-width: 0;
+                }
+
+                .st-label {
+                    font-size: 14px;
+                    font-weight: 600;
+                    color: #EAF3FC;
+                }
+
+                .st-desc,
+                .st-note {
+                    font-size: 12px;
+                    line-height: 1.45;
+                    color: var(--rc-silver-dim);
+                }
+
+                .st-desc-warn,
+                .st-note-warn {
+                    color: rgba(232, 196, 106, 0.85);
+                }
+
+                .st-note {
+                    padding: 2px 0 9px;
+                }
+
+                .st-row-slider .st-label {
+                    flex: 0 0 auto;
+                    width: 132px;
+                    font-weight: 500;
+                    color: var(--rc-silver);
+                }
+
+                .st-val {
+                    width: 42px;
+                    text-align: right;
+                    font-size: 12.5px;
+                    font-weight: 600;
+                    color: var(--rc-electric);
+                    font-variant-numeric: tabular-nums;
+                }
+
+                .st-row-stack {
+                    flex-direction: column;
+                    align-items: stretch;
+                    gap: 8px;
+                }
+
+                /* Toggle: a small hex plate like the buttons, with a diamond
+                   that slides across and lights up when on. */
                 .stg-toggle-wrap {
                     position: relative;
-                    width: 38px;
-                    height: 20px;
+                    width: 48px;
+                    height: 22px;
                     flex-shrink: 0;
                 }
 
                 .stg-toggle-wrap input {
+                    position: absolute;
                     opacity: 0;
                     width: 0;
                     height: 0;
-                    position: absolute;
                 }
 
                 .stg-toggle-track {
                     position: absolute;
                     inset: 0;
-                    border-radius: 20px;
-                    background: rgba(255, 255, 255, 0.12);
-                    border: 1px solid rgba(0, 229, 255, 0.25);
-                    transition: background 0.25s, border-color 0.25s;
+                    background: rgba(140, 166, 198, 0.4);
+                    clip-path: polygon(8px 0, calc(100% - 8px) 0, 100% 50%, calc(100% - 8px) 100%, 8px 100%, 0 50%);
+                    transition: background 0.2s ease;
+                }
+
+                .stg-toggle-track::before {
+                    content: "";
+                    position: absolute;
+                    inset: 1px;
+                    background: #050b1c;
+                    clip-path: polygon(7.6px 0, calc(100% - 7.6px) 0, 100% 50%, calc(100% - 7.6px) 100%, 7.6px 100%, 0 50%);
+                    transition: background 0.2s ease;
                 }
 
                 .stg-toggle-thumb {
                     position: absolute;
-                    top: 3px;
-                    left: 3px;
-                    width: 14px;
-                    height: 14px;
-                    border-radius: 50%;
-                    background: rgba(255, 255, 255, 0.4);
-                    transition: left 0.25s, background 0.25s;
+                    top: 6px;
+                    left: 11px;
+                    width: 10px;
+                    height: 10px;
+                    transform: rotate(45deg);
+                    background: rgba(140, 166, 198, 0.65);
+                    transition: left 0.2s ease, background 0.2s ease, box-shadow 0.2s ease;
                 }
 
                 .stg-toggle-wrap input:checked~.stg-toggle-track {
-                    background: rgba(0, 229, 255, 0.25);
-                    border-color: #00e5ff;
+                    background: linear-gradient(90deg, #3FA9F5 0%, #00E5FF 100%);
+                }
+
+                .stg-toggle-wrap input:checked~.stg-toggle-track::before {
+                    background: linear-gradient(180deg, #0f4677 0%, #072447 100%);
                 }
 
                 .stg-toggle-wrap input:checked~.stg-toggle-thumb {
-                    left: 21px;
-                    background: #00e5ff;
+                    left: 27px;
+                    background: #EAFDFF;
+                    box-shadow: 0 0 8px rgba(0, 229, 255, 0.9);
                 }
 
-                /* Quality buttons */
+                .stg-toggle-wrap input:focus-visible~.stg-toggle-thumb {
+                    outline: 1px solid var(--rc-gold);
+                    outline-offset: 2px;
+                }
+
+                /* Quality levels: labels over one hairline, the chosen one lit. */
+                .st-seg {
+                    display: flex;
+                    margin: 2px 0 6px;
+                    border-bottom: 1px solid rgba(63, 169, 245, 0.2);
+                    transition: opacity 0.2s ease;
+                }
+
                 .stg-q-btn {
+                    position: relative;
                     flex: 1;
-                    padding: 8px 0;
-                    border-radius: 8px;
-                    font-family: 'Courier New', monospace;
+                    padding: 8px 4px 10px;
+                    background: none;
+                    border: 0;
+                    font-family: var(--st-font);
                     font-size: 11px;
                     font-weight: 700;
-                    letter-spacing: 1px;
+                    letter-spacing: 0.12em;
                     text-transform: uppercase;
-                    color: #00e5ff;
-                    background: rgba(0, 20, 40, 0.7);
-                    border: 1.5px solid rgba(0, 229, 255, 0.3);
+                    color: var(--rc-silver-dim);
                     cursor: pointer;
-                    transition: all 0.2s;
+                    transition: color 0.18s ease;
+                }
+
+                .stg-q-btn::after {
+                    content: "";
+                    position: absolute;
+                    left: 14%;
+                    right: 14%;
+                    bottom: -1px;
+                    height: 2px;
+                    background: var(--rc-electric);
+                    box-shadow: 0 0 8px rgba(0, 229, 255, 0.6);
+                    transform: scaleX(0);
+                    transition: transform 0.2s ease;
                 }
 
                 .stg-q-btn:hover {
-                    background: rgba(0, 229, 255, 0.12);
-                    border-color: #00e5ff;
+                    color: var(--rc-silver);
+                }
+
+                .stg-q-bg {
+                    position: relative;
+                    flex: 1;
+                    padding: 8px 4px 10px;
+                    background: none;
+                    border: 0;
+                    font-family: var(--st-font);
+                    font-size: 11px;
+                    font-weight: 700;
+                    letter-spacing: 0.12em;
+                    text-transform: uppercase;
+                    color: var(--rc-silver-dim);
+                    cursor: pointer;
+                    transition: color 0.18s ease;
+                }
+
+                .stg-q-bg::after {
+                    content: "";
+                    position: absolute;
+                    left: 14%;
+                    right: 14%;
+                    bottom: -1px;
+                    height: 2px;
+                    background: var(--rc-gold);
+                    box-shadow: 0 0 8px rgba(232, 196, 106, 0.6);
+                    transform: scaleX(0);
+                    transition: transform 0.2s ease;
+                }
+
+                .stg-q-bg:hover {
+                    color: var(--rc-silver);
+                }
+
+                .stg-q-bg.stg-q-active {
+                    color: var(--rc-gold);
+                }
+
+                .stg-q-bg.stg-q-active::after {
+                    transform: scaleX(1);
+                }
+
+                .st-seg-bg {
+                    margin: 0;
+                }
+
+                .st-row:has(.st-seg-bg) + .st-row {
+                    border-top: 0;
                 }
 
                 .stg-q-btn.stg-q-active {
-                    background: rgba(0, 229, 255, 0.2);
-                    border-color: #00e5ff;
-                    color: #fff;
-                    box-shadow: 0 0 10px rgba(0, 229, 255, 0.3);
+                    color: var(--rc-electric);
                 }
 
-                /* ON/OFF buttons */
+                .stg-q-btn.stg-q-active::after {
+                    transform: scaleX(1);
+                }
+
+                /* ON/OFF: two small plates side by side. */
+                .st-pair {
+                    display: flex;
+                    flex-shrink: 0;
+                }
+
                 .stg-onoff-btn {
-                    padding: 6px 14px;
-                    border-radius: 6px;
-                    font-family: 'Courier New', monospace;
+                    min-width: 52px;
+                    padding: 6px 10px;
+                    font-family: var(--st-font);
                     font-size: 11px;
                     font-weight: 700;
-                    letter-spacing: 1px;
-                    color: rgba(0, 229, 255, 0.5);
-                    background: rgba(0, 20, 40, 0.7);
-                    border: 1.5px solid rgba(0, 229, 255, 0.2);
+                    letter-spacing: 0.1em;
+                    color: var(--rc-silver-dim);
+                    background: rgba(2, 6, 18, 0.9);
+                    border: 1px solid rgba(140, 166, 198, 0.3);
                     cursor: pointer;
-                    transition: all 0.2s;
+                    transition: color 0.18s ease, background 0.18s ease, border-color 0.18s ease;
+                }
+
+                .stg-onoff-btn + .stg-onoff-btn {
+                    border-left: 0;
                 }
 
                 .stg-onoff-active {
-                    color: #fff;
-                    background: rgba(0, 229, 255, 0.2);
-                    border-color: #00e5ff;
-                    box-shadow: 0 0 8px rgba(0, 229, 255, 0.25);
+                    color: #EAFDFF;
+                    background: rgba(0, 229, 255, 0.18);
+                    border-color: var(--rc-electric);
                 }
 
-                /* Offline Play */
-                .stg-select {
-                    flex: 1;
-                    min-width: 0;
-                    padding: 7px 10px;
-                    border-radius: 8px;
-                    font-family: 'Courier New', monospace;
-                    font-size: 11px;
-                    color: #e0f4ff;
-                    background: rgba(0, 20, 40, 0.7);
-                    border: 1.5px solid rgba(0, 229, 255, 0.3);
-                    cursor: pointer;
+                .stg-onoff-btn + .stg-onoff-active {
+                    box-shadow: -1px 0 0 var(--rc-electric);
                 }
 
-                .stg-select option {
-                    background: #04121c;
-                    color: #e0f4ff;
-                }
-
-                .stg-offline-bar-track {
-                    height: 4px;
-                    border-radius: 3px;
-                    background: rgba(0, 30, 50, 0.7);
-                    border: 1px solid rgba(0, 229, 255, 0.2);
-                    overflow: hidden;
-                }
-
-                .stg-offline-bar-fill {
-                    height: 100%;
-                    width: 0%;
-                    background: #00e5ff;
-                    box-shadow: 0 0 6px rgba(0, 229, 255, 0.5);
-                    transition: width 0.2s;
-                }
-
-                .stg-btn-sm {
-                    padding: 7px 14px;
-                    border-radius: 8px;
-                    flex-shrink: 0;
-                    font-family: 'Courier New', monospace;
-                    font-size: 11px;
-                    font-weight: 700;
-                    letter-spacing: 1px;
-                    text-transform: uppercase;
-                    color: #00e5ff;
-                    background: rgba(0, 20, 40, 0.7);
-                    border: 1.5px solid rgba(0, 229, 255, 0.35);
-                    cursor: pointer;
-                    transition: all 0.2s;
-                }
-
-                .stg-btn-sm:hover {
-                    background: rgba(0, 229, 255, 0.15);
-                }
-
-                .stg-btn-sm:disabled {
-                    opacity: 0.5;
-                    cursor: default;
-                    background: rgba(0, 229, 255, 0.08);
-                }
-
-                /* Volume/brightness sliders */
+                /* Sliders: a thin line filled to the value, with a diamond grip. */
                 .stg-slider {
                     -webkit-appearance: none;
                     appearance: none;
                     flex: 1;
-                    height: 6px;
-                    border-radius: 4px;
+                    min-width: 0;
+                    height: 3px;
+                    margin: 0;
                     cursor: pointer;
-                    background: linear-gradient(to right,
-                            #00e5ff 0%, #00e5ff var(--pct, 100%),
-                            rgba(0, 30, 50, 0.7) var(--pct, 100%), rgba(0, 30, 50, 0.7) 100%);
-                    border: 1px solid rgba(0, 229, 255, 0.25);
                     outline: none;
+                    background: linear-gradient(to right, var(--rc-electric) 0%, var(--rc-electric) var(--pct, 100%), rgba(140, 166, 198, 0.25) var(--pct, 100%), rgba(140, 166, 198, 0.25) 100%);
                 }
 
                 .stg-slider::-webkit-slider-thumb {
                     -webkit-appearance: none;
-                    width: 16px;
-                    height: 16px;
-                    border-radius: 50%;
-                    background: #00e5ff;
-                    border: 2px solid #04121c;
-                    box-shadow: 0 0 6px rgba(0, 229, 255, 0.9), 0 0 12px rgba(0, 229, 255, 0.45);
+                    width: 12px;
+                    height: 12px;
+                    transform: rotate(45deg);
+                    background: #EAFDFF;
+                    border: 2px solid var(--rc-electric);
+                    box-shadow: 0 0 8px rgba(0, 229, 255, 0.7);
                     cursor: pointer;
-                    transition: transform 0.12s;
                 }
 
-                .stg-slider::-webkit-slider-thumb:hover {
-                    transform: scale(1.15);
+                .stg-slider::-moz-range-thumb {
+                    width: 10px;
+                    height: 10px;
+                    transform: rotate(45deg);
+                    border-radius: 0;
+                    background: #EAFDFF;
+                    border: 2px solid var(--rc-electric);
+                    box-shadow: 0 0 8px rgba(0, 229, 255, 0.7);
+                    cursor: pointer;
                 }
 
-                /* In-Game Music multi-select dropdown */
+                .stg-slider::-moz-range-track {
+                    height: 3px;
+                    background: rgba(140, 166, 198, 0.25);
+                }
+
+                .stg-slider::-moz-range-progress {
+                    height: 3px;
+                    background: var(--rc-electric);
+                }
+
+                /* Dropdowns */
+                .st-dd {
+                    position: relative;
+                    flex: 1;
+                    min-width: 0;
+                }
+
+                .st-dd-sm {
+                    flex: 0 0 160px;
+                }
+
                 .stg-music-btn {
                     width: 100%;
                     display: flex;
                     justify-content: space-between;
                     align-items: center;
-                    padding: 9px 12px;
-                    border-radius: 8px;
-                    font-family: 'Courier New', monospace;
-                    font-size: 12px;
-                    color: #e0f4ff;
-                    background: rgba(0, 20, 40, 0.7);
-                    border: 1.5px solid rgba(0, 229, 255, 0.3);
+                    gap: 8px;
+                    padding: 8px 12px;
+                    font-family: var(--st-font);
+                    font-size: 13px;
+                    color: var(--rc-silver);
+                    background: rgba(2, 6, 18, 0.9);
+                    border: 1px solid rgba(140, 166, 198, 0.35);
                     cursor: pointer;
-                    transition: all 0.2s;
+                    transition: border-color 0.18s ease;
                 }
 
-                .stg-music-btn:hover {
-                    border-color: #00e5ff;
-                    background: rgba(0, 229, 255, 0.1);
+                .stg-music-btn:hover,
+                .stg-music-btn.stg-music-open {
+                    border-color: var(--rc-electric);
                 }
 
                 .stg-music-label {
@@ -1430,131 +1748,330 @@
                     text-overflow: ellipsis;
                     white-space: nowrap;
                     text-align: left;
-                    margin-right: 8px;
                 }
 
                 .stg-music-chevron {
-                    color: rgba(0, 229, 255, 0.6);
-                    font-size: 10px;
-                    transition: transform 0.2s;
+                    width: 6px;
+                    height: 6px;
                     flex-shrink: 0;
+                    margin: -3px 2px 0 0;
+                    border-right: 1.5px solid var(--rc-electric);
+                    border-bottom: 1.5px solid var(--rc-electric);
+                    transform: rotate(45deg);
+                    transition: transform 0.2s ease, margin 0.2s ease;
                 }
 
                 .stg-music-btn.stg-music-open .stg-music-chevron {
-                    transform: rotate(180deg);
+                    margin-top: 3px;
+                    transform: rotate(225deg);
                 }
 
                 .stg-music-dropdown {
                     position: absolute;
                     left: 0;
                     right: 0;
-                    top: calc(100% + 6px);
+                    top: calc(100% + 4px);
                     z-index: 20;
-                    max-height: 200px;
+                    max-height: 220px;
                     overflow-y: auto;
-                    background: rgba(2, 10, 22, 0.98);
-                    border: 1.5px solid rgba(0, 229, 255, 0.35);
-                    border-radius: 10px;
-                    padding: 6px;
-                    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5), 0 0 20px rgba(0, 229, 255, 0.15);
+                    padding: 4px;
+                    background: #050c1f;
+                    border: 1px solid rgba(0, 229, 255, 0.45);
+                    box-shadow: 0 12px 30px rgba(0, 0, 0, 0.6);
+                    scrollbar-width: thin;
+                    scrollbar-color: rgba(63, 169, 245, 0.45) transparent;
                 }
 
                 .stg-music-row {
                     display: flex;
                     align-items: center;
                     gap: 10px;
-                    padding: 7px 8px;
-                    border-radius: 6px;
+                    padding: 8px 8px;
+                    font-size: 12.5px;
+                    color: var(--rc-silver-dim);
                     cursor: pointer;
-                    font-size: 11px;
-                    color: rgba(224, 244, 255, 0.75);
-                    transition: background 0.15s, color 0.15s;
+                    transition: background 0.15s ease, color 0.15s ease;
                 }
 
                 .stg-music-row:hover {
-                    background: rgba(0, 229, 255, 0.08);
-                    color: #e0f4ff;
+                    color: var(--rc-silver);
+                    background: rgba(0, 229, 255, 0.07);
                 }
 
                 .stg-music-row-active {
-                    color: #fff;
-                    background: rgba(0, 229, 255, 0.14);
+                    color: #F4FBFF;
                 }
 
                 .stg-music-check {
-                    width: 16px;
-                    height: 16px;
-                    border-radius: 4px;
+                    width: 14px;
+                    height: 14px;
                     flex-shrink: 0;
-                    border: 1.5px solid rgba(0, 229, 255, 0.4);
                     display: flex;
                     align-items: center;
                     justify-content: center;
                     font-size: 10px;
                     line-height: 1;
                     color: #04121c;
-                    background: rgba(0, 20, 40, 0.6);
+                    border: 1px solid rgba(140, 166, 198, 0.45);
                 }
 
                 .stg-music-row-active .stg-music-check {
-                    background: #00e5ff;
-                    border-color: #00e5ff;
+                    background: var(--rc-electric);
+                    border-color: var(--rc-electric);
                 }
 
-                /* Themed scrollbars for the settings panel and music dropdown */
-                #settings-panel,
-                .stg-music-dropdown {
-                    scrollbar-width: thin;
-                    scrollbar-color: rgba(0, 229, 255, 0.4) rgba(0, 20, 40, 0.3);
+                .stg-music-row-active .stg-music-check::after {
+                    content: "";
+                    width: 4px;
+                    height: 8px;
+                    margin-top: -2px;
+                    border: solid #04121c;
+                    border-width: 0 2px 2px 0;
+                    transform: rotate(45deg);
                 }
 
-                #settings-panel::-webkit-scrollbar,
-                .stg-music-dropdown::-webkit-scrollbar {
-                    width: 6px;
+                /* Offline download */
+                .st-offline {
+                    display: flex;
+                    gap: 8px;
                 }
 
-                #settings-panel::-webkit-scrollbar-track,
-                .stg-music-dropdown::-webkit-scrollbar-track {
-                    background: rgba(0, 20, 40, 0.3);
-                    border-radius: 3px;
-                }
-
-                #settings-panel::-webkit-scrollbar-thumb,
-                .stg-music-dropdown::-webkit-scrollbar-thumb {
-                    background: rgba(0, 229, 255, 0.4);
-                    border-radius: 3px;
-                }
-
-                #settings-panel::-webkit-scrollbar-thumb:hover,
-                .stg-music-dropdown::-webkit-scrollbar-thumb:hover {
-                    background: rgba(0, 229, 255, 0.65);
-                }
-
-                .stg-slider::-moz-range-thumb {
-                    width: 14px;
-                    height: 14px;
-                    border-radius: 50%;
-                    background: #00e5ff;
-                    border: 2px solid #04121c;
-                    box-shadow: 0 0 6px rgba(0, 229, 255, 0.9), 0 0 12px rgba(0, 229, 255, 0.45);
+                .stg-btn-sm {
+                    flex-shrink: 0;
+                    padding: 8px 14px;
+                    font-family: var(--st-font);
+                    font-size: 11px;
+                    font-weight: 700;
+                    letter-spacing: 0.1em;
+                    text-transform: uppercase;
+                    color: var(--rc-electric);
+                    background: rgba(0, 229, 255, 0.08);
+                    border: 1px solid rgba(0, 229, 255, 0.45);
                     cursor: pointer;
-                    transition: transform 0.12s;
+                    transition: background 0.18s ease;
                 }
 
-                .stg-slider::-moz-range-thumb:hover {
-                    transform: scale(1.15);
+                .stg-btn-sm:hover {
+                    background: rgba(0, 229, 255, 0.16);
                 }
 
-                .stg-slider::-moz-range-track {
-                    height: 6px;
-                    border-radius: 4px;
-                    background: rgba(0, 30, 50, 0.7);
+                .stg-btn-sm:disabled {
+                    opacity: 0.5;
+                    cursor: default;
                 }
 
-                .stg-slider::-moz-range-progress {
-                    height: 6px;
-                    border-radius: 4px;
-                    background: #00e5ff;
+                .stg-offline-bar-track {
+                    height: 3px;
+                    background: rgba(140, 166, 198, 0.2);
+                    overflow: hidden;
+                }
+
+                .stg-offline-bar-fill {
+                    height: 100%;
+                    width: 0%;
+                    background: var(--rc-electric);
+                    box-shadow: 0 0 6px rgba(0, 229, 255, 0.6);
+                    transition: width 0.2s ease;
+                }
+
+                /* Restore: gold, and it asks for a second tap before acting. */
+                .st-btn-reset {
+                    color: var(--rc-gold);
+                    background: rgba(232, 196, 106, 0.06);
+                    border-color: rgba(232, 196, 106, 0.5);
+                }
+
+                .st-btn-reset:hover {
+                    background: rgba(232, 196, 106, 0.14);
+                }
+
+                /* Advanced Graphics fold */
+                .st-adv {
+                    margin: 4px 0 10px;
+                    border: 1px solid rgba(63, 169, 245, 0.22);
+                    background: rgba(2, 6, 18, 0.5);
+                }
+
+                .st-adv-head {
+                    width: 100%;
+                    display: flex;
+                    align-items: center;
+                    gap: 10px;
+                    padding: 11px 12px;
+                    background: none;
+                    border: 0;
+                    cursor: pointer;
+                    text-align: left;
+                }
+
+                .st-adv-title {
+                    flex: 1;
+                    font-family: var(--rc-font-title);
+                    font-size: 12.5px;
+                    font-weight: 700;
+                    letter-spacing: 0.16em;
+                    text-transform: uppercase;
+                    color: var(--rc-silver);
+                }
+
+                .st-adv-tag {
+                    padding: 2px 7px;
+                    font-size: 10px;
+                    font-weight: 700;
+                    letter-spacing: 0.08em;
+                    text-transform: uppercase;
+                    color: var(--rc-gold);
+                    border: 1px solid rgba(232, 196, 106, 0.45);
+                }
+
+                .st-adv-head[aria-expanded="true"] .stg-music-chevron {
+                    margin-top: 3px;
+                    transform: rotate(225deg);
+                }
+
+                .st-adv-body {
+                    padding: 0 12px 4px;
+                    border-top: 1px solid rgba(63, 169, 245, 0.14);
+                }
+
+                .st-adv-body > .st-note {
+                    padding-top: 10px;
+                }
+
+                .st-adv-actions {
+                    display: flex;
+                    gap: 8px;
+                    padding-bottom: 4px;
+                }
+
+                .st-adv-actions .stg-btn-sm {
+                    flex: 1;
+                }
+
+                /* Yes / No box over the panel for Restore Defaults. */
+                .st-confirm {
+                    position: absolute;
+                    inset: 0;
+                    z-index: 5;
+                    display: none;
+                    align-items: center;
+                    justify-content: center;
+                    padding: 20px;
+                    background: rgba(1, 3, 10, 0.86);
+                }
+
+                .st-confirm.st-open {
+                    display: flex;
+                }
+
+                .st-confirm-box {
+                    width: 100%;
+                    max-width: 360px;
+                    padding: 18px 18px 16px;
+                    text-align: center;
+                    background: #060e24;
+                    border: 1px solid rgba(232, 196, 106, 0.5);
+                    box-shadow: 0 0 0 4px #030714, 0 0 0 5px rgba(63, 169, 245, 0.22);
+                }
+
+                .st-confirm-title {
+                    display: inline-flex;
+                    align-items: center;
+                    gap: 9px;
+                    font-family: var(--rc-font-title);
+                    font-size: 14px;
+                    font-weight: 700;
+                    letter-spacing: 0.16em;
+                    text-transform: uppercase;
+                    color: var(--rc-gold);
+                }
+
+                .st-confirm-msg {
+                    margin: 10px 0 16px;
+                    font-size: 13px;
+                    line-height: 1.5;
+                    color: var(--rc-silver);
+                }
+
+                .st-confirm-btns {
+                    display: flex;
+                    justify-content: center;
+                    gap: 10px;
+                }
+
+                .st-confirm-btns .rc-btn {
+                    min-width: 120px;
+                    padding: 11px 22px;
+                    font-size: 12px;
+                }
+
+                .st-foot {
+                    position: relative;
+                    display: flex;
+                    justify-content: center;
+                    padding: 12px 16px 16px;
+                }
+
+                .st-foot::before {
+                    content: "";
+                    position: absolute;
+                    top: 0;
+                    left: 18px;
+                    right: 18px;
+                    height: 1px;
+                    background: linear-gradient(90deg, rgba(63, 169, 245, 0) 0%, rgba(63, 169, 245, 0.35) 50%, rgba(63, 169, 245, 0) 100%);
+                }
+
+                .st-apply {
+                    min-width: 220px;
+                }
+
+                /* Frame rate counter, beside the sound button. */
+                #fpsCounter {
+                    display: none;
+                    position: fixed;
+                    top: calc(30px + env(safe-area-inset-top, 0px));
+                    left: calc(74px + env(safe-area-inset-left, 0px));
+                    z-index: 99999997;
+                    padding: 2px 7px;
+                    font-family: 'Segoe UI', system-ui, sans-serif;
+                    font-size: 11px;
+                    font-weight: 700;
+                    letter-spacing: 0.08em;
+                    color: var(--fps-color, #00E5FF);
+                    background: rgba(2, 6, 18, 0.55);
+                    border-left: 2px solid var(--fps-color, #00E5FF);
+                    pointer-events: none;
+                    font-variant-numeric: tabular-nums;
+                }
+
+                @media (max-width: 600px) and (orientation: portrait) {
+                    #settingsOverlay {
+                        padding-top: calc(74px + env(safe-area-inset-top, 0px));
+                        align-items: flex-start;
+                    }
+
+                    #settings-panel {
+                        max-height: calc(100dvh - 116px - env(safe-area-inset-top, 0px) - env(safe-area-inset-bottom, 0px));
+                    }
+                }
+
+                @media (max-height: 520px) and (orientation: landscape) {
+                    .st-head {
+                        padding: 12px 52px 8px;
+                    }
+
+                    .st-close {
+                        top: 14px;
+                    }
+
+                    .st-body {
+                        padding-top: 10px;
+                    }
+
+                    .st-foot {
+                        padding: 8px 16px 10px;
+                    }
                 }
             </style>
 
@@ -1578,7 +2095,7 @@
                 // dictionary applied on top via data-i18n attributes.
                 const I18N = {
                     en: {
-                        'settings.title': '⚙ Settings',
+                        'settings.title': 'Settings',
                         'settings.subtitlePre': 'Press',
                         'settings.subtitlePost': 'to pause / resume game',
                         'graphics.section': 'Graphics',
@@ -1588,21 +2105,51 @@
                         'graphics.qualityNote': 'To choose a specific quality, please turn off Smart Quality.',
                         'graphics.highFps': 'High FPS',
                         'graphics.highFpsDesc': 'Removes the ~45fps cap on mobile. Smoother on a strong device, uses more battery.',
+                        'graphics.showFps': 'Show FPS',
+                        'graphics.showFpsDesc': 'Frame rate next to the sound button, to pick the graphics level that suits your device.',
                         'fpsTip.body': 'Your Safari looks capped near 60fps. To try for 120fps on ProMotion: turn off Low Power Mode, then in Settings search Safari\'s Advanced > Feature Flags and turn off "Prefer Page Rendering Updates near 60fps".',
                         'audio.section': 'Audio', 'audio.bgm': 'BGM', 'audio.sfx': 'SFX', 'audio.global': 'Global',
-                        'audio.inGameMusic': 'In-Game Music', 'audio.random': 'Random',
+                        'audio.inGameMusic': 'In-Game Music', 'audio.random': 'Random', 'audio.tracksSelected': '{n} tracks selected',
                         'background.section': 'Background', 'background.brightness': 'Brightness',
+                        'background.detail': 'Background Detail',
+                        'background.detailDesc': 'How many stars, nebulas and asteroids drift behind the battle. Lower is lighter on weak devices.',
+                        'background.low': 'LOW', 'background.mid': 'DETAIL', 'background.full': 'FULL',
+                        'background.glow': 'Light Patches',
                         'gameplay.section': 'Gameplay', 'gameplay.screenShake': 'Screen Shake',
                         'gameplay.on': 'ON', 'gameplay.off': 'OFF',
-                        'gameplay.screenShakeWarn': '⚠ Turning on screen shake may cause unexpected lag on some devices.',
+                        'gameplay.screenShakeWarn': 'Turning on screen shake may cause unexpected lag on some devices.',
+                        'gameplay.vibrate': 'Vibration',
+                        'gameplay.vibrateDesc': 'Short buzz on hits, sigil picks and skill buttons.',
                         'gameplay.skipKanade': 'Skip Kanade Animation',
                         'gameplay.skipKanadeNote': 'The boss wave still rolls and applies its Timeline Distortion either way.',
                         'offline.section': 'Offline Play', 'offline.desc': 'Download in advance to play without internet.',
                         'offline.downloadLabel': 'Download offline resources',
-                        'offline.pkgBasic': 'Basic (~33MB)', 'offline.pkgFull': 'Full (~196MB)',
+                        'offline.pkgBasic': 'Basic (~66MB)', 'offline.pkgFull': 'Full (~219MB)',
                         'offline.downloadBtn': 'Download', 'offline.downloadedBtn': 'Downloaded',
                         'offline.statusFormat': '{cached}/{total} files ({pct}%)',
                         'settings.apply': 'Apply',
+                        'settings.reset': 'Restore Defaults',
+                        'settings.resetDesc': 'Puts every setting back as it was on first launch. Language stays as it is.',
+                        'settings.resetBtn': 'Restore',
+                        'settings.resetAsk': 'Put every setting back as it was on first launch? Language stays as it is.',
+                        'settings.resetDone': 'Restored',
+                        'graphics.advanced': 'Advanced Graphics',
+                        'graphics.advancedSoon': 'Preview',
+                        'graphics.advancedNote': 'These switches are being wired into the game and do nothing yet. Enemy attack warnings always stay on.',
+                        'graphics.fxByLevel': 'Follow Graphics Level',
+                        'graphics.fxAllOff': 'Turn All Off',
+                        'graphics.fxBrightness': 'Effect Brightness',
+                        'graphics.flashIntensity': 'Flash Intensity',
+                        'fx.explosions': 'Explosions', 'fx.explosionsDesc': 'Blasts when enemies fall and big hits land',
+                        'fx.particles': 'Debris and Sparks', 'fx.particlesDesc': 'Bits that fly off on hits and blasts',
+                        'fx.glow': 'Glow', 'fx.glowDesc': 'Light around bullets, beams and skills',
+                        'fx.screenFlash': 'Screen Flashes', 'fx.screenFlashDesc': 'Full screen flashes on hits and big skills',
+                        'fx.sigilLight': 'Sigil Lighting', 'fx.sigilLightDesc': 'Pisces moonlight, the sky darkening as Capricorn\'s mountain falls',
+                        'fx.sigilBackdrop': 'Sigil Backdrops', 'fx.sigilBackdropDesc': 'Each sigil\'s own scenery behind the battle',
+                        'fx.nebula': 'Moving Nebula', 'fx.nebulaDesc': 'Drifting nebula layer; the starfield stays',
+                        'fx.trails': 'Trails', 'fx.trailsDesc': 'Light trails behind ships, bullets and bosses',
+                        'fx.jewelTwinkle': 'Jewel Twinkle', 'fx.jewelTwinkleDesc': 'Sparkles on Kanade\'s jewelry',
+                        'system.section': 'System',
                         'language.section': 'Language',
                         'sigilPicker.title': 'ZODIAC SIGIL',
                         'sigilPicker.chooseSeal': 'CHOOSE YOUR SEAL',
@@ -1611,14 +2158,14 @@
                         'sigilPicker.swipeHint': 'SWIPE OR TAP ARROWS TO BROWSE',
                         'pause.title': 'SYSTEM TERMINATED',
                         'pause.subtitle': 'Press RESUME to continue',
-                        'pause.viewPosition': '◎ View Position',
+                        'pause.viewPosition': 'View Position',
                         'pause.peekHint': 'Click/Tap anywhere or press Esc to return',
                         'confirmMenu.message': 'Abort the voyage? Your flight log will be sealed here.',
                         'confirmMenu.yes': 'YES',
                         'confirmMenu.no': 'NO',
                     },
                     vi: {
-                        'settings.title': '⚙ Cài Đặt',
+                        'settings.title': 'Cài Đặt',
                         'settings.subtitlePre': 'Nhấn',
                         'settings.subtitlePost': 'để tạm dừng / tiếp tục game',
                         'graphics.section': 'Đồ Họa',
@@ -1628,21 +2175,51 @@
                         'graphics.qualityNote': 'Để chọn mức đồ họa cụ thể, vui lòng tắt Tự Động Điều Chỉnh.',
                         'graphics.highFps': 'FPS Cao',
                         'graphics.highFpsDesc': 'Bỏ giới hạn ~45fps trên mobile. Mượt hơn trên máy khỏe, tốn pin hơn.',
+                        'graphics.showFps': 'Hiện FPS',
+                        'graphics.showFpsDesc': 'Hiện số khung hình mỗi giây cạnh nút âm thanh, giúp chọn mức đồ họa hợp với máy.',
                         'fpsTip.body': 'Safari của bạn có vẻ đang bị khóa gần 60fps. Để thử lên 120fps trên máy ProMotion: tắt Low Power Mode, sau đó vào Settings tìm Advanced > Feature Flags của Safari và tắt "Prefer Page Rendering Updates near 60fps".',
                         'audio.section': 'Âm Thanh', 'audio.bgm': 'BGM', 'audio.sfx': 'SFX', 'audio.global': 'Tổng',
-                        'audio.inGameMusic': 'Nhạc Trong Game', 'audio.random': 'Ngẫu Nhiên',
+                        'audio.inGameMusic': 'Nhạc Trong Game', 'audio.random': 'Ngẫu Nhiên', 'audio.tracksSelected': 'Đã chọn {n} bài',
                         'background.section': 'Hình Nền', 'background.brightness': 'Độ Sáng',
+                        'background.detail': 'Mức Chi Tiết Nền',
+                        'background.detailDesc': 'Số sao, tinh vân và thiên thạch trôi phía sau trận đấu. Mức thấp nhẹ máy hơn.',
+                        'background.low': 'THẤP', 'background.mid': 'CHI TIẾT', 'background.full': 'ĐẦY ĐỦ',
+                        'background.glow': 'Vệt Sáng',
                         'gameplay.section': 'Lối Chơi', 'gameplay.screenShake': 'Rung Màn Hình',
                         'gameplay.on': 'BẬT', 'gameplay.off': 'TẮT',
-                        'gameplay.screenShakeWarn': '⚠ Bật rung màn hình có thể gây giật lag trên một số thiết bị.',
+                        'gameplay.screenShakeWarn': 'Bật rung màn hình có thể gây giật lag trên một số thiết bị.',
+                        'gameplay.vibrate': 'Rung Máy',
+                        'gameplay.vibrateDesc': 'Rung nhẹ khi trúng đòn, khi chọn Sigil và khi bấm nút kỹ năng.',
                         'gameplay.skipKanade': 'Bỏ Qua Hoạt Ảnh Kanade',
                         'gameplay.skipKanadeNote': 'Wave boss vẫn quay và áp dụng Timeline Distortion như thường.',
                         'offline.section': 'Chơi Offline', 'offline.desc': 'Tải trước để chơi được khi không có mạng.',
                         'offline.downloadLabel': 'Tải tài nguyên offline',
-                        'offline.pkgBasic': 'Cơ Bản (~33MB)', 'offline.pkgFull': 'Đầy Đủ (~196MB)',
+                        'offline.pkgBasic': 'Cơ Bản (~66MB)', 'offline.pkgFull': 'Đầy Đủ (~219MB)',
                         'offline.downloadBtn': 'Tải Xuống', 'offline.downloadedBtn': 'Đã Tải',
                         'offline.statusFormat': '{cached}/{total} tệp ({pct}%)',
                         'settings.apply': 'Áp Dụng',
+                        'settings.reset': 'Khôi Phục Mặc Định',
+                        'settings.resetDesc': 'Đưa mọi cài đặt về như lúc mới chơi. Ngôn ngữ giữ nguyên.',
+                        'settings.resetBtn': 'Khôi Phục',
+                        'settings.resetAsk': 'Đưa mọi cài đặt về như lúc mới chơi? Ngôn ngữ giữ nguyên.',
+                        'settings.resetDone': 'Đã khôi phục',
+                        'graphics.advanced': 'Đồ Họa Nâng Cao',
+                        'graphics.advancedSoon': 'Bản xem trước',
+                        'graphics.advancedNote': 'Các công tắc này đang được nối vào game, hiện chưa có tác dụng. Cảnh báo đòn của địch luôn hiện.',
+                        'graphics.fxByLevel': 'Theo Mức Đồ Họa',
+                        'graphics.fxAllOff': 'Tắt Hết',
+                        'graphics.fxBrightness': 'Độ Sáng Hiệu Ứng',
+                        'graphics.flashIntensity': 'Cường Độ Chớp',
+                        'fx.explosions': 'Hiệu Ứng Nổ', 'fx.explosionsDesc': 'Vụ nổ khi địch bị hạ và khi đòn lớn trúng',
+                        'fx.particles': 'Mảnh Vỡ Và Tia Lửa', 'fx.particlesDesc': 'Hạt bay ra khi trúng đòn và khi nổ',
+                        'fx.glow': 'Quầng Sáng', 'fx.glowDesc': 'Ánh sáng quanh đạn, tia và kỹ năng',
+                        'fx.screenFlash': 'Lóe Sáng Toàn Màn Hình', 'fx.screenFlashDesc': 'Chớp sáng khi trúng đòn và khi tung kỹ năng lớn',
+                        'fx.sigilLight': 'Ánh Sáng Của Sigil', 'fx.sigilLightDesc': 'Ánh trăng Song Ngư, trời tối khi núi Ma Kết rơi',
+                        'fx.sigilBackdrop': 'Nền Trang Trí Của Sigil', 'fx.sigilBackdropDesc': 'Cảnh nền riêng của từng Sigil phía sau trận đấu',
+                        'fx.nebula': 'Tinh Vân Chuyển Động', 'fx.nebulaDesc': 'Lớp tinh vân trôi phía sau, nền sao vẫn giữ',
+                        'fx.trails': 'Vệt Bay', 'fx.trailsDesc': 'Vệt sáng phía sau tàu, đạn và boss',
+                        'fx.jewelTwinkle': 'Lấp Lánh Trang Sức', 'fx.jewelTwinkleDesc': 'Ánh lấp lánh trên trang sức của Kanade',
+                        'system.section': 'Hệ Thống',
                         'language.section': 'Ngôn Ngữ',
                         'sigilPicker.title': 'SIGIL CUNG HOÀNG ĐẠO',
                         'sigilPicker.chooseSeal': 'CHỌN ẤN CỦA BẠN',
@@ -1651,7 +2228,7 @@
                         'sigilPicker.swipeHint': 'VUỐT HOẶC CHẠM MŨI TÊN ĐỂ XEM ẤN KHÁC',
                         'pause.title': 'HỆ THỐNG ĐÃ TẠM DỪNG',
                         'pause.subtitle': 'Ấn RESUME để tiếp tục',
-                        'pause.viewPosition': '◎ Xem Vị Trí',
+                        'pause.viewPosition': 'Xem Vị Trí',
                         'pause.peekHint': 'Click/Chạm vào bất kỳ đâu hoặc nhấn Esc để quay lại',
                         'confirmMenu.message': 'Dừng chuyến bay tại đây? Nhật ký chuyến bay sẽ khép lại.',
                         'confirmMenu.yes': 'CÓ',
@@ -1676,6 +2253,8 @@
                     });
                     const langSel = document.getElementById('lang-select');
                     if (langSel) langSel.value = window._lang;
+                    const stPanel = document.getElementById('settings-panel');
+                    if (stPanel) stPanel.classList.toggle('st-vi', window._lang === 'vi');
                     // Dynamic labels not covered by static data-i18n nodes:
                     if (typeof _updateMusicSelectLabel === 'function') _updateMusicSelectLabel();
                     if (typeof _updateLangSelectLabel === 'function') _updateLangSelectLabel();
@@ -1724,12 +2303,20 @@
                     // Screen shake
                     onShakeChange(window._screenShakeEnabled !== false);
 
+                    document.getElementById('highfps-check').checked = window._highFpsEnabled !== false;
+                    document.getElementById('showfps-check').checked = window._showFps === true;
+                    // Desktop Chrome has navigator.vibrate too, so touch screens only.
+                    const canBuzz = !!navigator.vibrate && !!(window.matchMedia && matchMedia('(pointer: coarse)').matches);
+                    document.getElementById('vibrate-row').style.display = canBuzz ? 'flex' : 'none';
+                    onVibrateChange(window._vibrateEnabled !== false);
+                    closeResetConfirm();
+                    _syncFxUI();
+
                     // Skip Kanade animation - the row only exists after the
                     // first, mandatory viewing.
                     {
                         const seen = typeof _kanadeIntroSeen === 'function' && _kanadeIntroSeen();
                         document.getElementById('kanade-skip-row').style.display = seen ? 'flex' : 'none';
-                        document.getElementById('kanade-skip-note').style.display = seen ? '' : 'none';
                         onKanadeSkipChange(typeof _kanadeCutsceneSkipped === 'function' && _kanadeCutsceneSkipped());
                     }
 
@@ -1739,6 +2326,10 @@
                     bgSlider.value = bgPct;
                     bgSlider.style.setProperty('--pct', bgPct + '%');
                     document.getElementById('bg-bright-label').textContent = bgPct + '%';
+                    onBgDetailSelect(window._bgDetail || 'full');
+                    const glowPct = Math.round((window._bgGlow != null ? window._bgGlow : 1) * 100);
+                    document.getElementById('bg-glow-slider').value = glowPct;
+                    onBgGlowChange(String(glowPct));
 
                     // In-Game Music: rebuild the dropdown + summary label from
                     // AudioMgr's persisted selection every time Settings opens.
@@ -1766,9 +2357,9 @@
                         if (!st.supported) { btn.disabled = true; btn.textContent = 'N/A'; return; }
                         const pct = st.total > 0 ? Math.round((st.cached / st.total) * 100) : 0;
                         fill.style.width = pct + '%';
-                        if (pct >= 100) { btn.textContent = 'Downloaded'; btn.disabled = true; }
-                        else { btn.textContent = 'Download'; btn.disabled = false; }
-                        if (statusText) statusText.textContent = st.cached + '/' + st.total + ' files (' + pct + '%)';
+                        if (pct >= 100) { btn.textContent = _t('offline.downloadedBtn'); btn.disabled = true; }
+                        else { btn.textContent = _t('offline.downloadBtn'); btn.disabled = false; }
+                        if (statusText) statusText.textContent = _t('offline.statusFormat').replace('{cached}', st.cached).replace('{total}', st.total).replace('{pct}', pct);
                     } catch (_) { }
                 }
 
@@ -1777,15 +2368,18 @@
                     const sel = document.getElementById('offline-pkg-select');
                     const btn = document.getElementById('offline-download-btn');
                     const fill = document.getElementById('offline-fill');
+                    const statusText = document.getElementById('offline-status-text');
                     if (!sel || !btn || !fill) return;
                     sel.disabled = true;
                     btn.disabled = true;
                     btn.textContent = '0%';
                     try {
+                        // done already counts the files that were cached before.
                         await window.OfflineMgr.download(sel.value, (done, total) => {
                             const pct = total > 0 ? Math.round((done / total) * 100) : 0;
                             fill.style.width = pct + '%';
                             btn.textContent = pct + '%';
+                            if (statusText) statusText.textContent = _t('offline.statusFormat').replace('{cached}', done).replace('{total}', total).replace('{pct}', pct);
                         });
                     } catch (_) { }
                     sel.disabled = false;
@@ -1815,13 +2409,13 @@
                     const lbl = document.getElementById('music-select-label');
                     if (!lbl || !window.AudioMgr) return;
                     const sel = window.AudioMgr.getSelectedBgmIds();
-                    if (sel.length === 0) { lbl.textContent = 'Random'; return; }
+                    if (sel.length === 0) { lbl.textContent = _t('audio.random'); return; }
                     if (sel.length === 1) {
                         const t = window.AudioMgr.list().find(x => x.id === sel[0]);
-                        lbl.textContent = t ? t.title : '1 track selected';
+                        lbl.textContent = t ? t.title : _t('audio.tracksSelected').replace('{n}', 1);
                         return;
                     }
-                    lbl.textContent = sel.length + ' tracks selected';
+                    lbl.textContent = _t('audio.tracksSelected').replace('{n}', sel.length);
                 }
                 function _buildMusicDropdown() {
                     const dd = document.getElementById('music-dropdown');
@@ -1830,7 +2424,7 @@
                     dd.innerHTML = tracks.map(t => {
                         const active = window.AudioMgr.isBgmSelected(t.id);
                         return '<div class="stg-music-row' + (active ? ' stg-music-row-active' : '') + '" data-track-id="' + t.id + '" onclick="onMusicTrackClick(\'' + t.id + '\', this)">'
-                            + '<span class="stg-music-check">' + (active ? '✓' : '') + '</span>'
+                            + '<span class="stg-music-check">' + '' + '</span>'
                             + '<span style="flex:1;">' + t.title + '</span>'
                             + '</div>';
                     }).join('');
@@ -1848,8 +2442,6 @@
                     const nowOn = window.AudioMgr.toggleBgmSelection(id);
                     if (rowEl) {
                         rowEl.classList.toggle('stg-music-row-active', nowOn);
-                        const check = rowEl.querySelector('.stg-music-check');
-                        if (check) check.textContent = nowOn ? '✓' : '';
                     }
                     _updateMusicSelectLabel();
                 }
@@ -1872,7 +2464,7 @@
                     dd.innerHTML = opts.map(([val, label]) => {
                         const active = window._lang === val;
                         return '<div class="stg-music-row' + (active ? ' stg-music-row-active' : '') + '" onclick="onLangOptionClick(\'' + val + '\')">'
-                            + '<span class="stg-music-check">' + (active ? '✓' : '') + '</span>'
+                            + '<span class="stg-music-check">' + '' + '</span>'
                             + '<span style="flex:1;">' + label + '</span>'
                             + '</div>';
                     }).join('');
@@ -1913,7 +2505,7 @@
                     dd.innerHTML = opts.map(([val, label]) => {
                         const active = sel.value === val;
                         return '<div class="stg-music-row' + (active ? ' stg-music-row-active' : '') + '" onclick="onOfflinePkgOptionClick(\'' + val + '\')">'
-                            + '<span class="stg-music-check">' + (active ? '✓' : '') + '</span>'
+                            + '<span class="stg-music-check">' + '' + '</span>'
                             + '<span style="flex:1;">' + label + '</span>'
                             + '</div>';
                     }).join('');
@@ -1981,6 +2573,17 @@
                     if (window.AudioMgr) window.AudioMgr.setVolume(cat, parseInt(val) / 100);
                 }
 
+                // Background detail and light patches apply immediately too.
+                function onBgDetailSelect(level) {
+                    ['low', 'detail', 'full'].forEach(l => document.getElementById('bg-detail-' + l).classList.toggle('stg-q-active', l === level));
+                    if (window._bgSetDetail) window._bgSetDetail(level);
+                }
+                function onBgGlowChange(val) {
+                    document.getElementById('bg-glow-label').textContent = val + '%';
+                    document.getElementById('bg-glow-slider').style.setProperty('--pct', val + '%');
+                    if (window._bgSetGlow) window._bgSetGlow(parseInt(val) / 100);
+                }
+
                 // Background brightness slider → apply immediately + update label
                 function onBgBrightnessChange(val) {
                     document.getElementById('bg-bright-label').textContent = val + '%';
@@ -1994,13 +2597,22 @@
                     document.getElementById('shake-off').classList.toggle('stg-onoff-active', !enabled);
                 }
 
+                function onVibrateChange(enabled) {
+                    document.getElementById('vibrate-on').classList.toggle('stg-onoff-active', enabled);
+                    document.getElementById('vibrate-off').classList.toggle('stg-onoff-active', !enabled);
+                }
+
                 function onKanadeSkipChange(enabled) {
                     document.getElementById('kanade-skip-on').classList.toggle('stg-onoff-active', enabled);
                     document.getElementById('kanade-skip-off').classList.toggle('stg-onoff-active', !enabled);
                 }
 
-                // APPLY: read UI state, apply everything
+                // APPLY: read UI state, apply everything, then close.
                 function applySettings() {
+                    _commitSettings();
+                    closeSettings();
+                }
+                function _commitSettings() {
                     // Smart Quality
                     const sqOn = document.getElementById('sq-check').checked;
                     window._smartQuality = sqOn;
@@ -2026,7 +2638,136 @@
                         _setKanadeCutsceneSkipped(document.getElementById('kanade-skip-on').classList.contains('stg-onoff-active'));
                     }
 
-                    closeSettings();
+                    window._showFps = document.getElementById('showfps-check').checked;
+                    window._vibrateEnabled = document.getElementById('vibrate-on').classList.contains('stg-onoff-active');
+                    try {
+                        localStorage.setItem('pisces_show_fps', window._showFps ? '1' : '0');
+                        localStorage.setItem('pisces_vibrate', window._vibrateEnabled ? '1' : '0');
+                    } catch (_) { }
+                    _setFpsCounter(window._showFps);
+                    _commitFx();
+                }
+
+                // Show FPS and Vibration are kept on this device.
+                window._showFps = false;
+                window._vibrateEnabled = true;
+                try {
+                    window._showFps = localStorage.getItem('pisces_show_fps') === '1';
+                    window._vibrateEnabled = localStorage.getItem('pisces_vibrate') !== '0';
+                } catch (_) { }
+
+                // The game loop calls window._fpsTick on every frame it actually
+                // draws, so the count includes the mobile 45fps cap. The colour
+                // turns gold under 50 and red under 30.
+                function _setFpsCounter(on) {
+                    const el = document.getElementById('fpsCounter');
+                    if (!el) return;
+                    el.style.display = on ? 'block' : 'none';
+                    if (!on) { window._fpsTick = null; return; }
+                    let frames = 0, last = 0, shown = -1;
+                    window._fpsTick = function (now) {
+                        if (!last) { last = now; return; }
+                        frames++;
+                        if (now - last < 500) return;
+                        const fps = Math.round(frames * 1000 / (now - last));
+                        frames = 0;
+                        last = now;
+                        if (fps === shown) return;
+                        shown = fps;
+                        el.textContent = fps + ' FPS';
+                        el.style.setProperty('--fps-color', fps >= 50 ? '#00E5FF' : (fps >= 30 ? '#E8C46A' : '#FF4D6D'));
+                    };
+                    el.textContent = '-- FPS';
+                }
+                _setFpsCounter(window._showFps);
+
+                // Advanced Graphics. The switches are saved in window._fxOpts
+                // (localStorage pisces_fx) but nothing reads them yet.
+                const _FX_ROWS = ['explosions', 'particles', 'glow', 'screenFlash', 'sigilLight', 'sigilBackdrop', 'nebula', 'trails', 'jewelTwinkle'];
+                window._fxOpts = { fxBrightness: 100, flashIntensity: 100 };
+                _FX_ROWS.forEach(k => { window._fxOpts[k] = true; });
+                try {
+                    const saved = JSON.parse(localStorage.getItem('pisces_fx') || 'null');
+                    if (saved && typeof saved === 'object') Object.keys(window._fxOpts).forEach(k => { if (k in saved) window._fxOpts[k] = saved[k]; });
+                } catch (_) { }
+                (function _buildFxRows() {
+                    const host = document.getElementById('st-fx-rows');
+                    if (!host) return;
+                    host.innerHTML = _FX_ROWS.map(k =>
+                        '<label class="st-row st-row-click"><span class="st-row-text">'
+                        + '<span class="st-label" data-i18n="fx.' + k + '">' + _t('fx.' + k) + '</span>'
+                        + '<span class="st-desc" data-i18n="fx.' + k + 'Desc">' + _t('fx.' + k + 'Desc') + '</span></span>'
+                        + '<span class="stg-toggle-wrap"><input type="checkbox" data-fx="' + k + '"><span class="stg-toggle-track"></span><span class="stg-toggle-thumb"></span></span>'
+                        + '</label>').join('');
+                })();
+                function toggleAdvancedGraphics() {
+                    const head = document.getElementById('st-adv-head');
+                    const body = document.getElementById('st-adv-body');
+                    const open = body.style.display === 'none';
+                    body.style.display = open ? 'block' : 'none';
+                    head.setAttribute('aria-expanded', open ? 'true' : 'false');
+                }
+                function onFxSlider(id, val) {
+                    document.getElementById(id + '-label').textContent = val + '%';
+                    document.getElementById(id + '-slider').style.setProperty('--pct', ((val - (id === 'fx-bright' ? 20 : 0)) / (id === 'fx-bright' ? 0.8 : 1)) + '%');
+                }
+                function setAllFx(on) {
+                    document.querySelectorAll('#st-fx-rows input[data-fx]').forEach(i => { i.checked = on; });
+                }
+                function _syncFxUI() {
+                    document.querySelectorAll('#st-fx-rows input[data-fx]').forEach(i => { i.checked = window._fxOpts[i.dataset.fx] !== false; });
+                    const b = document.getElementById('fx-bright-slider'), f = document.getElementById('fx-flash-slider');
+                    b.value = window._fxOpts.fxBrightness; onFxSlider('fx-bright', b.value);
+                    f.value = window._fxOpts.flashIntensity; onFxSlider('fx-flash', f.value);
+                }
+                function _commitFx() {
+                    document.querySelectorAll('#st-fx-rows input[data-fx]').forEach(i => { window._fxOpts[i.dataset.fx] = i.checked; });
+                    window._fxOpts.fxBrightness = parseInt(document.getElementById('fx-bright-slider').value);
+                    window._fxOpts.flashIntensity = parseInt(document.getElementById('fx-flash-slider').value);
+                    try { localStorage.setItem('pisces_fx', JSON.stringify(window._fxOpts)); } catch (_) { }
+                }
+
+                // Restore Defaults opens a Yes / No box; Yes puts every setting
+                // back at once and leaves the panel open. Language is left alone.
+                let _resetDoneTimer = 0;
+                function onResetSettings() {
+                    document.getElementById('st-reset-confirm').classList.add('st-open');
+                }
+                function closeResetConfirm() {
+                    document.getElementById('st-reset-confirm').classList.remove('st-open');
+                }
+                function confirmResetSettings() {
+                    closeResetConfirm();
+                    const btn = document.getElementById('settings-reset-btn');
+                    document.getElementById('sq-check').checked = true;
+                    onSmartQualityChange(true);
+                    document.getElementById('highfps-check').checked = true;
+                    document.getElementById('showfps-check').checked = false;
+                    onShakeChange(false);
+                    onVibrateChange(true);
+                    onKanadeSkipChange(false);
+                    ['bgm', 'sfx', 'global'].forEach(cat => {
+                        document.getElementById('vol-' + cat + '-slider').value = 100;
+                        onAudioSlider(cat, '100');
+                    });
+                    document.getElementById('bg-bright-slider').value = 100;
+                    onBgBrightnessChange('100');
+                    onBgDetailSelect('full');
+                    document.getElementById('bg-glow-slider').value = 100;
+                    onBgGlowChange('100');
+                    if (window.AudioMgr) {
+                        window.AudioMgr.getSelectedBgmIds().forEach(id => window.AudioMgr.toggleBgmSelection(id));
+                        _buildMusicDropdown();
+                    }
+                    setAllFx(true);
+                    document.getElementById('fx-bright-slider').value = 100;
+                    onFxSlider('fx-bright', '100');
+                    document.getElementById('fx-flash-slider').value = 100;
+                    onFxSlider('fx-flash', '100');
+                    _commitSettings();
+                    btn.textContent = _t('settings.resetDone');
+                    clearTimeout(_resetDoneTimer);
+                    _resetDoneTimer = setTimeout(() => { btn.textContent = _t('settings.resetBtn'); }, 2000);
                 }
             </script>
 
@@ -3250,11 +3991,11 @@
     <script src="js/vendor/pixi.min.js"></script>
     <script src="js/canvas-guard.js?v=20261008a"></script>
     <script src="js/audio.js?v=20261019echo2"></script>
-    <script src="js/offline.js?v=20261018c"></script>
-    <script src="js/background.js?v=20260923a"></script>
+    <script src="js/offline.js?v=20261020e"></script>
+    <script src="js/background.js?v=20261020f"></script>
     <script src="js/config.js?v=20261019r"></script>
     <script src="js/timeline-distortion.js?v=20261018c"></script>
-    <script src="js/sigils/core.js?v=20261019r"></script>
+    <script src="js/sigils/core.js?v=20261020g"></script>
     <script src="js/sigils/aries.js?v=20261012c"></script>
     <script src="js/sigils/taurus.js?v=20261012c"></script>
     <script src="js/sigils/gemini.js?v=20261012c"></script>
@@ -3297,12 +4038,12 @@
     <script src="js/skills/sigil-gemini.js?v=20260911a"></script>
     <script src="js/skills/sigil-aries.js?v=20260902a"></script>
     <script src="js/skills/sigil-virgo.js?v=20260911a"></script>
-    <script src="js/render/core.js?v=20261019r"></script>
+    <script src="js/render/core.js?v=20261020g"></script>
     <script src="js/render/kanade-face.js?v=20261015c"></script>
     <script src="js/render/kanade-cutscene.js?v=20261019echo2"></script>
     <script src="js/render/fx.js?v=20261019a"></script>
     <script src="js/render/player.js?v=20261015a"></script>
-    <script src="js/render/enemy-common.js?v=20261018c"></script>
+    <script src="js/render/enemy-common.js?v=20261020g"></script>
     <script src="js/render/enemy-raphael.js?v=20261010d"></script>
     <script src="js/render/enemy-thaelis.js?v=20261008a"></script>
     <script src="js/render/enemy-dargruel.js?v=20261010d"></script>
@@ -3322,18 +4063,18 @@
     <script src="js/render/sigil-pisces.js?v=20261014c"></script>
     <script src="js/render/sigil-capricorn.js?v=20261018c"></script>
     <script src="js/render/skill-g.js?v=20261013n"></script>
-    <script src="js/render/skill-buttons.js?v=20261019echo2"></script>
+    <script src="js/render/skill-buttons.js?v=20261020g"></script>
     <script src="js/recap.js?v=20261020c"></script>
     <script src="js/pixi-renderer.js?v=20261008b"></script>
     <script src="js/input.js?v=20261019r"></script>
-    <script src="js/main.js?v=20261019r"></script>
+    <script src="js/main.js?v=20261020d"></script>
     <script>
         // Debug/cheat console is a local-dev-only tool (spawn/kill any
         // enemy, force skills, edit HP, etc.) — never fetch/load it on the
         // real deployed site, only when actually running locally.
         if (location.hostname === 'localhost' || location.hostname === '127.0.0.1' || location.protocol === 'file:') {
             const _dbgScript = document.createElement('script');
-            _dbgScript.src = 'js/debug-console.js?v=20261019r';
+            _dbgScript.src = 'js/debug-console.js?v=20261020g';
             document.head.appendChild(_dbgScript);
         }
     </script>
@@ -3979,7 +4720,7 @@
 
             // HOLD BUTTON ACTIONS
             // Micro haptic, 15ms, barely perceptible
-            window._hap = function () { try { navigator.vibrate && navigator.vibrate(15); } catch (e) { } }
+            window._hap = function () { try { window._vibrateEnabled !== false && navigator.vibrate && navigator.vibrate(15); } catch (e) { } }
 
             // Movement control swap: Yog-Sothoth needs a discrete "pick a
             // side" tap, which a continuous drag axis doesn't map to, so it

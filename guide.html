@@ -26,6 +26,12 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Pisces: Space Journey — General Guide</title>
   <script>
+    // Play / pause buttons get drawn icons (.ico-play, .ico-pause) with an
+    // optional label after them.
+    function _setBtnIcon(btn, icon, label) {
+      btn.innerHTML = '<i class="ico ico-' + icon + '"></i>' + (label || '');
+    }
+
     // Loading all 5 font families (12 separate font files across weights)
     // regardless of language doubles this page's network weight for no
     // benefit — VI mode overrides every element to Sora anyway (see the
@@ -261,10 +267,15 @@
     }
 
     .card li::before {
-      content: '▸';
-      color: var(--cyan);
-      margin-right: 7px;
-      font-weight: bold
+      content: '';
+      display: inline-block;
+      width: 0;
+      height: 0;
+      margin-right: 8px;
+      vertical-align: 1px;
+      border-left: 5px solid var(--cyan);
+      border-top: 4px solid transparent;
+      border-bottom: 4px solid transparent
     }
 
     .card li {
@@ -439,6 +450,13 @@
       transition: all .15s;
       z-index: 2;
     }
+    /* Play and pause are drawn shapes, never font glyphs, so phones cannot
+       swap in their emoji. */
+    .ico { display: inline-block; flex-shrink: 0; vertical-align: -0.05em; }
+    .ico-play { width: 0; height: 0; border-left: 0.62em solid currentColor; border-top: 0.38em solid transparent; border-bottom: 0.38em solid transparent; }
+    .ico-pause { width: 0.58em; height: 0.72em; border-left: 0.2em solid currentColor; border-right: 0.2em solid currentColor; box-sizing: border-box; }
+    .play-btn .ico { margin-right: 0.5em; }
+    .ui-ico { display: inline-block; width: 1.1em; height: 1.1em; vertical-align: -0.18em; }
     .play-btn:hover { color: #fff; border-color: #00ff88; background: rgba(0,40,20,0.85); }
     .play-btn[data-running="true"]:not([data-paused="true"]) { color: #ffcc66; border-color: rgba(255,204,102,0.5); background: rgba(40,26,0,0.72); }
     .play-btn[data-paused="true"] { color: #66ccff; border-color: rgba(102,204,255,0.5); background: rgba(0,26,40,0.72); }
@@ -536,14 +554,14 @@
 </head>
 
 <body>
-  <button id="guideBtn">⬡ Guide</button>
+  <button id="guideBtn"><svg class="ui-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round" aria-hidden="true"><path d="M12 2.8l8 4.6v9.2l-8 4.6-8-4.6V7.4z"/><path d="M12 8.6l3 1.7v3.4L12 15.4l-3-1.7v-3.4z" fill="currentColor" stroke="none"/></svg> Guide</button>
   <div id="guideOverlay">
     <div id="guideModal">
       <div class="guide-header">
         <div>
           <h1>GENERAL GUIDE</h1>
           <div class="sub">PISCES: SPACE JOURNEY — COMBAT MANUAL</div>
-        </div><button id="closeBtn">✕</button>
+        </div><button id="closeBtn"><svg class="ui-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
       </div>
       <div class="tab-nav">
         <button class="tab-btn active" data-tab="basics">Basics</button>
@@ -764,7 +782,7 @@
 <div class="card">
 <h2 style="color:var(--cyan)">YOUR SHIP</h2>
 <div class="sub">PISCES-CLASS INTERCEPTOR</div>
-<div class="ab" style="height:170px"><canvas id="cvShip" style="width:100%;height:100%"></canvas><button class="play-btn" id="btnPlayShip" onclick="playWidget('ship', this)">▶ Play</button></div>
+<div class="ab" style="height:170px"><canvas id="cvShip" style="width:100%;height:100%"></canvas><button class="play-btn" id="btnPlayShip" onclick="playWidget('ship', this)"><i class="ico ico-play"></i>Play</button></div>
 <p>Your ship auto-fires <span class="hp">5 purple bullets</span> in a 45° spread every 135ms. The tiny <span class="hi">cyan dot</span> is your true hitbox — only contact with that dot costs a life.</p>
 <p style="margin-top:8px">Every friendly damage number in this guide (Sentinels, Skills, Sigils) scales off your <span class="hi">ATK</span> stat, not a flat number. ATK starts at <span class="hg">1000</span> and grows <span class="hg">+3% per wave</span> until wave 18, where it plateaus at <span class="hg">+50%</span> (<span class="hg">1500</span>) for the rest of the run. Each equipped Sigil also adds its own flat ATK bonus on top, from 4% to 20%, and the sigil picker shows the number on every card. Kits that already multiply damage or defend well give less, kits that need raw ATK give more, and Pisces gives the most because it has no attack of its own.</p>
 </div>
@@ -804,7 +822,7 @@
 <div class="card">
 <h2 style="color:var(--cyan)">SENTINELS</h2>
 <div class="sub">PASSIVE — SPAWNS EVERY 3 KILLS • MAX 12</div>
-<div class="ab" style="height:160px"><canvas id="cvSentinels" style="width:100%;height:100%"></canvas><button class="play-btn" id="btnPlaySentinel" onclick="playWidget('sentinel', this)">▶ Play</button></div>
+<div class="ab" style="height:160px"><canvas id="cvSentinels" style="width:100%;height:100%"></canvas><button class="play-btn" id="btnPlaySentinel" onclick="playWidget('sentinel', this)"><i class="ico ico-play"></i>Play</button></div>
 <ul>
 <li>Spawns every <span class="hi">3 kills</span>. 36% chance <b>Fortified</b> (+50% Max HP).</li>
 <li>Every 4th shot = <span class="hg">Special Shot</span>: homing, heals 2 HP on hit.</li>
@@ -816,26 +834,26 @@
 <li><span style="color:#a855f7;font-size:10px">PASSIVE</span> <b>Gaia Protection</b> — <span class="det-full">Max HP grows by wave: <span class="hg">+5% at Wave 2 · +10% at Wave 6 · +15% at Wave 10</span>; then <span class="hg">+3%/wave</span> until <span class="hg">+60% total cap</span>. While Glory for Justice active: every <span class="hi">8s</span> (<span class="hi">5s</span> after Wave 10) each Sentinel generates a <span class="hg">Gaia Barrier</span> = <span class="hg">20% HP lost + 12% Max HP</span> (non-stacking, replaces previous). Fires immediately on activation. The Barrier absorbs incoming damage up to its own remaining pool (no fixed percentage passes through regardless of size). <b>True damage bypasses the Gaia Barrier entirely</b> - it doesn't touch the pool at all. <b>Does not count as Max HP.</b> Displayed as a green crescent above the Sentinel.</span><span class="det-short">Max HP grows per wave milestone (cap +60%). During Glory: Gaia Barrier pulses every 8s (5s after Wave 10) = 20% HP lost + 12% Max HP. Absorbs up to its own pool, true damage bypasses it entirely, not counted as Max HP.</span></li>
 <li>On death: <span class="dmg">10 scattered projectiles</span>.</li></ul></div>
 <div class="card"><h2 style="color:var(--red)">VULNERABILITY</h2><div class="sub">DEBUFF — STACKS ×4 • 3s DURATION</div>
-<div class="ab"><canvas id="cvVuln" style="width:100%;height:100%"></canvas><button class="play-btn" id="btnPlayVuln" onclick="playWidget('vuln', this)">▶ Play</button></div>
+<div class="ab"><canvas id="cvVuln" style="width:100%;height:100%"></canvas><button class="play-btn" id="btnPlayVuln" onclick="playWidget('vuln', this)"><i class="ico ico-play"></i>Play</button></div>
 <ul><li>Auto-fire <span class="dmg">28%</span> chance, others <span class="dmg">15%</span>. Each stack: <span class="hr">+12% dmg taken</span>, shreds <span class="dmg">20% Shield</span>.</li>
 <li>At 4 stacks, next 2.5s: hits still eat Shield normally, but gain bonus true damage on top, decaying <span class="hr">+30% → +15%</span> of their damage linearly over the window. When the window ends: <span class="hr">57.5% ATK true damage</span> and stacks reset to 0.</li></ul></div>
 <div class="card"><h2 style="color:var(--green)">GLORY FOR JUSTICE</h2><div class="sub">ACTIVATES: 4+ ENEMIES / ABNORMAL+ / SKILL G / PHŌTOKRYSTOS</div>
-<div class="ab"><canvas id="cvGlory" style="width:100%;height:100%"></canvas><button class="play-btn" id="btnPlayGlory" onclick="playWidget('glory', this)">▶ Play</button></div>
+<div class="ab"><canvas id="cvGlory" style="width:100%;height:100%"></canvas><button class="play-btn" id="btnPlayGlory" onclick="playWidget('glory', this)"><i class="ico ico-play"></i>Play</button></div>
 <ul><li>All friendly dmg <span class="hgr">×1.55</span>, fire rate <span class="hgr">×1.2</span>.</li>
 <li><span class="det-full"><b>Chain Lightning</b> (150ms CD): arcs <b>8</b> enemies at <b>50%</b> dmg. <b>60%</b> → <span class="hr">Soul Reaver</span> for <b>2s</b> (−<b>40%</b> heal/shield, DoT every <b>0.35s</b>: <b>6.9% ATK</b> true dmg).</span><span class="det-short"><b>Chain Lightning</b>: arcs 8 enemies. 60% chance to apply Soul Reaver for 2s (reduces healing + DoT).</span></li>
 <li>Sentinels: <b>+25% DR</b>, Parry active.</li></ul></div>
 <div class="card"><h2 style="color:var(--gold)">FINAL DEFENSE & LAST STAND</h2><div class="sub">AUTO SAFETY NETS</div>
-<div class="ab" style="height:140px"><canvas id="cvFinal" style="width:100%;height:100%"></canvas><button class="play-btn" id="btnPlayFinal" onclick="playWidget('final', this)">▶ Play</button></div>
+<div class="ab" style="height:140px"><canvas id="cvFinal" style="width:100%;height:100%"></canvas><button class="play-btn" id="btnPlayFinal" onclick="playWidget('final', this)"><i class="ico ico-play"></i>Play</button></div>
 <ul>
 <li><b>Player Shield:</b> absorbs 1 hit <span class="cd">25s regen</span>. <b>Boundary Shield:</b> absorbs 1 crossing enemy <span class="cd">25s</span>.</li>
 <li><b>Last Stand:</b> last life fatal hit → survive + <span class="hg">Absolute Shield</span> on you + Sentinels. <span class="hg">Once only.</span></li>
 <li>Priority: <span class="hp">Domain</span> → <span class="hi">Orb Sacrifice</span> → Player Shield → Last Stand → Lose life.</li></ul></div>
-<div class="card"><h2 style="color:#ffaaaa">⚔ YUUKI — WILL TO FIGHT</h2><div class="sub">PASSIVE • WAVE 8+ • EVERY 2 WAVES • STACKS TO +300%</div>
+<div class="card"><h2 style="color:#ffaaaa"><svg class="ui-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M4 4l13 13M20 4L7 17M14.5 19.5l5-5M9.5 19.5l-5-5"/></svg> YUUKI — WILL TO FIGHT</h2><div class="sub">PASSIVE • WAVE 8+ • EVERY 2 WAVES • STACKS TO +300%</div>
 <ul>
 <li>Starting at <span class="hi">Wave 8</span>, every <span class="hi">2 waves</span> (Wave 8, 10, 12, …): all allied units deal <span class="hg">+20% more damage</span>.</li>
 <li>Stacks additively until total bonus reaches <span class="hg">+300%</span> (capped at Wave 36+), then stays fixed.</li>
 <li>Applies to all friendly damage sources: auto-fire, skills, spirits, sentinels, chain lightning, tesla DoT.</li>
-<li>Displayed in the HUD as <span class="hg">⚔ Yuuki +X%</span> once active.</li>
+<li>Displayed in the HUD as <span class="hg"><svg class="ui-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M4 4l13 13M20 4L7 17M14.5 19.5l5-5M9.5 19.5l-5-5"/></svg> Yuuki +X%</span> once active.</li>
 </ul></div>
 <div class="card"><h2 style="color:#c86464"><img src="assets/images/game/icons/walpurgis-icon.png" alt="Walpurgis" style="height:0.9em;vertical-align:-0.1em;margin-right:5px;">WALPURGIS — HUYẾT DẠ</h2><div class="sub">GLOBAL CURSE • EVERY 5 WAVES • NO CAP</div>
 <ul>
@@ -847,21 +865,21 @@
       skills: `
 <div class="card"><h2 style="color:#ff8800"><span class="key">Space</span> CHARGED SHOT & OVERLOAD LASER</h2>
 <div class="sub">HOLD SPACE TO CHARGE • 3s = OVERLOAD <span class="cd">LASER CD 9s</span></div>
-<div class="ab" style="height:230px"><canvas id="cvLaser" style="width:100%;height:100%"></canvas><button class="play-btn" id="btnPlayLaser" onclick="playWidget('laser', this)">▶ Play</button></div>
+<div class="ab" style="height:230px"><canvas id="cvLaser" style="width:100%;height:100%"></canvas><button class="play-btn" id="btnPlayLaser" onclick="playWidget('laser', this)"><i class="ico ico-play"></i>Play</button></div>
 <ul><li><b>Charged Shot:</b> hold up to 1s → release. Damage scales up to <span class="dmg">80% ATK + 6% Max HP</span> at max charge (10x).</li>
 <li><b>Overload Laser:</b> hold 3s without releasing → continuous beam for <span class="hi">12 seconds</span>.</li>
 <li>Laser deals <span class="dmg">40.25% ATK</span> per tick every 155ms (Mirror Laser sigil: +20%). Pulls nearby enemies toward beam.</li>
 <li>While active, <span class="hi">4 clone afterimages</span> appear (2 each side, 5 ships total) firing parallel beams.</li></ul></div>
 
 <div class="card"><h2 style="color:var(--gold)"><span class="key">Shift</span> YOG-SOTHOTH DOMAIN</h2><div class="sub">SPACE-TIME MANIPULATION <span class="cd">CD 1.1s–9s</span> <span class="cd">MAX 8s</span></div>
-<div class="ab" style="height:160px"><canvas id="cvShift" style="width:100%;height:100%"></canvas><button class="play-btn" id="btnPlayShift" onclick="playWidget('shift', this)">▶ Play</button></div>
+<div class="ab" style="height:160px"><canvas id="cvShift" style="width:100%;height:100%"></canvas><button class="play-btn" id="btnPlayShift" onclick="playWidget('shift', this)"><i class="ico ico-play"></i>Play</button></div>
 <ul><li>Hold Shift: world at <span class="hp">15% speed</span>. You gain <b>Iron Body</b>.</li>
 <li><span class="det-full"><b>Cooldown scales with hold time</b> (no teleport): &lt;2s → <span class="hgr">1.1s</span> · 2–5s → <span class="hg">4.4s</span> · 5–7s → 9.9s · ≥7s → <span class="hr">9s</span>. <span class="hr">If ←/→ teleport used → always full 9s.</span></span><span class="det-short"><b>Cooldown</b> scales with hold time (1.1s–9s). Teleport always triggers full 9s CD.</span></li>
 <li>All enemy bullets <span class="hr">destroyed</span>. <span class="key">←→</span> teleport.</li>
 <li><span class="hg">Accurate Parry:</span> hit during domain → +25% dmg 4s, Sentinel <b>Iron Body 1.25s</b>.</li></ul></div>
 
 <div class="card"><h2 style="color:var(--blue)"><span class="key">A</span> THUNDER ORBS</h2><div class="sub">CELESTIAL THUNDERBURST <span class="cd">CD 6s</span></div>
-<div class="ab" style="height:210px"><canvas id="cvSkillA" style="width:100%;height:100%"></canvas><button class="play-btn" id="btnPlaySkillA" onclick="playWidget('skillA', this)">▶ Play</button></div>
+<div class="ab" style="height:210px"><canvas id="cvSkillA" style="width:100%;height:100%"></canvas><button class="play-btn" id="btnPlaySkillA" onclick="playWidget('skillA', this)"><i class="ico ico-play"></i>Play</button></div>
 <ul><li>Summons <span class="hi">20 homing orbs</span> (max 80). Each: <span class="dmg">23% ATK + 2% Max HP</span> (27.6% ATK + 2% Max HP for the split-orb path), plus <span class="hr">11.5% ATK + 15% of the target's lost HP</span> (13.8% ATK + 18% lost HP, split path) as true damage.</li>
 <li>Impact → <span class="dmg">16 scattered shards</span> (0.9% ATK each).</li>
 <li><span class="hg">Yellow Orbs:</span> 3 absorb incoming hits. When an orb is <b>sacrificed</b>, the attacker (if targetable) receives <span class="hr">Soul Reaver + Soul Devourer DoT</span> (6.9% ATK per 0.35s) and is <span class="hr">slowed 25%</span> for <span class="cd">3s</span>.</li>
@@ -874,14 +892,14 @@
   <button onclick="showSpiritTab(2)" id="sTabBtn2" style="flex:1;padding:5px;font-family:'Rajdhani', 'Be Vietnam Pro', sans-serif;font-size:11px;font-weight:700;letter-spacing:1px;cursor:pointer;background:rgba(0,80,40,0.2);border:1.5px solid rgba(0,255,136,0.4);border-radius:6px;color:#00cc66;">② Phōtokrystos</button>
 </div>
 <div id="sSpiritPane1">
-  <div class="ab" style="height:210px"><canvas id="cvSkillS" style="width:100%;height:100%"></canvas><button class="play-btn" id="btnPlaySkillS" onclick="playWidget('skillS', this)">▶ Play</button></div>
+  <div class="ab" style="height:210px"><canvas id="cvSkillS" style="width:100%;height:100%"></canvas><button class="play-btn" id="btnPlaySkillS" onclick="playWidget('skillS', this)"><i class="ico ico-play"></i>Play</button></div>
   <ul><li>Orbiting Spirit fires homing bullets every <span class="hi">54ms</span> (<span class="dmg">13.8% ATK</span>).</li>
   <li><span class="det-full">Every 5th shot: <b>Blade Arc</b> (<span class="dmg">20.7% ATK + 1.5% Max HP</span>, 24.8% ATK + 1.5% Max HP with Twin Blades sigil). Destroys enemy bullets.</span><span class="det-short">Every 5th shot fires a <b>Blade Arc</b> that destroys bullets.</span></li>
   <li><span class="det-full"><b>Finale @35s:</b> a 2.5s laser charge (<span class="dmg">1.15% ATK</span> true dmg/tick), then launches a single <b>Spinner</b>: <span class="hi">5s</span> lifetime, bounces off every screen edge (a speed boost on launch and each bounce), <span class="dmg">20% ATK + 1.8% Max HP</span> true damage on contact (can re-hit the same enemy after a short cooldown), every <span class="hi">0.3s</span> near an enemy slashes 4 mini Arc Blades in a cross pattern (<span class="dmg">43% ATK</span> piercing each, 50% ATK with Twin Blades), and every full second it is alive throws 4 more (<span class="dmg">41% ATK</span>, 47% with Twin Blades). Every Spinner hit applies <b>Soul Reaver</b> for <span class="hi">2s</span> (refreshes, never stacks).</span><span class="det-short"><b>Finale @35s:</b> lasers, then a single bouncing <b>Spinner</b> (5s) dealing heavy true damage on contact and periodically slashing 4 mini Arc Blades.</span></li>
   <li><b>Primeval Creation:</b> Spirit kills charge a mana bar (+2% per kill). At 100%, press S again to transform.</li></ul>
 </div>
 <div id="sSpiritPane2" style="display:none;">
-  <div class="ab" style="height:160px;border-color:rgba(0,255,136,0.2)"><canvas id="cvPhotokrystos" style="width:100%;height:100%"></canvas><button class="play-btn" id="btnPlayPhoto" onclick="playPhotokrystosWidget(this)">▶ Play</button></div>
+  <div class="ab" style="height:160px;border-color:rgba(0,255,136,0.2)"><canvas id="cvPhotokrystos" style="width:100%;height:100%"></canvas><button class="play-btn" id="btnPlayPhoto" onclick="playPhotokrystosWidget(this)"><i class="ico ico-play"></i>Play</button></div>
   <ul>
   <li><span style="color:#00cc66;font-size:10px">PHŌTOKRYSTOS</span> <b>Grand Primordial Spirit</b> — lasts <span class="hg">40s</span>. Duration resets. CD = 40s after.</li>
   <li><span style="color:#88ccff;font-size:10px">PASSIVE</span> <b>Blessing of the Primordial</b>: Sentinels -15% shot recoil HP cost, ally dmg +15%, +1.5% MaxHP regen/0.75s, +4.6% ATK shield/3s per sentinel (capped at 15% of that sentinel's own Max HP).</li>
@@ -895,12 +913,12 @@
 </div>
 
 <div class="card"><h2 style="color:#9333ea"><span class="key">D</span> DEATH STAR</h2><div class="sub" style="font-weight:400;font-size:11px;opacity:0.75">Draconic Annihilation</div><div class="sub"><span class="cd">CD 10s</span> <span class="cd">2s CHARGE</span></div>
-<div class="ab" style="height:210px"><canvas id="cvSkillD" style="width:100%;height:100%"></canvas><button class="play-btn" id="btnPlaySkillD" onclick="playWidget('skillD', this)">▶ Play</button></div>
+<div class="ab" style="height:210px"><canvas id="cvSkillD" style="width:100%;height:100%"></canvas><button class="play-btn" id="btnPlaySkillD" onclick="playWidget('skillD', this)"><i class="ico ico-play"></i>Play</button></div>
 <ul><li>Pulls all enemies + bullets toward the center at speed 5.25. Touching it = <span class="hr">999,999,999 dmg</span> instant kill, even through Absolute Shields.</li><li><span style="color:var(--cyan);font-size:10px">SKILL</span> <b>Mark & Annihilate</b> — <span class="det-full">every ~2s while the Death Star is alive, marks 3 targets (CC-Immune enemies first — those can't be pulled at all; otherwise the 3 highest-current-HP valid targets). After a 1.5s telegraph (cyan crosshair rings), fires a <span class="hi">piercing true-damage beam</span> through each marked target out to the screen edge — <span class="dmg">100+15% Max HP</span> per beam, hitting every enemy it crosses, not just the marked one. Every enemy the beam hits also takes a <span class="hg">2s debuff: -10% Evade</span> (Uriel is immune, like every other debuff) — Evade can never drop below 0%, so any reduction beyond the target's current Evade instead becomes bonus damage taken for that same window.</span><span class="det-short">Every ~2s: marks 3 targets, then fires a <span class="hi">piercing true-dmg beam</span> (<span class="dmg">100+15% Max HP</span>) through each after a 1.5s telegraph. Every hit also -10% Evade for 2s (overflow becomes bonus dmg taken).</span></li>
 <li><span style="color:#4ade80;font-size:10px">PASSIVE</span> <b>Galactic Spaceships</b> — <span class="det-full">every enemy the Death Star kills (center instakill, a Mark & Annihilate beam, or a CC-Immune enemy finally dying from accumulated ticks) refunds <span class="hg">-0.25s</span> off Skill D's own cooldown. Separately, any enemy that dies for any reason — killed by an ally, the player, or the Death Star itself — while within <span class="hi">the Death Star's radius + 180px</span> spawns an allied spaceship (<span class="hi">Tier 1, cyan</span>). Each homes toward the current highest-HP enemy, firing a <span class="dmg">fixed 100 true damage</span> bolt every 250ms in flight, then on contact deals <span class="dmg">100+8% Max HP true damage</span> and applies <span class="hi">1 Vulnerability stack</span>. <span class="hi">560 HP</span> — can be shot down by enemy fire before reaching its target. <b>Fusion:</b> 2 same-tier ships within 50px merge into 1 higher tier at their midpoint — 2 Tier 1 → 1 <span class="hi">Tier 2 (purple)</span>, all stats x1.5; 2 Tier 2 → 1 <span class="hi">Tier 3 (red)</span>, all Tier 2 stats x2 (max tier).</span><span class="det-short">Death Star kills: <span class="hg">-0.25s CD</span>. Any death near the Death Star (any source): spawns a spaceship that homes on the highest-HP enemy, fires true-dmg bolts, then crashes for bonus dmg + Vulnerability. 560 HP, can be shot down. Same-tier ships within 50px fuse into a stronger tier (T1 cyan → T2 purple x1.5 → T3 red x2).</span></li></ul></div>
 
 <div class="card"><h2 style="color:var(--red)"><span class="key">F</span> ANNIHILATION SWEEP</h2><div class="sub">HEAVEN'S WILL SLASH <span class="cd">CD 7s</span> <span class="cd">1.5s CHARGE + 1s SWEEP</span></div>
-<div class="ab" style="height:160px"><canvas id="cvSkillF" style="width:100%;height:100%"></canvas><button class="play-btn" id="btnPlaySkillF" onclick="playWidget('skillF', this)">▶ Play</button></div>
+<div class="ab" style="height:160px"><canvas id="cvSkillF" style="width:100%;height:100%"></canvas><button class="play-btn" id="btnPlaySkillF" onclick="playWidget('skillF', this)"><i class="ico ico-play"></i>Play</button></div>
 <ul><li><b>Charge:</b> half-plane cyan glow, TARGET LOCK crosshairs on all enemies, dashed lines from player.</li>
 <li><b>Sweep:</b> rotating blade, left→right by default. <span class="hr">999,999,999 dmg</span> instant kill.</li>
 <li><b>Direction:</b> during the 1.5s charge press <span class="hi">→</span> to sweep left to right or <span class="hi">←</span> to sweep right to left. The last press wins and locks when the sweep starts. A small pill at the top of the screen shows the choice and disappears as the slash fires. With Cycle of Flow (no charge) the arrow held when F is pressed decides.</li>
@@ -908,7 +926,7 @@
 </ul></div>
 
 <div class="card"><h2 style="color:#06b6d4"><span class="key">G</span> TESLA MATRIX</h2><div class="sub"><span class="cd">CHARGE VIA KILLS</span> <span class="cd">30s</span></div>
-<div class="ab"><canvas id="cvSkillG" style="width:100%;height:100%"></canvas><button class="play-btn" id="btnPlaySkillG" onclick="playWidget('skillG', this)">▶ Play</button></div>
+<div class="ab"><canvas id="cvSkillG" style="width:100%;height:100%"></canvas><button class="play-btn" id="btnPlaySkillG" onclick="playWidget('skillG', this)"><i class="ico ico-play"></i>Play</button></div>
 <ul><li>Spawns Energy Orbs → pair into Links (slow 8% + <span class="dmg">8% ATK</span>/250ms).</li>
 <li>Links merge @5s → <b>Tesla Coils</b> (max 4). Enemies inside the aura are slowed and lose <span class="hr">5% DR and 100 flat DR</span> (a target with less than that to lose takes the shortfall as bonus damage instead). Every ~0.42s (0.5s with +20% fire rate) each coil picks up to <b>5 different enemies</b> in its aura, charges ~0.08s, then fires a homing bolt at each one ~0.08s apart for <span class="dmg">20% ATK piercing</span> (one bolt per enemy per volley). A bolt that lands also slows its target <span class="hr">32% for 1.5s</span> (refreshes, never stacks). Coils have no HP: every bolt fired adds a <b>stack</b> (max 5) to a combo that shares one 1.5s timer, refreshed by every new bolt so sustained fire keeps building instead of the oldest stack quietly expiring. Per stack <span class="hg">+5% fire rate</span> and <span class="hg">+2% ATK</span> on every bolt hit. At 5 stacks the next bolt is <b>empowered</b>: <span class="dmg">+10% ATK, +5% of the target's lost HP, and +1% of the target's Max HP</span>, roots for <span class="hr">0.5s</span>, then stacks reset to 1. Each enemy bullet entering an aura has a <span class="hr">25% chance to vanish</span> (one roll per bullet). Slows from overlapping coils stack with diminishing effect: the first is full strength, each extra coil's is <span class="hr">40% less effective</span>. A coil that fires 500 bolts detonates itself.</li>
 <li>Detonation (Skill G ends): <span class="dmg">2.3% ATK</span> area on every remaining orb/coil.</li></ul></div>`,
@@ -1171,7 +1189,7 @@
 </ul></div>
 
 <div class="card"><h2 class="dsname" style="color:#ff8844">EGREGOR <span class="dsclass" style="font-size:10px;color:#ff8844">ELITE</span></h2><div class="sub">Wave 2 • HP 2,200–4,750 • Body DR 40% • Evade 5→10% • CAP 1 • Speed 1.5 u/s • CC Immune</div>
-<div class="ab" style="height:270px"><canvas id="cvEgregor" style="width:100%;height:100%"></canvas><button class="play-btn" id="btnPlayEgregor" onclick="playWidget('egregor', this)">▶ Play</button></div>
+<div class="ab" style="height:270px"><canvas id="cvEgregor" style="width:100%;height:100%"></canvas><button class="play-btn" id="btnPlayEgregor" onclick="playWidget('egregor', this)"><i class="ico ico-play"></i>Play</button></div>
 <ul>
 <li><span style="color:#a855f7;font-size:10px">PASSIVE</span> <b>Collective Mind</b> — <span class="det-full"><span class="hi">10 tentacles</span>, each with independent HP equal to <span class="hi">80% of Egregor's MaxHP</span>. Non-true-damage: deflect chance <span class="hi">scales with alive tentacles</span> (alive÷10 × 60%, down to 0 when all dead); on non-deflect, hit absorbed by a tentacle at ~<span class="dmg">26% of original damage</span> (35% × 75% DR). <b>When a tentacle dies:</b> Egregor body <span class="hgr">heals 4% MaxHP</span>, body <span class="hg">MaxHP increases by 20% of that tentacle's HP</span>, body gains <span class="hg">+3% DR</span> (cumulative, max +15% at 5 losses). Once <span class="hi">≥4 tentacles are lost</span>, normal attacks (and all non-piercing, non-true sources) also <span class="dmg">bleed through to the body</span> at <span class="hi">12% of their damage</span>, hard-capped at <span class="hi">12% MaxHP</span> per hit. Body reachable by <span class="dmg">true damage</span> (capped <span class="hi">max(25%, 90−10n)%</span> MaxHP) or <span class="dmg">piercing attacks</span> (tentacle takes ~26% dmg, body takes <span class="hi">30%</span> of original, capped <span class="hi">30% MaxHP</span>). Cannot coexist with Veilshroud. Body has <span class="hg">5% chance to dodge any hit</span>.</span><span class="det-short">10 tentacles intercept all hits. Each tentacle death heals body +4% MaxHP, boosts body MaxHP, and adds +3% DR (max +15%). Once ≥4 tentacles lost, normal hits bleed through at 12% damage, cap 12% MaxHP.</span></li>
 <li><span style="color:#a855f7;font-size:10px">PASSIVE</span> <b>Mind Link</b> — <span class="det-full">Each non-Egregor enemy death within <span class="hi">600px</span> (red dashed ring) grants a <span class="hg">Rage Stack</span> (max 5, 8s each). Per stack: <span class="hg">+18% movement speed</span>, <span class="hg">+15% Max HP</span>, <span class="hg">Heal 12% MaxHP</span>, <span class="hg">tentacles heal 10% HP</span> and gain <span class="hg">+5% DR</span> (max +25% at 5 stacks). Each new stack immediately triggers a Psychic Tempest cast.</span><span class="det-short">Each nearby enemy death gives a Rage Stack (max 5): boosts speed and HP, heals Egregor and tentacles, and immediately triggers Psychic Tempest.</span></li>
@@ -1316,12 +1334,19 @@
 <li><span class="ul-tag tag-feat">FEAT</span> <b>Voyage Recap:</b> replaces the Game Over screen and the Match Stat panel. The title opens large in the middle of the screen, lifts into place, and the flight log follows: score, wave and flight time counting up, what shot you down and how many lives were lost, the sigils you chose in order with the wave each joined at, your most defeated enemies, damage dealt, damage taken and lives lost by source, and a battle timeline of your damage every 5 seconds with a 30 second average, wave and boss marks and your peak and most dangerous moments. Play Again starts a new flight and Main Menu goes straight back without asking.</li>
 <li><span class="ul-tag tag-feat">FEAT</span> <b>Voyage Recap, share image:</b> Create Image builds a 1080x1350 portrait or 1200x630 landscape card of the run to download or share. A Callsign field of up to <span class="hg">16</span> characters puts your name in place of the title, shrinks it to fit, keeps Vietnamese marks and is remembered for next time.</li>
 <li><span class="ul-tag tag-feat">FEAT</span> <b>Leaving from the pause screen:</b> Main Menu now asks "Abort the voyage?" and, on Yes, ends the run into its Voyage Recap with the gameover voice, marked as a voyage left mid flight. Leaving during a sigil pick or Kanade's cutscene cleans both up and keeps the sound working for the next run.</li>
+<li><span class="ul-tag tag-feat">FEAT</span> <b>Settings, new look:</b> one plate in the same style as the Voyage Recap, grouped into Audio, Graphics, Background, Gameplay and System, with hex switches, diamond sliders and text that reads left to right. The panel starts below the sound button on phones held upright.</li>
+<li><span class="ul-tag tag-feat">FEAT</span> <b>Settings, Background:</b> its own group with three detail levels (Low, Detail, Full) that thin out the stars, nebulas, dust and asteroids behind the battle, the brightness slider, and a Light Patches slider for how strongly the nebulas and galaxies glow. All three apply live and are remembered.</li>
+<li><span class="ul-tag tag-feat">FEAT</span> <b>Settings, new rows:</b> Show FPS puts the frame rate the game actually draws next to the sound button, turning gold under 50 and red under 30. Vibration switches off the buzz on hits, sigil picks and skill buttons (shown on phones that can vibrate). Restore Defaults asks Yes or No, then puts every setting back except the language.</li>
+<li><span class="ul-tag tag-feat">FEAT</span> <b>Settings, Advanced Graphics preview:</b> a fold with switches for explosions, debris, glow, screen flashes, sigil lighting and backdrops, the moving nebula, trails and Kanade's jewel twinkle, plus effect brightness and flash intensity. They are saved but not wired into the game yet.</li>
 <li><span class="ul-tag tag-perf">PERF</span> <b>Update loop:</b> the per frame profiling arrays and the ally list are reused instead of rebuilt every frame, the menu constellation no longer rebuilds 37 small arrays per draw, and the skill buttons cache their colors. In a Goliath fight the update step got about a third faster, with every frame and every roll identical to before.</li>
 <li><span class="ul-tag tag-perf">PERF</span> <b>Music memory:</b> switching tracks now also releases the previous track's decoded audio, which used to stay in memory. After playing through a few tracks this frees about 228MB.</li>
 <li><span class="ul-tag tag-fix">FIX</span> <b>Capricorn, rock screens hold against everything:</b> 46 enemy attacks used to slip past Mountainfall's walls. Now every enemy bullet, launched skill, beam, laser, lightning strike, shockwave, area zone, root and body is stopped by a standing screen, whether it is aimed at the ship, a Sentinel, the Yuusha Party, a Death Star ship or the spirits. Beams and area rings are also drawn cut off at the wall, and teleporting enemies cannot land inside or strike through one. Goliath keeps his own rules.</li>
 <li><span class="ul-tag tag-fix">FIX</span> <b>Hyperjump plays in full:</b> a tap, click or key press during the jump no longer fast forwards it to the gate pass; it always runs its whole 3.5s.</li>
 <li><span class="ul-tag tag-fix">FIX</span> <b>Voyage Recap, saving the share image on phones:</b> Download used to fail on phones while still saying the image was saved. It now saves a real PNG file. On iPhone, where Save Image in the share sheet reloaded the game when played from the home screen, Download opens the card large so pressing and holding it and choosing Save to Photos puts it straight into Photos. The preview can be pressed and held to save it as well, with a hint under it on touch screens.</li>
 <li><span class="ul-tag tag-fix">FIX</span> <b>Cache version tag on phones:</b> the version in the main menu's bottom right corner sits inside the screen's safe area, so rounded corners and the notch no longer cut off its last digit.</li>
+<li><span class="ul-tag tag-fix">FIX</span> <b>Menu title font:</b> the font link also asked for Courier New, which Google Fonts does not serve, so Playfair Display never loaded and the title fell back to a plain serif, then switched to italic after a Voyage Recap. The title now always shows Playfair Display bold.</li>
+<li><span class="ul-tag tag-fix">FIX</span> <b>Drawn icons everywhere:</b> play and pause buttons, the HUD's clock, heart, score, Sentinel, tesla and Yuuki marks, the menu's Guide and Settings icons, close buttons, ticks and the enemy shield mark are drawn shapes now. Phones no longer swap in their own emoji for them.</li>
+<li><span class="ul-tag tag-fix">FIX</span> <b>Settings text:</b> the offline package sizes now match the real downloads (Basic ~66MB, Full ~219MB), and Random, Download, Downloaded and the file count follow the chosen language. The file count also climbs with the bar while a package downloads instead of staying at its starting number.</li>
 <li><span class="ul-tag tag-global">GLOBAL</span> <b>Debug console, sigil sections:</b> each sigil's debug buttons (Leo, Dawn Herald, Pisces, Cancer, Great Sage and the new Capricorn section) only show while that sigil is equipped.</li>
 <li><span class="ul-tag tag-global">GLOBAL</span> <b>Debug console, Voyage Recap:</b> Match Stat (Live) gives way to Voyage Recap (this run), Voyage Recap (sample run) with a long made up flight that fills every section, and Close Recap. Opening one plays the gameover voice like a real death.</li>
 </ul></div>
@@ -1887,7 +1912,7 @@
 <div class="ul-date">2026 · Yuuki passive, Sentinel / Egregor / Gaia / Raphael / Veilshroud balance, enemy HP +10%, misc fixes</div>
 <p class="det-short ul-summary">New Yuuki — Will to Fight passive. Comprehensive balance pass across Sentinels, Egregor, Veilshroud, Gaia Barrier, and Raphael. All non-Apostle enemies gain +10% HP. Root/Silence enforcement, Abyssal Chains fix, Leviathan/Mar minion fixes.</p>
 <ul class="det-full">
-<li><span class="ul-tag tag-feat">FEAT</span> <b>Yuuki — Will to Fight:</b> new player passive. From Wave 8, every 2 waves: <span class="hg">+20% damage</span> to all allied units, stacking to <span class="hg">+300% cap</span>. Shown in HUD as ⚔ Yuuki +X%.</li>
+<li><span class="ul-tag tag-feat">FEAT</span> <b>Yuuki — Will to Fight:</b> new player passive. From Wave 8, every 2 waves: <span class="hg">+20% damage</span> to all allied units, stacking to <span class="hg">+300% cap</span>. Shown in HUD as <svg class="ui-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M4 4l13 13M20 4L7 17M14.5 19.5l5-5M9.5 19.5l-5-5"/></svg> Yuuki +X%.</li>
 <li><span class="ul-tag tag-feat">FEAT</span> <b>Root &amp; Silence enforcement:</b> enemies with <code>_rootEnd</code> stop moving; enemies with <code>_silencedEnd</code> cannot fire.</li>
 <li><span class="ul-tag tag-buff">BUFF</span> <b>Sentinel base DR:</b> <span class="hg">5% → 8%</span> at all times.</li>
 <li><span class="ul-tag tag-buff">BUFF</span> <b>Egregor — Null Slash:</b> Sentinel damage <span class="hg">15% / 20% / 28% → 20% / 30% / 40% MaxHP</span> (1 / 2 / 3+ hits), true damage.</li>
@@ -2286,21 +2311,21 @@
       skills: `
 <div class="card"><h2 style="color:#ff8800"><span class="key">Space</span> BẮN TỤ LỰC & LASER QUÁ TẢI</h2>
 <div class="sub">GIỮ SPACE ĐỂ SẠC • 3s = QUÁ TẢI, <span class="cd">HỒI CHIÊU LASER 9s</span></div>
-<div class="ab" style="height:230px"><canvas id="cvLaser" style="width:100%;height:100%"></canvas><button class="play-btn" id="btnPlayLaser" onclick="playWidget('laser', this)">▶ Play</button></div>
+<div class="ab" style="height:230px"><canvas id="cvLaser" style="width:100%;height:100%"></canvas><button class="play-btn" id="btnPlayLaser" onclick="playWidget('laser', this)"><i class="ico ico-play"></i>Play</button></div>
 <ul><li><b>Bắn Sạc:</b> giữ tối đa 1s → thả ra. Sát thương tăng dần tới <span class="dmg">80% ATK + 6% Max HP</span> khi sạc đầy (10 lần).</li>
 <li><b>Laser Quá Tải:</b> giữ 3s không thả → chùm tia liên tục trong <span class="hi">12 giây</span>.</li>
 <li>Laser gây <span class="dmg">40.25% ATK</span> mỗi tick, mỗi 155ms (sigil Song Lưỡi: +20%). Hút kẻ địch gần đó về phía chùm tia.</li>
 <li>Khi kích hoạt, <span class="hi">4 ảnh phân thân</span> xuất hiện (2 mỗi bên, tổng 5 tàu) bắn các chùm tia song song.</li></ul></div>
 
 <div class="card"><h2 style="color:var(--gold)"><span class="key">Shift</span> LÃNH ĐỊA YOG-SOTHOTH</h2><div class="sub">THAO TÚNG KHÔNG-THỜI GIAN <span class="cd">HỒI CHIÊU 1.1s–9s</span> <span class="cd">TỐI ĐA 8s</span></div>
-<div class="ab" style="height:160px"><canvas id="cvShift" style="width:100%;height:100%"></canvas><button class="play-btn" id="btnPlayShift" onclick="playWidget('shift', this)">▶ Play</button></div>
+<div class="ab" style="height:160px"><canvas id="cvShift" style="width:100%;height:100%"></canvas><button class="play-btn" id="btnPlayShift" onclick="playWidget('shift', this)"><i class="ico ico-play"></i>Play</button></div>
 <ul><li>Giữ Shift: thế giới chạy ở <span class="hp">15% tốc độ</span>. Bạn nhận <b>Iron Body</b>.</li>
 <li><span class="det-full"><b>Hồi chiêu tỉ lệ theo thời gian giữ</b> (không dịch chuyển): &lt;2s → <span class="hgr">1.1s</span> · 2–5s → <span class="hg">4.4s</span> · 5–7s → 9.9s · ≥7s → <span class="hr">9s</span>. <span class="hr">Nếu dùng dịch chuyển ←/→ → luôn luôn full 9s.</span></span><span class="det-short"><b>Hồi chiêu</b> tỉ lệ theo thời gian giữ (1.1s–9s). Dịch chuyển luôn kích hoạt hồi chiêu full 9s.</span></li>
 <li>Toàn bộ đạn kẻ địch bị <span class="hr">phá hủy</span>. <span class="key">←→</span> để dịch chuyển.</li>
 <li><span class="hg">Đỡ Đòn Chuẩn Xác:</span> trúng đòn trong lúc lãnh địa → +25% sát thương 4s, Vệ Binh nhận <b>Iron Body 1.25s</b>.</li></ul></div>
 
 <div class="card"><h2 style="color:var(--blue)"><span class="key">A</span> THIÊN LÔI CẦU</h2><div class="sub">THIÊN LÔI CẦU <span class="cd">HỒI CHIÊU 6s</span></div>
-<div class="ab" style="height:210px"><canvas id="cvSkillA" style="width:100%;height:100%"></canvas><button class="play-btn" id="btnPlaySkillA" onclick="playWidget('skillA', this)">▶ Play</button></div>
+<div class="ab" style="height:210px"><canvas id="cvSkillA" style="width:100%;height:100%"></canvas><button class="play-btn" id="btnPlaySkillA" onclick="playWidget('skillA', this)"><i class="ico ico-play"></i>Play</button></div>
 <ul><li>Triệu hồi <span class="hi">20 thiên lôi cầu</span> (tối đa 80). Mỗi cầu: <span class="dmg">23% ATK + 2% Max HP</span> (27.6% ATK + 2% Max HP với đường tách cầu), cộng thêm <span class="hr">11.5% ATK + 15% HP đã mất của mục tiêu</span> (13.8% ATK + 18% HP đã mất, đường tách cầu) dưới dạng sát thương chuẩn.</li>
 <li>Va chạm → <span class="dmg">16 mảnh vỡ</span> bắn tung tóe (mỗi mảnh 0.9% ATK).</li>
 <li><span class="hg">Cầu Vàng:</span> 3 cầu hấp thụ đòn đánh tới. Khi 1 cầu bị <b>hy sinh</b>, kẻ tấn công (nếu nhắm được) nhận <span class="hr">Đoạt Hồn + sát thương theo thời gian Soul Devourer</span> (6.9% ATK mỗi 0.35s) và bị <span class="hr">chậm 25%</span> trong <span class="cd">3s</span>.</li>
@@ -2313,14 +2338,14 @@
   <button onclick="showSpiritTab(2)" id="sTabBtn2" style="flex:1;padding:5px;font-family:'Rajdhani', 'Be Vietnam Pro', sans-serif;font-size:11px;font-weight:700;letter-spacing:1px;cursor:pointer;background:rgba(0,80,40,0.2);border:1.5px solid rgba(0,255,136,0.4);border-radius:6px;color:#00cc66;">② Phōtokrystos</button>
 </div>
 <div id="sSpiritPane1">
-  <div class="ab" style="height:210px"><canvas id="cvSkillS" style="width:100%;height:100%"></canvas><button class="play-btn" id="btnPlaySkillS" onclick="playWidget('skillS', this)">▶ Play</button></div>
+  <div class="ab" style="height:210px"><canvas id="cvSkillS" style="width:100%;height:100%"></canvas><button class="play-btn" id="btnPlaySkillS" onclick="playWidget('skillS', this)"><i class="ico ico-play"></i>Play</button></div>
   <ul><li>Tinh Linh bay quanh bắn đạn định hướng mỗi <span class="hi">54ms</span> (<span class="dmg">13.8% ATK</span>).</li>
   <li><span class="det-full">Mỗi phát bắn thứ 5: <b>Arc Blade</b> (<span class="dmg">20.7% ATK + 1.5% Max HP</span>, 24.8% ATK + 1.5% Max HP nếu có sigil Song Lưỡi). Phá hủy đạn kẻ địch.</span><span class="det-short">Mỗi phát bắn thứ 5 bắn ra 1 đòn <b>Arc Blade</b> phá hủy đạn.</span></li>
   <li><span class="det-full"><b>Chiêu cuối @35s:</b> tích lực laser 2.5s (<span class="dmg">1.15% ATK</span> sát thương chuẩn/tick), sau đó phóng ra 1 <b>Spinner</b> duy nhất: tồn tại <span class="hi">5s</span>, nảy khi chạm mọi cạnh màn hình (được tăng tốc lúc phóng ra và mỗi lần nảy tường), gây <span class="dmg">20% ATK + 1.8% Max HP</span> sát thương chuẩn khi chạm (có thể trúng lại cùng 1 kẻ địch sau một khoảng hồi ngắn), mỗi <span class="hi">0.3s</span> nếu có kẻ địch gần sẽ chém ra 4 lưỡi Arc Blade nhỏ theo hình chữ thập (<span class="dmg">43% ATK</span> xuyên giáp mỗi lưỡi, 50% ATK nếu có Song Lưỡi), và mỗi giây tồn tại phóng thêm 4 lưỡi (<span class="dmg">41% ATK</span>, 47% nếu có Song Lưỡi). Mỗi đòn trúng của Spinner gắn <b>Soul Reaver</b> trong <span class="hi">2s</span> (làm mới, không cộng dồn).</span><span class="det-short"><b>Chiêu cuối @35s:</b> laser, sau đó 1 quả <b>Spinner</b> nảy tường (5s) gây sát thương chuẩn nặng khi chạm và định kỳ chém 4 lưỡi Arc Blade nhỏ.</span></li>
   <li><b>Khai Thiên Lập Địa:</b> hạ gục bằng Tinh Linh tích thanh năng lượng (+2% mỗi lần hạ gục). Ở 100%, bấm S lần nữa để biến hình.</li></ul>
 </div>
 <div id="sSpiritPane2" style="display:none;">
-  <div class="ab" style="height:160px;border-color:rgba(0,255,136,0.2)"><canvas id="cvPhotokrystos" style="width:100%;height:100%"></canvas><button class="play-btn" id="btnPlayPhoto" onclick="playPhotokrystosWidget(this)">▶ Play</button></div>
+  <div class="ab" style="height:160px;border-color:rgba(0,255,136,0.2)"><canvas id="cvPhotokrystos" style="width:100%;height:100%"></canvas><button class="play-btn" id="btnPlayPhoto" onclick="playPhotokrystosWidget(this)"><i class="ico ico-play"></i>Play</button></div>
   <ul>
   <li><span style="color:#00cc66;font-size:10px">PHŌTOKRYSTOS</span> <b>Đại Tinh Linh Khởi Nguyên</b> — kéo dài <span class="hg">40s</span>. Thời lượng reset. Hồi chiêu = 40s sau đó.</li>
   <li><span style="color:#88ccff;font-size:10px">PASSIVE</span> <b>Ân Sủng Khởi Nguyên</b>: Vệ Binh giảm 15% chi phí HP hồi lực khi bắn, sát thương phe ta +15%, hồi +1.5% MaxHp/0.75s, +4.6% ATK khiên/3s mỗi Vệ Binh (giới hạn 15% Max HP của chính Vệ Binh đó).</li>
@@ -2334,12 +2359,12 @@
 </div>
 
 <div class="card"><h2 style="color:#9333ea"><span class="key">D</span> TỬ LONG TINH</h2><div class="sub" style="font-weight:400;font-size:11px;opacity:0.75">Tinh Vương Long: Tử Long Tinh</div><div class="sub"><span class="cd">HỒI CHIÊU 10s</span> <span class="cd">SẠC 2s</span></div>
-<div class="ab" style="height:210px"><canvas id="cvSkillD" style="width:100%;height:100%"></canvas><button class="play-btn" id="btnPlaySkillD" onclick="playWidget('skillD', this)">▶ Play</button></div>
+<div class="ab" style="height:210px"><canvas id="cvSkillD" style="width:100%;height:100%"></canvas><button class="play-btn" id="btnPlaySkillD" onclick="playWidget('skillD', this)"><i class="ico ico-play"></i>Play</button></div>
 <ul><li>Hút mọi kẻ địch + đạn về tâm với tốc độ 5.25. Chạm vào = <span class="hr">999,999,999 sát thương</span> giết ngay lập tức, xuyên cả Absolute Shield.</li><li><span style="color:var(--cyan);font-size:10px">SKILL</span> <b>Đánh Dấu & Tiêu Diệt</b> — <span class="det-full">mỗi ~2s trong lúc Tử Long Tinh còn sống, đánh dấu 3 mục tiêu (ưu tiên kẻ địch miễn nhiễm khống chế — vì không hút được; nếu không có thì chọn 3 mục tiêu HP hiện tại cao nhất). Sau 1.5s báo hiệu (vòng crosshair xanh cyan), bắn <span class="hi">tia xuyên phá sát thương chuẩn</span> qua từng mục tiêu tới rìa màn hình — <span class="dmg">100+15% Max HP</span> mỗi tia, trúng mọi kẻ địch tia đi qua chứ không chỉ mục tiêu bị đánh dấu. Mọi kẻ địch bị tia này trúng còn dính <span class="hg">debuff 2s: giảm 10% Né Tránh</span> (Uriel miễn nhiễm, như mọi debuff khác) — Né Tránh không bao giờ xuống dưới 0%, nên phần giảm vượt quá Né Tránh hiện có của mục tiêu sẽ chuyển thành tăng sát thương phải nhận trong cùng khoảng thời gian đó.</span><span class="det-short">Mỗi ~2s: đánh dấu 3 mục tiêu, sau 1.5s báo hiệu bắn <span class="hi">tia xuyên phá sát thương chuẩn</span> (<span class="dmg">100+15% Max HP</span>) qua từng mục tiêu. Mỗi đòn trúng còn giảm 10% Né Tránh trong 2s (phần dư chuyển thành tăng sát thương nhận).</span></li>
 <li><span style="color:#4ade80;font-size:10px">PASSIVE</span> <b>Phi Thuyền Thiên Hà</b> — <span class="det-full">mỗi kẻ địch bị Tử Long Tinh kết liễu (giết ngay ở tâm, tia Đánh Dấu & Tiêu Diệt, hoặc kẻ miễn nhiễm khống chế chết dần vì tích lũy sát thương) hoàn <span class="hg">-0.25s</span> hồi chiêu Skill D. Riêng biệt: bất kỳ kẻ địch nào chết vì bất kỳ lý do gì — bị đồng minh, người chơi, hay chính Tử Long Tinh kết liễu — trong phạm vi <span class="hi">bán kính Tử Long Tinh + 180px</span> đều triệu hồi 1 phi thuyền đồng minh (<span class="hi">Cấp 1, màu cyan</span>). Mỗi phi thuyền bay tới kẻ địch HP hiện tại cao nhất, bắn <span class="dmg">100 sát thương chuẩn cố định</span> mỗi 250ms trong lúc bay, rồi khi đâm vào gây <span class="dmg">100+8% Max HP sát thương chuẩn</span> và áp <span class="hi">1 lớp Trọng Thương</span>. <span class="hi">560 HP</span> — có thể bị đạn địch bắn hạ trước khi tới nơi. <b>Hợp thể:</b> 2 phi thuyền cùng cấp trong bán kính 50px sẽ hợp nhất thành 1 phi thuyền cấp cao hơn tại điểm giữa — 2 Cấp 1 → 1 <span class="hi">Cấp 2 (màu tím)</span>, mọi chỉ số x1.5; 2 Cấp 2 → 1 <span class="hi">Cấp 3 (màu đỏ)</span>, mọi chỉ số Cấp 2 x2 (cấp tối đa).</span><span class="det-short">Tử Long Tinh kết liễu: <span class="hg">-0.25s hồi chiêu</span>. Bất kỳ ai chết gần Tử Long Tinh: triệu hồi phi thuyền bay tới địch HP cao nhất, bắn tia sát thương chuẩn rồi đâm vào gây thêm sát thương + Trọng Thương. 560 HP, có thể bị bắn hạ. Phi thuyền cùng cấp gần nhau (50px) sẽ hợp thể lên cấp mạnh hơn (Cấp 1 cyan → Cấp 2 tím x1.5 → Cấp 3 đỏ x2).</span></li></ul></div>
 
 <div class="card"><h2 style="color:var(--red)"><span class="key">F</span> THIÊN Ý TRẢM</h2><div class="sub">THIÊN Ý TRẢM <span class="cd">HỒI CHIÊU 7s</span> <span class="cd">SẠC 1.5s + QUÉT 1s</span></div>
-<div class="ab" style="height:160px"><canvas id="cvSkillF" style="width:100%;height:100%"></canvas><button class="play-btn" id="btnPlaySkillF" onclick="playWidget('skillF', this)">▶ Play</button></div>
+<div class="ab" style="height:160px"><canvas id="cvSkillF" style="width:100%;height:100%"></canvas><button class="play-btn" id="btnPlaySkillF" onclick="playWidget('skillF', this)"><i class="ico ico-play"></i>Play</button></div>
 <ul><li><b>Sạc:</b> nửa màn hình phát sáng cyan, tâm ngắm KHÓA MỤC TIÊU lên mọi kẻ địch, đường nét đứt từ người chơi.</li>
 <li><b>Quét:</b> lưỡi kiếm xoay, mặc định từ trái→phải. <span class="hr">999,999,999 sát thương</span> giết ngay lập tức.</li>
 <li><b>Hướng:</b> trong 1.5s sạc bấm <span class="hi">→</span> để quét từ trái sang phải hoặc <span class="hi">←</span> để quét từ phải sang trái. Phím bấm sau cùng thắng và khóa khi nhát quét bắt đầu. Một thanh tròn nhỏ ở trên cùng màn hình cho biết hướng đã chọn và biến mất cùng lúc nhát chém ra. Với Cycle of Flow (không sạc), mũi tên đang giữ lúc bấm F quyết định.</li>
@@ -2347,7 +2372,7 @@
 </ul></div>
 
 <div class="card"><h2 style="color:#06b6d4"><span class="key">G</span> MA TRẬN TESLA</h2><div class="sub"><span class="cd">NẠP QUA HẠ GỤC</span> <span class="cd">30s</span></div>
-<div class="ab"><canvas id="cvSkillG" style="width:100%;height:100%"></canvas><button class="play-btn" id="btnPlaySkillG" onclick="playWidget('skillG', this)">▶ Play</button></div>
+<div class="ab"><canvas id="cvSkillG" style="width:100%;height:100%"></canvas><button class="play-btn" id="btnPlaySkillG" onclick="playWidget('skillG', this)"><i class="ico ico-play"></i>Play</button></div>
 <ul><li>Sinh ra Cầu Năng Lượng → ghép thành Liên Kết (chậm 8% + <span class="dmg">8% ATK</span>/250ms).</li>
 <li>Liên Kết hợp nhất @5s → <b>Cuộn Tesla</b> (tối đa 4). Kẻ địch trong hào quang bị làm chậm và mất <span class="hr">5% DR và 100 DR phẳng</span> (mục tiêu không có đủ để mất thì phần thiếu được đền thành sát thương cộng thêm). Mỗi ~0.42s (0.5s cộng 20% tốc độ bắn) mỗi cuộn chọn tối đa <b>5 kẻ địch khác nhau</b> trong hào quang, tụ lực ~0.08s rồi bắn 1 viên sét tự dẫn vào từng kẻ, cách nhau ~0.08s, gây <span class="dmg">20% ATK sát thương xuyên</span> (mỗi kẻ chỉ ăn 1 viên mỗi đợt). Viên sét trúng còn làm chậm mục tiêu <span class="hr">32% trong 1.5s</span> (làm mới thời gian, không cộng dồn). Cuộn Tesla không có máu: mỗi viên bắn ra cộng 1 <b>stack</b> (tối đa 5) vào 1 combo dùng chung đồng hồ 1.5s, mỗi viên bắn thêm sẽ làm mới đồng hồ đó nên bắn liên tục vẫn tích tiếp thay vì stack cũ nhất tự rớt giữa chừng. Mỗi stack <span class="hg">+5% tốc độ bắn</span> và <span class="hg">+2% ATK</span> cho mọi viên trúng. Đủ 5 stack thì viên kế tiếp được <b>cường hóa</b>: <span class="dmg">+10% ATK, +5% máu đã mất của mục tiêu, và +1% Max HP của mục tiêu</span>, trói chân <span class="hr">0.5s</span>, rồi reset stack về 1. Mỗi viên đạn địch bay vào hào quang có <span class="hr">25% xác suất biến mất</span> (chỉ tính 1 lần cho mỗi viên). Làm chậm từ nhiều cuộn chồng nhau cộng dồn có giảm dần: cuộn đầu đủ hiệu lực, mỗi cuộn thêm <span class="hr">kém hiệu quả 40%</span>. Cuộn nào bắn đủ 500 viên sẽ tự phát nổ.</li>
 <li>Kích nổ (khi Skill G kết thúc): <span class="dmg">2.3% ATK</span> diện rộng cho mọi cầu/cuộn còn lại.</li></ul></div>`,
@@ -2653,7 +2678,7 @@
 </ul></div>
 
 <div class="card"><h2 class="dsname" style="color:#ff8844">EGREGOR <span class="dsclass" style="font-size:10px;color:#ff8844">TINH ANH</span></h2><div class="sub">Wave 2 • HP 2,200–4,750 • DR thân 40% • Né 5→10% • CAP 1 • Tốc độ 1.5 u/s • Miễn nhiễm khống chế</div>
-<div class="ab" style="height:270px"><canvas id="cvEgregor" style="width:100%;height:100%"></canvas><button class="play-btn" id="btnPlayEgregor" onclick="playWidget('egregor', this)">▶ Play</button></div>
+<div class="ab" style="height:270px"><canvas id="cvEgregor" style="width:100%;height:100%"></canvas><button class="play-btn" id="btnPlayEgregor" onclick="playWidget('egregor', this)"><i class="ico ico-play"></i>Play</button></div>
 <ul>
 <li><span style="color:#a855f7;font-size:10px">PASSIVE</span> <b>Tâm Trí Tập Thể</b> — <span class="det-full"><span class="hi">10 xúc tu</span>, mỗi cái có bể HP độc lập bằng <span class="hi">80% MaxHP</span> của Egregor. Không phải sát thương chuẩn: <span class="hi">cơ hội bật lại tăng theo số xúc tu còn sống</span> (còn sống÷10 × 60%, về 0 khi chết hết); nếu không bật lại, đòn đánh bị 1 xúc tu hấp thụ ở mức ~<span class="dmg">26% sát thương gốc</span> (35% × 75% DR). <b>Khi 1 xúc tu chết:</b> thân Egregor <span class="hgr">hồi 4% MaxHP</span>, <span class="hg">MaxHP thân tăng thêm 20% HP của xúc tu đó</span>, thân nhận <span class="hg">+3% DR</span> (tích lũy, tối đa +15% khi mất 5 xúc tu). Khi mất <span class="hi">≥4 xúc tu</span>, đòn đánh thường (và mọi nguồn không xuyên, không phải chuẩn) cũng <span class="dmg">rò rỉ vào thân</span> ở mức <span class="hi">12% sát thương của chúng</span>, CAP cứng <span class="hi">12% MaxHP</span> mỗi đòn. Thân có thể bị đánh trúng qua <span class="dmg">sát thương chuẩn</span> (CAP <span class="hi">max(25%, 90−10n)%</span> MaxHP) hoặc <span class="dmg">đòn xuyên</span> (xúc tu nhận ~26% sát thương, thân nhận <span class="hi">30%</span> sát thương gốc, CAP <span class="hi">30% MaxHP</span>). Không thể cùng tồn tại với Veilshroud. Thân có <span class="hg">5% cơ hội né bất kỳ đòn nào</span>.</span><span class="det-short">10 xúc tu chặn mọi đòn đánh. Mỗi lần xúc tu chết hồi thân +4% MaxHP, tăng MaxHP thân, và cộng +3% DR (max +15%). Khi mất ≥4 xúc tu, đòn thường rò rỉ vào thân ở mức 12% sát thương, CAP 12% MaxHP.</span></li>
 <li><span style="color:#a855f7;font-size:10px">PASSIVE</span> <b>Liên Kết Tâm Trí</b> — <span class="det-full">Mỗi lần 1 kẻ địch không phải Egregor chết trong <span class="hi">bán kính 600px</span> (vòng nét đứt đỏ) cấp 1 <span class="hg">Lớp Cuồng Nộ</span> (tối đa 5, mỗi lớp 8s). Mỗi lớp: <span class="hg">+18% tốc độ di chuyển</span>, <span class="hg">+15% Max HP</span>, <span class="hg">hồi 12% MaxHP</span>, xúc tu <span class="hg">hồi 10% HP</span> và nhận <span class="hg">+5% DR</span> (tối đa +25% ở 5 lớp). Mỗi lớp mới kích hoạt ngay 1 lần thi triển Psychic Tempest.</span><span class="det-short">Mỗi lần kẻ địch gần đó chết cho 1 Lớp Cuồng Nộ (tối đa 5): tăng tốc độ và HP, hồi máu Egregor và xúc tu, và kích hoạt ngay Psychic Tempest.</span></li>
@@ -2741,7 +2766,7 @@
 <div class="card">
 <h2 style="color:var(--cyan)">PHI THUYỀN CỦA BẠN</h2>
 <div class="sub">TIÊM KÍCH ĐÁNH CHẶN LỚP PISCES</div>
-<div class="ab" style="height:170px"><canvas id="cvShip" style="width:100%;height:100%"></canvas><button class="play-btn" id="btnPlayShip" onclick="playWidget('ship', this)">▶ Play</button></div>
+<div class="ab" style="height:170px"><canvas id="cvShip" style="width:100%;height:100%"></canvas><button class="play-btn" id="btnPlayShip" onclick="playWidget('ship', this)"><i class="ico ico-play"></i>Play</button></div>
 <p>Phi thuyền của bạn tự động bắn <span class="hp">5 viên đạn tím</span> theo hình quạt 45° mỗi 135ms. Chấm nhỏ <span class="hi">màu cyan</span> chính là hitbox chuẩn — chỉ khi chạm vào chấm đó mới mất mạng.</p>
 <p style="margin-top:8px">Mọi con số sát thương phe ta trong guide này (Vệ Binh, Skill, Sigil) đều scale theo chỉ số <span class="hi">ATK</span> của bạn, không phải số cố định. ATK bắt đầu ở <span class="hg">1000</span> và tăng <span class="hg">+3% mỗi wave</span> tới wave 18 thì dừng lại ở mức <span class="hg">+50%</span> (<span class="hg">1500</span>) cho hết phần còn lại của trận. Mỗi Sigil trang bị cũng cộng thêm phần ATK riêng, từ 4% đến 20%, và thẻ chọn sigil ghi rõ con số này. Bộ kỹ năng đã tự nhân sát thương hoặc thủ tốt thì cho ít, bộ cần chỉ số thô thì cho nhiều, và Song Ngư cho nhiều nhất vì không có chiêu tấn công riêng.</p>
 </div>
@@ -2781,7 +2806,7 @@
 <div class="card">
 <h2 style="color:var(--cyan)">VỆ BINH</h2>
 <div class="sub">PASSIVE — XUẤT HIỆN MỖI 3 LẦN HẠ GỤC • TỐI ĐA 12</div>
-<div class="ab" style="height:160px"><canvas id="cvSentinels" style="width:100%;height:100%"></canvas><button class="play-btn" id="btnPlaySentinel" onclick="playWidget('sentinel', this)">▶ Play</button></div>
+<div class="ab" style="height:160px"><canvas id="cvSentinels" style="width:100%;height:100%"></canvas><button class="play-btn" id="btnPlaySentinel" onclick="playWidget('sentinel', this)"><i class="ico ico-play"></i>Play</button></div>
 <ul>
 <li>Xuất hiện mỗi <span class="hi">3 lần hạ gục</span>. 36% cơ hội <b>Củng Cố</b> (+50% Max HP).</li>
 <li>Mỗi phát bắn thứ 4 = <span class="hg">Phát Bắn Đặc Biệt</span>: định hướng mục tiêu, hồi 2 HP khi trúng.</li>
@@ -2793,26 +2818,26 @@
 <li><span style="color:#a855f7;font-size:10px">PASSIVE</span> <b>Gaia Protection</b> — <span class="det-full">Max HP tăng theo Wave: <span class="hg">+5% ở Wave 2 · +10% ở Wave 6 · +15% ở Wave 10</span>; sau đó <span class="hg">+3%/wave</span> cho tới khi đạt <span class="hg">trần tổng +60%</span>. Trong lúc Glory for Justice kích hoạt: mỗi <span class="hi">8s</span> (<span class="hi">5s</span> sau Wave 10) mỗi Vệ Binh tạo ra 1 <span class="hg">Gaia Barrier</span> = <span class="hg">20% HP đã mất + 12% Max HP</span> (không cộng dồn, thay thế lớp cũ). Kích hoạt ngay khi tạo ra. Barrier hấp thụ sát thương tới cho đến khi hết lượng còn lại (không có tỉ lệ cố định xuyên qua bất kể lượng còn lại). <b>Sát thương chuẩn xuyên thẳng qua Barrier hoàn toàn</b> - không hề chạm vào lượng khiên còn lại. <b>Không tính vào Max HP.</b> Hiển thị dưới dạng trăng lưỡi liềm xanh lá phía trên Vệ Binh.</span><span class="det-short">Max HP tăng theo từng mốc Wave (trần +60%). Trong lúc Glory: Gaia Barrier tái tạo mỗi 8s (5s sau Wave 10) = 20% HP đã mất + 12% Max HP. Hấp thụ tới hết lượng còn lại, sát thương chuẩn xuyên qua hoàn toàn, không tính vào Max HP.</span></li>
 <li>Khi chết: <span class="dmg">10 đạn 10 hướng</span>.</li></ul></div>
 <div class="card"><h2 style="color:var(--red)">TRỌNG THƯƠNG</h2><div class="sub">DEBUFF — CỘNG DỒN ×4 • THỜI GIAN 3s</div>
-<div class="ab"><canvas id="cvVuln" style="width:100%;height:100%"></canvas><button class="play-btn" id="btnPlayVuln" onclick="playWidget('vuln', this)">▶ Play</button></div>
+<div class="ab"><canvas id="cvVuln" style="width:100%;height:100%"></canvas><button class="play-btn" id="btnPlayVuln" onclick="playWidget('vuln', this)"><i class="ico ico-play"></i>Play</button></div>
 <ul><li>Bắn tự động <span class="dmg">28%</span> cơ hội, nguồn khác <span class="dmg">15%</span>. Mỗi lớp: <span class="hr">+12% sát thương nhận vào</span>, xé <span class="dmg">20% Shield</span>.</li>
 <li>Ở 4 lớp, trong 2.5s tiếp theo: đòn đánh vẫn ăn Shield bình thường, nhưng được cộng thêm sát thương chuẩn, giảm dần <span class="hr">+30% → +15%</span> sát thương đầu vào theo thời gian. Khi hết hiệu lực: gây <span class="hr">57.5% ATK sát thương chuẩn</span> và reset lớp cộng dồn về 0.</li></ul></div>
 <div class="card"><h2 style="color:var(--green)">GLORY FOR JUSTICE</h2><div class="sub">KÍCH HOẠT: 4+ KẺ ĐỊCH / ABNORMAL TRỞ LÊN / SKILL G / PHŌTOKRYSTOS</div>
-<div class="ab"><canvas id="cvGlory" style="width:100%;height:100%"></canvas><button class="play-btn" id="btnPlayGlory" onclick="playWidget('glory', this)">▶ Play</button></div>
+<div class="ab"><canvas id="cvGlory" style="width:100%;height:100%"></canvas><button class="play-btn" id="btnPlayGlory" onclick="playWidget('glory', this)"><i class="ico ico-play"></i>Play</button></div>
 <ul><li>Toàn bộ sát thương phe ta <span class="hgr">×1.55</span>, tốc độ bắn <span class="hgr">×1.2</span>.</li>
 <li><span class="det-full"><b>Sét Dây Chuyền</b> (hồi chiêu 150ms): lan sang <b>8</b> kẻ địch với <b>50%</b> sát thương. <b>60%</b> → <span class="hr">Đoạt Hồn</span> trong <b>2s</b> (−<b>40%</b> hồi máu/khiên, sát thương theo thời gian mỗi <b>0.35s</b>: <b>6.9% ATK</b> sát thương chuẩn).</span><span class="det-short"><b>Sét Dây Chuyền</b>: lan sang 8 kẻ địch. 60% cơ hội gây Đoạt Hồn 2s (giảm hồi máu + sát thương theo thời gian).</span></li>
 <li>Vệ Binh: <b>+25% DR</b>, Đỡ Đòn kích hoạt.</li></ul></div>
 <div class="card"><h2 style="color:var(--gold)">PHÒNG THỦ TỐI THƯỢNG</h2><div class="sub">LƯỚI AN TOÀN TỰ ĐỘNG</div>
-<div class="ab" style="height:140px"><canvas id="cvFinal" style="width:100%;height:100%"></canvas><button class="play-btn" id="btnPlayFinal" onclick="playWidget('final', this)">▶ Play</button></div>
+<div class="ab" style="height:140px"><canvas id="cvFinal" style="width:100%;height:100%"></canvas><button class="play-btn" id="btnPlayFinal" onclick="playWidget('final', this)"><i class="ico ico-play"></i>Play</button></div>
 <ul>
 <li><b>Khiên Người Chơi:</b> hấp thụ 1 đòn <span class="cd">hồi 25s</span>. <b>Khiên Ranh Giới:</b> hấp thụ 1 kẻ địch vượt biên <span class="cd">25s</span>.</li>
 <li><b>Trận Chiến Cuối:</b> đòn chí mạng ở mạng cuối → sống sót + <span class="hg">Khiên Tuyệt Đối</span> cho bạn + Vệ Binh. <span class="hg">Chỉ 1 lần duy nhất.</span></li>
 <li>Thứ tự ưu tiên: <span class="hp">Lãnh Địa</span> → <span class="hi">Hy Sinh Cầu Năng Lượng</span> → Khiên Người Chơi → Trận Chiến Cuối → Mất mạng.</li></ul></div>
-<div class="card"><h2 style="color:#ffaaaa">⚔ YUUKI — DŨNG KHÍ</h2><div class="sub">PASSIVE • TỪ WAVE 8 • MỖI 2 WAVE • CỘNG DỒN TỚI +300%</div>
+<div class="card"><h2 style="color:#ffaaaa"><svg class="ui-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M4 4l13 13M20 4L7 17M14.5 19.5l5-5M9.5 19.5l-5-5"/></svg> YUUKI — DŨNG KHÍ</h2><div class="sub">PASSIVE • TỪ WAVE 8 • MỖI 2 WAVE • CỘNG DỒN TỚI +300%</div>
 <ul>
 <li>Bắt đầu từ <span class="hi">Wave 8</span>, mỗi <span class="hi">2 wave</span> (Wave 8, 10, 12, …): toàn bộ đơn vị phe ta gây thêm <span class="hg">+20% sát thương</span>.</li>
 <li>Cộng dồn tới khi tổng bonus đạt <span class="hg">+300%</span> (đạt trần từ Wave 36 trở đi), sau đó giữ nguyên.</li>
 <li>Áp dụng cho mọi nguồn sát thương phe ta: bắn tự động, skill, linh hồn, Vệ Binh, sét dây chuyền, sát thương theo thời gian Tesla.</li>
-<li>Hiển thị trên HUD dưới dạng <span class="hg">⚔ Yuuki +X%</span> khi kích hoạt.</li>
+<li>Hiển thị trên HUD dưới dạng <span class="hg"><svg class="ui-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M4 4l13 13M20 4L7 17M14.5 19.5l5-5M9.5 19.5l-5-5"/></svg> Yuuki +X%</span> khi kích hoạt.</li>
 </ul></div>
 <div class="card"><h2 style="color:#c86464"><img src="assets/images/game/icons/walpurgis-icon.png" alt="Walpurgis" style="height:0.9em;vertical-align:-0.1em;margin-right:5px;">WALPURGIS — HUYẾT DẠ</h2><div class="sub">LỜI NGUYỀN TOÀN CỤC • MỖI 5 WAVE • KHÔNG TRẦN</div>
 <ul>
@@ -2886,7 +2911,7 @@
       if (_currentPreviewEl) {
         try { _currentPreviewEl.pause(); _currentPreviewEl.currentTime = 0; } catch (_) {}
       }
-      if (_currentPreviewBtn) _currentPreviewBtn.textContent = '▶';
+      if (_currentPreviewBtn) _setBtnIcon(_currentPreviewBtn, 'play');
       _currentPreviewEl = null;
       _currentPreviewBtn = null;
       window._musicArchivePreview = null;
@@ -2915,7 +2940,7 @@
         topRow.style.cssText = 'display:flex; align-items:center; gap:12px;';
 
         const btn = document.createElement('button');
-        btn.textContent = '▶';
+        _setBtnIcon(btn, 'play');
         btn.style.cssText = 'width:36px; height:36px; border-radius:50%; background:rgba(0,229,255,0.14); border:1px solid rgba(0,229,255,0.4); color:#00e5ff; font-size:14px; cursor:pointer; display:flex; align-items:center; justify-content:center; flex-shrink:0;';
 
         const info = document.createElement('div');
@@ -2967,7 +2992,7 @@
         audio.addEventListener('loadedmetadata', () => {
           timeLbl.textContent = '0:00 / ' + _fmtTime(audio.duration);
         });
-        audio.addEventListener('ended', () => { btn.textContent = '▶'; _stopPreview(true); });
+        audio.addEventListener('ended', () => { _setBtnIcon(btn, 'play'); _stopPreview(true); });
 
         btn.addEventListener('click', () => {
           if (window.parent && window.parent.AudioMgr) {
@@ -2976,7 +3001,7 @@
           // Toggling the currently-playing track = stop + resume parent BGM.
           if (_currentPreviewEl === audio && !audio.paused) {
             audio.pause();
-            btn.textContent = '▶';
+            _setBtnIcon(btn, 'play');
             _stopPreview(true);
             return;
           }
@@ -2986,7 +3011,7 @@
             try { window.parent.AudioMgr.pauseBgm(); } catch (_) {}
           }
           audio.play().catch(() => {});
-          btn.textContent = '⏸';
+          _setBtnIcon(btn, 'pause');
           _currentPreviewEl = audio;
           _currentPreviewBtn = btn;
           window._musicArchivePreview = audio;
@@ -3104,8 +3129,8 @@
     let _widgetPlayers = {};
     // A widget button has three states, tracked on the button element itself
     // (dataset.running/dataset.paused) so no extra name-keyed bookkeeping is
-    // needed: idle ("▶ Play", not running) → running ("⏸ Pause") → paused
-    // ("▶ Resume"). Clicking while running/paused toggles pause instead of
+    // needed: idle ("Play", not running) → running ("Pause") → paused
+    // ("Resume"). Clicking while running/paused toggles pause instead of
     // restarting; each widget's own tick() checks dataset.paused and freezes
     // (see _widgetPauseGuard below) rather than this dispatcher owning time.
     function playWidget(name, btn) {
@@ -3113,7 +3138,7 @@
       if (btn && btn.dataset.running === 'true') {
         const nowPaused = btn.dataset.paused !== 'true';
         btn.dataset.paused = nowPaused ? 'true' : 'false';
-        btn.textContent = nowPaused ? '▶ Resume' : '⏸ Pause';
+        _setBtnIcon(btn, nowPaused ? 'play' : 'pause', nowPaused ? 'Resume' : 'Pause');
         if (window.AudioMgr) { if (nowPaused) window.AudioMgr.pauseAll(); else window.AudioMgr.resumeAll(); }
         return;
       }
@@ -3181,7 +3206,7 @@
 
           _widgetPlayers.ship = function () {
             const btn = document.getElementById('btnPlayShip');
-            btn.dataset.running = 'true'; btn.dataset.paused = 'false'; delete btn.dataset._pauseAnchorAt; btn.textContent = '⏸ Pause';
+            btn.dataset.running = 'true'; btn.dataset.paused = 'false'; delete btn.dataset._pauseAnchorAt; _setBtnIcon(btn, 'pause', 'Pause');
             bullets.length = 0;
             // 3 short volleys with a visible rest between each, instead of one
             // unbroken 2s+ stream — real 135ms cadence stays intact within a
@@ -3224,7 +3249,7 @@
               } else {
                 if (window.AudioMgr) window.AudioMgr.stopEngine();
                 bullets.length = 0;
-                btn.dataset.running = 'false'; btn.dataset.paused = 'false'; delete btn.dataset._pauseAnchorAt; btn.textContent = '▶ Play';
+                btn.dataset.running = 'false'; btn.dataset.paused = 'false'; delete btn.dataset._pauseAnchorAt; _setBtnIcon(btn, 'play', 'Play');
                 drawIdle(performance.now());
               }
             }
@@ -3251,7 +3276,7 @@
 
           _widgetPlayers.sentinel = function () {
             const btn = document.getElementById('btnPlaySentinel');
-            btn.dataset.running = 'true'; btn.dataset.paused = 'false'; delete btn.dataset._pauseAnchorAt; btn.textContent = '⏸ Pause';
+            btn.dataset.running = 'true'; btn.dataset.paused = 'false'; delete btn.dataset._pauseAnchorAt; _setBtnIcon(btn, 'pause', 'Pause');
             particles.length = 0; explosions.length = 0; bullets.length = 0;
             sentinels = [];
             const fakeTarget = { x: w * 0.78, y: h * 0.32 };
@@ -3322,7 +3347,7 @@
                 activeAnimations.push(requestAnimationFrame(tick));
               } else {
                 bullets.length = 0; particles.length = 0; explosions.length = 0;
-                btn.dataset.running = 'false'; btn.dataset.paused = 'false'; delete btn.dataset._pauseAnchorAt; btn.textContent = '▶ Play';
+                btn.dataset.running = 'false'; btn.dataset.paused = 'false'; delete btn.dataset._pauseAnchorAt; _setBtnIcon(btn, 'play', 'Play');
                 drawIdle();
               }
             }
@@ -3346,7 +3371,7 @@
 
           _widgetPlayers.vuln = function () {
             const btn = document.getElementById('btnPlayVuln');
-            btn.dataset.running = 'true'; btn.dataset.paused = 'false'; delete btn.dataset._pauseAnchorAt; btn.textContent = '⏸ Pause';
+            btn.dataset.running = 'true'; btn.dataset.paused = 'false'; delete btn.dataset._pauseAnchorAt; _setBtnIcon(btn, 'pause', 'Pause');
             particles.length = 0; bullets.length = 0;
             player.x = px; player.y = ey; player.width = 22; player.height = 22;
             const fakeEnemy = { x: ex, y: ey, size: 22, hp: 200, maxHp: 200, type: 'debug_dummy', shield: 120, vulnStacks: 0, vulnEndTime: 0 };
@@ -3396,7 +3421,7 @@
                 activeAnimations.push(requestAnimationFrame(tick));
               } else {
                 bullets.length = 0; particles.length = 0;
-                btn.dataset.running = 'false'; btn.dataset.paused = 'false'; delete btn.dataset._pauseAnchorAt; btn.textContent = '▶ Play';
+                btn.dataset.running = 'false'; btn.dataset.paused = 'false'; delete btn.dataset._pauseAnchorAt; _setBtnIcon(btn, 'play', 'Play');
                 drawIdle();
               }
             }
@@ -3430,7 +3455,7 @@
 
           _widgetPlayers.glory = function () {
             const btn = document.getElementById('btnPlayGlory');
-            btn.dataset.running = 'true'; btn.dataset.paused = 'false'; delete btn.dataset._pauseAnchorAt; btn.textContent = '⏸ Pause';
+            btn.dataset.running = 'true'; btn.dataset.paused = 'false'; delete btn.dataset._pauseAnchorAt; _setBtnIcon(btn, 'pause', 'Pause');
             particles.length = 0; bullets.length = 0; chainLightningEffects.length = 0;
             fakeEnemies.forEach(e => { e._chained = false; e.hp = e.maxHp; });
             gloryForJusticeActive = true;
@@ -3497,7 +3522,7 @@
                 bullets.length = 0; chainLightningEffects.length = 0; particles.length = 0;
                 fakeEnemies.forEach(e => { e._chained = false; });
                 gloryForJusticeActive = false;
-                btn.dataset.running = 'false'; btn.dataset.paused = 'false'; delete btn.dataset._pauseAnchorAt; btn.textContent = '▶ Play';
+                btn.dataset.running = 'false'; btn.dataset.paused = 'false'; delete btn.dataset._pauseAnchorAt; _setBtnIcon(btn, 'play', 'Play');
                 drawIdle();
               }
             }
@@ -3524,7 +3549,7 @@
 
           _widgetPlayers.final = function () {
             const btn = document.getElementById('btnPlayFinal');
-            btn.dataset.running = 'true'; btn.dataset.paused = 'false'; delete btn.dataset._pauseAnchorAt; btn.textContent = '⏸ Pause';
+            btn.dataset.running = 'true'; btn.dataset.paused = 'false'; delete btn.dataset._pauseAnchorAt; _setBtnIcon(btn, 'pause', 'Pause');
             player.x = w * 0.5; player.y = h * 0.6; player.width = 20;
             boundaryY = h * 0.85;
             finalDefense = { playerShield: true, boundaryShield: true, playerCooldownEnd: 0, boundaryCooldownEnd: 0 };
@@ -3551,7 +3576,7 @@
               if (elapsed < 3600) {
                 activeAnimations.push(requestAnimationFrame(tick));
               } else {
-                btn.dataset.running = 'false'; btn.dataset.paused = 'false'; delete btn.dataset._pauseAnchorAt; btn.textContent = '▶ Play';
+                btn.dataset.running = 'false'; btn.dataset.paused = 'false'; delete btn.dataset._pauseAnchorAt; _setBtnIcon(btn, 'play', 'Play');
                 drawIdle();
               }
             }
@@ -3622,7 +3647,7 @@
               c.fillText('fires 1 bullet/sec',w*.5,ey-14);
               c.fillText('bullet HP = enemy HP',w*.5,ey-2);
               c.fillStyle='rgba(255,215,0,0.55)';
-              c.fillText('CORONATION passive ▼',w*.5,ey+12);
+              c.fillText('CORONATION passive',w*.5,ey+12);
 
             }else if(ph===1){
               // Coronation: freeze → energy suck inward → lightning from sky → dissipate
@@ -4597,7 +4622,7 @@
             // State label
             c.fillStyle = isR ? '#ff9999' : '#88ffd4';
             c.font = `bold ${Math.ceil(7 + 6 * egSc)}px monospace`; c.textAlign = 'center'; c.textBaseline = 'alphabetic';
-            c.fillText(isR ? '▲ MIND LINK ACTIVE ▲' : '— COLLECTIVE MIND —', 0, egBase * 1.6);
+            c.fillText(isR ? 'MIND LINK ACTIVE' : '— COLLECTIVE MIND —', 0, egBase * 1.6);
             c.restore();
 
             // Info labels (right side)
@@ -4609,7 +4634,7 @@
             c.fillText('Non-true: 60% deflect | 40%→tentacle (40% dmg)', w * 0.52, h * 0.12 + 23);
             c.fillText('True dmg cap: max(25%, 90−10n)% per hit', w * 0.52, h * 0.12 + 34);
             c.fillStyle = isR ? '#ff9999' : '#88ffd4'; c.font = 'bold 8px Orbitron, sans-serif';
-            c.fillText('MIND LINK' + (isR ? ' ▲ RAGE' : ''), w * 0.52, h * 0.62);
+            c.fillText('MIND LINK' + (isR ? ' · RAGE' : ''), w * 0.52, h * 0.62);
             c.fillStyle = '#8899bb'; c.font = '6.5px Share Tech Mono, monospace';
             c.fillText('+12% atk spd  +10% move spd  (per stack)', w * 0.52, h * 0.62 + 12);
             c.fillText('+10% MaxHP  Heal 10% MaxHP  (per stack)', w * 0.52, h * 0.62 + 23);
@@ -4624,7 +4649,7 @@
           // appear → 5 rage stacks → Null Slash → Psychic Tempest → death + roar.
           _widgetPlayers.egregor = function () {
             const btn = document.getElementById('btnPlayEgregor');
-            btn.dataset.running = 'true'; btn.dataset.paused = 'false'; delete btn.dataset._pauseAnchorAt; btn.textContent = '⏸ Pause';
+            btn.dataset.running = 'true'; btn.dataset.paused = 'false'; delete btn.dataset._pauseAnchorAt; _setBtnIcon(btn, 'pause', 'Pause');
             egPlaying = true;
             particles.length = 0; explosions.length = 0;
             window._egregorDeathBursts = [];
@@ -4782,7 +4807,7 @@
                 window._egregorDeathBursts = []; particles.length = 0; explosions.length = 0;
                 sentinels = []; enemies.length = 0;
                 egPlaying = false;
-                btn.dataset.running = 'false'; btn.dataset.paused = 'false'; delete btn.dataset._pauseAnchorAt; btn.textContent = '▶ Play';
+                btn.dataset.running = 'false'; btn.dataset.paused = 'false'; delete btn.dataset._pauseAnchorAt; _setBtnIcon(btn, 'play', 'Play');
                 drawEg(performance.now());
               }
             }
@@ -5040,12 +5065,12 @@
 
             // Phase label
             c.fillStyle = '#cc55ff88'; c.font = '7px Share Tech Mono, monospace'; c.textAlign = 'center';
-            if (isAFO) c.fillText('▶ ALL FOR ONE — IRON BODY', cx2, 10);
-            else if (isShatter) c.fillText('▶ SHIELD SHATTERS — WINGS OPEN', cx2, 10);
-            else if (isPers) c.fillText('▶ PERSEVERANCE — 360° LASER SWEEP', cx2, 10);
-            else if (isDying) c.fillText('▶ HP REACHES 1...', cx2, 10);
-            else if (isLRAim) c.fillText('▶ LAST RITES — WINGS LOCKING TARGETS', cx2, 10);
-            else if (isLRFire || isLRFade) c.fillText('▶ LAST RITES — ALL 9 LASERS FIRE', cx2, 10);
+            if (isAFO) c.fillText('ALL FOR ONE — IRON BODY', cx2, 10);
+            else if (isShatter) c.fillText('SHIELD SHATTERS — WINGS OPEN', cx2, 10);
+            else if (isPers) c.fillText('PERSEVERANCE — 360° LASER SWEEP', cx2, 10);
+            else if (isDying) c.fillText('HP REACHES 1...', cx2, 10);
+            else if (isLRAim) c.fillText('LAST RITES — WINGS LOCKING TARGETS', cx2, 10);
+            else if (isLRFire || isLRFade) c.fillText('LAST RITES — ALL 9 LASERS FIRE', cx2, 10);
             c.textAlign = 'left';
 
             // Draw target markers during Last Rites phases
@@ -5448,7 +5473,7 @@
 
           _widgetPlayers.shift = function () {
             const btn = document.getElementById('btnPlayShift');
-            btn.dataset.running = 'true'; btn.dataset.paused = 'false'; delete btn.dataset._pauseAnchorAt; btn.textContent = '⏸ Pause';
+            btn.dataset.running = 'true'; btn.dataset.paused = 'false'; delete btn.dataset._pauseAnchorAt; _setBtnIcon(btn, 'pause', 'Pause');
             player.x = cx; player.y = cy; player.width = 34; player.height = 34;
             sentinels = [];
             window._parryBursts = [];
@@ -5493,7 +5518,7 @@
                 activeAnimations.push(requestAnimationFrame(tick));
               } else {
                 skillShiftActive = false;
-                btn.dataset.running = 'false'; btn.dataset.paused = 'false'; delete btn.dataset._pauseAnchorAt; btn.textContent = '▶ Play';
+                btn.dataset.running = 'false'; btn.dataset.paused = 'false'; delete btn.dataset._pauseAnchorAt; _setBtnIcon(btn, 'play', 'Play');
                 drawIdle();
               }
             }
@@ -5518,7 +5543,7 @@
 
           _widgetPlayers.skillA = function () {
             const btn = document.getElementById('btnPlaySkillA');
-            btn.dataset.running = 'true'; btn.dataset.paused = 'false'; delete btn.dataset._pauseAnchorAt; btn.textContent = '⏸ Pause';
+            btn.dataset.running = 'true'; btn.dataset.paused = 'false'; delete btn.dataset._pauseAnchorAt; _setBtnIcon(btn, 'pause', 'Pause');
             particles.length = 0; explosions.length = 0; dimensionalRifts.length = 0;
             player.x = cx; player.y = cy;
             target.hp = target.maxHp;
@@ -5634,7 +5659,7 @@
                 activeAnimations.push(requestAnimationFrame(tick));
               } else {
                 skillAOrbs = []; particles.length = 0; explosions.length = 0; dimensionalRifts.length = 0;
-                btn.dataset.running = 'false'; btn.dataset.paused = 'false'; delete btn.dataset._pauseAnchorAt; btn.textContent = '▶ Play';
+                btn.dataset.running = 'false'; btn.dataset.paused = 'false'; delete btn.dataset._pauseAnchorAt; _setBtnIcon(btn, 'play', 'Play');
                 drawIdle();
               }
             }
@@ -5662,7 +5687,7 @@
 
           _widgetPlayers.skillS = function () {
             const btn = document.getElementById('btnPlaySkillS');
-            btn.dataset.running = 'true'; btn.dataset.paused = 'false'; delete btn.dataset._pauseAnchorAt; btn.textContent = '⏸ Pause';
+            btn.dataset.running = 'true'; btn.dataset.paused = 'false'; delete btn.dataset._pauseAnchorAt; _setBtnIcon(btn, 'pause', 'Pause');
             spiritBullets.length = 0; bladeArcProjectiles.length = 0; particles.length = 0; explosions.length = 0;
             player.x = cx; player.y = cy;
             target.hp = target.maxHp;
@@ -5804,7 +5829,7 @@
                 activeAnimations.push(requestAnimationFrame(tick));
               } else {
                 spiritBullets.length = 0; bladeArcProjectiles.length = 0; particles.length = 0; explosions.length = 0; demoSpinner = null;
-                btn.dataset.running = 'false'; btn.dataset.paused = 'false'; delete btn.dataset._pauseAnchorAt; btn.textContent = '▶ Play';
+                btn.dataset.running = 'false'; btn.dataset.paused = 'false'; delete btn.dataset._pauseAnchorAt; _setBtnIcon(btn, 'play', 'Play');
                 drawIdle();
               }
             }
@@ -5831,7 +5856,7 @@
 
           _widgetPlayers.skillD = function () {
             const btn = document.getElementById('btnPlaySkillD');
-            btn.dataset.running = 'true'; btn.dataset.paused = 'false'; delete btn.dataset._pauseAnchorAt; btn.textContent = '⏸ Pause';
+            btn.dataset.running = 'true'; btn.dataset.paused = 'false'; delete btn.dataset._pauseAnchorAt; _setBtnIcon(btn, 'pause', 'Pause');
             particles.length = 0; explosions.length = 0;
             window.skillDLasers.length = 0; window.skillDBolts.length = 0; window.skillDSpaceships.length = 0;
             player.x = cx; player.y = cy;
@@ -5914,7 +5939,7 @@
                 if (window.AudioMgr) window.AudioMgr.stopDeathStar();
                 deathStar = null; particles.length = 0;
                 window.skillDLasers.length = 0; window.skillDBolts.length = 0; window.skillDSpaceships.length = 0;
-                btn.dataset.running = 'false'; btn.dataset.paused = 'false'; delete btn.dataset._pauseAnchorAt; btn.textContent = '▶ Play';
+                btn.dataset.running = 'false'; btn.dataset.paused = 'false'; delete btn.dataset._pauseAnchorAt; _setBtnIcon(btn, 'play', 'Play');
                 drawIdle();
               }
             }
@@ -5939,7 +5964,7 @@
 
           _widgetPlayers.skillG = function () {
             const btn = document.getElementById('btnPlaySkillG');
-            btn.dataset.running = 'true'; btn.dataset.paused = 'false'; delete btn.dataset._pauseAnchorAt; btn.textContent = '⏸ Pause';
+            btn.dataset.running = 'true'; btn.dataset.paused = 'false'; delete btn.dataset._pauseAnchorAt; _setBtnIcon(btn, 'pause', 'Pause');
             particles.length = 0; explosions.length = 0;
             energyOrbs = [
               { id: 1, x: w * 0.18, y: h * 0.3, size: ENERGY_ORB_SIZE, isMerging: false, mergeStartTime: 0, linkedTo: null },
@@ -6058,7 +6083,7 @@
                 activeAnimations.push(requestAnimationFrame(tick));
               } else {
                 energyOrbs = []; teslaCoils = []; teslaBolts = []; teslaRings = []; particles.length = 0;
-                btn.dataset.running = 'false'; btn.dataset.paused = 'false'; delete btn.dataset._pauseAnchorAt; btn.textContent = '▶ Play';
+                btn.dataset.running = 'false'; btn.dataset.paused = 'false'; delete btn.dataset._pauseAnchorAt; _setBtnIcon(btn, 'play', 'Play');
                 drawIdle();
               }
             }
@@ -6084,7 +6109,7 @@
 
           _widgetPlayers.laser = function () {
             const btn = document.getElementById('btnPlayLaser');
-            btn.dataset.running = 'true'; btn.dataset.paused = 'false'; delete btn.dataset._pauseAnchorAt; btn.textContent = '⏸ Pause';
+            btn.dataset.running = 'true'; btn.dataset.paused = 'false'; delete btn.dataset._pauseAnchorAt; _setBtnIcon(btn, 'pause', 'Pause');
             player.x = shipX; player.y = shipY; player.width = 30; player.height = 30;
             playerClones = [{ xOffset: -180 }, { xOffset: -90 }, { xOffset: 90 }, { xOffset: 180 }];
             charging = true;
@@ -6128,7 +6153,7 @@
               } else {
                 if (window.AudioMgr) window.AudioMgr.stopLaser();
                 laserActive = false; playerClones = [];
-                btn.dataset.running = 'false'; btn.dataset.paused = 'false'; delete btn.dataset._pauseAnchorAt; btn.textContent = '▶ Play';
+                btn.dataset.running = 'false'; btn.dataset.paused = 'false'; delete btn.dataset._pauseAnchorAt; _setBtnIcon(btn, 'play', 'Play');
                 drawIdle();
               }
             }
@@ -6152,7 +6177,7 @@
 
           _widgetPlayers.skillF = function () {
             const btn = document.getElementById('btnPlaySkillF');
-            btn.dataset.running = 'true'; btn.dataset.paused = 'false'; delete btn.dataset._pauseAnchorAt; btn.textContent = '⏸ Pause';
+            btn.dataset.running = 'true'; btn.dataset.paused = 'false'; delete btn.dataset._pauseAnchorAt; _setBtnIcon(btn, 'pause', 'Pause');
             player.x = shipX; player.y = shipY; player.width = 28; player.height = 28;
             skillFState = 'charging';
             skillFChargeStart = performance.now();
@@ -6185,7 +6210,7 @@
               } else {
                 if (window.AudioMgr) window.AudioMgr.stopSkillFFire();
                 skillFState = 'ready';
-                btn.dataset.running = 'false'; btn.dataset.paused = 'false'; delete btn.dataset._pauseAnchorAt; btn.textContent = '▶ Play';
+                btn.dataset.running = 'false'; btn.dataset.paused = 'false'; delete btn.dataset._pauseAnchorAt; _setBtnIcon(btn, 'play', 'Play');
                 drawIdle();
               }
             }
@@ -6306,10 +6331,10 @@
       if (btn.dataset.running === 'true') {
         const nowPaused = btn.dataset.paused !== 'true';
         btn.dataset.paused = nowPaused ? 'true' : 'false';
-        btn.textContent = nowPaused ? '▶ Resume' : '⏸ Pause';
+        _setBtnIcon(btn, nowPaused ? 'play' : 'pause', nowPaused ? 'Resume' : 'Pause');
         return;
       }
-      btn.dataset.running = 'true'; btn.dataset.paused = 'false'; delete btn.dataset._pauseAnchorAt; btn.textContent = '⏸ Pause';
+      btn.dataset.running = 'true'; btn.dataset.paused = 'false'; delete btn.dataset._pauseAnchorAt; _setBtnIcon(btn, 'pause', 'Pause');
       const { c, w, h } = _pkCanvas;
 
       enemies.length = 0; photoBrangs.length = 0; bossShockwaves.length = 0;
@@ -6503,7 +6528,7 @@
       function finish() {
         if (window.AudioMgr) window.AudioMgr.stopPhotokrystosIdle();
         spirits = []; enemies.length = 0; photoBrangs.length = 0; bossShockwaves.length = 0;
-        btn.dataset.running = 'false'; btn.dataset.paused = 'false'; delete btn.dataset._pauseAnchorAt; btn.textContent = '▶ Play';
+        btn.dataset.running = 'false'; btn.dataset.paused = 'false'; delete btn.dataset._pauseAnchorAt; _setBtnIcon(btn, 'play', 'Play');
         drawPhotoIdle();
       }
 
