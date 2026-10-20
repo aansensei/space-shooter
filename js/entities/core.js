@@ -121,10 +121,9 @@ function distToSegment(p, v, w) {
 }
 
 function handleEnemyKill(enemy) {
-    // Hit stop: the world holds still for a beat when a boss falls (main.js
-    // skips update() until _hitStopUntil). Goliath holds longer than a Dominator.
+    // Hit stop: the world holds still for a beat when Goliath falls (main.js
+    // skips update() until _hitStopUntil).
     if (enemy.type === 'goliath') window._hitStopUntil = performance.now() + 120;
-    else if (enemy.type === 'dargruel' || enemy.type === 'leviathan') window._hitStopUntil = Math.max(window._hitStopUntil || 0, performance.now() + 70);
     _recordKill(_enemyTypeLabel(enemy.type));
     _leoOnEnemyKill(enemy);
     _dauOnEnemyKill(enemy);
