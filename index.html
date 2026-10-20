@@ -96,7 +96,7 @@
     <link href="https://fonts.googleapis.com/css2?family=LXGW+WenKai+TC:wght@700&text=%E5%A4%A9%E7%A9%BA%E5%B4%A9%E5%A1%8C&display=swap" rel="stylesheet">
     <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@600&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="css/style.css?v=20261019r">
-    <link rel="stylesheet" href="css/recap.css?v=20261020c">
+    <link rel="stylesheet" href="css/recap.css?v=20261020l">
 
     <style>
         body {
@@ -1119,6 +1119,17 @@
                                     <button class="stg-onoff-btn stg-onoff-active" id="shake-off" onclick="onShakeChange(false)" data-i18n="gameplay.off">OFF</button>
                                 </span>
                             </div>
+                            <label class="st-row st-row-click">
+                                <span class="st-row-text">
+                                    <span class="st-label" data-i18n="gameplay.tapFx">Tap Effect</span>
+                                    <span class="st-desc" data-i18n="gameplay.tapFxDesc">A glowing ring where you click or touch; on a button it wraps the button.</span>
+                                </span>
+                                <span class="stg-toggle-wrap">
+                                    <input type="checkbox" id="tapfx-check" checked>
+                                    <span class="stg-toggle-track"></span>
+                                    <span class="stg-toggle-thumb"></span>
+                                </span>
+                            </label>
                             <!-- Phones that can vibrate only; iPhone browsers cannot. -->
                             <div class="st-row" id="vibrate-row" style="display:none;">
                                 <span class="st-row-text">
@@ -2130,6 +2141,8 @@
                         'gameplay.section': 'Gameplay', 'gameplay.screenShake': 'Screen Shake',
                         'gameplay.on': 'ON', 'gameplay.off': 'OFF',
                         'gameplay.screenShakeWarn': 'Turning on screen shake may cause unexpected lag on some devices.',
+                        'gameplay.tapFx': 'Tap Effect',
+                        'gameplay.tapFxDesc': 'A glowing ring where you click or touch; on a button it wraps the button.',
                         'gameplay.vibrate': 'Vibration',
                         'gameplay.vibrateDesc': 'Short buzz on hits, sigil picks and skill buttons.',
                         'gameplay.skipKanade': 'Skip Kanade Animation',
@@ -2201,6 +2214,8 @@
                         'gameplay.section': 'Lối Chơi', 'gameplay.screenShake': 'Rung Màn Hình',
                         'gameplay.on': 'BẬT', 'gameplay.off': 'TẮT',
                         'gameplay.screenShakeWarn': 'Bật rung màn hình có thể gây giật lag trên một số thiết bị.',
+                        'gameplay.tapFx': 'Hiệu Ứng Chạm',
+                        'gameplay.tapFxDesc': 'Vòng sáng ở chỗ bạn bấm hoặc chạm; bấm vào nút thì vòng ôm theo nút.',
                         'gameplay.vibrate': 'Rung Máy',
                         'gameplay.vibrateDesc': 'Rung nhẹ khi trúng đòn, khi chọn Sigil và khi bấm nút kỹ năng.',
                         'gameplay.skipKanade': 'Bỏ Qua Hoạt Ảnh Kanade',
@@ -2319,6 +2334,7 @@
 
                     document.getElementById('highfps-check').checked = window._highFpsEnabled !== false;
                     document.getElementById('showfps-check').checked = window._showFps === true;
+                    document.getElementById('tapfx-check').checked = window._tapFxEnabled !== false;
                     // Desktop Chrome has navigator.vibrate too, so touch screens only.
                     const canBuzz = !!navigator.vibrate && !!(window.matchMedia && matchMedia('(pointer: coarse)').matches);
                     document.getElementById('vibrate-row').style.display = canBuzz ? 'flex' : 'none';
@@ -2653,21 +2669,25 @@
                     }
 
                     window._showFps = document.getElementById('showfps-check').checked;
+                    window._tapFxEnabled = document.getElementById('tapfx-check').checked;
                     window._vibrateEnabled = document.getElementById('vibrate-on').classList.contains('stg-onoff-active');
                     try {
                         localStorage.setItem('pisces_show_fps', window._showFps ? '1' : '0');
                         localStorage.setItem('pisces_vibrate', window._vibrateEnabled ? '1' : '0');
+                        localStorage.setItem('pisces_tap_fx', window._tapFxEnabled ? '1' : '0');
                     } catch (_) { }
                     _setFpsCounter(window._showFps);
                     _commitFx();
                 }
 
-                // Show FPS and Vibration are kept on this device.
+                // Show FPS, Vibration and Tap Effect are kept on this device.
                 window._showFps = false;
                 window._vibrateEnabled = true;
+                window._tapFxEnabled = true;
                 try {
                     window._showFps = localStorage.getItem('pisces_show_fps') === '1';
                     window._vibrateEnabled = localStorage.getItem('pisces_vibrate') !== '0';
+                    window._tapFxEnabled = localStorage.getItem('pisces_tap_fx') !== '0';
                 } catch (_) { }
 
                 // The game loop calls window._fpsTick on every frame it actually
@@ -2762,6 +2782,7 @@
                     onSmartQualityChange(true);
                     document.getElementById('highfps-check').checked = true;
                     document.getElementById('showfps-check').checked = false;
+                    document.getElementById('tapfx-check').checked = true;
                     onShakeChange(false);
                     onVibrateChange(true);
                     onKanadeSkipChange(false);
@@ -4083,7 +4104,7 @@
     <script src="js/render/sigil-capricorn.js?v=20261020i"></script>
     <script src="js/render/skill-g.js?v=20261013n"></script>
     <script src="js/render/skill-buttons.js?v=20261020g"></script>
-    <script src="js/recap.js?v=20261020c"></script>
+    <script src="js/recap.js?v=20261020l"></script>
     <script src="js/pixi-renderer.js?v=20261020i"></script>
     <script src="js/input.js?v=20261019r"></script>
     <script src="js/main.js?v=20261020k"></script>
@@ -4523,7 +4544,11 @@
                 document.getElementById('btn-mobile').classList.toggle('pf-active', p === 'mobile');
                 // Correct background.js's initial touch-detection guess (made
                 // before this menu even existed) to match the explicit choice.
-                if (typeof window._bgSetDensity === 'function') window._bgSetDensity(p);
+                // The rebuild redraws every background texture, which takes a
+                // while on phones; waiting two frames lets the chosen tab show first.
+                if (typeof window._bgSetDensity === 'function') {
+                    requestAnimationFrame(() => requestAnimationFrame(() => window._bgSetDensity(_plat)));
+                }
                 // PER (tier 4) only exists on mobile - the button stays hidden
                 // on PC. If a player was on PER and somehow switches to PC
                 // mid-session, drop back to LOW rather than leaving a PC
@@ -5338,6 +5363,228 @@
             // MULTI-TOUCH: handled via direct ontouchstart on each button
         })();
 
+    </script>
+    <!-- Tap / click mark: a glowing arc sweeps open with a doubled tail, a
+         segmented tick ring turns the other way, a triangle rides the arc,
+         two fish circle the centre and triangle sparks fly out. On buttons
+         and other controls it centres on the control and sizes to it.
+         Settings can switch it off (pisces_tap_fx). Eight reused nodes, CSS
+         transform and opacity only. -->
+    <style>
+        .tap-fx {
+            position: fixed;
+            left: 0;
+            top: 0;
+            width: 0;
+            height: 0;
+            z-index: 2147483000;
+            pointer-events: none;
+        }
+
+        .tap-fx > * {
+            position: absolute;
+            opacity: 0;
+        }
+
+        .tap-arcs,
+        .tap-ticks {
+            left: -32px;
+            top: -32px;
+            width: 64px;
+            height: 64px;
+            overflow: visible;
+        }
+
+        .tap-arcs {
+            filter: drop-shadow(0 0 3px rgba(0, 200, 255, 0.95)) drop-shadow(0 0 7px rgba(0, 170, 255, 0.55));
+        }
+
+        .tap-arcs circle,
+        .tap-ticks circle {
+            fill: none;
+            stroke-linecap: round;
+        }
+
+        .tap-orbit {
+            left: 0;
+            top: 0;
+            width: 0;
+            height: 0;
+        }
+
+        .tap-orbit i {
+            position: absolute;
+            left: -5px;
+            top: -26px;
+            width: 10px;
+            height: 9px;
+            background: #c8f6ff;
+            clip-path: polygon(50% 0, 100% 100%, 0 100%);
+            filter: drop-shadow(0 0 4px rgba(0, 210, 255, 1));
+        }
+
+        .tap-fish {
+            left: -17px;
+            top: -17px;
+            width: 34px;
+            height: 34px;
+        }
+
+        /* On a control the fish would cover its icon and label. */
+        .tap-fx.tap-ctl .tap-fish {
+            display: none;
+        }
+
+        .tap-fish svg {
+            display: block;
+            width: 100%;
+            height: 100%;
+            filter: drop-shadow(0 0 2.5px rgba(63, 169, 245, 0.95));
+        }
+
+        .tap-tri {
+            left: calc(var(--s) / -2);
+            top: calc(var(--s) / -2);
+            width: var(--s);
+            height: var(--s);
+            background: #9eeaff;
+            clip-path: polygon(50% 0, 100% 100%, 0 100%);
+        }
+
+        .tap-fx.tap-on .tap-arcs {
+            animation: tapArc 0.62s cubic-bezier(0.2, 0.9, 0.3, 1) forwards;
+        }
+
+        .tap-fx.tap-on .tap-ticks {
+            animation: tapTicks 0.62s ease-out forwards;
+        }
+
+        .tap-fx.tap-on .tap-orbit {
+            animation: tapOrbit 0.62s cubic-bezier(0.2, 0.9, 0.3, 1) forwards;
+        }
+
+        .tap-fx.tap-on .tap-fish {
+            animation: tapFish 0.62s ease-out forwards;
+        }
+
+        .tap-fx.tap-on .tap-tri {
+            animation: tapTri 0.62s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+            animation-delay: var(--w);
+        }
+
+        @keyframes tapArc {
+            0% { opacity: 1; transform: rotate(-50deg) scale(0.5); }
+            70% { opacity: 0.85; }
+            100% { opacity: 0; transform: rotate(120deg) scale(1); }
+        }
+
+        @keyframes tapTicks {
+            0% { opacity: 0.8; transform: rotate(0deg) scale(0.6); }
+            100% { opacity: 0; transform: rotate(-70deg) scale(1.05); }
+        }
+
+        @keyframes tapOrbit {
+            0% { opacity: 1; transform: rotate(-50deg) scale(0.5); }
+            75% { opacity: 1; }
+            100% { opacity: 0; transform: rotate(120deg) scale(1); }
+        }
+
+        @keyframes tapFish {
+            0% { opacity: 1; transform: rotate(-20deg) scale(0.75); }
+            65% { opacity: 0.95; }
+            100% { opacity: 0; transform: rotate(75deg) scale(1); }
+        }
+
+        @keyframes tapTri {
+            0% { opacity: 1; transform: rotate(var(--a)) translateY(-12px) scale(1); }
+            100% { opacity: 0; transform: rotate(var(--a)) translateY(var(--d)) rotate(160deg) scale(0.3); }
+        }
+
+        @media (prefers-reduced-motion: reduce) {
+            .tap-fx { display: none; }
+        }
+    </style>
+    <script>
+        (function () {
+            const POOL = 8, nodes = [];
+            // Main arc covers about three quarters of the ring; the tail is a
+            // short second stroke just outside it, the ticks a dashed ring inside.
+            const ARCS = '<svg class="tap-arcs" viewBox="-32 -32 64 64" aria-hidden="true">'
+                + '<circle r="21" stroke="#aef4ff" stroke-width="2.2" stroke-dasharray="92 40"/>'
+                + '<circle r="24" stroke="#7fe3ff" stroke-width="1.1" stroke-dasharray="26 125" stroke-dashoffset="-70" opacity="0.85"/>'
+                + '<circle r="22.6" stroke="#7fe3ff" stroke-width="0.8" stroke-dasharray="14 128" stroke-dashoffset="-82" opacity="0.7"/>'
+                // Dotted outer arc on the side away from the tail.
+                + '<path d="M4.69 -26.59A27 27 0 0 1 25.37 9.23" fill="none" stroke="#9eeaff" stroke-width="1.4" stroke-linecap="round" stroke-dasharray="0.1 3.4" opacity="0.85"/>'
+                // Notches across the arc, a diamond where it starts and a bead where it leads.
+                + '<path d="M9.25 16.02L11.75 20.35M-13.08 13.08L-16.62 16.62M-17.38 -6.33L-22.08 -8.04" stroke="#d8fbff" stroke-width="1.1" stroke-linecap="round"/>'
+                + '<path d="M21 -2.2L23.2 0 21 2.2 18.8 0z" fill="#e6fdff"/>'
+                + '<circle cx="-6.84" cy="-19.86" r="2.1" fill="#ffffff" stroke="none"/>'
+                + '<circle cx="-6.84" cy="-19.86" r="3.6" fill="none" stroke="#aef4ff" stroke-width="0.7" opacity="0.8"/>'
+                + '</svg>';
+            const TICKS = '<svg class="tap-ticks" viewBox="-32 -32 64 64" aria-hidden="true">'
+                + '<circle r="16" stroke="rgba(120,220,255,0.7)" stroke-width="1.6" stroke-dasharray="1.2 4.1"/>'
+                + '</svg>';
+            // One fish bent along the circle (body, forked tail, dorsal and
+            // pectoral fins, a scale line and an eye); the second is the same
+            // fish turned half a circle, so they chase each other Pisces style.
+            const ONE_FISH = '<path d="M29 13.2C26.6 7.6 17.6 6.4 11.8 10.6c4 1.4 10.4 3.8 17.2 2.6z" fill="#5fc0ff"/>'
+                + '<path d="M12.4 10.9L6.6 6.9l1.9 4.6-1.6 4.8z" fill="#9fdcff"/>'
+                + '<path d="M20.6 7.7c-1.2-2.4-3.8-3.2-6-2.2 1.8.6 3.1 1.7 3.7 3.1z" fill="#9fdcff"/>'
+                + '<path d="M22.4 12.6c-.3 2.2-1.9 3.6-4 3.8 1.2-1 1.8-2.2 2-3.6z" fill="#9fdcff" opacity="0.9"/>'
+                + '<path d="M15.6 10c2.8-.9 6.2-.7 8.9.7" fill="none" stroke="#d6f3ff" stroke-width="0.7" stroke-linecap="round" opacity="0.8"/>'
+                + '<circle cx="25.9" cy="10.6" r="1" fill="#04121c"/><circle cx="26.2" cy="10.3" r="0.35" fill="#ffffff"/>';
+            const FISH = '<svg viewBox="0 0 40 40" aria-hidden="true">' + ONE_FISH
+                + '<g transform="rotate(180 20 20)">' + ONE_FISH + '</g></svg>';
+            // Sparks: angle, travel, size and a small start delay so the burst
+            // looks scattered rather than ringed.
+            const SPARKS = [
+                [8, -44, 7, 0], [38, -30, 4, 30], [70, -40, 5, 10], [100, -28, 3, 50],
+                [128, -46, 6, 20], [160, -32, 4, 40], [192, -42, 7, 0], [222, -30, 3, 60],
+                [252, -46, 5, 15], [284, -34, 4, 35], [312, -42, 6, 5], [342, -28, 3, 45],
+            ];
+            let inner = ARCS + TICKS + '<div class="tap-orbit"><i></i></div><div class="tap-fish">' + FISH + '</div>';
+            for (const [a, d, s, w] of SPARKS) inner += '<i class="tap-tri" style="--a:' + a + 'deg;--d:' + d + 'px;--s:' + s + 'px;--w:' + w + 'ms"></i>';
+            let next = 0;
+            for (let i = 0; i < POOL; i++) {
+                const n = document.createElement('div');
+                n.className = 'tap-fx';
+                n.setAttribute('aria-hidden', 'true');
+                n.innerHTML = inner;
+                document.body.appendChild(n);
+                nodes.push(n);
+            }
+            function enabled() {
+                if (window._tapFxEnabled === false) return false;
+                if (window._tapFxEnabled === true) return true;
+                try { return localStorage.getItem('pisces_tap_fx') !== '0'; } catch (_) { return true; }
+            }
+            // Controls the mark wraps instead of sitting at the finger.
+            const CONTROL = 'button, a[href], input, select, textarea, label, [role="button"], [onclick], .stg-music-row';
+            document.addEventListener('pointerdown', function (e) {
+                if (e.pointerType === 'mouse' && e.button !== 0) return;
+                if (!enabled()) return;
+                let x = e.clientX, y = e.clientY, k = 1, ctl = false;
+                const el = e.target && e.target.closest ? e.target.closest(CONTROL) : null;
+                if (el) {
+                    const r = el.getBoundingClientRect();
+                    // Full screen layers with a click handler are not controls.
+                    if (r.width > 0 && r.width < innerWidth * 0.7 && r.height < innerHeight * 0.4) {
+                        x = r.left + r.width / 2;
+                        y = r.top + r.height / 2;
+                        k = Math.max(0.7, Math.min(1.9, (r.height * 1.5) / 48));
+                        ctl = true;
+                    }
+                }
+                const n = nodes[next];
+                next = (next + 1) % POOL;
+                n.classList.remove('tap-on');
+                n.classList.toggle('tap-ctl', ctl);
+                n.style.transform = 'translate(' + x + 'px,' + y + 'px) scale(' + k.toFixed(2) + ')';
+                // Reading layout here restarts the animations on a reused node.
+                void n.offsetWidth;
+                n.classList.add('tap-on');
+            }, { capture: true, passive: true });
+        })();
     </script>
 </body>
 

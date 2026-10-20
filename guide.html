@@ -1339,6 +1339,8 @@
 <li><span class="ul-tag tag-feat">FEAT</span> <b>Settings, Background:</b> its own group with three detail levels (Low, Detail, Full) that thin out the stars, nebulas, dust and asteroids behind the battle, the brightness slider, and a Light Patches slider for how strongly the nebulas and galaxies glow. All three apply live and are remembered.</li>
 <li><span class="ul-tag tag-feat">FEAT</span> <b>Settings, new rows:</b> Show FPS puts the frame rate the game actually draws next to the sound button, turning gold under 50 and red under 30. Vibration switches off the buzz on hits, sigil picks and skill buttons (shown on phones that can vibrate). Restore Defaults asks Yes or No, then puts every setting back except the language.</li>
 <li><span class="ul-tag tag-feat">FEAT</span> <b>Settings, Advanced Graphics:</b> a fold with switches for explosions, debris, glow, screen flashes, sigil lighting and backdrops, the moving nebula, trails and Kanade's jewel twinkle, plus effect brightness and flash intensity, all saved on the device. Each switch only turns its effect off on top of the chosen graphics level: Glow drops the blur halos, Trails stops the streaks behind bullets, Sigil Lighting skips the Pisces moonlight and the sky darkening under Capricorn's mountain, Sigil Backdrops skips the Pisces, Capricorn and Cancer scenery. Enemy attack warnings and the low lives pulse always stay on.</li>
+<li><span class="ul-tag tag-feat">FEAT</span> <b>Tap mark:</b> every click or touch, in the game and in the Guide, sweeps open a glowing cyan arc with a doubled tail, notches across it, a diamond at its start, a bright bead at its leading end and a dotted outer arc, a segmented tick ring turning the other way and a triangle riding the arc, while two fish circle the centre Pisces style and a dozen triangle sparks fly out. On a button, tab or switch it centres on the control and sizes to it, without the fish so the label stays clear. It lasts about 0.6s, never blocks a tap, and Settings has a Tap Effect switch under Gameplay (on by default).</li>
+<li><span class="ul-tag tag-feat">FEAT</span> <b>Voyage Recap, quicker opening:</b> the title, its lift and every reveal after it run about 10% faster.</li>
 <li><span class="ul-tag tag-perf">PERF</span> <b>Update loop:</b> the per frame profiling arrays and the ally list are reused instead of rebuilt every frame, the menu constellation no longer rebuilds 37 small arrays per draw, and the skill buttons cache their colors. In a Goliath fight the update step got about a third faster, with every frame and every roll identical to before.</li>
 <li><span class="ul-tag tag-perf">PERF</span> <b>Music memory:</b> switching tracks now also releases the previous track's decoded audio, which used to stay in memory. After playing through a few tracks this frees about 228MB.</li>
 <li><span class="ul-tag tag-fix">FIX</span> <b>Capricorn, rock screens hold against everything:</b> 46 enemy attacks used to slip past Mountainfall's walls. Now every enemy bullet, launched skill, beam, laser, lightning strike, shockwave, area zone, root and body is stopped by a standing screen, whether it is aimed at the ship, a Sentinel, the Yuusha Party, a Death Star ship or the spirits. Beams and area rings are also drawn cut off at the wall, and teleporting enemies cannot land inside or strike through one. Goliath keeps his own rules.</li>
@@ -1348,6 +1350,7 @@
 <li><span class="ul-tag tag-fix">FIX</span> <b>Menu title font:</b> the font link also asked for Courier New, which Google Fonts does not serve, so Playfair Display never loaded and the title fell back to a plain serif, then switched to italic after a Voyage Recap. The title now always shows Playfair Display bold.</li>
 <li><span class="ul-tag tag-fix">FIX</span> <b>Drawn icons everywhere:</b> play and pause buttons, the HUD's clock, heart, score, Sentinel, tesla and Yuuki marks, the menu's Guide and Settings icons, close buttons, ticks and the enemy shield mark are drawn shapes now. Phones no longer swap in their own emoji for them.</li>
 <li><span class="ul-tag tag-fix">FIX</span> <b>Settings text:</b> the offline package sizes now match the real downloads (Basic ~66MB, Full ~219MB), and Random, Download, Downloaded and the file count follow the chosen language. The file count also climbs with the bar while a package downloads instead of staying at its starting number.</li>
+<li><span class="ul-tag tag-fix">FIX</span> <b>PC / Mobile choice on the menu:</b> the chosen tab now lights up at once; the background rebuild it triggers, slow on phones, waits until the tab has been drawn.</li>
 <li><span class="ul-tag tag-fix">FIX</span> <b>Stretched background on phones:</b> opening the game in landscape sometimes left the space background drawn at portrait size and stretched sideways until the phone was turned twice. The background now checks its size against the screen twice a second and on every resize, rotation or return to the app, and fixes itself within a moment.</li>
 <li><span class="ul-tag tag-global">GLOBAL</span> <b>Debug console, sigil sections:</b> each sigil's debug buttons (Leo, Dawn Herald, Pisces, Cancer, Great Sage and the new Capricorn section) only show while that sigil is equipped.</li>
 <li><span class="ul-tag tag-global">GLOBAL</span> <b>Debug console, Voyage Recap:</b> Match Stat (Live) gives way to Voyage Recap (this run), Voyage Recap (sample run) with a long made up flight that fills every section, and Close Recap. Opening one plays the gameover voice like a real death.</li>
@@ -6539,6 +6542,228 @@
 
   </script>
 
+    <!-- Tap / click mark: a glowing arc sweeps open with a doubled tail, a
+         segmented tick ring turns the other way, a triangle rides the arc,
+         two fish circle the centre and triangle sparks fly out. On buttons
+         and other controls it centres on the control and sizes to it.
+         Settings can switch it off (pisces_tap_fx). Eight reused nodes, CSS
+         transform and opacity only. -->
+    <style>
+        .tap-fx {
+            position: fixed;
+            left: 0;
+            top: 0;
+            width: 0;
+            height: 0;
+            z-index: 2147483000;
+            pointer-events: none;
+        }
+
+        .tap-fx > * {
+            position: absolute;
+            opacity: 0;
+        }
+
+        .tap-arcs,
+        .tap-ticks {
+            left: -32px;
+            top: -32px;
+            width: 64px;
+            height: 64px;
+            overflow: visible;
+        }
+
+        .tap-arcs {
+            filter: drop-shadow(0 0 3px rgba(0, 200, 255, 0.95)) drop-shadow(0 0 7px rgba(0, 170, 255, 0.55));
+        }
+
+        .tap-arcs circle,
+        .tap-ticks circle {
+            fill: none;
+            stroke-linecap: round;
+        }
+
+        .tap-orbit {
+            left: 0;
+            top: 0;
+            width: 0;
+            height: 0;
+        }
+
+        .tap-orbit i {
+            position: absolute;
+            left: -5px;
+            top: -26px;
+            width: 10px;
+            height: 9px;
+            background: #c8f6ff;
+            clip-path: polygon(50% 0, 100% 100%, 0 100%);
+            filter: drop-shadow(0 0 4px rgba(0, 210, 255, 1));
+        }
+
+        .tap-fish {
+            left: -17px;
+            top: -17px;
+            width: 34px;
+            height: 34px;
+        }
+
+        /* On a control the fish would cover its icon and label. */
+        .tap-fx.tap-ctl .tap-fish {
+            display: none;
+        }
+
+        .tap-fish svg {
+            display: block;
+            width: 100%;
+            height: 100%;
+            filter: drop-shadow(0 0 2.5px rgba(63, 169, 245, 0.95));
+        }
+
+        .tap-tri {
+            left: calc(var(--s) / -2);
+            top: calc(var(--s) / -2);
+            width: var(--s);
+            height: var(--s);
+            background: #9eeaff;
+            clip-path: polygon(50% 0, 100% 100%, 0 100%);
+        }
+
+        .tap-fx.tap-on .tap-arcs {
+            animation: tapArc 0.62s cubic-bezier(0.2, 0.9, 0.3, 1) forwards;
+        }
+
+        .tap-fx.tap-on .tap-ticks {
+            animation: tapTicks 0.62s ease-out forwards;
+        }
+
+        .tap-fx.tap-on .tap-orbit {
+            animation: tapOrbit 0.62s cubic-bezier(0.2, 0.9, 0.3, 1) forwards;
+        }
+
+        .tap-fx.tap-on .tap-fish {
+            animation: tapFish 0.62s ease-out forwards;
+        }
+
+        .tap-fx.tap-on .tap-tri {
+            animation: tapTri 0.62s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+            animation-delay: var(--w);
+        }
+
+        @keyframes tapArc {
+            0% { opacity: 1; transform: rotate(-50deg) scale(0.5); }
+            70% { opacity: 0.85; }
+            100% { opacity: 0; transform: rotate(120deg) scale(1); }
+        }
+
+        @keyframes tapTicks {
+            0% { opacity: 0.8; transform: rotate(0deg) scale(0.6); }
+            100% { opacity: 0; transform: rotate(-70deg) scale(1.05); }
+        }
+
+        @keyframes tapOrbit {
+            0% { opacity: 1; transform: rotate(-50deg) scale(0.5); }
+            75% { opacity: 1; }
+            100% { opacity: 0; transform: rotate(120deg) scale(1); }
+        }
+
+        @keyframes tapFish {
+            0% { opacity: 1; transform: rotate(-20deg) scale(0.75); }
+            65% { opacity: 0.95; }
+            100% { opacity: 0; transform: rotate(75deg) scale(1); }
+        }
+
+        @keyframes tapTri {
+            0% { opacity: 1; transform: rotate(var(--a)) translateY(-12px) scale(1); }
+            100% { opacity: 0; transform: rotate(var(--a)) translateY(var(--d)) rotate(160deg) scale(0.3); }
+        }
+
+        @media (prefers-reduced-motion: reduce) {
+            .tap-fx { display: none; }
+        }
+    </style>
+    <script>
+        (function () {
+            const POOL = 8, nodes = [];
+            // Main arc covers about three quarters of the ring; the tail is a
+            // short second stroke just outside it, the ticks a dashed ring inside.
+            const ARCS = '<svg class="tap-arcs" viewBox="-32 -32 64 64" aria-hidden="true">'
+                + '<circle r="21" stroke="#aef4ff" stroke-width="2.2" stroke-dasharray="92 40"/>'
+                + '<circle r="24" stroke="#7fe3ff" stroke-width="1.1" stroke-dasharray="26 125" stroke-dashoffset="-70" opacity="0.85"/>'
+                + '<circle r="22.6" stroke="#7fe3ff" stroke-width="0.8" stroke-dasharray="14 128" stroke-dashoffset="-82" opacity="0.7"/>'
+                // Dotted outer arc on the side away from the tail.
+                + '<path d="M4.69 -26.59A27 27 0 0 1 25.37 9.23" fill="none" stroke="#9eeaff" stroke-width="1.4" stroke-linecap="round" stroke-dasharray="0.1 3.4" opacity="0.85"/>'
+                // Notches across the arc, a diamond where it starts and a bead where it leads.
+                + '<path d="M9.25 16.02L11.75 20.35M-13.08 13.08L-16.62 16.62M-17.38 -6.33L-22.08 -8.04" stroke="#d8fbff" stroke-width="1.1" stroke-linecap="round"/>'
+                + '<path d="M21 -2.2L23.2 0 21 2.2 18.8 0z" fill="#e6fdff"/>'
+                + '<circle cx="-6.84" cy="-19.86" r="2.1" fill="#ffffff" stroke="none"/>'
+                + '<circle cx="-6.84" cy="-19.86" r="3.6" fill="none" stroke="#aef4ff" stroke-width="0.7" opacity="0.8"/>'
+                + '</svg>';
+            const TICKS = '<svg class="tap-ticks" viewBox="-32 -32 64 64" aria-hidden="true">'
+                + '<circle r="16" stroke="rgba(120,220,255,0.7)" stroke-width="1.6" stroke-dasharray="1.2 4.1"/>'
+                + '</svg>';
+            // One fish bent along the circle (body, forked tail, dorsal and
+            // pectoral fins, a scale line and an eye); the second is the same
+            // fish turned half a circle, so they chase each other Pisces style.
+            const ONE_FISH = '<path d="M29 13.2C26.6 7.6 17.6 6.4 11.8 10.6c4 1.4 10.4 3.8 17.2 2.6z" fill="#5fc0ff"/>'
+                + '<path d="M12.4 10.9L6.6 6.9l1.9 4.6-1.6 4.8z" fill="#9fdcff"/>'
+                + '<path d="M20.6 7.7c-1.2-2.4-3.8-3.2-6-2.2 1.8.6 3.1 1.7 3.7 3.1z" fill="#9fdcff"/>'
+                + '<path d="M22.4 12.6c-.3 2.2-1.9 3.6-4 3.8 1.2-1 1.8-2.2 2-3.6z" fill="#9fdcff" opacity="0.9"/>'
+                + '<path d="M15.6 10c2.8-.9 6.2-.7 8.9.7" fill="none" stroke="#d6f3ff" stroke-width="0.7" stroke-linecap="round" opacity="0.8"/>'
+                + '<circle cx="25.9" cy="10.6" r="1" fill="#04121c"/><circle cx="26.2" cy="10.3" r="0.35" fill="#ffffff"/>';
+            const FISH = '<svg viewBox="0 0 40 40" aria-hidden="true">' + ONE_FISH
+                + '<g transform="rotate(180 20 20)">' + ONE_FISH + '</g></svg>';
+            // Sparks: angle, travel, size and a small start delay so the burst
+            // looks scattered rather than ringed.
+            const SPARKS = [
+                [8, -44, 7, 0], [38, -30, 4, 30], [70, -40, 5, 10], [100, -28, 3, 50],
+                [128, -46, 6, 20], [160, -32, 4, 40], [192, -42, 7, 0], [222, -30, 3, 60],
+                [252, -46, 5, 15], [284, -34, 4, 35], [312, -42, 6, 5], [342, -28, 3, 45],
+            ];
+            let inner = ARCS + TICKS + '<div class="tap-orbit"><i></i></div><div class="tap-fish">' + FISH + '</div>';
+            for (const [a, d, s, w] of SPARKS) inner += '<i class="tap-tri" style="--a:' + a + 'deg;--d:' + d + 'px;--s:' + s + 'px;--w:' + w + 'ms"></i>';
+            let next = 0;
+            for (let i = 0; i < POOL; i++) {
+                const n = document.createElement('div');
+                n.className = 'tap-fx';
+                n.setAttribute('aria-hidden', 'true');
+                n.innerHTML = inner;
+                document.body.appendChild(n);
+                nodes.push(n);
+            }
+            function enabled() {
+                if (window._tapFxEnabled === false) return false;
+                if (window._tapFxEnabled === true) return true;
+                try { return localStorage.getItem('pisces_tap_fx') !== '0'; } catch (_) { return true; }
+            }
+            // Controls the mark wraps instead of sitting at the finger.
+            const CONTROL = 'button, a[href], input, select, textarea, label, [role="button"], [onclick], .stg-music-row';
+            document.addEventListener('pointerdown', function (e) {
+                if (e.pointerType === 'mouse' && e.button !== 0) return;
+                if (!enabled()) return;
+                let x = e.clientX, y = e.clientY, k = 1, ctl = false;
+                const el = e.target && e.target.closest ? e.target.closest(CONTROL) : null;
+                if (el) {
+                    const r = el.getBoundingClientRect();
+                    // Full screen layers with a click handler are not controls.
+                    if (r.width > 0 && r.width < innerWidth * 0.7 && r.height < innerHeight * 0.4) {
+                        x = r.left + r.width / 2;
+                        y = r.top + r.height / 2;
+                        k = Math.max(0.7, Math.min(1.9, (r.height * 1.5) / 48));
+                        ctl = true;
+                    }
+                }
+                const n = nodes[next];
+                next = (next + 1) % POOL;
+                n.classList.remove('tap-on');
+                n.classList.toggle('tap-ctl', ctl);
+                n.style.transform = 'translate(' + x + 'px,' + y + 'px) scale(' + k.toFixed(2) + ')';
+                // Reading layout here restarts the animations on a reused node.
+                void n.offsetWidth;
+                n.classList.add('tap-on');
+            }, { capture: true, passive: true });
+        })();
+    </script>
 </body>
 
 </html>

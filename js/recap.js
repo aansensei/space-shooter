@@ -636,7 +636,7 @@ const DONUT_PALETTE_LIVES = [
 ];
 
 // How long the title holds the middle of the screen before it lifts.
-const RC_INTRO_LIFT_MS = 1500;
+const RC_INTRO_LIFT_MS = 1364;
 
 let _recapState = {
   active: false,
@@ -1631,7 +1631,7 @@ function openRecap(container, data, lang, onPlayAgain, onMainMenu) {
   _recapState.shareFormat = "portrait";
   _recapState.pilotName = _rcLoadName();
   // Counters start once the title has lifted out of the way.
-  _recapState.startMs = performance.now() + RC_INTRO_LIFT_MS + 300;
+  _recapState.startMs = performance.now() + RC_INTRO_LIFT_MS + 273;
   _recapState.cleanupFns = [];
 
   // Top 5 kills
@@ -1904,9 +1904,9 @@ function openRecap(container, data, lang, onPlayAgain, onMainMenu) {
   const t2 = setTimeout(function() {
     if (elMetrics) elMetrics.classList.add("rc-visible");
     if (elEpitaph) elEpitaph.classList.add("rc-visible");
-  }, RC_INTRO_LIFT_MS + 420);
-  const t3 = setTimeout(function() { if (elCharts) elCharts.classList.add("rc-visible"); }, RC_INTRO_LIFT_MS + 640);
-  const t4 = setTimeout(function() { if (elButtons) elButtons.classList.add("rc-visible"); }, RC_INTRO_LIFT_MS + 860);
+  }, RC_INTRO_LIFT_MS + 382);
+  const t3 = setTimeout(function() { if (elCharts) elCharts.classList.add("rc-visible"); }, RC_INTRO_LIFT_MS + 582);
+  const t4 = setTimeout(function() { if (elButtons) elButtons.classList.add("rc-visible"); }, RC_INTRO_LIFT_MS + 782);
   _recapState.cleanupFns.push(function() {
     clearTimeout(t1); clearTimeout(tLift); clearTimeout(t2); clearTimeout(t3); clearTimeout(t4);
   });
@@ -2162,16 +2162,16 @@ function openRecap(container, data, lang, onPlayAgain, onMainMenu) {
       );
     }
 
-    // 2. Number Count-up (starts at 180ms, duration 1100ms)
-    const countProg = Math.max(0, Math.min(1, (elapsed - 180) / 1100));
+    // 2. Number Count-up (starts at 164ms, duration 1000ms)
+    const countProg = Math.max(0, Math.min(1, (elapsed - 164) / 1000));
     const easeOut = 1 - Math.pow(1 - countProg, 3);
     if (elScore) elScore.textContent = formatNumber((useData.score || 0) * easeOut);
     if (elWave) elWave.textContent = String(Math.round((useData.wave || 0) * easeOut));
     if (elTime) elTime.textContent = formatTimeMs((useData.timeMs || 0) * easeOut);
     if (elKills) elKills.textContent = formatNumber(((useData.kills && useData.kills.total) || 0) * easeOut);
 
-    // 3. Charts progressive draw (starts at 360ms, duration 950ms)
-    const chartProg = Math.max(0, Math.min(1, (elapsed - 360) / 950));
+    // 3. Charts progressive draw (starts at 327ms, duration 864ms)
+    const chartProg = Math.max(0, Math.min(1, (elapsed - 327) / 864));
     const chartEase = 1 - Math.pow(1 - chartProg, 3);
 
     drawSigilConstellationCanvas(sigilCanvas, sigils, useLang, chartEase, nowMs);

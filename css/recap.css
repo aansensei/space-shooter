@@ -103,7 +103,7 @@
 .rc-stage-item {
   opacity: 0;
   transform: translateY(14px);
-  transition: opacity 0.55s cubic-bezier(0.22, 1, 0.36, 1), transform 0.55s cubic-bezier(0.22, 1, 0.36, 1);
+  transition: opacity 0.5s cubic-bezier(0.22, 1, 0.36, 1), transform 0.5s cubic-bezier(0.22, 1, 0.36, 1);
 }
 .rc-stage-item.rc-visible {
   opacity: 1;
@@ -1025,23 +1025,23 @@
   overflow: hidden;
 }
 .rc-header.rc-stage-item {
-  transition: opacity 0.5s ease, transform 0.75s cubic-bezier(0.76, 0, 0.24, 1);
+  transition: opacity 0.45s ease, transform 0.68s cubic-bezier(0.76, 0, 0.24, 1);
 }
 .rc-root.rc-intro .rc-header {
   transform: translateY(var(--rc-intro-y, 0px)) scale(var(--rc-intro-s, 1.5));
 }
 .rc-title {
-  transition: text-shadow 0.8s ease;
+  transition: text-shadow 0.73s ease;
 }
 .rc-root.rc-intro .rc-title {
   text-shadow: 0 0 30px rgba(0, 229, 255, 0.75), 0 0 2px rgba(255, 255, 255, 0.6);
-  animation: rcTitleIn 1.25s cubic-bezier(0.22, 1, 0.36, 1) both;
+  animation: rcTitleIn 1.14s cubic-bezier(0.22, 1, 0.36, 1) both;
 }
 .rc-root.rc-intro .rc-subtitle-top {
-  animation: rcFadeUp 0.6s 0.55s ease both;
+  animation: rcFadeUp 0.55s 0.5s ease both;
 }
 .rc-root.rc-intro .rc-pisces-emblem {
-  animation: rcEmblemIn 1.4s 0.2s ease both;
+  animation: rcEmblemIn 1.27s 0.18s ease both;
 }
 .rc-divider-line {
   transform-origin: right center;
@@ -1050,10 +1050,10 @@
   transform-origin: left center;
 }
 .rc-root.rc-intro .rc-divider-line {
-  animation: rcLineIn 0.9s 0.4s cubic-bezier(0.22, 1, 0.36, 1) both;
+  animation: rcLineIn 0.82s 0.36s cubic-bezier(0.22, 1, 0.36, 1) both;
 }
 .rc-root.rc-intro .rc-divider-ornate .rc-star-oct {
-  animation: rcStarIn 0.7s 0.3s cubic-bezier(0.34, 1.56, 0.64, 1) both;
+  animation: rcStarIn 0.64s 0.27s cubic-bezier(0.34, 1.56, 0.64, 1) both;
 }
 @keyframes rcTitleIn {
   0% { opacity: 0; letter-spacing: 0.55em; filter: blur(6px); }
