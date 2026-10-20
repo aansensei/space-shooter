@@ -1890,7 +1890,9 @@ function drawExplosion(exp) {
     // rather than just growing less than before.
     let radius = exp.size * 0.65 * (1 + p * 0.2);
     if (radius <= 0 || !isFinite(radius)) { ctx.restore(); return; }
-    ctx.globalAlpha = 1 - p;
+    // _fxBrightMul is Advanced Graphics' Effect Brightness (0.2 to 1).
+    const _fxB = window._fxBrightMul || 1;
+    ctx.globalAlpha = (1 - p) * _fxB;
 
     if (_mobPerf || _gfxLevel >= 2) {
         // Tier 2/3 or mobile: flat circle, no gradient, fast path
@@ -1902,7 +1904,7 @@ function drawExplosion(exp) {
             const rp = p / 0.4; // 0→1
             const shockR = exp.size * 0.65 * (1.0 + rp * 0.8);
             ctx.save();
-            ctx.globalAlpha = (1 - p) * (1 - rp) * 0.9;
+            ctx.globalAlpha = (1 - p) * (1 - rp) * 0.9 * _fxB;
             ctx.strokeStyle = 'rgba(255,255,255,0.95)';
             ctx.lineWidth = 2.5 * (1 - rp);
             if (!_mobPerf) { ctx.shadowColor = exp.color; ctx.shadowBlur = 18; }

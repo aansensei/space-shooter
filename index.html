@@ -1938,6 +1938,18 @@
                     padding-top: 10px;
                 }
 
+                .st-soon {
+                    margin-left: 6px;
+                    padding: 1px 5px;
+                    font-size: 9.5px;
+                    font-weight: 700;
+                    letter-spacing: 0.08em;
+                    text-transform: uppercase;
+                    vertical-align: 1px;
+                    color: var(--rc-silver-dim);
+                    border: 1px solid rgba(140, 166, 198, 0.4);
+                }
+
                 .st-adv-actions {
                     display: flex;
                     gap: 8px;
@@ -2135,7 +2147,8 @@
                         'settings.resetDone': 'Restored',
                         'graphics.advanced': 'Advanced Graphics',
                         'graphics.advancedSoon': 'Preview',
-                        'graphics.advancedNote': 'These switches are being wired into the game and do nothing yet. Enemy attack warnings always stay on.',
+                        'graphics.advancedNote': 'Switches marked Coming Soon are not wired in yet. Enemy attack warnings always stay on.',
+                        'graphics.fxSoon': 'Coming Soon',
                         'graphics.fxByLevel': 'Follow Graphics Level',
                         'graphics.fxAllOff': 'Turn All Off',
                         'graphics.fxBrightness': 'Effect Brightness',
@@ -2205,7 +2218,8 @@
                         'settings.resetDone': 'Đã khôi phục',
                         'graphics.advanced': 'Đồ Họa Nâng Cao',
                         'graphics.advancedSoon': 'Bản xem trước',
-                        'graphics.advancedNote': 'Các công tắc này đang được nối vào game, hiện chưa có tác dụng. Cảnh báo đòn của địch luôn hiện.',
+                        'graphics.advancedNote': 'Công tắc ghi Sắp Có chưa được nối vào game. Cảnh báo đòn của địch luôn hiện.',
+                        'graphics.fxSoon': 'Sắp Có',
                         'graphics.fxByLevel': 'Theo Mức Đồ Họa',
                         'graphics.fxAllOff': 'Tắt Hết',
                         'graphics.fxBrightness': 'Độ Sáng Hiệu Ứng',
@@ -2690,12 +2704,16 @@
                     const saved = JSON.parse(localStorage.getItem('pisces_fx') || 'null');
                     if (saved && typeof saved === 'object') Object.keys(window._fxOpts).forEach(k => { if (k in saved) window._fxOpts[k] = saved[k]; });
                 } catch (_) { }
+                window._fxBrightMul = window._fxOpts.fxBrightness / 100;
+                // Switches not wired into the game yet carry a Coming Soon mark.
+                const _FX_SOON = { glow: 1, sigilLight: 1, sigilBackdrop: 1, trails: 1, jewelTwinkle: 1 };
                 (function _buildFxRows() {
                     const host = document.getElementById('st-fx-rows');
                     if (!host) return;
                     host.innerHTML = _FX_ROWS.map(k =>
                         '<label class="st-row st-row-click"><span class="st-row-text">'
-                        + '<span class="st-label" data-i18n="fx.' + k + '">' + _t('fx.' + k) + '</span>'
+                        + '<span class="st-label"><span data-i18n="fx.' + k + '">' + _t('fx.' + k) + '</span>'
+                        + (_FX_SOON[k] ? ' <span class="st-soon" data-i18n="graphics.fxSoon">' + _t('graphics.fxSoon') + '</span>' : '') + '</span>'
                         + '<span class="st-desc" data-i18n="fx.' + k + 'Desc">' + _t('fx.' + k + 'Desc') + '</span></span>'
                         + '<span class="stg-toggle-wrap"><input type="checkbox" data-fx="' + k + '"><span class="stg-toggle-track"></span><span class="stg-toggle-thumb"></span></span>'
                         + '</label>').join('');
@@ -2725,6 +2743,7 @@
                     window._fxOpts.fxBrightness = parseInt(document.getElementById('fx-bright-slider').value);
                     window._fxOpts.flashIntensity = parseInt(document.getElementById('fx-flash-slider').value);
                     try { localStorage.setItem('pisces_fx', JSON.stringify(window._fxOpts)); } catch (_) { }
+                    window._fxBrightMul = window._fxOpts.fxBrightness / 100;
                 }
 
                 // Restore Defaults opens a Yes / No box; Yes puts every setting
@@ -3992,7 +4011,7 @@
     <script src="js/canvas-guard.js?v=20261008a"></script>
     <script src="js/audio.js?v=20261019echo2"></script>
     <script src="js/offline.js?v=20261020e"></script>
-    <script src="js/background.js?v=20261020f"></script>
+    <script src="js/background.js?v=20261020h"></script>
     <script src="js/config.js?v=20261019r"></script>
     <script src="js/timeline-distortion.js?v=20261018c"></script>
     <script src="js/sigils/core.js?v=20261020g"></script>
@@ -4011,7 +4030,7 @@
     <script src="js/sigils/than.js?v=20261012c"></script>
     <script src="js/sigils/dau.js?v=20261018a"></script>
     <script src="js/yuusha-party.js?v=20261019a"></script>
-    <script src="js/entities/core.js?v=20261019r"></script>
+    <script src="js/entities/core.js?v=20261020h"></script>
     <script src="js/entities/sentinel.js?v=20261008a"></script>
     <script src="js/entities/veilshroud.js?v=20261019a"></script>
     <script src="js/entities/uriel.js?v=20261019a"></script>
@@ -4038,10 +4057,10 @@
     <script src="js/skills/sigil-gemini.js?v=20260911a"></script>
     <script src="js/skills/sigil-aries.js?v=20260902a"></script>
     <script src="js/skills/sigil-virgo.js?v=20260911a"></script>
-    <script src="js/render/core.js?v=20261020g"></script>
+    <script src="js/render/core.js?v=20261020h"></script>
     <script src="js/render/kanade-face.js?v=20261015c"></script>
     <script src="js/render/kanade-cutscene.js?v=20261019echo2"></script>
-    <script src="js/render/fx.js?v=20261019a"></script>
+    <script src="js/render/fx.js?v=20261020h"></script>
     <script src="js/render/player.js?v=20261015a"></script>
     <script src="js/render/enemy-common.js?v=20261020g"></script>
     <script src="js/render/enemy-raphael.js?v=20261010d"></script>

@@ -447,6 +447,8 @@ function _releaseParticle(p) {
 }
 
 function createParticles(x, y, count, color, minSpeed, maxSpeed) {
+    // Advanced Graphics: Debris and Sparks off.
+    if (window._fxOpts && window._fxOpts.particles === false) return;
     const _qualityScale = window._particleScale !== undefined ? window._particleScale : 1;
     const _phoneParticleScale = window._deviceTier === 'phone' ? 0.75 : 1;
     const _actualCount = Math.ceil(count * _qualityScale * _phoneParticleScale);
@@ -474,7 +476,10 @@ function addExplosion(x, y, size, color = 'orange') {
     if (color === 'electric_blue') {
         finalColor = '#00FFFF';
     }
-    explosions.push({ x, y, size, lifetime: 500, maxLifetime: 500, color: finalColor });
+    // Advanced Graphics: Explosions off keeps only the sparks (if those are on).
+    if (!window._fxOpts || window._fxOpts.explosions !== false) {
+        explosions.push({ x, y, size, lifetime: 500, maxLifetime: 500, color: finalColor });
+    }
     createParticles(x, y, 8, finalColor, 1, 5);
 }
 

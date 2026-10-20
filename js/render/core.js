@@ -2630,7 +2630,11 @@ function draw(deltaTime) {
 
             // Hit flash: 700ms fade after each life loss
             const hitElapsed = _now - (window._hitVignetteStart || -Infinity);
-            const flashAlpha = hitElapsed < 700 ? (1 - hitElapsed / 700) * 0.65 : 0;
+            // Advanced Graphics scales the hit flash; the low lives pulse is a
+            // warning and always shows.
+            const _fxo = window._fxOpts;
+            const _flashMul = _fxo ? (_fxo.screenFlash === false ? 0 : (_fxo.flashIntensity != null ? _fxo.flashIntensity : 100) / 100) : 1;
+            const flashAlpha = hitElapsed < 700 ? (1 - hitElapsed / 700) * 0.65 * _flashMul : 0;
 
             // Low-lives persistent pulse (< 5 lives)
             const pulseAlpha = lives < 5 ? 0.20 + 0.14 * Math.abs(Math.sin(_now / 380)) : 0;

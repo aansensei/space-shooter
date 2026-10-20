@@ -772,6 +772,8 @@
     function tick() {
         const throttle = window._platform === 'mobile';
         if (!window._bgPaused && !(throttle && (_tickSkip = !_tickSkip))) {
+            // Advanced Graphics: Moving Nebula off hides the nebula clouds.
+            nebulaLayer.visible = !window._fxOpts || window._fxOpts.nebula !== false;
             for (const g of galaxies)  g.update();
             for (const n of nebulas)   n.update();
             for (const s of stars)     s.update();
