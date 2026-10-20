@@ -3237,8 +3237,11 @@
                 pisLCY = height * (height > width ? 0.2 : 0.24);
             }
 
+            let sizeCheck = 0;
             function drawStars(now) {
                 if (!isSimulationRunning) return;
+                // twice a second, in case the screen size changed without an event
+                if (++sizeCheck >= 30) { sizeCheck = 0; syncStarSize(); }
                 const dt = lastFrame ? Math.min(50, now - lastFrame) : 16.667;
                 lastFrame = now;
                 const step = dt / 16.667;
@@ -3579,13 +3582,23 @@
             }
             requestAnimationFrame(drawStars);
 
-            window.addEventListener('resize', () => {
-                width = window.innerWidth; height = window.innerHeight;
+            function syncStarSize() {
+                const w = window.innerWidth, h = window.innerHeight;
+                if (!w || !h || (w === width && h === height && starCanvas.width === w && starCanvas.height === h)) return;
+                width = w; height = h;
                 starCanvas.width = width; starCanvas.height = height;
                 // the iOS toolbar showing or hiding changes the height a little; only a
                 // real size change rebakes the sky
                 if (Math.abs(width - skyW) > skyW * 0.15 || Math.abs(height - skyH) > skyH * 0.15) bakeSky();
-            });
+            }
+            window.addEventListener('resize', syncStarSize);
+            // iOS can open sideways while still reporting the upright size and then
+            // correct it without a resize event, which left this canvas upright sized
+            // and stretched. These and the check in drawStars catch that.
+            const syncStarSoon = () => { setTimeout(syncStarSize, 250); setTimeout(syncStarSize, 1000); };
+            window.addEventListener('orientationchange', syncStarSoon);
+            window.addEventListener('pageshow', syncStarSoon);
+            document.addEventListener('visibilitychange', () => { if (!document.hidden) syncStarSoon(); });
 
             // The pointer or a dragging finger tilts the camera on the menu. Once the
             // phone reports its orientation, tilting the phone takes over, a little
@@ -5500,6 +5513,17 @@
             100% { opacity: 0; transform: rotate(var(--a)) translateY(var(--d)) rotate(160deg) scale(0.3); }
         }
 
+        /* A pressed control sinks a little. scale and translate stack on top of
+           any transform the control already uses to position itself. */
+        .ui-press {
+            scale: 0.96;
+            translate: 0 1px;
+            filter: brightness(0.9);
+            /* Sinks fast whatever the control's own transition is; it comes back
+               up at its own pace once the class goes. */
+            transition: scale 70ms ease-out, translate 70ms ease-out, filter 70ms ease-out !important;
+        }
+
         @media (prefers-reduced-motion: reduce) {
             .tap-fx { display: none; }
         }
@@ -5560,9 +5584,16 @@
             }
             // Controls the mark wraps instead of sitting at the finger.
             const CONTROL = 'button, a[href], input, select, textarea, label, [role="button"], [onclick], .stg-music-row';
+            // The pressed control keeps .ui-press until the pointer lifts.
+            let pressed = null;
+            const release = function () {
+                if (pressed) { pressed.classList.remove('ui-press'); pressed = null; }
+            };
+            document.addEventListener('pointerup', release, { capture: true, passive: true });
+            document.addEventListener('pointercancel', release, { capture: true, passive: true });
+            window.addEventListener('blur', release);
             document.addEventListener('pointerdown', function (e) {
                 if (e.pointerType === 'mouse' && e.button !== 0) return;
-                if (!enabled()) return;
                 let x = e.clientX, y = e.clientY, k = 1, ctl = false;
                 const el = e.target && e.target.closest ? e.target.closest(CONTROL) : null;
                 if (el) {
@@ -5571,8 +5602,11 @@
                     if (r.width > 0 && r.width < innerWidth * 0.7 && r.height < innerHeight * 0.4) {
                         k = Math.max(0.7, Math.min(1.5, (r.height * 1.5) / 48));
                         ctl = true;
+                        release();
+                        if (!el.disabled) { pressed = el; el.classList.add('ui-press'); }
                     }
                 }
+                if (!enabled()) return;
                 const n = nodes[next];
                 next = (next + 1) % POOL;
                 n.classList.remove('tap-on');

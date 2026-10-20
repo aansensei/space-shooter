@@ -1340,6 +1340,7 @@
 <li><span class="ul-tag tag-feat">FEAT</span> <b>Settings, new rows:</b> Show FPS puts the frame rate the game actually draws next to the sound button, turning gold under 50 and red under 30. Vibration switches off the buzz on hits, sigil picks and skill buttons (shown on phones that can vibrate). Restore Defaults asks Yes or No, then puts every setting back except the language.</li>
 <li><span class="ul-tag tag-feat">FEAT</span> <b>Settings, Advanced Graphics:</b> a fold with switches for explosions, debris, glow, screen flashes, sigil lighting and backdrops, the moving nebula, trails and Kanade's jewel twinkle, plus effect brightness and flash intensity, all saved on the device. Each switch only turns its effect off on top of the chosen graphics level: Glow drops the blur halos, Trails stops the streaks behind bullets, Sigil Lighting skips the Pisces moonlight and the sky darkening under Capricorn's mountain, Sigil Backdrops skips the Pisces, Capricorn and Cancer scenery. Enemy attack warnings and the low lives pulse always stay on.</li>
 <li><span class="ul-tag tag-feat">FEAT</span> <b>Tap mark:</b> every click or touch, in the game and in the Guide, sweeps open a glowing cyan arc with a doubled tail, notches across it, a diamond at its start, a bright bead at its leading end and a dotted outer arc, a segmented tick ring turning the other way and a triangle riding the arc, while two fish circle the centre Pisces style and a dozen triangle sparks fly out. It sits right where you press; on a button, tab or switch it sizes to the control and leaves out the fish so the label stays clear. It lasts about 0.6s, never blocks a tap, and Settings has a Tap Effect switch under Gameplay (on by default).</li>
+<li><span class="ul-tag tag-feat">FEAT</span> <b>Pressed buttons sink:</b> every button, tab, switch and menu row dips a little and darkens slightly while held, by mouse or finger, then springs back. It costs next to nothing: one class on the pressed control, moved by the GPU.</li>
 <li><span class="ul-tag tag-feat">FEAT</span> <b>Voyage Recap, quicker opening:</b> the title, its lift and every reveal after it run about 10% faster.</li>
 <li><span class="ul-tag tag-perf">PERF</span> <b>Update loop:</b> the per frame profiling arrays and the ally list are reused instead of rebuilt every frame, the menu constellation no longer rebuilds 37 small arrays per draw, and the skill buttons cache their colors. In a Goliath fight the update step got about a third faster, with every frame and every roll identical to before.</li>
 <li><span class="ul-tag tag-perf">PERF</span> <b>Music memory:</b> switching tracks now also releases the previous track's decoded audio, which used to stay in memory. After playing through a few tracks this frees about 228MB.</li>
@@ -1351,7 +1352,7 @@
 <li><span class="ul-tag tag-fix">FIX</span> <b>Drawn icons everywhere:</b> play and pause buttons, the HUD's clock, heart, score, Sentinel, tesla and Yuuki marks, the menu's Guide and Settings icons, close buttons, ticks and the enemy shield mark are drawn shapes now. Phones no longer swap in their own emoji for them.</li>
 <li><span class="ul-tag tag-fix">FIX</span> <b>Settings text:</b> the offline package sizes now match the real downloads (Basic ~66MB, Full ~219MB), and Random, Download, Downloaded and the file count follow the chosen language. The file count also climbs with the bar while a package downloads instead of staying at its starting number.</li>
 <li><span class="ul-tag tag-fix">FIX</span> <b>PC / Mobile choice on the menu:</b> the chosen tab now lights up at once; the background rebuild it triggers, slow on phones, waits until the tab has been drawn.</li>
-<li><span class="ul-tag tag-fix">FIX</span> <b>Stretched background on phones:</b> opening the game in landscape sometimes left the space background drawn at portrait size and stretched sideways until the phone was turned twice. The background now checks its size against the screen twice a second and on every resize, rotation or return to the app, and fixes itself within a moment.</li>
+<li><span class="ul-tag tag-fix">FIX</span> <b>Stretched background on phones:</b> opening the game in landscape sometimes left the space background and the menu's starfield drawn at portrait size and stretched sideways until the phone was turned twice. Both now check their size against the screen twice a second and on every resize, rotation or return to the app, and fixes itself within a moment.</li>
 <li><span class="ul-tag tag-global">GLOBAL</span> <b>Debug console, sigil sections:</b> each sigil's debug buttons (Leo, Dawn Herald, Pisces, Cancer, Great Sage and the new Capricorn section) only show while that sigil is equipped.</li>
 <li><span class="ul-tag tag-global">GLOBAL</span> <b>Debug console, Voyage Recap:</b> Match Stat (Live) gives way to Voyage Recap (this run), Voyage Recap (sample run) with a long made up flight that fills every section, and Close Recap. Opening one plays the gameover voice like a real death.</li>
 </ul></div>
@@ -6678,6 +6679,17 @@
             100% { opacity: 0; transform: rotate(var(--a)) translateY(var(--d)) rotate(160deg) scale(0.3); }
         }
 
+        /* A pressed control sinks a little. scale and translate stack on top of
+           any transform the control already uses to position itself. */
+        .ui-press {
+            scale: 0.96;
+            translate: 0 1px;
+            filter: brightness(0.9);
+            /* Sinks fast whatever the control's own transition is; it comes back
+               up at its own pace once the class goes. */
+            transition: scale 70ms ease-out, translate 70ms ease-out, filter 70ms ease-out !important;
+        }
+
         @media (prefers-reduced-motion: reduce) {
             .tap-fx { display: none; }
         }
@@ -6738,9 +6750,16 @@
             }
             // Controls the mark wraps instead of sitting at the finger.
             const CONTROL = 'button, a[href], input, select, textarea, label, [role="button"], [onclick], .stg-music-row';
+            // The pressed control keeps .ui-press until the pointer lifts.
+            let pressed = null;
+            const release = function () {
+                if (pressed) { pressed.classList.remove('ui-press'); pressed = null; }
+            };
+            document.addEventListener('pointerup', release, { capture: true, passive: true });
+            document.addEventListener('pointercancel', release, { capture: true, passive: true });
+            window.addEventListener('blur', release);
             document.addEventListener('pointerdown', function (e) {
                 if (e.pointerType === 'mouse' && e.button !== 0) return;
-                if (!enabled()) return;
                 let x = e.clientX, y = e.clientY, k = 1, ctl = false;
                 const el = e.target && e.target.closest ? e.target.closest(CONTROL) : null;
                 if (el) {
@@ -6749,8 +6768,11 @@
                     if (r.width > 0 && r.width < innerWidth * 0.7 && r.height < innerHeight * 0.4) {
                         k = Math.max(0.7, Math.min(1.5, (r.height * 1.5) / 48));
                         ctl = true;
+                        release();
+                        if (!el.disabled) { pressed = el; el.classList.add('ui-press'); }
                     }
                 }
+                if (!enabled()) return;
                 const n = nodes[next];
                 next = (next + 1) % POOL;
                 n.classList.remove('tap-on');
