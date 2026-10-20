@@ -61,6 +61,8 @@ const I18N = {
     rcShareSaved: "Image downloaded",
     rcSaveStarted: "Downloading. If it does not show up, press and hold the image to save it",
     rcSaveHint: "Press and hold the image to save it",
+    rcSaveViewHint: "Press and hold the image, then choose Save to Photos",
+    rcBtnDone: "Done",
     rcSaveFailed: "Could not create the image, please try again"
   },
   vi: {
@@ -117,6 +119,8 @@ const I18N = {
     rcShareSaved: "Đã tải ảnh về máy",
     rcSaveStarted: "Đang tải ảnh về. Nếu chưa thấy, nhấn giữ ảnh để lưu",
     rcSaveHint: "Nhấn giữ ảnh để lưu vào máy",
+    rcSaveViewHint: "Nhấn giữ ảnh rồi chọn Lưu vào Ảnh",
+    rcBtnDone: "Xong",
     rcSaveFailed: "Chưa tạo được ảnh, bạn thử lại nhé"
   }
 };
@@ -1859,6 +1863,11 @@ function openRecap(container, data, lang, onPlayAgain, onMainMenu) {
         '</div>' +
       '</div>' +
 
+      '<div class="rc-save-view" id="rcSaveView">' +
+        '<div class="rc-save-view-hint">' + t("rcSaveViewHint", useLang) + '</div>' +
+        '<img class="rc-save-view-img" id="rcSaveViewImg" alt="">' +
+        '<button type="button" class="rc-btn rc-btn-secondary" id="rcBtnCloseSaveView">' + t("rcBtnDone", useLang) + '</button>' +
+      '</div>' +
       '<div class="rc-toast" id="rcToast"></div>' +
     '</div>'
   );
@@ -1991,9 +2000,27 @@ function openRecap(container, data, lang, onPlayAgain, onMainMenu) {
     // place a long press must reach it.
     shareImg.addEventListener("contextmenu", function(e) { e.stopPropagation(); });
   }
+  const saveView = container.querySelector("#rcSaveView");
+  const saveViewImg = container.querySelector("#rcSaveViewImg");
+  let saveViewUrl = "";
+  const closeSaveView = function() {
+    if (saveView) saveView.classList.remove("rc-open");
+    if (saveViewUrl) { URL.revokeObjectURL(saveViewUrl); saveViewUrl = ""; }
+  };
+  const openSaveView = function(blob) {
+    if (!saveView || !saveViewImg) return;
+    closeSaveView();
+    if (blob === cardBlob && cardUrl) saveViewImg.src = cardUrl;
+    else { saveViewUrl = URL.createObjectURL(blob); saveViewImg.src = saveViewUrl; }
+    saveView.classList.add("rc-open");
+  };
+  if (saveViewImg) saveViewImg.addEventListener("contextmenu", function(e) { e.stopPropagation(); });
+  const btnCloseSaveView = container.querySelector("#rcBtnCloseSaveView");
+  if (btnCloseSaveView) btnCloseSaveView.addEventListener("click", closeSaveView);
   _recapState.cleanupFns.push(function() {
     clearTimeout(cardTimer);
     clearTimeout(toastTimer);
+    closeSaveView();
     if (cardUrl) URL.revokeObjectURL(cardUrl);
     cardUrl = "";
   });
@@ -2066,17 +2093,9 @@ function openRecap(container, data, lang, onPlayAgain, onMainMenu) {
       withCardBlob(function(blob) {
         if (!blob) { showToast(t("rcSaveFailed", useLang)); return; }
         const name = cardFileName();
-        // iPhone downloads land in Files, so its share sheet's Save Image is
-        // the way into Photos.
-        if (isIOS && navigator.canShare) {
-          const file = new File([blob], name, { type: "image/png" });
-          if (navigator.canShare({ files: [file] })) {
-            navigator.share({ files: [file] }).catch(function(err) {
-              if (!err || err.name !== "AbortError") showToast(t("rcSaveHint", useLang), 3600);
-            });
-            return;
-          }
-        }
+        // iPhone downloads land in Files, and Save Image in its share sheet
+        // reloads a home screen app, so the long press view is the way into Photos.
+        if (isIOS) { openSaveView(blob); return; }
         const url = URL.createObjectURL(blob);
         const link = document.createElement("a");
         link.download = name;
