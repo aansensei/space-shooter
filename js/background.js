@@ -762,14 +762,34 @@
         _doBgResize(window.innerWidth, window.innerHeight);
     }).observe(document.documentElement);
 
+    // iOS can open in landscape while still reporting the portrait size, then
+    // correct innerWidth/innerHeight without the root element resizing, so the
+    // observer above never fires and this canvas stays portrait sized,
+    // stretched across the screen. This compares the two and fixes any
+    // mismatch, spreading the objects again when the orientation flipped.
+    function _syncBgSize() {
+        const w = window.innerWidth, h = window.innerHeight;
+        if (!w || !h || (app.renderer.width === w && app.renderer.height === h)) return;
+        const flipped = (app.renderer.width > app.renderer.height) !== (w > h);
+        _doBgResize(w, h);
+        if (flipped && window._bgRelayout) window._bgRelayout();
+    }
+    const _syncSoon = () => { setTimeout(_syncBgSize, 250); setTimeout(_syncBgSize, 1000); };
+    window.addEventListener('resize', _syncSoon);
+    window.addEventListener('orientationchange', _syncSoon);
+    window.addEventListener('pageshow', _syncSoon);
+    document.addEventListener('visibilitychange', () => { if (!document.hidden) _syncSoon(); });
+
     // ANIMATION LOOP
     // On mobile this background is a fixed cost the gameplay perf tiers
     // never touch, so on top of the reduced sprite counts above, update+
     // render only run every other frame (~half the CPU work of moving
     // sprites, and half the GPU work of this context's render() calls).
     // Motion at half-rate is barely perceptible for slow parallax drift.
-    let _tickSkip = false;
+    let _tickSkip = false, _sizeCheck = 0;
     function tick() {
+        // Twice a second, in case no event announced a size change.
+        if (++_sizeCheck >= 30) { _sizeCheck = 0; _syncBgSize(); }
         const throttle = window._platform === 'mobile';
         if (!window._bgPaused && !(throttle && (_tickSkip = !_tickSkip))) {
             // Advanced Graphics: Moving Nebula off hides the nebula clouds.
