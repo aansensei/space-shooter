@@ -3554,7 +3554,7 @@ function gameLoop(timeStamp) {
     // silent during normal play.
     const _profOn = true;
     const _t0 = _profOn ? performance.now() : 0;
-    if (!gamePaused && !loading && !window._sigilPicker && !window._kanadeCutscene) {
+    if (!gamePaused && !loading && !window._sigilPicker && !window._kanadeCutscene && !(window._hitStopUntil > performance.now())) {
         update(Math.max(0, Math.min(deltaTime, 50)) * _debugSpeed);
     }
     const _t1 = _profOn ? performance.now() : 0;

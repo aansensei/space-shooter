@@ -893,9 +893,12 @@
                 // Guide was opened from the Pause screen) so closing Guide restores
                 // the right state instead of always forcing the background back on.
                 let _guidePrevBgPaused = false;
-                function openGuide() {
+                // tab, when given, is the Guide tab to open on (the What's New
+                // panel asks for the update log).
+                function openGuide(tab) {
                     const ov = document.getElementById('guideOverlay');
                     const fr = document.getElementById('guideFrame');
+                    window._guideStartTab = typeof tab === 'string' ? tab : null;
                     if (window._inGame && ov.parentElement !== document.body) document.body.appendChild(ov);
                     ov.style.display = 'flex';
                     if (!fr.getAttribute('data-loaded')) {
@@ -921,6 +924,9 @@
                         setTimeout(reveal, 2000);
                         fr.src = 'guide.html';
                         fr.setAttribute('data-loaded', '1');
+                    } else if (window._guideStartTab) {
+                        try { if (typeof fr.contentWindow.showTab === 'function') fr.contentWindow.showTab(window._guideStartTab); } catch (_) { }
+                        window._guideStartTab = null;
                     }
                     window._guideOpen = true;
                     _guidePrevBgPaused = window._bgPaused;
@@ -2187,6 +2193,16 @@
                         'pause.viewPosition': 'View Position',
                         'pause.peekHint': 'Click/Tap anywhere or press Esc to return',
                         'confirmMenu.message': 'Abort the voyage? Your flight log will be sealed here.',
+                        'whatsNew.title': "What's New",
+                        'whatsNew.release': 'v6.9.4 · Mountainfall',
+                        'whatsNew.i1': '<b>Capricorn rebuilt:</b> Compound Interest stacks feed Mountainfall, a mountain that buries the densest enemy group and leaves rock screens that stop every enemy attack.',
+                        'whatsNew.i2': '<b>Voyage Recap:</b> every flight ends on a full flight log, with a share image that carries your callsign.',
+                        'whatsNew.i3': '<b>Settings rebuilt:</b> Advanced Graphics switches, three background detail levels, Show FPS and more.',
+                        'whatsNew.i4': '<b>Harder runs:</b> you start with 10 lives and can never hold more than 12.',
+                        'whatsNew.i5': "<b>Bigger moments:</b> Kanade's Endless Echo has a grander cast, and felling a boss freezes the battle for a beat.",
+                        'whatsNew.i6': '<b>Feel:</b> every tap leaves a glowing mark and buttons sink when pressed.',
+                        'whatsNew.log': 'Full Update Log',
+                        'whatsNew.ok': 'Got It',
                         'confirmMenu.yes': 'YES',
                         'confirmMenu.no': 'NO',
                     },
@@ -2260,6 +2276,16 @@
                         'pause.viewPosition': 'Xem Vị Trí',
                         'pause.peekHint': 'Click/Chạm vào bất kỳ đâu hoặc nhấn Esc để quay lại',
                         'confirmMenu.message': 'Dừng chuyến bay tại đây? Nhật ký chuyến bay sẽ khép lại.',
+                        'whatsNew.title': 'Có Gì Mới',
+                        'whatsNew.release': 'v6.9.4 · Mountainfall',
+                        'whatsNew.i1': '<b>Ma Kết làm lại:</b> tầng Lãi Kép nạp cho Thái Sơn Áp Đỉnh, ngọn núi đè lên đám địch dày nhất và dựng bình phong đá chặn mọi đòn tấn công.',
+                        'whatsNew.i2': '<b>Nhật Ký Chuyến Bay:</b> mỗi chuyến bay khép lại bằng bảng tổng kết đầy đủ, kèm ảnh chia sẻ in biệt danh của bạn.',
+                        'whatsNew.i3': '<b>Cài Đặt làm lại:</b> Đồ Họa Nâng Cao, ba mức chi tiết nền, Hiện FPS và nhiều tùy chọn khác.',
+                        'whatsNew.i4': '<b>Khó hơn:</b> bắt đầu với 10 mạng và không bao giờ giữ quá 12 mạng.',
+                        'whatsNew.i5': '<b>Khoảnh khắc lớn hơn:</b> Kanade thi triển Endless Echo hoành tráng hơn, hạ boss thì trận đấu khựng lại một nhịp.',
+                        'whatsNew.i6': '<b>Cảm giác:</b> chạm màn hình để lại vòng sáng, nút bấm lõm xuống khi ấn.',
+                        'whatsNew.log': 'Xem Chi Tiết',
+                        'whatsNew.ok': 'Đã Hiểu',
                         'confirmMenu.yes': 'CÓ',
                         'confirmMenu.no': 'KHÔNG',
                     },
@@ -2874,6 +2900,7 @@
             this.style.opacity = '0';
             const self = this;
             setTimeout(() => { self.style.display = 'none'; }, 600);
+            setTimeout(() => { if (window._maybeShowWhatsNew) window._maybeShowWhatsNew(); }, 700);
             if (window.AudioMgr) {
                 window.AudioMgr.unlockContext(); // Web Audio graph needs a user gesture to start
                 window.AudioMgr.playMenuBgm();
@@ -4064,7 +4091,7 @@
     <script src="js/sigils/than.js?v=20261012c"></script>
     <script src="js/sigils/dau.js?v=20261018a"></script>
     <script src="js/yuusha-party.js?v=20261019a"></script>
-    <script src="js/entities/core.js?v=20261020k"></script>
+    <script src="js/entities/core.js?v=20261020m"></script>
     <script src="js/entities/sentinel.js?v=20261008a"></script>
     <script src="js/entities/veilshroud.js?v=20261019a"></script>
     <script src="js/entities/uriel.js?v=20261019a"></script>
@@ -4120,7 +4147,7 @@
     <script src="js/recap.js?v=20261020l"></script>
     <script src="js/pixi-renderer.js?v=20261020i"></script>
     <script src="js/input.js?v=20261019r"></script>
-    <script src="js/main.js?v=20261020k"></script>
+    <script src="js/main.js?v=20261020m"></script>
     <script>
         // Debug/cheat console is a local-dev-only tool (spawn/kill any
         // enemy, force skills, edit HP, etc.) — never fetch/load it on the
@@ -4553,6 +4580,7 @@
                 window._platform = p; // keep the render/*.js modules in sync
                 if (p !== 'mobile') window._hudScale = 1;
                 _syncDeviceTier(p);
+                try { localStorage.setItem('pisces_platform', p); } catch (_) { }
                 document.getElementById('btn-pc').classList.toggle('pf-active', p === 'pc');
                 document.getElementById('btn-mobile').classList.toggle('pf-active', p === 'mobile');
                 // Correct background.js's initial touch-detection guess (made
@@ -4572,6 +4600,19 @@
                     window._applyGfxLevel(2);
                 }
             };
+
+            // Opens on the player's last choice, or on the device's own kind: a touch
+            // screen as the main input (phones, tablets) means Mobile. The tabs still
+            // switch it.
+            (function () {
+                let p = null;
+                try { p = localStorage.getItem('pisces_platform'); } catch (_) { }
+                if (p !== 'pc' && p !== 'mobile') {
+                    const coarse = !!(window.matchMedia && matchMedia('(pointer: coarse)').matches);
+                    p = coarse && (navigator.maxTouchPoints || 0) > 0 ? 'mobile' : 'pc';
+                }
+                if (p !== _plat) window.selectPlatform(p);
+            })();
 
             // MOBILE CONTROLS INIT
             window._initMobileControls = function () {
@@ -5376,6 +5417,199 @@
             // MULTI-TOUCH: handled via direct ontouchstart on each button
         })();
 
+    </script>
+    <!-- What's New: shown once per release to returning players, after the
+         click to start screen. Built on demand; same plate and buttons as
+         Settings and the Voyage Recap. -->
+    <style>
+        #whatsNewOverlay {
+            position: fixed;
+            inset: 0;
+            z-index: 999999998;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 16px;
+            background: rgba(1, 3, 10, 0.78);
+            opacity: 0;
+            transition: opacity 0.3s ease;
+        }
+
+        #whatsNewOverlay.wn-open {
+            opacity: 1;
+        }
+
+        .wn-panel {
+            --rc-electric: #00E5FF;
+            --rc-silver: #DCE8F5;
+            --rc-silver-dim: #8CA6C6;
+            --rc-gold: #E8C46A;
+            --rc-font-title: 'Cinzel', 'Palatino Linotype', Georgia, serif;
+            position: relative;
+            isolation: isolate;
+            width: min(92vw, 460px);
+            max-height: 90dvh;
+            overflow-y: auto;
+            padding: 20px 22px 18px;
+            font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+            color: var(--rc-silver);
+            text-align: left;
+            letter-spacing: normal;
+            background: linear-gradient(160deg, rgba(0, 229, 255, 0.6) 0%, rgba(63, 169, 245, 0.18) 30%, rgba(63, 169, 245, 0.14) 72%, rgba(232, 196, 106, 0.55) 100%);
+            clip-path: polygon(18px 0, 100% 0, 100% calc(100% - 18px), calc(100% - 18px) 100%, 0 100%, 0 18px);
+            transform: translateY(10px) scale(0.98);
+            transition: transform 0.35s cubic-bezier(0.22, 1, 0.36, 1);
+        }
+
+        #whatsNewOverlay.wn-open .wn-panel {
+            transform: none;
+        }
+
+        .wn-panel.wn-vi {
+            --rc-font-title: 'Playfair Display', Georgia, serif;
+        }
+
+        .wn-panel::before {
+            content: "";
+            position: absolute;
+            inset: 1px;
+            z-index: -1;
+            background: linear-gradient(180deg, #081430 0%, #040a1c 55%, #030714 100%);
+            clip-path: polygon(17.5px 0, 100% 0, 100% calc(100% - 17.5px), calc(100% - 17.5px) 100%, 0 100%, 0 17.5px);
+        }
+
+        .wn-head {
+            text-align: center;
+            padding-bottom: 12px;
+            margin-bottom: 12px;
+            border-bottom: 1px solid rgba(232, 196, 106, 0.35);
+        }
+
+        .wn-title {
+            display: inline-flex;
+            align-items: center;
+            gap: 10px;
+            font-family: var(--rc-font-title);
+            font-size: 19px;
+            font-weight: 700;
+            letter-spacing: 0.2em;
+            text-transform: uppercase;
+            color: #F4FBFF;
+            text-shadow: 0 0 16px rgba(0, 229, 255, 0.45);
+        }
+
+        .wn-title::before {
+            content: "";
+            width: 7px;
+            height: 7px;
+            transform: rotate(45deg);
+            border: 1px solid var(--rc-gold);
+            background: var(--rc-gold);
+            box-shadow: inset 0 0 0 1.5px #071026;
+        }
+
+        .wn-release {
+            margin-top: 6px;
+            font-size: 12px;
+            font-weight: 700;
+            letter-spacing: 0.14em;
+            text-transform: uppercase;
+            color: var(--rc-gold);
+        }
+
+        .wn-list {
+            list-style: none;
+            margin: 0;
+            padding: 0;
+        }
+
+        .wn-list li {
+            position: relative;
+            padding: 7px 0 7px 18px;
+            font-size: 13.5px;
+            line-height: 1.5;
+            color: var(--rc-silver);
+        }
+
+        .wn-list li + li {
+            border-top: 1px solid rgba(140, 166, 198, 0.08);
+        }
+
+        .wn-list li::before {
+            content: "";
+            position: absolute;
+            left: 2px;
+            top: 14px;
+            width: 6px;
+            height: 6px;
+            transform: rotate(45deg);
+            background: var(--rc-electric);
+            box-shadow: 0 0 6px rgba(0, 229, 255, 0.7);
+        }
+
+        .wn-list b {
+            color: #F4FBFF;
+        }
+
+        .wn-actions {
+            display: flex;
+            justify-content: center;
+            gap: 10px;
+            margin-top: 16px;
+        }
+
+        .wn-actions .rc-btn {
+            min-width: 0;
+            flex: 1;
+            padding: 11px 16px;
+            font-size: 11.5px;
+            letter-spacing: 0.12em;
+        }
+    </style>
+    <script>
+        (function () {
+            // Bump with each update log entry that should greet returning players.
+            const RELEASE = '6.9.4';
+            const ITEMS = 6;
+            function show() {
+                const ov = document.createElement('div');
+                ov.id = 'whatsNewOverlay';
+                let items = '';
+                for (let i = 1; i <= ITEMS; i++) items += '<li>' + _t('whatsNew.i' + i) + '</li>';
+                ov.innerHTML = '<div class="wn-panel' + (window._lang === 'vi' ? ' wn-vi' : '') + '" role="dialog" aria-modal="true">'
+                    + '<div class="wn-head"><div class="wn-title">' + _t('whatsNew.title') + '</div>'
+                    + '<div class="wn-release">' + _t('whatsNew.release') + '</div></div>'
+                    + '<ul class="wn-list">' + items + '</ul>'
+                    + '<div class="wn-actions">'
+                    + '<button type="button" class="rc-btn rc-btn-secondary" id="wnLog">' + _t('whatsNew.log') + '</button>'
+                    + '<button type="button" class="rc-btn rc-btn-primary" id="wnOk">' + _t('whatsNew.ok') + '</button>'
+                    + '</div></div>';
+                document.body.appendChild(ov);
+                requestAnimationFrame(() => ov.classList.add('wn-open'));
+                const close = () => {
+                    ov.classList.remove('wn-open');
+                    setTimeout(() => ov.remove(), 300);
+                };
+                ov.querySelector('#wnOk').addEventListener('click', close);
+                ov.querySelector('#wnLog').addEventListener('click', () => {
+                    close();
+                    if (typeof openGuide === 'function') openGuide('updatelog');
+                });
+                ov.addEventListener('click', e => { if (e.target === ov) close(); });
+            }
+            window._maybeShowWhatsNew = function () {
+                let seen = null, returning = false;
+                try {
+                    seen = localStorage.getItem('pisces_seen_release');
+                    // A brand new player has nothing to compare against.
+                    returning = ['kanadeIntroSeen', 'pisces_lang', 'audioVols', 'bgBrightness', 'pisces_fx', 'pisces_pilot_name']
+                        .some(k => localStorage.getItem(k) !== null);
+                    localStorage.setItem('pisces_seen_release', RELEASE);
+                } catch (_) { return; }
+                if (seen === RELEASE || (seen === null && !returning)) return;
+                show();
+            };
+        })();
     </script>
     <!-- Tap / click mark: a glowing arc sweeps open with a doubled tail, a
          segmented tick ring turns the other way, a triangle rides the arc,

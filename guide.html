@@ -1340,6 +1340,9 @@
 <li><span class="ul-tag tag-feat">FEAT</span> <b>Settings, new rows:</b> Show FPS puts the frame rate the game actually draws next to the sound button, turning gold under 50 and red under 30. Vibration switches off the buzz on hits, sigil picks and skill buttons (shown on phones that can vibrate). Restore Defaults asks Yes or No, then puts every setting back except the language.</li>
 <li><span class="ul-tag tag-feat">FEAT</span> <b>Settings, Advanced Graphics:</b> a fold with switches for explosions, debris, glow, screen flashes, sigil lighting and backdrops, the moving nebula, trails and Kanade's jewel twinkle, plus effect brightness and flash intensity, all saved on the device. Each switch only turns its effect off on top of the chosen graphics level: Glow drops the blur halos, Trails stops the streaks behind bullets, Sigil Lighting skips the Pisces moonlight and the sky darkening under Capricorn's mountain, Sigil Backdrops skips the Pisces, Capricorn and Cancer scenery. Enemy attack warnings and the low lives pulse always stay on.</li>
 <li><span class="ul-tag tag-feat">FEAT</span> <b>Tap mark:</b> every click or touch, in the game and in the Guide, sweeps open a glowing cyan arc with a doubled tail, notches across it, a diamond at its start, a bright bead at its leading end and a dotted outer arc, a segmented tick ring turning the other way and a triangle riding the arc, while two fish circle the centre Pisces style and a dozen triangle sparks fly out. It sits right where you press; on a button, tab or switch it sizes to the control and leaves out the fish so the label stays clear. It lasts about 0.6s, never blocks a tap, and Settings has a Tap Effect switch under Gameplay (on by default).</li>
+<li><span class="ul-tag tag-feat">FEAT</span> <b>Boss hit stop:</b> felling Goliath holds the battle still for 120ms and a Dominator (Dargruel, Leviathan) for 70ms, so the blow lands with weight. The screen keeps drawing; only the world pauses.</li>
+<li><span class="ul-tag tag-feat">FEAT</span> <b>What's New:</b> returning players get a short panel of this update's highlights once, right after the start screen, with a button that opens the Guide straight on the update log.</li>
+<li><span class="ul-tag tag-feat">FEAT</span> <b>PC or Mobile picked for you:</b> the menu opens on your last choice, or on Mobile when the device is touch first (phones, tablets) and PC otherwise. The tabs still switch it.</li>
 <li><span class="ul-tag tag-feat">FEAT</span> <b>Pressed buttons sink:</b> every button, tab, switch and menu row dips a little and darkens slightly while held, by mouse or finger, then springs back. It costs next to nothing: one class on the pressed control, moved by the GPU.</li>
 <li><span class="ul-tag tag-feat">FEAT</span> <b>Voyage Recap, quicker opening:</b> the title, its lift and every reveal after it run about 10% faster.</li>
 <li><span class="ul-tag tag-perf">PERF</span> <b>Update loop:</b> the per frame profiling arrays and the ally list are reused instead of rebuilt every frame, the menu constellation no longer rebuilds 37 small arrays per draw, and the skill buttons cache their colors. In a Goliath fight the update step got about a third faster, with every frame and every roll identical to before.</li>
@@ -3096,7 +3099,13 @@
       document.querySelectorAll('.card').forEach(c => { c.classList.remove('visible'); obs.observe(c); });
     }
 
-    showTab('basics');
+    // The game can ask for a tab to open on (its What's New panel asks for
+    // the update log); otherwise the Guide starts on Basics.
+    let _startTab = 'basics';
+    try {
+      if (window.parent && window.parent._guideStartTab) { _startTab = window.parent._guideStartTab; window.parent._guideStartTab = null; }
+    } catch (_) { }
+    showTab(_startTab);
     // Every tab button + the Detailed toggle plays the parent's click SFX so
     // the iframe boundary doesn't silence the UI feedback.
     function _playParentClickSfx() {
