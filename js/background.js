@@ -748,7 +748,9 @@
         if (app.renderer.width === w && app.renderer.height === h) return;
         app.renderer.resize(w, h);
 
-        bgSprite.destroy();
+        // The gradient texture and its canvas go with the sprite; leaving them
+        // kept one full screen texture alive per resize until the phone ran out.
+        bgSprite.destroy({ texture: true, textureSource: true });
         bgSprite = new PIXI.Sprite(makeBgTex(w, h));
         bgSprite.width = w; bgSprite.height = h;
         bgLayer.addChildAt(bgSprite, 0);

@@ -2035,8 +2035,22 @@ function openRecap(container, data, lang, onPlayAgain, onMainMenu) {
     });
   }
   if (btnCloseModal && shareModal) {
+    // Closing the dialog hands back the card's memory (about 6MB of pixels
+    // plus its PNG); opening it again redraws it.
+    const releaseCard = function() {
+      clearTimeout(cardTimer);
+      cardVersion++;
+      cardBlob = null;
+      closeSaveView();
+      if (cardUrl) { URL.revokeObjectURL(cardUrl); cardUrl = ""; }
+      if (shareImg) shareImg.removeAttribute("src");
+      if (previewFrame) previewFrame.classList.remove("rc-img-ready");
+      shareCanvas.width = 1;
+      shareCanvas.height = 1;
+    };
     btnCloseModal.addEventListener("click", function() {
       shareModal.classList.remove("rc-open");
+      releaseCard();
     });
   }
   for (let i = 0; i < fmtBtns.length; i++) {

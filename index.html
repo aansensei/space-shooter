@@ -410,37 +410,154 @@
         }
 
         /* --- CLICK TO START --- */
+        /* A quiet studio card: the ncta mark lit in white with a light sweep
+           running across it, a hairline rule with a diamond, and the prompt. */
         #click-to-start {
             position: fixed;
             inset: 0;
             z-index: 999999;
-            background: rgba(0, 0, 0, 0.88);
             display: flex;
+            flex-direction: column;
             align-items: center;
             justify-content: center;
+            gap: 22px;
+            padding: 24px;
+            background:
+                radial-gradient(ellipse 42% 34% at 50% 46%, rgba(120, 200, 255, 0.07) 0%, rgba(0, 0, 0, 0) 70%),
+                rgba(0, 0, 0, 0.95);
             cursor: pointer;
             transition: opacity 0.6s ease;
             touch-action: none;
         }
 
-        #click-to-start span {
-            color: rgba(255, 255, 255, 0.7);
-            font-size: 1rem;
-            letter-spacing: 5px;
+        #click-to-start .cts-mark {
+            position: relative;
+            width: clamp(140px, 17vw, 210px);
+            animation: cts-in 0.8s cubic-bezier(0.22, 1, 0.36, 1) both;
+        }
+
+        #click-to-start .cts-logo {
+            display: block;
+            width: 100%;
+            height: auto;
+            filter: drop-shadow(0 0 10px rgba(255, 255, 255, 0.35)) drop-shadow(0 0 28px rgba(140, 210, 255, 0.22));
+            user-select: none;
+            -webkit-user-select: none;
+            pointer-events: none;
+        }
+
+        /* The sweep only shows on the mark itself: the logo is its mask. */
+        #click-to-start .cts-shine {
+            position: absolute;
+            inset: 0;
+            overflow: hidden;
+            pointer-events: none;
+            -webkit-mask: url('assets/images/site/ncta-logo-white.webp') center / 100% 100% no-repeat;
+            mask: url('assets/images/site/ncta-logo-white.webp') center / 100% 100% no-repeat;
+        }
+
+        #click-to-start .cts-shine i {
+            position: absolute;
+            top: -10%;
+            bottom: -10%;
+            left: 0;
+            width: 45%;
+            background: linear-gradient(100deg, rgba(255, 255, 255, 0) 0%, rgba(255, 255, 255, 0.95) 50%, rgba(255, 255, 255, 0) 100%);
+            transform: translateX(-120%) skewX(-12deg);
+            animation: cts-shine 4.8s 0.8s ease-in-out infinite;
+        }
+
+        #click-to-start .cts-rule {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            animation: cts-in 0.8s 0.12s ease-out both;
+        }
+
+        #click-to-start .cts-rule::before,
+        #click-to-start .cts-rule::after {
+            content: "";
+            width: clamp(46px, 7vw, 80px);
+            height: 1px;
+        }
+
+        #click-to-start .cts-rule::before {
+            background: linear-gradient(90deg, rgba(255, 255, 255, 0), rgba(255, 255, 255, 0.45));
+        }
+
+        #click-to-start .cts-rule::after {
+            background: linear-gradient(90deg, rgba(255, 255, 255, 0.45), rgba(255, 255, 255, 0));
+        }
+
+        #click-to-start .cts-rule i {
+            width: 5px;
+            height: 5px;
+            transform: rotate(45deg);
+            border: 1px solid rgba(255, 255, 255, 0.7);
+        }
+
+        #click-to-start .cts-prompt {
+            color: #ffffff;
+            font-size: 0.74rem;
+            letter-spacing: 7px;
+            padding-left: 7px;
+            text-align: center;
             text-transform: uppercase;
             font-family: 'Courier New', monospace;
-            animation: cts-blink 2s ease-in-out infinite;
+            animation: cts-in 0.8s 0.24s ease-out both, cts-blink 2.8s 1.04s ease-in-out infinite;
+        }
+
+        @keyframes cts-in {
+            from {
+                opacity: 0;
+                transform: translateY(8px);
+            }
+        }
+
+        @keyframes cts-shine {
+            0% {
+                transform: translateX(-120%) skewX(-12deg);
+            }
+
+            45%,
+            100% {
+                transform: translateX(260%) skewX(-12deg);
+            }
         }
 
         @keyframes cts-blink {
-
             0%,
             100% {
                 opacity: 0.7;
             }
 
             50% {
-                opacity: 0.15;
+                opacity: 0.25;
+            }
+        }
+
+        @media (max-height: 520px) and (orientation: landscape) {
+            #click-to-start {
+                gap: 14px;
+            }
+
+            #click-to-start .cts-mark {
+                width: clamp(120px, 16vw, 160px);
+            }
+        }
+
+        @media (max-width: 600px) {
+            #click-to-start .cts-prompt {
+                font-size: 0.68rem;
+                letter-spacing: 5px;
+                padding-left: 5px;
+            }
+        }
+
+        @media (prefers-reduced-motion: reduce) {
+            #click-to-start .cts-shine i {
+                animation: none;
+                opacity: 0;
             }
         }
 
@@ -696,7 +813,18 @@
     </div>
 
     <!-- Click-to-start (che toàn màn hình, click để unlock audio) -->
-    <div id="click-to-start"><span>Click anywhere to start</span></div>
+    <div id="click-to-start">
+        <div class="cts-mark">
+            <img class="cts-logo" src="assets/images/site/ncta-logo-white.webp" alt="ncta" width="640" height="299" draggable="false">
+            <span class="cts-shine" aria-hidden="true"><i></i></span>
+        </div>
+        <div class="cts-rule" aria-hidden="true"><i></i></div>
+        <span class="cts-prompt" id="cts-prompt">Click anywhere to start</span>
+    </div>
+    <script>
+        // Touch screens are told to tap, mice to click.
+        if (window.matchMedia && matchMedia('(pointer: coarse)').matches) document.getElementById('cts-prompt').textContent = 'Tap anywhere to start';
+    </script>
 
     <div id="white-flash"></div>
 
@@ -4071,8 +4199,8 @@
     <script src="js/vendor/pixi.min.js"></script>
     <script src="js/canvas-guard.js?v=20261008a"></script>
     <script src="js/audio.js?v=20261019echo2"></script>
-    <script src="js/offline.js?v=20261020e"></script>
-    <script src="js/background.js?v=20261020j"></script>
+    <script src="js/offline.js?v=20261020o"></script>
+    <script src="js/background.js?v=20261020o"></script>
     <script src="js/config.js?v=20261020k"></script>
     <script src="js/timeline-distortion.js?v=20261018c"></script>
     <script src="js/sigils/core.js?v=20261020k"></script>
@@ -4144,7 +4272,7 @@
     <script src="js/render/sigil-capricorn.js?v=20261020i"></script>
     <script src="js/render/skill-g.js?v=20261013n"></script>
     <script src="js/render/skill-buttons.js?v=20261020g"></script>
-    <script src="js/recap.js?v=20261020l"></script>
+    <script src="js/recap.js?v=20261020o"></script>
     <script src="js/pixi-renderer.js?v=20261020i"></script>
     <script src="js/input.js?v=20261019r"></script>
     <script src="js/main.js?v=20261020m"></script>

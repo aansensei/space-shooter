@@ -21,6 +21,7 @@
         'css/recap.css',
         'assets/images/site/gameplay.png',
         'assets/images/site/logo.png',
+        'assets/images/site/ncta-logo-white.webp',
         'assets/images/site/pisces_banner.png',
         'assets/images/site/update-log-hero.png',
         'assets/images/site/kanade-genesis.png',
