@@ -802,7 +802,7 @@
 <tr><td><span class="key">G</span></td><td>Life Domain / Tesla Matrix</td></tr>
 </table></div>
 <div class="card"><h2 style="color:var(--gold)">LIVES & SCORING</h2><ul>
-<li>Start with <span class="hg">12 lives</span>. Earn <span class="hgr">+1 life</span> every <span class="dmg">500,000 pts</span>.</li>
+<li>Start with <span class="hg">10 lives</span>, never more than <span class="hg">12</span>. Earn <span class="hgr">+1 life</span> every <span class="dmg">500,000 pts</span>.</li>
 <li>Score = enemy Max HP × 4 on wave 1, easing down to × 3 by wave 10. Goliath is worth 500,000 at most.</li><li>Game auto-pauses on tab switch.</li></ul></div>
 <div class="card">
 <h2 style="color:var(--gold)">ABOUT</h2>
@@ -1033,7 +1033,7 @@
 <div class="sfc-inner"><div class="sfc-front">
 <canvas class="sfc-glyph-cv" data-sigil="scorpio"></canvas><div class="sfc-name">SCORPIO</div><div class="sfc-el">Water</div><div class="sfc-atk"><span>ATK <b>+6%</b></span></div><div class="sfc-theme">DEATH'S MARK</div>
 <div class="sfc-buffs">
-<div class="sfc-row"><span class="sbt heal">HEAL</span><b>Resurrection</b> <span class="sbd">On pick: +4 lives immediately. Life bonus rate: +1 life per 300,000 pts.</span></div>
+<div class="sfc-row"><span class="sbt heal">HEAL</span><b>Resurrection</b> <span class="sbd">On pick: +4 lives immediately (up to 12). Life bonus rate: +1 life per 300,000 pts.</span></div>
 <div class="sfc-row"><span class="sbt atk">ATK</span><b>Death Mark</b> <span class="sbd">Dmg bonus ramps linearly from 0% at full HP to +50% at 21% HP, then a flat +65% at 20% HP and below. Skill F blade arc pierces Iron Body. Enemy at ≤5% HP: instantly killed by a lightning strike + blood-flower burst.</span></div>
 </div><div class="sfc-hint">click to read lore</div>
 </div><div class="sfc-back">
@@ -1327,6 +1327,7 @@
 <div class="ul-date">2026-10-19 &middot; Capricorn is rebuilt around Compound Interest and Mountainfall, Kanade's Endless Echo gets a grander cast, every flight ends on a Voyage Recap, and the game runs lighter</div>
 <p class="det-short ul-summary">Avalanche is folded into Compound Interest, whose stacks now show as an ink circle around the ship, and Capricorn's new Mountainfall drops an ink wash mountain on the densest group, buries it and leaves three rock screens that stop every enemy attack for 4s. Kanade's gate, cast and ghosts in Goliath's Endless Echo are redrawn, the hyperjump always plays in full, and the update loop and music memory are lighter. The old Game Over screen and Match Stat panel give way to the Voyage Recap, a full flight log with your sigils, kills, damage breakdown and a battle timeline, plus a share image that carries your own callsign.</p>
 <ul class="det-full">
+<li><span class="ul-tag tag-nerf">NERF</span> <b>Lives:</b> a run starts with <span class="hg">10</span> lives instead of 12, and no source can take you past <span class="hg">12</span> (was 15). That covers the +1 life every 500,000 points and Scorpio's Resurrection, which still gives +4 up to the cap.</li>
 <li><span class="ul-tag tag-nerf">NERF</span> <b>Capricorn, Compound Interest:</b> the great spirit's bonus true damage now lands once every <span class="hg">250ms</span> per target instead of every 100ms, since the stacks that used to belong to Avalanche now sit on this blessing as well.</li>
 <li><span class="ul-tag tag-feat">FEAT</span> <b>Capricorn, Compound Interest:</b> Avalanche is folded into it. Every kill, and every Primeval Energy point charged from hitting a giant enemy, is one stack of <span class="hg">+0.5%</span> damage, up to <span class="hg">80</span> stacks (+40%), so bosses keep the stacks alive too. They are lost after <span class="hg">6s</span> without a new one. A moonlit ink circle around the ship fills arc by arc with the stacks, ram horns curl around it at 80, and from the 4th second without a stack the ink cracks as a warning before it breaks.</li>
 <li><span class="ul-tag tag-feat">FEAT</span> <b>Capricorn, Mountainfall (Thái Sơn Áp Đỉnh):</b> the new second blessing. Stacks fill the Ley meter over the ship; when it is full, Space or CHARGE drops a shan shui mountain on the densest enemy group for <span class="hg">12x ATK + 4% Max HP</span>, burying everything within 170px for <span class="hg">1.5s</span> (Dominant). The mountain splits into three rock screens along its foot, where it landed, that stand for <span class="hg">4s</span> and stop enemy bullets, piercing shots, launched skills, beams and enemy bodies, while allied shots pass through. Goliath's meteors and Verdict orbs break a screen instead, while his body and ordinary shots pass through. Each screen carries a pale moonlit ward that breathes over the stone, flares and ripples where a hit lands, with warm light running along its carving and ink motes drifting off it. Painted in ink wash, with the sky darkening as it falls, a short hold and a heavy shake on impact, and a faint ink landscape at the screen edges at High and Medium graphics.</li>
@@ -2525,7 +2526,7 @@
 <div class="sfc-inner"><div class="sfc-front">
 <canvas class="sfc-glyph-cv" data-sigil="scorpio"></canvas><div class="sfc-name">BỌ CẠP</div><div class="sfc-el">Thủy</div><div class="sfc-atk"><span>ATK <b>+6%</b></span></div><div class="sfc-theme">TỬ THẦN CHI ẤN</div>
 <div class="sfc-buffs">
-<div class="sfc-row"><span class="sbt heal">HEAL</span><b>Hoàn Sinh</b> <span class="sbd">Khi chọn: nhận ngay +4 mạng. Tỉ lệ thưởng mạng: +1 mạng mỗi 300,000 điểm (thay vì 500,000).</span></div>
+<div class="sfc-row"><span class="sbt heal">HEAL</span><b>Hoàn Sinh</b> <span class="sbd">Khi chọn: nhận ngay +4 mạng (tối đa 12). Tỉ lệ thưởng mạng: +1 mạng mỗi 300,000 điểm (thay vì 500,000).</span></div>
 <div class="sfc-row"><span class="sbt atk">ATK</span><b>Tử Ấn</b> <span class="sbd">HP 100%→21%: sát thương tăng tuyến tính +0%→+50%. HP ≤20%: +65% sát thương từ mọi nguồn. HP ≤5%: sét đánh kết liễu ngay lập tức. Vòng cung lưỡi kiếm Skill F xuyên qua Iron Body. Kẻ địch dưới 50% HP hiện vòng cảnh báo màu xanh cyan.</span></div>
 </div><div class="sfc-hint">click để đọc truyền thuyết</div>
 </div><div class="sfc-back">
@@ -2787,7 +2788,7 @@
 <tr><td><span class="key">G</span></td><td>Kết Giới Sinh Mệnh / Ma Trận Tesla</td></tr>
 </table></div>
 <div class="card"><h2 style="color:var(--gold)">MẠNG & ĐIỂM SỐ</h2><ul>
-<li>Bắt đầu với <span class="hg">12 mạng</span>. Nhận <span class="hgr">+1 mạng</span> mỗi <span class="dmg">500,000 điểm</span>.</li>
+<li>Bắt đầu với <span class="hg">10 mạng</span>, tối đa <span class="hg">12 mạng</span>. Nhận <span class="hgr">+1 mạng</span> mỗi <span class="dmg">500,000 điểm</span>.</li>
 <li>Điểm = Max HP kẻ địch × 4 ở wave 1, giảm dần còn × 3 từ wave 10. Goliath cho tối đa 500,000 điểm.</li><li>Game tự động tạm dừng khi chuyển tab.</li></ul></div>
 <div class="card">
 <h2 style="color:var(--gold)">GIỚI THIỆU</h2>

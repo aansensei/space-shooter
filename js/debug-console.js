@@ -100,8 +100,8 @@ function _autoplayTick() {
 
         // More cautious the fewer lives are left: a wider safety margin
         // means every threat starts getting dodged earlier and further out.
-        const livesNow = typeof lives === 'number' ? lives : 12;
-        const margin = 55 + Math.max(0, 12 - livesNow) * 5;
+        const livesNow = typeof lives === 'number' ? lives : START_LIVES;
+        const margin = 55 + Math.max(0, START_LIVES - livesNow) * 5;
 
         // Skill economy: A (self-homing orbs) and S (summons an ally) are
         // never a wrong time to use, so they stay pure on-cooldown. D
@@ -269,7 +269,7 @@ const VERIFY_GOLIATH_BUDGET_MS = 300000; // Goliath waves (multiples of 5) never
 function _verifyResetWaveState(waveNum) {
     enemies.length = 0;
     window._matchStats = _newMatchStats();
-    lives = 12;
+    lives = START_LIVES;
     if (typeof player !== 'undefined' && typeof canvas !== 'undefined') {
         player.x = canvas.width / 2;
         player._silenced = false;
@@ -318,7 +318,7 @@ async function _verifyRunWave(waveNum) {
         timedOut: timedOut,
         gameOver: typeof gameState !== 'undefined' && gameState !== 'playing',
         approxGameMs: Math.round(gameElapsed),
-        livesLost: 12 - lives,
+        livesLost: START_LIVES - lives,
         allyDamageDealt: Math.round(sumBucket(window._matchStats.allyDamage)),
         enemyDamageReceived: Math.round(sumBucket(window._matchStats.enemyDamage)),
         remainingEnemyCount: remainingEnemies.length,
@@ -966,7 +966,7 @@ window.debugSetYuukiBonus = function () {
         player._silenced = false;
         player._rooted = false;
         player._nullSlashSlowed = false;
-        if (typeof lives !== 'undefined') lives = 12;
+        if (typeof lives !== 'undefined') lives = START_LIVES;
     };
 
     window.debugRestartRun = function () {

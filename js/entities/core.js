@@ -160,7 +160,7 @@ function handleEnemyKill(enemy) {
     }
     // Blessing HP regen handled in main.js update loop
     if (score >= nextLifeMilestone) {
-        lives = Math.min(15, lives + 1);
+        lives = Math.min(MAX_LIVES, lives + 1);
         nextLifeMilestone += _hasBuff('hoan_sinh') ? 300000 : 500000; // docs/combat-scaling-rebalance.md Part 5
         createParticles(player.x, player.y, 50, 'lime', 3, 8);
     }

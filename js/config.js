@@ -42,7 +42,9 @@ function _shuffleArray(arr) {
 }
 
 const btnMarginLeft = 20, btnMarginBottom = 20, btnRadius = 25, btnGap = 12;
-let gameState = "start", lives = 12, score = 0, gameStartTime = 0;
+// A run starts with START_LIVES; no source of extra lives goes past MAX_LIVES.
+const START_LIVES = 10, MAX_LIVES = 12;
+let gameState = "start", lives = START_LIVES, score = 0, gameStartTime = 0;
 let gameElapsedTime = 0; // Thời gian game thực tế (bị slow bởi Yog-Sothoth)
 let _gameOverPlayTime = 0; // ms played, captured at game over
 let nextLifeMilestone = 500000;

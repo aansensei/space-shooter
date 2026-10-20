@@ -146,7 +146,7 @@ function _onSigilApplied(sigilId, buffId) {
     }
     if (buffId === 'hiep_luc') { /* synergy — no separate state, keyed off doi_hinh_chien arrays */ }
     if (buffId === 'su_tu_hong')   { window._sthBurning = new Map(); }
-    if (buffId === 'hoan_sinh')    { if (typeof lives !== 'undefined') lives = Math.min(15, lives + 4); } // docs/combat-scaling-rebalance.md Part 5
+    if (buffId === 'hoan_sinh')    { if (typeof lives !== 'undefined') lives = Math.min(MAX_LIVES, lives + 4); } // docs/combat-scaling-rebalance.md Part 5
     if (buffId === 'kim_ke_bao_hieu') {
         if (typeof _dauReset === 'function') _dauReset();
         // Baked here, at the pick, so no player without the sigil pays for it.

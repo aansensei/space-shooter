@@ -3598,7 +3598,7 @@ function gameLoop(timeStamp) {
 function startGame() {
     _updateAllyScratch.length = 0;
     if (window._timelineDistortion && window._timelineDistortion.id !== 'stack_overflow') _clearTimelineDistortion();
-    gameState = "playing"; lives = 12;
+    gameState = "playing"; lives = START_LIVES;
     score = 0;
     window._matchStats = _newMatchStats();
     nextLifeMilestone = 500000;
