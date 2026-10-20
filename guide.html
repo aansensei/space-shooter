@@ -1339,7 +1339,7 @@
 <li><span class="ul-tag tag-feat">FEAT</span> <b>Settings, Background:</b> its own group with three detail levels (Low, Detail, Full) that thin out the stars, nebulas, dust and asteroids behind the battle, the brightness slider, and a Light Patches slider for how strongly the nebulas and galaxies glow. All three apply live and are remembered.</li>
 <li><span class="ul-tag tag-feat">FEAT</span> <b>Settings, new rows:</b> Show FPS puts the frame rate the game actually draws next to the sound button, turning gold under 50 and red under 30. Vibration switches off the buzz on hits, sigil picks and skill buttons (shown on phones that can vibrate). Restore Defaults asks Yes or No, then puts every setting back except the language.</li>
 <li><span class="ul-tag tag-feat">FEAT</span> <b>Settings, Advanced Graphics:</b> a fold with switches for explosions, debris, glow, screen flashes, sigil lighting and backdrops, the moving nebula, trails and Kanade's jewel twinkle, plus effect brightness and flash intensity, all saved on the device. Each switch only turns its effect off on top of the chosen graphics level: Glow drops the blur halos, Trails stops the streaks behind bullets, Sigil Lighting skips the Pisces moonlight and the sky darkening under Capricorn's mountain, Sigil Backdrops skips the Pisces, Capricorn and Cancer scenery. Enemy attack warnings and the low lives pulse always stay on.</li>
-<li><span class="ul-tag tag-feat">FEAT</span> <b>Tap mark:</b> every click or touch, in the game and in the Guide, sweeps open a glowing cyan arc with a doubled tail, notches across it, a diamond at its start, a bright bead at its leading end and a dotted outer arc, a segmented tick ring turning the other way and a triangle riding the arc, while two fish circle the centre Pisces style and a dozen triangle sparks fly out. On a button, tab or switch it centres on the control and sizes to it, without the fish so the label stays clear. It lasts about 0.6s, never blocks a tap, and Settings has a Tap Effect switch under Gameplay (on by default).</li>
+<li><span class="ul-tag tag-feat">FEAT</span> <b>Tap mark:</b> every click or touch, in the game and in the Guide, sweeps open a glowing cyan arc with a doubled tail, notches across it, a diamond at its start, a bright bead at its leading end and a dotted outer arc, a segmented tick ring turning the other way and a triangle riding the arc, while two fish circle the centre Pisces style and a dozen triangle sparks fly out. It sits right where you press; on a button, tab or switch it sizes to the control and leaves out the fish so the label stays clear. It lasts about 0.6s, never blocks a tap, and Settings has a Tap Effect switch under Gameplay (on by default).</li>
 <li><span class="ul-tag tag-feat">FEAT</span> <b>Voyage Recap, quicker opening:</b> the title, its lift and every reveal after it run about 10% faster.</li>
 <li><span class="ul-tag tag-perf">PERF</span> <b>Update loop:</b> the per frame profiling arrays and the ally list are reused instead of rebuilt every frame, the menu constellation no longer rebuilds 37 small arrays per draw, and the skill buttons cache their colors. In a Goliath fight the update step got about a third faster, with every frame and every roll identical to before.</li>
 <li><span class="ul-tag tag-perf">PERF</span> <b>Music memory:</b> switching tracks now also releases the previous track's decoded audio, which used to stay in memory. After playing through a few tracks this frees about 228MB.</li>
@@ -6544,8 +6544,8 @@
 
     <!-- Tap / click mark: a glowing arc sweeps open with a doubled tail, a
          segmented tick ring turns the other way, a triangle rides the arc,
-         two fish circle the centre and triangle sparks fly out. On buttons
-         and other controls it centres on the control and sizes to it.
+         two fish circle the centre and triangle sparks fly out. It sits where
+         the finger lands; on a control it sizes to the control and drops the fish.
          Settings can switch it off (pisces_tap_fx). Eight reused nodes, CSS
          transform and opacity only. -->
     <style>
@@ -6747,9 +6747,7 @@
                     const r = el.getBoundingClientRect();
                     // Full screen layers with a click handler are not controls.
                     if (r.width > 0 && r.width < innerWidth * 0.7 && r.height < innerHeight * 0.4) {
-                        x = r.left + r.width / 2;
-                        y = r.top + r.height / 2;
-                        k = Math.max(0.7, Math.min(1.9, (r.height * 1.5) / 48));
+                        k = Math.max(0.7, Math.min(1.5, (r.height * 1.5) / 48));
                         ctl = true;
                     }
                 }

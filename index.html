@@ -5366,8 +5366,8 @@
     </script>
     <!-- Tap / click mark: a glowing arc sweeps open with a doubled tail, a
          segmented tick ring turns the other way, a triangle rides the arc,
-         two fish circle the centre and triangle sparks fly out. On buttons
-         and other controls it centres on the control and sizes to it.
+         two fish circle the centre and triangle sparks fly out. It sits where
+         the finger lands; on a control it sizes to the control and drops the fish.
          Settings can switch it off (pisces_tap_fx). Eight reused nodes, CSS
          transform and opacity only. -->
     <style>
@@ -5569,9 +5569,7 @@
                     const r = el.getBoundingClientRect();
                     // Full screen layers with a click handler are not controls.
                     if (r.width > 0 && r.width < innerWidth * 0.7 && r.height < innerHeight * 0.4) {
-                        x = r.left + r.width / 2;
-                        y = r.top + r.height / 2;
-                        k = Math.max(0.7, Math.min(1.9, (r.height * 1.5) / 48));
+                        k = Math.max(0.7, Math.min(1.5, (r.height * 1.5) / 48));
                         ctl = true;
                     }
                 }
