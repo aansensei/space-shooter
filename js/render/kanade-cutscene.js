@@ -2606,6 +2606,8 @@
   }
   function drawJewelryGlints(L, x, y, scale, alpha, time) {
     if (alpha <= 0.01 || scale <= 0.01 || !jewelMask) return;
+    // Advanced Graphics: Jewel Twinkle off.
+    if (window._fxOpts && window._fxOpts.jewelTwinkle === false) return;
     const tier = gfxLevel(), gemsOnly = tier >= 4 || (typeof _mobPerf !== 'undefined' && _mobPerf);
     const limit = tier >= 3 || gemsOnly ? 1 : 2;
     updateTwinkles(time, limit, gemsOnly);

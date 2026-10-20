@@ -2383,9 +2383,12 @@ function draw(deltaTime) {
 
     // Background full canvas
     drawSpaceBackground(deltaTime);
-    _drawPiscesAmbience();
-    _drawCapricornBackdrop();
-    if (typeof _drawCancerOceanAmbience === 'function') _drawCancerOceanAmbience();
+    // Advanced Graphics: Sigil Backdrops off skips each sigil's scenery.
+    if (!window._fxOpts || window._fxOpts.sigilBackdrop !== false) {
+        _drawPiscesAmbience();
+        _drawCapricornBackdrop();
+        if (typeof _drawCancerOceanAmbience === 'function') _drawCancerOceanAmbience();
+    }
     if (typeof _drawDauRing === 'function') _drawDauRing();
     _drawPiscesFish();
 

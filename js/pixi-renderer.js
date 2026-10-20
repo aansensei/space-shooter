@@ -233,6 +233,8 @@ window._pixiRender       = null;
     const _TRAIL_DECAY = 0.50;
 
     function _spawnTrails(bullets) {
+        // Advanced Graphics: Trails off stops new streaks; old ones fade out.
+        if (window._fxOpts && window._fxOpts.trails === false) return;
         let budget = Math.min(40, _TRAIL_CAP - _trails.length);
         for (let i = 0; i < bullets.length && budget > 0; i++, budget--) {
             const b = bullets[i];
@@ -585,7 +587,8 @@ window._pixiRender       = null;
                     const _ng = _d.get, _ns = _d.set;
                     Object.defineProperty(ctx, 'shadowBlur', {
                         get()  { return _ng.call(this); },
-                        set(v) { _ns.call(this, v > 0 ? Math.min(v, 8) : 0); },
+                        // Advanced Graphics: Glow off drops every blur halo.
+                        set(v) { _ns.call(this, v > 0 && !(window._fxOpts && window._fxOpts.glow === false) ? Math.min(v, 8) : 0); },
                         configurable: true,
                     });
                 }

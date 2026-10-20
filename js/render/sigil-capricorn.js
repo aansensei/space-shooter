@@ -497,7 +497,8 @@ function _drawCapricornMountain() {
     ctx.save();
     // The sky darkens while the mountain closes in and clears after the hit.
     const dim = ve < 350 ? _capSmooth((ve - 120) / 230) * 0.3 : _capClamp(1 - (ve - 350) / 450, 0, 1) * 0.3;
-    if (dim > 0) { ctx.globalAlpha = dim; ctx.fillStyle = '#04050b'; ctx.fillRect(0, 0, canvas.width, canvas.height); }
+    // Advanced Graphics: Sigil Lighting off keeps the sky as it is.
+    if (dim > 0 && (!window._fxOpts || window._fxOpts.sigilLight !== false)) { ctx.globalAlpha = dim; ctx.fillStyle = '#04050b'; ctx.fillRect(0, 0, canvas.width, canvas.height); }
     if (ve < 350) {
         const p = ve / 350, fall = p * p * p, pool = 0.45 + 0.55 * fall;
         ctx.globalAlpha = 0.25 + p * 0.55; ctx.drawImage(S.bloom, st.x - size * 0.62 * pool, ground - size * 0.16, size * 1.24 * pool, size * 0.34);

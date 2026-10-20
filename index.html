@@ -2146,8 +2146,8 @@
                         'settings.resetAsk': 'Put every setting back as it was on first launch? Language stays as it is.',
                         'settings.resetDone': 'Restored',
                         'graphics.advanced': 'Advanced Graphics',
-                        'graphics.advancedSoon': 'Preview',
-                        'graphics.advancedNote': 'Switches marked Coming Soon are not wired in yet. Enemy attack warnings always stay on.',
+                        'graphics.advancedSoon': 'New',
+                        'graphics.advancedNote': 'These only turn effects off on top of your graphics level. Enemy attack warnings always stay on.',
                         'graphics.fxSoon': 'Coming Soon',
                         'graphics.fxByLevel': 'Follow Graphics Level',
                         'graphics.fxAllOff': 'Turn All Off',
@@ -2160,7 +2160,7 @@
                         'fx.sigilLight': 'Sigil Lighting', 'fx.sigilLightDesc': 'Pisces moonlight, the sky darkening as Capricorn\'s mountain falls',
                         'fx.sigilBackdrop': 'Sigil Backdrops', 'fx.sigilBackdropDesc': 'Each sigil\'s own scenery behind the battle',
                         'fx.nebula': 'Moving Nebula', 'fx.nebulaDesc': 'Drifting nebula layer; the starfield stays',
-                        'fx.trails': 'Trails', 'fx.trailsDesc': 'Light trails behind ships, bullets and bosses',
+                        'fx.trails': 'Trails', 'fx.trailsDesc': 'Light streaks behind flying bullets',
                         'fx.jewelTwinkle': 'Jewel Twinkle', 'fx.jewelTwinkleDesc': 'Sparkles on Kanade\'s jewelry',
                         'system.section': 'System',
                         'language.section': 'Language',
@@ -2217,8 +2217,8 @@
                         'settings.resetAsk': 'Đưa mọi cài đặt về như lúc mới chơi? Ngôn ngữ giữ nguyên.',
                         'settings.resetDone': 'Đã khôi phục',
                         'graphics.advanced': 'Đồ Họa Nâng Cao',
-                        'graphics.advancedSoon': 'Bản xem trước',
-                        'graphics.advancedNote': 'Công tắc ghi Sắp Có chưa được nối vào game. Cảnh báo đòn của địch luôn hiện.',
+                        'graphics.advancedSoon': 'Mới',
+                        'graphics.advancedNote': 'Các công tắc chỉ tắt bớt hiệu ứng so với mức đồ họa đang chọn. Cảnh báo đòn của địch luôn hiện.',
                         'graphics.fxSoon': 'Sắp Có',
                         'graphics.fxByLevel': 'Theo Mức Đồ Họa',
                         'graphics.fxAllOff': 'Tắt Hết',
@@ -2231,7 +2231,7 @@
                         'fx.sigilLight': 'Ánh Sáng Của Sigil', 'fx.sigilLightDesc': 'Ánh trăng Song Ngư, trời tối khi núi Ma Kết rơi',
                         'fx.sigilBackdrop': 'Nền Trang Trí Của Sigil', 'fx.sigilBackdropDesc': 'Cảnh nền riêng của từng Sigil phía sau trận đấu',
                         'fx.nebula': 'Tinh Vân Chuyển Động', 'fx.nebulaDesc': 'Lớp tinh vân trôi phía sau, nền sao vẫn giữ',
-                        'fx.trails': 'Vệt Bay', 'fx.trailsDesc': 'Vệt sáng phía sau tàu, đạn và boss',
+                        'fx.trails': 'Vệt Bay', 'fx.trailsDesc': 'Vệt sáng phía sau đạn đang bay',
                         'fx.jewelTwinkle': 'Lấp Lánh Trang Sức', 'fx.jewelTwinkleDesc': 'Ánh lấp lánh trên trang sức của Kanade',
                         'system.section': 'Hệ Thống',
                         'language.section': 'Ngôn Ngữ',
@@ -2706,7 +2706,7 @@
                 } catch (_) { }
                 window._fxBrightMul = window._fxOpts.fxBrightness / 100;
                 // Switches not wired into the game yet carry a Coming Soon mark.
-                const _FX_SOON = { glow: 1, sigilLight: 1, sigilBackdrop: 1, trails: 1, jewelTwinkle: 1 };
+                const _FX_SOON = {};
                 (function _buildFxRows() {
                     const host = document.getElementById('st-fx-rows');
                     if (!host) return;
@@ -4057,9 +4057,9 @@
     <script src="js/skills/sigil-gemini.js?v=20260911a"></script>
     <script src="js/skills/sigil-aries.js?v=20260902a"></script>
     <script src="js/skills/sigil-virgo.js?v=20260911a"></script>
-    <script src="js/render/core.js?v=20261020h"></script>
+    <script src="js/render/core.js?v=20261020i"></script>
     <script src="js/render/kanade-face.js?v=20261015c"></script>
-    <script src="js/render/kanade-cutscene.js?v=20261019echo2"></script>
+    <script src="js/render/kanade-cutscene.js?v=20261020i"></script>
     <script src="js/render/fx.js?v=20261020h"></script>
     <script src="js/render/player.js?v=20261015a"></script>
     <script src="js/render/enemy-common.js?v=20261020g"></script>
@@ -4079,12 +4079,12 @@
     <script src="js/render/sigil-cancer.js?v=20261013n"></script>
     <script src="js/render/sigil-leo.js?v=20261014a"></script>
     <script src="js/render/sigil-dau.js?v=20261013p"></script>
-    <script src="js/render/sigil-pisces.js?v=20261014c"></script>
-    <script src="js/render/sigil-capricorn.js?v=20261018c"></script>
+    <script src="js/render/sigil-pisces.js?v=20261020i"></script>
+    <script src="js/render/sigil-capricorn.js?v=20261020i"></script>
     <script src="js/render/skill-g.js?v=20261013n"></script>
     <script src="js/render/skill-buttons.js?v=20261020g"></script>
     <script src="js/recap.js?v=20261020c"></script>
-    <script src="js/pixi-renderer.js?v=20261008b"></script>
+    <script src="js/pixi-renderer.js?v=20261020i"></script>
     <script src="js/input.js?v=20261019r"></script>
     <script src="js/main.js?v=20261020d"></script>
     <script>

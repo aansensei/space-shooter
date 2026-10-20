@@ -1620,7 +1620,8 @@ function _drawPiscesFish() {
     const gfx = window._gfxLevel || 0, low = _mobPerf || gfx >= 2;
     const sprites = _piscesSprites();
     ctx.save();
-    _drawPiscesSkyLight(sprites, gfx, low);
+    // Advanced Graphics: Sigil Lighting off skips the moonlight.
+    if (!window._fxOpts || window._fxOpts.sigilLight !== false) _drawPiscesSkyLight(sprites, gfx, low);
 
     for (let fIdx = 0; fIdx < _piscesFishPool.length; fIdx++) {
         const fish = _piscesFishPool[fIdx];
@@ -2108,7 +2109,7 @@ function _drawPiscesEvents() {
     const sprites = _piscesSprites();
     ctx.save();
     _drawPiscesDreamFrame(sprites, now, low);
-    _drawPiscesSummonLight(sprites, low);
+    if (!window._fxOpts || window._fxOpts.sigilLight !== false) _drawPiscesSummonLight(sprites, low);
 
     for (let i = 0; i < _piscesRefundPool.length; i++) {
         const ev = _piscesRefundPool[i];
