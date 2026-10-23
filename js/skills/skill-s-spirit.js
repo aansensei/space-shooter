@@ -13,17 +13,18 @@ function activateSkillS() {
     const normalSpirit = spirits.find(sp => !sp.isFinishing && !sp.isPhotokrystos);
     if (primevalEnergy >= 100 && normalSpirit) {
         activatePrimevalCreation(normalSpirit);
-        _tyOpenArray();
+        _tyTryOpenArray();
         return;
     }
 
-    // Block while any spirit is alive (Phōtokrystos blocks until BTM ends)
-    if (spirits.length > 0) return;
+    // Block while any spirit is alive (Phōtokrystos blocks until BTM ends).
+    // Umbral Serpent's array still opens on its own cooldown.
+    if (spirits.length > 0) { _tyTryOpenArray(); return; }
 
     // Normal summon: standard 12s CD only
     if (currentTime - lastSkillS >= skillSCooldown) {
         lastSkillS = currentTime;
-        _tyOpenArray();
+        _tyTryOpenArray();
         _recordAdaptiveSkill('S');
         _checkMirrorLaserProc();
         if (window.AudioMgr) window.AudioMgr.playSfxAt('skill-s-summon', player.x, player.y);

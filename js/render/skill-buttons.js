@@ -309,6 +309,10 @@ function drawSkillButtons() {
             cd: skillSCooldown, lastAct: lastSkillS, active: _anySpiritAlive,
         });
     }
+    // Umbral Serpent's array can be opened with S while a spirit is out.
+    if (_anySpiritAlive && !(_normalSpirit && primevalEnergy >= 100) && _tyArrayReady()) _pillReadyWash(rowY(2), [
+        [0, 'rgba(20,6,40,1)'], [0.5, 'rgba(155,92,255,1)'], [1, 'rgba(240,225,255,1)'],
+    ]);
 
     {
         let _dOpts;

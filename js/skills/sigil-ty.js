@@ -3,6 +3,8 @@ const TY_SERPENT_SPEED_MULT = 1.25;
 // Each hunt has this chance to latch on for 3 bites, TY_SERPENT_FRENZY_GAP ms apart,
 // before the serpent heads back to the ship for the usual 600ms.
 const TY_SERPENT_FRENZY_CHANCE = 0.4, TY_SERPENT_FRENZY_GAP = 200;
+// The array keeps its own cooldown so S can open it while a spirit is still out.
+const TY_ARRAY_COOLDOWN = 12000;
 const _tySerpents = Array.from({ length: 10 }, (_, id) => ({
     id, active: false, x: 0, y: 0, angle: 0, target: null, state: 0, chain: 0,
     nextBite: 0, spawnTime: 0, absorbAt: -1, biteFlashUntil: 0, segX: new Float32Array(10), segY: new Float32Array(10)
@@ -25,7 +27,7 @@ function _tyReset() {
     window._tyClock = 0; window._tyCharge = 0; window._tySpeedEnd = 0;
     window._tySwarmEnd = 0; window._tySwarmLimit = 0;
     window._tyFangStacks = 0; window._tyLastBite = -10000; window._tyDecayStacks = 0;
-    _tyArray.active = false; _tyShield.state = 0; _tyShield.bites = 0; _tyWave.start = -10000;
+    _tyArray.active = false; _tyArray.start = -TY_ARRAY_COOLDOWN; _tyShield.state = 0; _tyShield.bites = 0; _tyWave.start = -10000;
     for (let i = 0; i < 32; i++) _tyImpacts[i].active = false;
     for (let i = 0; i < _tySerpents.length; i++) {
         const s = _tySerpents[i]; s.active = false; s.target = null; s.state = 0; s.chain = 0; s.absorbAt = -1;
@@ -177,6 +179,14 @@ function _tyOpenArray() {
     }
     if (window.AudioMgr) window.AudioMgr.playSfxAt('ty-array-open', _tyArray.x, _tyArray.y);
     return true;
+}
+
+function _tyArrayReady() {
+    return _hasBuff('van_xa_trieu_tran') && window._tyClock - _tyArray.start >= TY_ARRAY_COOLDOWN;
+}
+
+function _tyTryOpenArray() {
+    return _tyArrayReady() && _tyOpenArray();
 }
 
 function _tySpawnSerpents(x, y) {

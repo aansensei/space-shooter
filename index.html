@@ -4219,7 +4219,7 @@
     <script src="js/sigils/pisces.js?v=20261014a"></script>
     <script src="js/sigils/than.js?v=20261012c"></script>
     <script src="js/sigils/dau.js?v=20261018a"></script>
-    <script src="js/sigils/ty.js?v=20261023c"></script>
+    <script src="js/sigils/ty.js?v=20261023d"></script>
     <script src="js/yuusha-party.js?v=20261019a"></script>
     <script src="js/entities/core.js?v=20261023b"></script>
     <script src="js/entities/sentinel.js?v=20261008a"></script>
@@ -4232,7 +4232,7 @@
     <script src="js/entities/raphael.js?v=20261019a"></script>
     <script src="js/entities/goliath.js?v=20261019a"></script>
     <script src="js/skills/skill-a.js?v=20261012a"></script>
-    <script src="js/skills/skill-s-spirit.js?v=20261023b"></script>
+    <script src="js/skills/skill-s-spirit.js?v=20261023c"></script>
     <script src="js/skills/skill-d.js?v=20261023b"></script>
     <script src="js/skills/sigil-great-sage.js?v=20261010a"></script>
     <script src="js/skills/sigil-cancer.js?v=20260914b"></script>
@@ -4240,7 +4240,7 @@
     <script src="js/skills/sigil-dau.js?v=20261013p"></script>
     <script src="js/skills/sigil-pisces.js?v=20261014a"></script>
     <script src="js/skills/sigil-capricorn.js?v=20261019a"></script>
-    <script src="js/skills/sigil-ty.js?v=20261023e"></script>
+    <script src="js/skills/sigil-ty.js?v=20261023f"></script>
     <script src="js/skills/skill-f.js?v=20261014a"></script>
     <script src="js/skills/skill-g.js?v=20261010b"></script>
     <script src="js/skills/skill-shift.js?v=20260909d"></script>
@@ -4275,7 +4275,7 @@
     <script src="js/render/sigil-capricorn.js?v=20261020i"></script>
     <script src="js/render/sigil-ty.js?v=20261023d"></script>
     <script src="js/render/skill-g.js?v=20261013n"></script>
-    <script src="js/render/skill-buttons.js?v=20261020g"></script>
+    <script src="js/render/skill-buttons.js?v=20261023a"></script>
     <script src="js/recap.js?v=20261023b"></script>
     <script src="js/pixi-renderer.js?v=20261020i"></script>
     <script src="js/input.js?v=20261019r"></script>
@@ -5380,6 +5380,13 @@
                                 // instead of the plain mana bar below.
                                 _mbReadyGlow('mb-s-cv', [
                                     [0, 'rgba(220,255,240,1)'], [0.5, 'rgba(0,200,130,1)'], [1, 'rgba(0,40,25,1)'],
+                                ], now);
+                                _lastReadyGlow.s = true;
+                            } else if (_hasSpirit2 && _tyArrayReady()) {
+                                // Umbral Serpent's array is ready to open with S
+                                // even though the spirit is still out.
+                                _mbReadyGlow('mb-s-cv', [
+                                    [0, 'rgba(240,225,255,1)'], [0.5, 'rgba(155,92,255,1)'], [1, 'rgba(20,6,40,1)'],
                                 ], now);
                                 _lastReadyGlow.s = true;
                             } else {
