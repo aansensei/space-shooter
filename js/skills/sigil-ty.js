@@ -4,7 +4,7 @@ const TY_SERPENT_SPEED_MULT = 1.25;
 // before the serpent heads back to the ship for the usual 600ms.
 const TY_SERPENT_FRENZY_CHANCE = 0.4, TY_SERPENT_FRENZY_GAP = 200;
 // The array keeps its own cooldown so S can open it while a spirit is still out.
-const TY_ARRAY_COOLDOWN = 12000;
+const TY_ARRAY_COOLDOWN = 10000;
 const _tySerpents = Array.from({ length: 10 }, (_, id) => ({
     id, active: false, x: 0, y: 0, angle: 0, target: null, state: 0, chain: 0,
     nextBite: 0, spawnTime: 0, absorbAt: -1, biteFlashUntil: 0, segX: new Float32Array(10), segY: new Float32Array(10)
