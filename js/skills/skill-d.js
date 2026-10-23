@@ -273,15 +273,18 @@ const SKILLD_SHIP_TIER_MULT = [0, 1, 1.5, 3]; // index by tier (1..3), [0] unuse
 const SKILLD_SHIP_TIER_COLOR = [null, '#00ffff', '#a855f7', '#ff2244']; // cyan / purple / red
 const SKILLD_SHIP_BASE_HP = 560, SKILLD_SHIP_BASE_BOLT_DMG = 100,
       SKILLD_SHIP_BASE_CONTACT_DMG = 100, SKILLD_SHIP_BASE_CONTACT_PCT = 0.08;
+// Ships fly at 1.6x the minion pace but only fire once their target's edge is
+// within SKILLD_SHIP_FIRE_RANGE, so most bolts land on the final approach.
+const SKILLD_SHIP_SPEED_MULT = 1.6, SKILLD_SHIP_FIRE_RANGE = 220;
 
 function spawnSkillDSpaceship(x, y) {
-    // Same size/speed formula as spawnMarchosiasMinion (js/entities.js) —
-    // minion-scale, not bigger/faster.
+    // Same size formula as spawnMarchosiasMinion (js/entities.js); speed is
+    // that minion pace times SKILLD_SHIP_SPEED_MULT.
     window.skillDSpaceships.push({
         x, y, size: 20 + Math.random() * 10,
         tier: 1, hp: SKILLD_SHIP_BASE_HP, maxHp: SKILLD_SHIP_BASE_HP,
         color: SKILLD_SHIP_TIER_COLOR[1],
-        speed: (1 + Math.random() * 2) * 0.8 * 2.10,
+        speed: (1 + Math.random() * 2) * 0.8 * 2.10 * SKILLD_SHIP_SPEED_MULT,
         target: _skillDFindHighestHpTarget(), shootTimer: 250,
     });
 }
@@ -355,7 +358,10 @@ function updateSkillDSpaceships(deltaTime) {
             ship.y += (dy / dist) * ship.speed * dt;
 
             ship.shootTimer -= deltaTime;
-            if (ship.shootTimer <= 0 && dist > ship.size / 2 + ship.target.size / 2) {
+            // Out of range the ship only closes in; the timer still runs, so it
+            // fires as soon as the target comes within reach.
+            const inRange = dist - ship.target.size / 2 <= SKILLD_SHIP_FIRE_RANGE;
+            if (ship.shootTimer <= 0 && inRange && dist > ship.size / 2 + ship.target.size / 2) {
                 ship.shootTimer = 250 / _gfjFireRate;
                 window.skillDBolts.push({ x1: ship.x, y1: ship.y, x2: ship.target.x, y2: ship.target.y, life: 1.0 });
                 dealDamage(ship.target, { damage: Math.round(SKILLD_SHIP_BASE_BOLT_DMG * mult), isTrueDamage: true, _statSrc: 'Skill D: Galactic Spaceships' });
