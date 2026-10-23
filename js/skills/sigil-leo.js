@@ -185,9 +185,10 @@ function _leoSyncCastAudio(e, frozen) {
 // stone (_leoStone) and shatters it.
 function _leoFreezeEnemy(e, now, deltaTime) {
     const stone = window._leoPetrifyMs > 0 && _leoCanPetrify(e);
-    const stunned = !stone && (e._piscesStunMs > 0 || e._capBuryMs > 0) && _leoCanPetrify(e);
+    const stunned = !stone && (e._piscesStunMs > 0 || e._capBuryMs > 0 || (e._tyLiftMs > 0 && !_capIsGoliath(e))) && _leoCanPetrify(e);
     if (e._piscesStunMs > 0) e._piscesStunMs = Math.max(0, e._piscesStunMs - deltaTime);
     if (e._capBuryMs > 0) e._capBuryMs = Math.max(0, e._capBuryMs - deltaTime);
+    if (e._tyLiftMs > 0) e._tyLiftMs = Math.max(0, e._tyLiftMs - deltaTime);
     const frozen = stone || stunned;
     if (e._thanMenhFrozen && e._leoPetrifyLastAt != null) _leoShiftClocks(e, now - e._leoPetrifyLastAt);
     if (frozen && e._thanMenhFrozen && Number.isFinite(e._arcBarrierReviveAt)) e._arcBarrierReviveAt += deltaTime;

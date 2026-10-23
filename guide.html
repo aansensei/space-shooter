@@ -1120,6 +1120,17 @@
 <div class="sfc-hint">click to return</div>
 </div></div></div>
 
+<div class="sfc" onclick="this.classList.toggle('flipped')" style="--sc:#9B5CFF;--scl:rgba(155,92,255,0.12)">
+<div class="sfc-inner"><div class="sfc-front">
+<canvas class="sfc-glyph-cv" data-sigil="ty"></canvas><div class="sfc-name">UMBRAL SERPENT</div><div class="sfc-el">Venomancy</div><div class="sfc-atk"><span>ATK <b>+5%</b></span></div><div class="sfc-theme">SEAL OF UMBRAL FIRE</div>
+<div class="sfc-buffs">
+<div class="sfc-row"><span class="sbt atk">ATK</span><b>Umbral Devour</b> <span class="sbd">Charge in 10s. Kills hasten charge by 0.3s. Your next bullet hit triggers 4 bites (60% ATK each), then 4 piercing shards (45% ATK, repeated hits deal 25%). Gain 50% speed for 1s and refund 1s on D and S.</span></div>
+<div class="sfc-row"><span class="sbt spec">SPEC</span><b>Serpent Array</b> <span class="sbd">Skill S opens a 170px array that pulls enemies in (Dominant) for 20% ATK every 0.25s for 1.25s, then 300% ATK + 1.5% Max HP and 1.25s Dominant. Summon 10 serpents for 8s (35% ATK per 0.6s, 40% chance to latch on for 3 bites in a row, kills extend 2s up to 12s, bites charge 3%). Gain a one-hit shield, restored after 12 bites, and slow nearby enemies 50% for 2s. Each swarm bite grants the player side +1% damage, up to 40%. After 2s without a bite, stacks fade to zero over 1s.</span></div>
+</div><div class="sfc-hint">click to read lore</div>
+</div><div class="sfc-back"><canvas class="sfc-glyph-sm-cv" data-sigil="ty"></canvas>
+<div class="sfc-story">Among extinguished stars, the Umbral Serpent inscribes a seal upon the void. Ten serpents emerge from its eye to intercept the approaching enemy. Every bite kindles strength throughout the formation.</div>
+<div class="sfc-hint">click to return</div></div></div></div>
+
 </div>`,
 
       enemies: `
@@ -1322,8 +1333,23 @@
 <div class="card"><h2 style="color:var(--cyan)">UPDATE LOG</h2><div class="sub">FULL VERSION HISTORY · NEWEST FIRST</div>
 <div class="ul-hero" oncontextmenu="return false"><img src="assets/images/site/update-log-hero.png" draggable="false" alt="Pisces: Space Journey"></div></div>
 
+<div class="ul-entry" style="--ul-accent:#9B5CFF">
+<div class="ul-head"><span class="ul-ver">v6.9.5: UMBRAL SERPENT</span><span class="ul-badge">CURRENT</span></div>
+<div class="ul-date">2026-10-23 &middot; Dực Hỏa Tinh Quan</div>
+<p class="det-short ul-summary">Umbral Serpent joins the Vietnamese Zodiac with charged black flame, a summoning array, ten hunting serpents and a scale shield.</p>
+<ul class="det-full">
+<li><span class="ul-tag tag-buff">BUFF</span> <b>Serpent Array:</b> each landed swarm bite grants all player allies +1% damage, up to 40%. After 2s without a bite, the current bonus fades evenly to zero over 1s.</li>
+<li><span class="ul-tag tag-buff">BUFF</span> <b>Serpent Frenzy:</b> each hunt has a 40% chance for the serpent to latch on and bite its prey 3 times, 0.2s apart, before it returns to the ship.</li>
+<li><span class="ul-tag tag-buff">BUFF</span> <b>Serpent Array pull:</b> the pull is now Dominant, so CC Immune enemies are dragged into the seal too. Goliath still holds its ground.</li>
+<li><span class="ul-tag tag-feat">FEAT</span> <b>Umbral Devour:</b> 10s charge, four 60% ATK bites, four 45% ATK piercing shards, a speed burst and D/S cooldown refunds.</li>
+<li><span class="ul-tag tag-feat">FEAT</span> <b>Serpent Array:</b> Skill S opens a 170px seal that pulls, erupts for 300% ATK + 1.5% Max HP and applies 1.25s Dominant. Ten serpents hunt for 8s, extend their time through kills and rebuild a one-hit Scale Shield after twelve bites.</li>
+<li><span class="ul-tag tag-feat">FEAT</span> <b>Array vortex:</b> a swirling abyss now spins under the seal, tightens as it pulls, sends a ring inward on every damage tick and flares open with eight rays when the array erupts.</li>
+<li><span class="ul-tag tag-perf">PERF</span> <b>Effects:</b> fixed serpent and shard pools, cached glow sprites and reduced detail at lower graphics levels. Advanced Graphics controls lighting, particles, trails and flashes.</li>
+<li><span class="ul-tag tag-global">GLOBAL</span> <b>Guide and Voyage Recap:</b> English and Vietnamese blessing text, separate Umbral Serpent damage labels and dedicated debug controls.</li>
+</ul></div>
+
 <div class="ul-entry" style="--ul-accent:#4d9b2a">
-<div class="ul-head"><span class="ul-ver">v6.9.4: MOUNTAINFALL</span><span class="ul-badge">CURRENT</span></div>
+<div class="ul-head"><span class="ul-ver">v6.9.4: MOUNTAINFALL</span></div>
 <div class="ul-date">2026-10-19 &middot; Capricorn is rebuilt around Compound Interest and Mountainfall, Kanade's Endless Echo gets a grander cast, every flight ends on a Voyage Recap, and the game runs lighter</div>
 <p class="det-short ul-summary">Avalanche is folded into Compound Interest, whose stacks now show as an ink circle around the ship, and Capricorn's new Mountainfall drops an ink wash mountain on the densest group, buries it and leaves three rock screens that stop every enemy attack for 4s. Kanade's gate, cast and ghosts in Goliath's Endless Echo are redrawn, the hyperjump always plays in full, and the update loop and music memory are lighter. The old Game Over screen and Match Stat panel give way to the Voyage Recap, a full flight log with your sigils, kills, damage breakdown and a battle timeline, plus a share image that carries your own callsign.</p>
 <ul class="det-full">
@@ -2622,6 +2648,17 @@
 <div class="sfc-story">Khi đêm tưởng như không bao giờ hết, Mão Nhật Tinh Quan ngẩng đầu cất tiếng gáy. Bọ Cạp Tinh hiện nguyên hình. Cây kim thêu luyện trong mắt ông phá kim quang của Rết Tinh. Bình minh không cần ngai vàng hay quân đội, chỉ cần một tiếng gọi vang rõ giữa màn đêm.</div>
 <div class="sfc-hint">click để quay lại</div>
 </div></div></div>
+
+<div class="sfc" onclick="this.classList.toggle('flipped')" style="--sc:#9B5CFF;--scl:rgba(155,92,255,0.12)">
+<div class="sfc-inner"><div class="sfc-front">
+<canvas class="sfc-glyph-cv" data-sigil="ty"></canvas><div class="sfc-name">DỰC HỎA TINH QUAN</div><div class="sfc-el">Độc Xà Thuật</div><div class="sfc-atk"><span>ATK <b>+5%</b></span></div><div class="sfc-theme">HẮC VIÊM PHONG ẤN</div>
+<div class="sfc-buffs">
+<div class="sfc-row"><span class="sbt atk">ATK</span><b>Hắc Viêm Phệ Hồn</b> <span class="sbd">Nạp Hắc Viêm trong 10s. Mỗi hạ gục rút 0,3s. Đạn tàu trúng đích kích hoạt 4 nhát cắn (mỗi nhát 60% ATK), rồi 4 mảnh xuyên (45% ATK, trúng lặp nhận 25%). Tàu tăng 50% tốc độ trong 1s, hồi chiêu D và S giảm 1s.</span></div>
+<div class="sfc-row"><span class="sbt spec">SPEC</span><b>Vạn Xà Triệu Trận</b> <span class="sbd">Skill S mở trận 170px: hút kẻ địch vào tâm (Áp Chế) và gây 20% ATK mỗi 0,25s trong 1,25s, rồi nổ 300% ATK + 1,5% Max HP và hất tung 1,25s (Áp Chế). Gọi 10 rắn trong 8s, mỗi con cắn 35% ATK mỗi 0,6s, có 40% cơ hội bám mồi cắn liền 3 nhát rồi mới quay về tàu. Rắn hạ gục kéo dài 2s, tối đa 12s. Mỗi nhát nạp 3% Hắc Viêm. Khiên chặn 1 đòn, dựng lại sau 12 nhát cắn. Sóng quanh tàu làm chậm 50% trong 2s. Mỗi nhát cắn của bầy rắn tăng 1% sát thương cho toàn phe người chơi, tối đa 40%. Sau 2s không cắn trúng, tầng giảm đều về 0 trong 1s.</span></div>
+</div><div class="sfc-hint">click để đọc truyền thuyết</div>
+</div><div class="sfc-back"><canvas class="sfc-glyph-sm-cv" data-sigil="ty"></canvas>
+<div class="sfc-story">Giữa vùng sao tắt, Dực Hỏa Tinh Quan khắc vòng ấn lên chân không. Mười bóng rắn rời tâm trận, mang hắc viêm đến những kẻ đang áp sát. Mỗi nhát cắn thắp thêm sức mạnh cho cả đội hình.</div>
+<div class="sfc-hint">click để quay lại</div></div></div></div>
 
 </div>`,
 
@@ -6245,7 +6282,7 @@
         // (language switch, etc.) doesn't re-create/re-decode the Images.
         if (!window._guideZodiacImgs) {
           window._guideZodiacImgs = {};
-          ['aries', 'taurus', 'gemini', 'cancer', 'leo', 'virgo', 'libra', 'scorpio', 'sagittarius', 'capricorn', 'aquarius', 'pisces', 'than', 'dau'].forEach(zid => {
+          ['aries', 'taurus', 'gemini', 'cancer', 'leo', 'virgo', 'libra', 'scorpio', 'sagittarius', 'capricorn', 'aquarius', 'pisces', 'than', 'dau', 'ty'].forEach(zid => {
             const img = new Image();
             img.src = 'assets/images/game/zodiac/zodiac_' + zid + '.png';
             img.decode().catch(() => {});

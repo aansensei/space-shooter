@@ -583,6 +583,18 @@ window.debugSetYuukiBonus = function () {
         </div>
         <div style="opacity:0.5; font-size:10px;">Shown while Leo is equipped. "Release" goes through the real Space path (Cancer first if both are ready, blocked while silenced). "Petrify 3s now" skips the meter but still starts the 8s rest; "Wave Petrify 5s" is the wave start version with no rest. "Clear State" empties the meter, rest, petrify and every Burn.</div>
       </div>
+      <div id="dbgTySection" style="margin-top:8px;display:none;">
+        <div class="dbg-h">UMBRAL SERPENT</div>
+        <div id="dbgTyState" style="font-size:10px;"></div>
+        <div class="dbg-row" style="flex-wrap:wrap;">
+          <button class="dbg-btn" onclick="debugTyAction('fill')">Fill Umbral Flame</button>
+          <button class="dbg-btn" onclick="debugTyAction('detonate')">Detonate On Nearest</button>
+          <button class="dbg-btn" onclick="debugTyAction('array')">Open Serpent Array</button>
+          <button class="dbg-btn" onclick="debugTyAction('spawn')">Spawn 10 Serpents</button>
+          <button class="dbg-btn" onclick="debugTyAction('break')">Break Scale Shield</button>
+          <button class="dbg-btn" onclick="debugTyAction('restore')">Restore Scale Shield</button>
+        </div>
+      </div>
       <div id="dbgDauSection" style="margin-top:8px; padding-top:8px; border-top:1px solid rgba(0,229,255,0.12); display:none;">
         <div class="dbg-h" style="font-size:10px;">DAWN HERALD (DAU), DAYBREAK CROW</div>
         <div class="dbg-row" style="flex-wrap:wrap;">
@@ -1544,13 +1556,32 @@ window.debugSetYuukiBonus = function () {
         if (typeof _dauTriggerCrow === 'function') _dauTriggerCrow();
     };
     // Each sigil's debug section shows only while that sigil is equipped.
-    const _DBG_SIGIL_SECTIONS = [['dbgLeoSection', 'leo'], ['dbgDauSection', 'dau'], ['dbgPiscesSection', 'pisces'], ['dbgCapricornSection', 'capricorn']];
+    const _DBG_SIGIL_SECTIONS = [['dbgTySection', 'ty'], ['dbgLeoSection', 'leo'], ['dbgDauSection', 'dau'], ['dbgPiscesSection', 'pisces'], ['dbgCapricornSection', 'capricorn']];
+    window.debugTyAction = function (action) {
+        if (!_hasSigil('ty')) return;
+        if (action === 'fill') _tyChargeFlame(10000);
+        if (action === 'detonate') { _tyChargeFlame(10000); _tyDetonate(_tyNearest(player.x, player.y, Infinity, false)); }
+        if (action === 'array') _tyOpenArray();
+        if (action === 'spawn') {
+            window._tySwarmEnd = window._tyClock + 8000; window._tySwarmLimit = window._tyClock + 12000;
+            _tySpawnSerpents(player.x, player.y); _tyRestoreShield();
+        }
+        if (action === 'break') _tyBlockHit({ x: player.x + 80, y: player.y });
+        if (action === 'restore') _tyRestoreShield();
+        _refreshSigilSections();
+    };
     function _refreshSigilSections() {
         for (const [id, sigil] of _DBG_SIGIL_SECTIONS) {
             const section = document.getElementById(id);
             if (section) section.style.display = typeof _hasSigil === 'function' && _hasSigil(sigil) ? '' : 'none';
         }
         _refreshCapricornStateDisplay();
+        const state = document.getElementById('dbgTyState');
+        if (state && _hasSigil('ty')) {
+            let alive = 0; for (let i = 0; i < _tySerpents.length; i++) if (_tySerpents[i].active) alive++;
+            const phase = !_tyArray.active ? 'idle' : _tyArray.exploded ? 'burst' : window._tyClock - _tyArray.start < 180 ? 'opening' : 'pull';
+            state.textContent = 'Flame: ' + Math.round(window._tyCharge / 100) + '% · Allied damage: +' + window._tyFangStacks.toFixed(1) + '% · Serpents: ' + alive + ' (' + (Math.max(0, window._tySwarmEnd - window._tyClock) / 1000).toFixed(1) + 's) · Shield: ' + (_tyShield.state === 1 || _tyShield.state === 3 ? 'ready' : 'broken') + ' · Bites: ' + _tyShield.bites + '/12 · Array: ' + phase;
+        }
     }
     function _refreshCapricornStateDisplay() {
         const el = document.getElementById('dbgCapricornState');

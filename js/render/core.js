@@ -2410,6 +2410,7 @@ function draw(deltaTime) {
     }
 
     if (gameState === "playing") {
+        _drawTyGround();
         sentinels.forEach(drawSentinel);
         // Vanguard Network threads (5+ sentinels)
         if (sentinels.length >= 5) _drawVanguardThreads();
@@ -2504,10 +2505,12 @@ function draw(deltaTime) {
         drawPlayer();
         if (typeof drawSigilShipUpgrades === 'function') drawSigilShipUpgrades();
         _capReserveRingSpace();
+        _tyReserveRingSpace();
         if (typeof _drawTidalSurgeMeter === 'function') _drawTidalSurgeMeter();
         if (typeof _drawLeoFateMeter === 'function') _drawLeoFateMeter();
         _drawCapricornMeter();
         _drawCapricornStackRing();
+        _drawTyActors();
         if (typeof _drawLeoReadyAura === 'function') _drawLeoReadyAura();
         if (typeof _drawCancerReadyAura === 'function') _drawCancerReadyAura();
         if (typeof _drawGreatSageReadyAura === 'function') _drawGreatSageReadyAura();

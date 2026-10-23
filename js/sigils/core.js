@@ -15,7 +15,7 @@ const SIGIL_ORDER = ['aries','taurus','gemini','cancer','leo','virgo',
 // currently just Great Sage) - appended into the random pool at run start
 // alongside SIGIL_ORDER (see window._sigilPool in main.js) rather than
 // interleaved into that fixed sequence.
-const SIGIL_EXTRA = ['than', 'dau'];
+const SIGIL_EXTRA = ['than', 'dau', 'ty'];
 
 // Vietnamese display text for the sigil picker (name/element/buff name/buff
 // desc only) — SIGIL_DEFS above stays English and is what all game LOGIC
@@ -1213,7 +1213,7 @@ function _drawShipEntry(p, elapsed) {
 // Cached per (sigil, color) since the same pair redraws every frame.
 const _zodiacGlyphImgs = {};
 const _zodiacTintCache = {};
-['aries', 'taurus', 'gemini', 'cancer', 'leo', 'virgo', 'libra', 'scorpio', 'sagittarius', 'capricorn', 'aquarius', 'pisces', 'than', 'dau'].forEach(id => {
+['aries', 'taurus', 'gemini', 'cancer', 'leo', 'virgo', 'libra', 'scorpio', 'sagittarius', 'capricorn', 'aquarius', 'pisces', 'than', 'dau', 'ty'].forEach(id => {
     const img = new Image();
     img.src = 'assets/images/game/zodiac/zodiac_' + id + '.png';
     img.decode().catch(() => {});

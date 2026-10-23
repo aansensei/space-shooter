@@ -5,7 +5,7 @@
 //
 // One cache, versioned by CACHE_NAME. Bump the version string whenever the
 // CORE_FILES list changes so old clients pick up the new set on next visit.
-const CACHE_VERSION = 'v517';
+const CACHE_VERSION = 'v522';
 const CACHE_NAME = 'pisces-cache-' + CACHE_VERSION;
 
 // App shell — everything needed for the game to boot and run at all.
@@ -65,6 +65,7 @@ const CORE_FILES = [
     'assets/images/game/zodiac/zodiac_taurus.png',
     'assets/images/game/zodiac/zodiac_than.png',
     'assets/images/game/zodiac/zodiac_dau.png',
+        'assets/images/game/zodiac/zodiac_ty.png',
     'assets/images/game/zodiac/zodiac_virgo.png',
     'assets/video/frozen-realm.mp4',
     'assets/images/game/icons/blood-arrow-stack.png',
@@ -76,6 +77,7 @@ const CORE_FILES = [
     'assets/images/game/sigils/leo-meter-frame.png',
     'assets/images/game/sigils/capricorn-meter-frame.png',
     'assets/images/game/sigils/capricorn-mountain.png',
+    'assets/images/game/sigils/ty-vortex-abyss.png',
     'assets/images/game/sigils/great-sage-gem-frame.png',
     'assets/images/game/enemies/marchosias-hexagon-armor.png',
     'assets/images/game/enemies/thaelis-cocoon.png',
@@ -116,6 +118,7 @@ const CORE_FILES = [
     'js/sigils/pisces.js',
     'js/sigils/than.js',
     'js/sigils/dau.js',
+        'js/sigils/ty.js',
     'js/yuusha-party.js',
     'js/skills/skill-a.js',
     'js/skills/skill-s-spirit.js',
@@ -126,6 +129,7 @@ const CORE_FILES = [
     'js/skills/sigil-dau.js',
     'js/skills/sigil-pisces.js',
     'js/skills/sigil-capricorn.js',
+        'js/skills/sigil-ty.js',
     'js/skills/skill-f.js',
     'js/skills/skill-g.js',
     'js/skills/skill-shift.js',
@@ -159,6 +163,7 @@ const CORE_FILES = [
     'js/render/sigil-dau.js',
     'js/render/sigil-pisces.js',
     'js/render/sigil-capricorn.js',
+        'js/render/sigil-ty.js',
     'js/render/skill-g.js',
     'js/render/skill-s-spirit.js',
 ];

@@ -570,6 +570,16 @@
     // supports unlimited overlapping instances natively) so it's unused now,
     // kept only so the many call sites below don't need touching.
     // bypass routes straight past the duck/filter chain (see shift-hold).
+    function _makeTyPool(key, fallback) {
+        const src = 'assets/audio/sfx/' + key + '.mp3';
+        _makePool(key, 'assets/audio/sfx/' + fallback);
+        if (!actx) return;
+        fetch(src).then(r => r.ok ? r.arrayBuffer() : null).then(ab => ab ? actx.decodeAudioData(ab) : null).then(buf => {
+            if (!buf) return;
+            _decodedBuffers[src] = buf; _bufferCache[src] = Promise.resolve(buf); state.pool[key].src = src;
+        }).catch(() => {});
+    }
+
     function _makePool(key, src, size = 3, bypass = false) {
         _decodeBuffer(src);
         state.pool[key] = { src, bypass };
@@ -1069,6 +1079,13 @@
         _makePool('tesla-bolt-launch', 'assets/audio/sfx/tesla-bolt-launch.mp3', 5);
         _makePool('skill-g-activate', 'assets/audio/sfx/skill-g-activate.mp3', 1);
         _makePool('skill-a-activate', 'assets/audio/sfx/skill-a-activate.mp3', 2);
+        _makeTyPool('ty-flame-full', 'skill-s-summon.mp3');
+        _makeTyPool('ty-devour', 'dimension-break.mp3');
+        _makeTyPool('ty-array-open', 'skill-s-summon.mp3');
+        _makeTyPool('ty-array-burst', 'goliath-verdict-impact.mp3');
+        _makeTyPool('ty-serpents-rise', 'skill-s-summon.mp3');
+        _makeTyPool('ty-bite', 'enemy-hit.wav');
+        _makeTyPool('ty-scale-break', 'shield-hit.wav');
         _makePool('skill-s-summon', 'assets/audio/sfx/skill-s-summon.mp3', 2);
         _makePool('skill-a-orb-hit',  'assets/audio/sfx/skill-a-orb-hit.mp3',  4);
         _makePool('skill-a-orb-lock', 'assets/audio/sfx/skill-a-orb-lock.mp3', 4);

@@ -2322,13 +2322,13 @@
                         'pause.peekHint': 'Click/Tap anywhere or press Esc to return',
                         'confirmMenu.message': 'Abort the voyage? Your flight log will be sealed here.',
                         'whatsNew.title': "What's New",
-                        'whatsNew.release': 'v6.9.4 · Mountainfall',
-                        'whatsNew.i1': '<b>Capricorn rebuilt:</b> Compound Interest stacks feed Mountainfall, a mountain that buries the densest enemy group and leaves rock screens that stop every enemy attack.',
-                        'whatsNew.i2': '<b>Voyage Recap:</b> every flight ends on a full flight log, with a share image that carries your callsign.',
-                        'whatsNew.i3': '<b>Settings rebuilt:</b> Advanced Graphics switches, three background detail levels, Show FPS and more.',
-                        'whatsNew.i4': '<b>Harder runs:</b> you start with 10 lives and can never hold more than 12.',
-                        'whatsNew.i5': "<b>Bigger moments:</b> Kanade's Endless Echo has a grander cast, and felling a boss freezes the battle for a beat.",
-                        'whatsNew.i6': '<b>Feel:</b> every tap leaves a glowing mark and buttons sink when pressed.',
+                        'whatsNew.release': 'v6.9.5 · Umbral Serpent',
+                        'whatsNew.i1': "<b>Umbral Serpent:</b> a Venomancy sigil joins the Vietnamese Zodiac with Umbral Devour and Serpent Array.",
+                        'whatsNew.i2': "<b>Umbral Devour:</b> charge black flame, strike with four bites and release four piercing shards.",
+                        'whatsNew.i3': "<b>Serpent Array:</b> Skill S tears open a violet seal, gathers enemies and erupts with Dominant control.",
+                        'whatsNew.i4': "<b>Ten serpents:</b> a hunting swarm feeds your flame and extends its lifetime with kills.",
+                        'whatsNew.i5': "<b>Scale Shield:</b> block one hit and rebuild the scales after twelve bites.",
+                        'whatsNew.i6': "<b>Graphics:</b> precise seals, dark flame and impact cracks follow Advanced Graphics settings.",
                         'whatsNew.log': 'Full Update Log',
                         'whatsNew.ok': 'Got It',
                         'confirmMenu.yes': 'YES',
@@ -2405,13 +2405,13 @@
                         'pause.peekHint': 'Click/Chạm vào bất kỳ đâu hoặc nhấn Esc để quay lại',
                         'confirmMenu.message': 'Dừng chuyến bay tại đây? Nhật ký chuyến bay sẽ khép lại.',
                         'whatsNew.title': 'Có Gì Mới',
-                        'whatsNew.release': 'v6.9.4 · Mountainfall',
-                        'whatsNew.i1': '<b>Ma Kết làm lại:</b> tầng Lãi Kép nạp cho Thái Sơn Áp Đỉnh, ngọn núi đè lên đám địch dày nhất và dựng bình phong đá chặn mọi đòn tấn công.',
-                        'whatsNew.i2': '<b>Nhật Ký Chuyến Bay:</b> mỗi chuyến bay khép lại bằng bảng tổng kết đầy đủ, kèm ảnh chia sẻ in biệt danh của bạn.',
-                        'whatsNew.i3': '<b>Cài Đặt làm lại:</b> Đồ Họa Nâng Cao, ba mức chi tiết nền, Hiện FPS và nhiều tùy chọn khác.',
-                        'whatsNew.i4': '<b>Khó hơn:</b> bắt đầu với 10 mạng và không bao giờ giữ quá 12 mạng.',
-                        'whatsNew.i5': '<b>Khoảnh khắc lớn hơn:</b> Kanade thi triển Endless Echo hoành tráng hơn, hạ boss thì trận đấu khựng lại một nhịp.',
-                        'whatsNew.i6': '<b>Cảm giác:</b> chạm màn hình để lại vòng sáng, nút bấm lõm xuống khi ấn.',
+                        'whatsNew.release': 'v6.9.5 · Umbral Serpent',
+                        'whatsNew.i1': "<b>Dực Hỏa Tinh Quan:</b> Sigil hệ Độc Xà Thuật mới thuộc bộ con giáp Việt với Hắc Viêm Phệ Hồn và Vạn Xà Triệu Trận.",
+                        'whatsNew.i2': "<b>Hắc Viêm Phệ Hồn:</b> nạp hắc viêm, tung bốn nhát cắn rồi phóng bốn mảnh xuyên.",
+                        'whatsNew.i3': "<b>Vạn Xà Triệu Trận:</b> Skill S mở pháp trận tím, hút kẻ địch và bùng nổ Áp Chế.",
+                        'whatsNew.i4': "<b>Mười rắn hắc viêm:</b> bầy rắn săn mồi nạp Hắc Viêm và kéo dài thời gian khi hạ gục.",
+                        'whatsNew.i5': "<b>Xà Lân Thuẫn:</b> chặn một đòn và dựng lại sau mười hai nhát cắn.",
+                        'whatsNew.i6': "<b>Hình ảnh:</b> vòng ấn, hắc viêm và vảy nứt tuân theo Đồ Họa Nâng Cao.",
                         'whatsNew.log': 'Xem Chi Tiết',
                         'whatsNew.ok': 'Đã Hiểu',
                         'confirmMenu.yes': 'CÓ',
@@ -3888,6 +3888,7 @@
             window._returnToMainMenu = function () {
                 if (typeof _leoReset === 'function') _leoReset();
                 if (typeof _dauReset === 'function') _dauReset();
+                _tyReset();
                 const _po = document.getElementById('pause-overlay');
                 if (_po) _po.style.display = 'none';
                 gamePaused = false;
@@ -4198,12 +4199,12 @@
 
     <script src="js/vendor/pixi.min.js"></script>
     <script src="js/canvas-guard.js?v=20261008a"></script>
-    <script src="js/audio.js?v=20261019echo2"></script>
-    <script src="js/offline.js?v=20261020o"></script>
+    <script src="js/audio.js?v=20261023b"></script>
+    <script src="js/offline.js?v=20261023c"></script>
     <script src="js/background.js?v=20261020o"></script>
     <script src="js/config.js?v=20261020k"></script>
     <script src="js/timeline-distortion.js?v=20261018c"></script>
-    <script src="js/sigils/core.js?v=20261020k"></script>
+    <script src="js/sigils/core.js?v=20261023b"></script>
     <script src="js/sigils/aries.js?v=20261012c"></script>
     <script src="js/sigils/taurus.js?v=20261012c"></script>
     <script src="js/sigils/gemini.js?v=20261012c"></script>
@@ -4218,8 +4219,9 @@
     <script src="js/sigils/pisces.js?v=20261014a"></script>
     <script src="js/sigils/than.js?v=20261012c"></script>
     <script src="js/sigils/dau.js?v=20261018a"></script>
+    <script src="js/sigils/ty.js?v=20261023c"></script>
     <script src="js/yuusha-party.js?v=20261019a"></script>
-    <script src="js/entities/core.js?v=20261020n"></script>
+    <script src="js/entities/core.js?v=20261023b"></script>
     <script src="js/entities/sentinel.js?v=20261008a"></script>
     <script src="js/entities/veilshroud.js?v=20261019a"></script>
     <script src="js/entities/uriel.js?v=20261019a"></script>
@@ -4230,14 +4232,15 @@
     <script src="js/entities/raphael.js?v=20261019a"></script>
     <script src="js/entities/goliath.js?v=20261019a"></script>
     <script src="js/skills/skill-a.js?v=20261012a"></script>
-    <script src="js/skills/skill-s-spirit.js?v=20261014a"></script>
-    <script src="js/skills/skill-d.js?v=20261023a"></script>
+    <script src="js/skills/skill-s-spirit.js?v=20261023b"></script>
+    <script src="js/skills/skill-d.js?v=20261023b"></script>
     <script src="js/skills/sigil-great-sage.js?v=20261010a"></script>
     <script src="js/skills/sigil-cancer.js?v=20260914b"></script>
-    <script src="js/skills/sigil-leo.js?v=20261018c"></script>
+    <script src="js/skills/sigil-leo.js?v=20261023b"></script>
     <script src="js/skills/sigil-dau.js?v=20261013p"></script>
     <script src="js/skills/sigil-pisces.js?v=20261014a"></script>
     <script src="js/skills/sigil-capricorn.js?v=20261019a"></script>
+    <script src="js/skills/sigil-ty.js?v=20261023e"></script>
     <script src="js/skills/skill-f.js?v=20261014a"></script>
     <script src="js/skills/skill-g.js?v=20261010b"></script>
     <script src="js/skills/skill-shift.js?v=20260909d"></script>
@@ -4246,7 +4249,7 @@
     <script src="js/skills/sigil-gemini.js?v=20260911a"></script>
     <script src="js/skills/sigil-aries.js?v=20260902a"></script>
     <script src="js/skills/sigil-virgo.js?v=20260911a"></script>
-    <script src="js/render/core.js?v=20261020i"></script>
+    <script src="js/render/core.js?v=20261023b"></script>
     <script src="js/render/kanade-face.js?v=20261015c"></script>
     <script src="js/render/kanade-cutscene.js?v=20261020i"></script>
     <script src="js/render/fx.js?v=20261020h"></script>
@@ -4270,19 +4273,20 @@
     <script src="js/render/sigil-dau.js?v=20261013p"></script>
     <script src="js/render/sigil-pisces.js?v=20261020i"></script>
     <script src="js/render/sigil-capricorn.js?v=20261020i"></script>
+    <script src="js/render/sigil-ty.js?v=20261023d"></script>
     <script src="js/render/skill-g.js?v=20261013n"></script>
     <script src="js/render/skill-buttons.js?v=20261020g"></script>
-    <script src="js/recap.js?v=20261020o"></script>
+    <script src="js/recap.js?v=20261023b"></script>
     <script src="js/pixi-renderer.js?v=20261020i"></script>
     <script src="js/input.js?v=20261019r"></script>
-    <script src="js/main.js?v=20261020m"></script>
+    <script src="js/main.js?v=20261023b"></script>
     <script>
         // Debug/cheat console is a local-dev-only tool (spawn/kill any
         // enemy, force skills, edit HP, etc.) — never fetch/load it on the
         // real deployed site, only when actually running locally.
         if (location.hostname === 'localhost' || location.hostname === '127.0.0.1' || location.protocol === 'file:') {
             const _dbgScript = document.createElement('script');
-            _dbgScript.src = 'js/debug-console.js?v=20261020k';
+            _dbgScript.src = 'js/debug-console.js?v=20261023b';
             document.head.appendChild(_dbgScript);
         }
     </script>
@@ -5697,7 +5701,7 @@
     <script>
         (function () {
             // Bump with each update log entry that should greet returning players.
-            const RELEASE = '6.9.4';
+            const RELEASE = '6.9.5';
             const ITEMS = 6;
             function show() {
                 const ov = document.createElement('div');

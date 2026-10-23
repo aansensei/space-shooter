@@ -129,6 +129,10 @@ const I18N = {
 // matching the names the Guide and the sigils already use. Enemy names and
 // enemy skill names stay in English, as they do in the Guide.
 const LABEL_VI = {
+  "Umbral Serpent: Devour": "Dực Hỏa: Phệ Hồn",
+  "Umbral Serpent: Shards": "Dực Hỏa: Mảnh Hắc Viêm",
+  "Umbral Serpent: Array": "Dực Hỏa: Pháp Trận",
+  "Umbral Serpent: Serpents": "Dực Hỏa: Bầy Rắn",
   "Player Auto-Fire": "Đạn Thường",
   "Player Charged Shot": "Bắn Sạc",
   "Sentinel Auto-Fire": "Sentinel: Đạn Thường",

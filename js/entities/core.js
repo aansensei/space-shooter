@@ -13,6 +13,7 @@ function _hasAnyDebuff(enemy) {
     if (enemy._inDimensionalRift) return true;
     if (window._sthBurning && window._sthBurning.has(enemy)) return true;
     if (typeof _dauHasDaybreak === 'function' && _dauHasDaybreak(enemy)) return true;
+    if (enemy._tySlowEnd > window._tyClock || enemy._tyLiftMs > 0) return true;
     return false;
 }
 
@@ -127,6 +128,7 @@ function handleEnemyKill(enemy) {
     _recordKill(_enemyTypeLabel(enemy.type));
     _leoOnEnemyKill(enemy);
     _dauOnEnemyKill(enemy);
+    _tyOnEnemyKill(enemy);
     if (window.AudioMgr) {
         window.AudioMgr.playSfxAt('enemy-death', enemy.x, enemy.y);
         // Layered on top of the generic death sfx for enemies killed by
@@ -489,14 +491,22 @@ function addExplosion(x, y, size, color = 'orange') {
 // spawnSentinel / destroySentinel / updateSentinels moved to
 // js/entities-sentinel.js (loaded right after this file).
 
+function _isEnemyTargetable(enemy) {
+    return !!enemy && !!enemy.type && !enemy.type.startsWith('enemy_bullet')
+        && enemy.type !== 'abyssal_chain' && enemy.type !== 'veilshroud_echo'
+        && !enemy.inCoronation && !enemy._stealthed;
+}
+
+function _isCCImmune(enemy) {
+    return enemy.type === 'egregor' || enemy.type === 'dargruel' || enemy.type === 'leviathan'
+        || (enemy.type === 'marchosias' && enemy.arcBarrier && enemy.arcBarrier.hp > 0)
+        || (enemy.type === 'raphael' && enemy.raphaelInvulnerable) || !!enemy._urielCCImmune;
+}
+
 function findClosestEnemy(x, y) {
     let closest = null, closestDist = Infinity;
     for (let enemy of enemies) {
-        if (enemy.type.startsWith('enemy_bullet')) continue;
-        if (enemy.type === 'abyssal_chain') continue;
-        if (enemy.type === 'veilshroud_echo') continue;
-        if (enemy.inCoronation) continue; // Coronation: untargetable during animation
-        if (enemy._stealthed) continue; // Uriel mid-Camouflage: fully invisible and untargetable
+        if (!_isEnemyTargetable(enemy)) continue;
         let d = Math.hypot(enemy.x - x, enemy.y - y);
         if (d < closestDist) { closest = enemy; closestDist = d; }
     }
@@ -632,7 +642,7 @@ function dealDamage(enemy, source) {
             // Per AanSensei: trimmed down a bit (was 15%/35%) - still a
             // meaningful chunk of Goliath's HP bar per hit, just not quite
             // as brutal against a Skill F/D-heavy loadout.
-            const dmg = enemy.maxHp * (_blocked ? 0.10 : 0.22) * _adaptiveSkillMult(source, enemy);
+            const dmg = enemy.maxHp * (_blocked ? 0.10 : 0.22) * _adaptiveSkillMult(source, enemy) * _tyDamageMult();
             if (_blocked) createParticles(enemy.x, enemy.y, 14, '#c084fc', 3, 9);
             // This branch computes its own damage and returns before the main
             // pipeline below, so it has to go through the shared lethal path
@@ -993,6 +1003,8 @@ function dealDamage(enemy, source) {
     if (_yuukiBonus > 0) {
         totalDamage = Math.ceil(totalDamage * (1 + _yuukiBonus));
     }
+
+    if (!isSentinel && !isSpaceship) totalDamage = Math.ceil(totalDamage * _tyDamageMult());
 
     // Compound Interest stacks: +0.5% damage each, up to +40%.
     if (_hasBuff('lai_kep') && window._capStacks > 0) {
@@ -1714,6 +1726,7 @@ function dealDamage(enemy, source) {
     // use an intentionally absurd raw value to guarantee a kill through any
     // mitigation, and logging that raw value would blow the leaderboard up
     // to a meaningless number instead of real damage dealt.
+    if (!isSentinel && !isSpaceship && _hitSizeForBurst > 0) _tyOnShipHit(enemy, source);
     _recordStat(
         (isSentinel || isSpaceship) ? 'enemyDamage' : 'allyDamage',
         _classifyDamageSource(source, !(isSentinel || isSpaceship)),

@@ -167,6 +167,8 @@ function playerTakesHit(attacker) {
     }
 
     // ƯU TIÊN 2: Khiên phòng hộ cuối cùng (Final Defense)
+    if (_tyBlockHit(attacker)) return false;
+
     if (finalDefense.playerShield) {
         finalDefense.playerShield = false;
         finalDefense.playerCooldownEnd = performance.now() + 25000;
@@ -474,6 +476,7 @@ function update(rawDeltaTime) {
     _leoBeginFrame(deltaTime, currentTime);
     if (typeof _dauBeginFrame === 'function') _dauBeginFrame(deltaTime, currentTime);
     _capricornBeginFrame(deltaTime);
+    _tyBeginFrame(deltaTime);
 
     // Tích lũy thời gian game thực tế (dùng cho HUD timer và spawn rate)
     gameElapsedTime += deltaTime;
@@ -580,7 +583,7 @@ function update(rawDeltaTime) {
                     } else if (e.type !== 'abyssal_chain') {
                         // Bypass everything: shields, DR, Iron Body, Absolute Shield
                         const maxHp = e.maxHp || e.hp;
-                        const rawDmg = Math.ceil((wave._damage || 10) + maxHp * (wave._percentDamage || 0.99));
+                        const rawDmg = Math.ceil(((wave._damage || 10) + maxHp * (wave._percentDamage || 0.99)) * _tyDamageMult());
                         // Goliath True Form: this raw hp subtraction skips dealDamage
                         // entirely, so it goes through the shared lethal path
                         // directly - Unbroken Will, the 1 HP floor and the death
@@ -821,8 +824,9 @@ function update(rawDeltaTime) {
     // phone widens the world by _hudScale, so the ship speeds up by the same
     // ratio and still crosses the screen in the same time.
     const _phoneMoveMult = window._deviceTier === 'phone' ? 0.90 * (window._hudScale || 1) : 1;
-    if (keys.left && player.x > player.width / 2 && !player._rooted) player.x -= player.speed * _phoneMoveMult * _nullSlashSpeedMult * _levLaserSlowMult * _dimBreakMult * _wisdomOrbSpeedMult * dt;
-    if (keys.right && player.x < canvas.width - player.width / 2 && !player._rooted) player.x += player.speed * _phoneMoveMult * _nullSlashSpeedMult * _levLaserSlowMult * _dimBreakMult * _wisdomOrbSpeedMult * dt;
+    const _tyMoveMult = window._tyClock < window._tySpeedEnd ? 1.5 : 1;
+    if (keys.left && player.x > player.width / 2 && !player._rooted) player.x -= player.speed * _tyMoveMult * _phoneMoveMult * _nullSlashSpeedMult * _levLaserSlowMult * _dimBreakMult * _wisdomOrbSpeedMult * dt;
+    if (keys.right && player.x < canvas.width - player.width / 2 && !player._rooted) player.x += player.speed * _tyMoveMult * _phoneMoveMult * _nullSlashSpeedMult * _levLaserSlowMult * _dimBreakMult * _wisdomOrbSpeedMult * dt;
 
     // Uriel's Holy Sword aims at the player's position ~100ms ago instead of
     // the live position, so it can't be launched dead-on-arrival - keep a
@@ -1017,6 +1021,7 @@ function update(rawDeltaTime) {
         // Divine Fate petrification: the enemy's own movement, attacks and
         // casts are skipped. Outside pulls still move it. Goliath's UNIQUE
         // SKILLs (Endless Echo and Joker) are not affected and keep running.
+        const _tyBeforeX = enemy.x, _tyBeforeY = enemy.y;
         if (_leoFreezeEnemy(enemy, currentTime, deltaTime)) {
             if (enemy.type === 'goliath') {
                 _goliathEchoUpdate(enemy, deltaTime, currentTime);
@@ -1717,10 +1722,7 @@ function update(rawDeltaTime) {
 
         } else if (enemy.type !== 'embryo' && enemy.type !== 'marchosias_minion') {
             const _coronaSlow = (enemy.type === 'apostle' && enemy.inCoronation) ? 0.55 : 1.0;
-            const _ccImmune = enemy.type === 'egregor' || enemy.type === 'dargruel' || enemy.type === 'leviathan'
-                || (enemy.type === 'marchosias' && enemy.arcBarrier && enemy.arcBarrier.hp > 0)
-                || (enemy.type === 'raphael' && enemy.raphaelInvulnerable)
-                || enemy._urielCCImmune;
+            const _ccImmune = _isCCImmune(enemy);
             const _riftSlowMul = (enemy._riftSlow && !_ccImmune) ? 0.65 : 1.0;
             const _orbSlowMul = (!_ccImmune && (enemy._orbRetaliationSlowEnd || 0) > currentTime) ? 0.75 : 1.0;
             const _thanMenhMul = enemy._thanMenhFrozen ? 0 : 1.0;
@@ -2031,6 +2033,10 @@ function update(rawDeltaTime) {
             }
         }
 
+        if (enemy._tySlowEnd > window._tyClock && !_isCCImmune(enemy) && !_capIsGoliath(enemy)) {
+            enemy.x = _tyBeforeX + (enemy.x - _tyBeforeX) * 0.5;
+            enemy.y = _tyBeforeY + (enemy.y - _tyBeforeY) * 0.5;
+        }
         if (enemy._adminBlessing && enemy.hp > 0) _updateAdminBlessingGuard(enemy);
         if (enemy.type !== 'uriel') _updateTimelineFavorRegen(enemy, deltaTime);
 
@@ -3747,6 +3753,7 @@ function startGame() {
     _piscesEventsReset();
     _leoReset();
     if (typeof _dauReset === 'function') _dauReset();
+    _tyReset();
     _capricornReset();
     window._muiTenVangHitCount = 0;
     window._muiTenVangVolleyCount = 0;
