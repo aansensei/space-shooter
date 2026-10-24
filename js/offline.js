@@ -54,6 +54,7 @@
         'assets/images/game/sigils/capricorn-meter-frame.png',
         'assets/images/game/sigils/capricorn-mountain.png',
         'assets/images/game/sigils/ty-vortex-abyss.png',
+        'assets/images/game/sigils/ty-chaos-corner.png',
         'assets/images/game/zodiac/zodiac_aquarius.png',
         'assets/images/game/zodiac/zodiac_aries.png',
         'assets/images/game/zodiac/zodiac_cancer.png',

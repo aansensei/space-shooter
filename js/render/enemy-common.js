@@ -397,6 +397,136 @@ function _drawDebugDummy(e, now) {
     ctx.restore();
 }
 
+// Combat dummy DPS meter. Damage lands in 250ms buckets of one fixed ring, so the
+// readout, the sparkline and the peak all come from the same data with no per hit allocation.
+const _DPS_BUCKET_MS = 250, _DPS_BUCKETS = 48, _DPS_WINDOW_MS = 3000, _DPS_IDLE_MS = 3000, _DPS_SHOW_MS = 12000;
+
+function _dummyDps(e) {
+    return e._dps || (e._dps = { ids: new Int32Array(_DPS_BUCKETS).fill(-1), vals: new Float64Array(_DPS_BUCKETS), total: 0, peak: 0, maxHit: 0, start: 0, last: -1e9 });
+}
+
+// Damage per second over the trailing window, held to at least one second so a lone first hit does not spike it.
+function _dummyDpsRate(m, now, windowMs) {
+    const cur = Math.floor(now / _DPS_BUCKET_MS), n = Math.round(windowMs / _DPS_BUCKET_MS);
+    let sum = 0;
+    for (let i = 0; i < n; i++) { const id = cur - i, slot = id % _DPS_BUCKETS; if (m.ids[slot] === id) sum += m.vals[slot]; }
+    return sum / (Math.min(windowMs, Math.max(1000, now - m.start)) / 1000);
+}
+
+// A hit after three quiet seconds starts a fresh session.
+function _dummyDpsRecord(e, dmg, now) {
+    const m = _dummyDps(e);
+    if (now - m.last > _DPS_IDLE_MS) { m.ids.fill(-1); m.vals.fill(0); m.total = 0; m.peak = 0; m.maxHit = 0; m.start = now; }
+    const id = Math.floor(now / _DPS_BUCKET_MS), slot = id % _DPS_BUCKETS;
+    if (m.ids[slot] !== id) { m.ids[slot] = id; m.vals[slot] = 0; }
+    m.vals[slot] += dmg; m.total += dmg; m.last = now;
+    if (dmg > m.maxHit) m.maxHit = dmg;
+    const rate = _dummyDpsRate(m, now, _DPS_WINDOW_MS);
+    if (rate > m.peak) m.peak = rate;
+}
+
+function _dpsShort(n) {
+    n = Math.max(0, n);
+    if (n >= 1e9) return (n / 1e9).toFixed(2) + 'B';
+    if (n >= 1e6) return (n / 1e6).toFixed(2) + 'M';
+    if (n >= 1e4) return (n / 1e3).toFixed(1) + 'K';
+    return String(Math.round(n));
+}
+
+function _drawDummyDpsPanel(e, now) {
+    const m = e._dps;
+    if (!m) return;
+    const since = now - m.last;
+    if (since > _DPS_SHOW_MS) return;
+    const live = since < 1500, idle = since > _DPS_IDLE_MS;
+    const alpha = Math.min(1, (now - m.start) / 200 + 0.25, (_DPS_SHOW_MS - since) / 1500);
+    if (alpha <= 0) return;
+    const W = 196, H = 90;
+    const x = Math.max(6, Math.min(canvas.width - W - 6, e.x - W / 2));
+    const y = Math.max(6, e.y - (e.size + 26) - H);
+    const rate = idle ? 0 : _dummyDpsRate(m, now, _DPS_WINDOW_MS);
+
+    ctx.save();
+    ctx.globalAlpha = alpha;
+    ctx.textBaseline = 'middle';
+    // Body: a chamfered glass plate with a cyan edge and a lit top rule.
+    ctx.beginPath();
+    ctx.moveTo(x + 7, y); ctx.lineTo(x + W, y); ctx.lineTo(x + W, y + H - 7); ctx.lineTo(x + W - 7, y + H);
+    ctx.lineTo(x, y + H); ctx.lineTo(x, y + 7); ctx.closePath();
+    const body = ctx.createLinearGradient(0, y, 0, y + H);
+    body.addColorStop(0, 'rgba(10,22,40,0.93)'); body.addColorStop(1, 'rgba(3,8,16,0.9)');
+    ctx.fillStyle = body; ctx.fill();
+    ctx.strokeStyle = 'rgba(0,225,255,0.5)'; ctx.lineWidth = 1; ctx.stroke();
+    const rule = ctx.createLinearGradient(x, 0, x + W, 0);
+    rule.addColorStop(0, 'rgba(0,225,255,0)'); rule.addColorStop(0.5, 'rgba(0,225,255,0.95)'); rule.addColorStop(1, 'rgba(0,225,255,0.15)');
+    ctx.fillStyle = rule; ctx.fillRect(x + 7, y, W - 7, 2);
+    ctx.strokeStyle = 'rgba(0,225,255,0.9)'; ctx.lineWidth = 2;
+    ctx.beginPath(); ctx.moveTo(x + W - 12, y + 1); ctx.lineTo(x + W - 1, y + 1); ctx.lineTo(x + W - 1, y + 12); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(x + 1, y + H - 12); ctx.lineTo(x + 1, y + H - 1); ctx.lineTo(x + 12, y + H - 1); ctx.stroke();
+
+    // Header: title, status lamp and state.
+    if ('letterSpacing' in ctx) ctx.letterSpacing = '1.5px';
+    ctx.font = 'bold 9px "Courier New", monospace';
+    ctx.textAlign = 'left'; ctx.fillStyle = 'rgba(140,205,235,0.85)';
+    ctx.fillText('DPS METER', x + 11, y + 13);
+    ctx.textAlign = 'right'; ctx.fillStyle = live ? '#7dffc0' : '#ffc14d';
+    ctx.fillText(live ? 'LIVE' : 'IDLE', x + W - 11, y + 13);
+    if ('letterSpacing' in ctx) ctx.letterSpacing = '0px';
+    const lamp = live ? 0.65 + 0.35 * Math.sin(now / 130) : 0.9;
+    ctx.fillStyle = live ? 'rgba(0,255,150,' + lamp.toFixed(2) + ')' : 'rgba(255,170,0,' + lamp.toFixed(2) + ')';
+    ctx.beginPath(); ctx.arc(x + W - 49, y + 13, 3, 0, Math.PI * 2); ctx.fill();
+    ctx.fillStyle = 'rgba(0,225,255,0.14)'; ctx.fillRect(x + 8, y + 21, W - 16, 1);
+
+    // Readout: the live rate in large digits.
+    ctx.textAlign = 'left';
+    ctx.font = 'bold 29px "Courier New", monospace';
+    const digits = Math.round(rate).toLocaleString('en-US');
+    if (!idle) {
+        // A soft cyan halo behind the digits, drawn as a wide faint stroke instead of a shadow.
+        ctx.lineJoin = 'round'; ctx.lineWidth = 6; ctx.strokeStyle = 'rgba(0,229,255,0.16)';
+        ctx.strokeText(digits, x + 11, y + 39);
+    }
+    ctx.fillStyle = idle ? 'rgba(150,175,195,0.8)' : '#eaffff';
+    ctx.fillText(digits, x + 11, y + 39);
+    ctx.textAlign = 'right'; ctx.font = 'bold 10px "Courier New", monospace'; ctx.fillStyle = 'rgba(0,225,255,0.85)';
+    ctx.fillText('DPS', x + W - 11, y + 45);
+
+    // Trace: the last ten seconds, one point per bucket.
+    const gx = x + 11, gw = W - 22, gb = y + 70, gh = 17, cur = Math.floor(now / _DPS_BUCKET_MS);
+    let vmax = 1;
+    for (let i = 0; i < 40; i++) { const id = cur - 39 + i, slot = id % _DPS_BUCKETS; if (m.ids[slot] === id && m.vals[slot] > vmax) vmax = m.vals[slot]; }
+    ctx.fillStyle = 'rgba(0,225,255,0.06)'; ctx.fillRect(gx, gb - gh, gw, gh);
+    ctx.fillStyle = 'rgba(0,225,255,0.18)'; ctx.fillRect(gx, gb, gw, 1);
+    ctx.beginPath(); ctx.moveTo(gx, gb);
+    for (let i = 0; i < 40; i++) {
+        const id = cur - 39 + i, slot = id % _DPS_BUCKETS, v = m.ids[slot] === id ? m.vals[slot] : 0;
+        ctx.lineTo(gx + i * gw / 39, gb - gh * v / vmax);
+    }
+    ctx.lineTo(gx + gw, gb); ctx.closePath();
+    const area = ctx.createLinearGradient(0, gb - gh, 0, gb);
+    area.addColorStop(0, 'rgba(0,229,255,0.45)'); area.addColorStop(1, 'rgba(0,229,255,0.04)');
+    ctx.fillStyle = area; ctx.fill();
+    ctx.beginPath();
+    for (let i = 0; i < 40; i++) {
+        const id = cur - 39 + i, slot = id % _DPS_BUCKETS, v = m.ids[slot] === id ? m.vals[slot] : 0;
+        if (i === 0) ctx.moveTo(gx, gb - gh * v / vmax); else ctx.lineTo(gx + i * gw / 39, gb - gh * v / vmax);
+    }
+    ctx.strokeStyle = 'rgba(120,245,255,0.95)'; ctx.lineWidth = 1.2; ctx.lineJoin = 'round'; ctx.stroke();
+
+    // Footer: total, peak and the span of the session.
+    ctx.font = '9px "Courier New", monospace'; ctx.textAlign = 'left';
+    const secs = (Math.min(now, m.last) - m.start) / 1000;
+    const cells = [['TOT', _dpsShort(m.total)], ['PK', _dpsShort(m.peak)], ['T', secs.toFixed(1) + 's']];
+    let cx = x + 11;
+    for (let i = 0; i < cells.length; i++) {
+        ctx.fillStyle = 'rgba(120,170,200,0.8)'; ctx.fillText(cells[i][0], cx, y + 82);
+        const lw = ctx.measureText(cells[i][0] + ' ').width;
+        ctx.fillStyle = '#d6f6ff'; ctx.fillText(cells[i][1], cx + lw, y + 82);
+        cx += i === 0 ? 70 : 62;
+    }
+    ctx.restore();
+}
+
 // Walpurgis (Huyết Dạ) red curse aura — cached radial-gradient sprite per
 // (radius, stacks) pair via _getGlowSprite (same drawImage-reuse idiom the
 // Skill D debris/studs perf pass already established), so this stays cheap
@@ -586,6 +716,7 @@ function drawEnemy(enemy) {
     }
     if (enemy.type === 'debug_dummy') {
         _drawDebugDummy(enemy, performance.now());
+        _drawDummyDpsPanel(enemy, performance.now());
         // The dummy's early return skips every generic overlay below (vuln
         // icon, Walpurgis aura, ...) — re-check just the vuln icon here so
         // debug_dummy targets in guide.html demos still show stacks.

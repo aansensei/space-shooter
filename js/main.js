@@ -1032,10 +1032,14 @@ function update(rawDeltaTime) {
         }
 
         if (enemy.type === 'debug_dummy') {
+            // What the dummy lost this frame feeds its DPS meter, a killing blow counted through the overkill.
+            const _dummyPrevHp = enemy._lastHpBeforeFrame, _dummyHpNow = enemy.hp;
+            const _dummyBlocks = enemy._isImmune || enemy._ironActive;
             if (enemy.hp <= 0) { enemy.hp = enemy.maxHp; enemy._state = 'idle'; enemy._stateTime = 0; }
-            if ((enemy._isImmune || enemy._ironActive) && enemy._lastHpBeforeFrame !== undefined && enemy.hp < enemy._lastHpBeforeFrame) {
+            if (_dummyBlocks && enemy._lastHpBeforeFrame !== undefined && enemy.hp < enemy._lastHpBeforeFrame) {
                 enemy.hp = enemy._lastHpBeforeFrame;
             }
+            if (!_dummyBlocks && _dummyPrevHp !== undefined && _dummyHpNow < _dummyPrevHp) _dummyDpsRecord(enemy, _dummyPrevHp - _dummyHpNow, currentTime);
             enemy._lastHpBeforeFrame = enemy.hp;
             continue;
         }

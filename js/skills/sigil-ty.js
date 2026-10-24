@@ -5,7 +5,7 @@ const TY_SERPENT_POST_BITE_BOOST = 0.5;
 // Each hunt has this chance to latch on for 3 bites. Between bites the serpent
 // dashes to the far side of the prey's body in TY_SERPENT_FRENZY_GAP ms, then
 // rests at the ship for TY_SERPENT_REST_MS.
-const TY_SERPENT_FRENZY_CHANCE = 0.4, TY_SERPENT_FRENZY_GAP = 160;
+const TY_SERPENT_FRENZY_CHANCE = 0.51, TY_SERPENT_FRENZY_GAP = 160;
 // Each fang stack adds this much ATK to a bite, so 40 stacks add 20%.
 const TY_SERPENT_STACK_ATK = 0.005;
 const TY_SERPENT_BITE_ATK = 0.60, TY_SERPENT_REST_MS = 450, TY_SERPENT_LATCH_MAX = 3;
@@ -158,23 +158,43 @@ function _tySpawnShards(d) {
 }
 
 function _tyPickArrayCenter() {
-    let found = false;
-    for (let i = 0; i < enemies.length; i++) if (_tyIsTarget(enemies[i])) { found = true; break; }
-    let bx = player.x, by = player.y;
-    if (found) {
-        let best = -1, bestHp = -1;
-        const maxY = Math.max(80, player.y - 200);
-        for (let y = 80; y <= maxY; y += 80) for (let x = 40; x < canvas.width; x += 80) {
-            let count = 0, hp = 0;
-            for (let i = 0; i < enemies.length; i++) {
-                const e = enemies[i]; if (!_tyIsTarget(e)) continue;
-                const dx = x - e.x, dy = y - e.y;
-                if (dx * dx + dy * dy <= TY_ARRAY_RADIUS * TY_ARRAY_RADIUS) { count++; hp += e.hp; }
-            }
-            if (count > best || (count === best && hp > bestHp)) { best = count; bestHp = hp; bx = x; by = y; }
+    const targets = [];
+    for (let i = 0; i < enemies.length; i++) {
+        const e = enemies[i];
+        if (_tyIsTarget(e) && e.x >= 0 && e.y >= 0 && e.x <= canvas.width && e.y <= canvas.height) targets.push(e);
+    }
+    let bx = player.x, by = player.y, best = 0, bestHp = -1, bestSpread = Infinity, bestShip = Infinity;
+    const radiusSq = TY_ARRAY_RADIUS * TY_ARRAY_RADIUS;
+    const consider = (x, y) => {
+        x = Math.max(0, Math.min(canvas.width, x)); y = Math.max(0, Math.min(canvas.height, y));
+        let count = 0, hp = 0, spread = 0;
+        for (let i = 0; i < targets.length; i++) {
+            const e = targets[i], dx = x - e.x, dy = y - e.y, ds = dx * dx + dy * dy;
+            if (ds <= radiusSq) { count++; hp += e.hp; spread += ds; }
         }
-        bx = Math.max(Math.min(TY_ARRAY_RADIUS, canvas.width / 2), Math.min(canvas.width - Math.min(TY_ARRAY_RADIUS, canvas.width / 2), bx));
-        by = Math.max(Math.min(TY_ARRAY_RADIUS, canvas.height / 2), Math.min(canvas.height - Math.min(TY_ARRAY_RADIUS, canvas.height / 2), by));
+        if (!count) return;
+        const dx = x - player.x, dy = y - player.y, ship = dx * dx + dy * dy;
+        if (count > best || (count === best && (hp > bestHp || (hp === bestHp && (spread < bestSpread || (spread === bestSpread && ship < bestShip)))))) {
+            best = count; bestHp = hp; bestSpread = spread; bestShip = ship; bx = x; by = y;
+        }
+    };
+    // Actual prey and local group centers anchor the array across the whole arena.
+    for (let i = 0; i < targets.length; i++) {
+        const anchor = targets[i]; consider(anchor.x, anchor.y);
+        let x = 0, y = 0, count = 0;
+        for (let j = 0; j < targets.length; j++) {
+            const e = targets[j], dx = anchor.x - e.x, dy = anchor.y - e.y;
+            if (dx * dx + dy * dy <= radiusSq * 4) { x += e.x; y += e.y; count++; }
+        }
+        consider(x / count, y / count);
+    }
+    if (targets.length > 1) {
+        for (let y = 0; y <= canvas.height; y += 80) for (let x = 0; x <= canvas.width; x += 80) consider(x, y);
+        // Refinement centers the covered group without displacing a valid edge target.
+        for (let pass = 0; pass < 3; pass++) {
+            const x = bx, y = by, step = 40 / (1 << pass);
+            for (let iy = -1; iy <= 1; iy++) for (let ix = -1; ix <= 1; ix++) consider(x + ix * step, y + iy * step);
+        }
     }
     _tyArray.x = bx; _tyArray.y = by;
 }

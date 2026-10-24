@@ -849,6 +849,31 @@ function _piscesSprites() {
         grad.addColorStop(1, 'rgba(38,36,90,0.78)');
         g.fillStyle = grad;
         g.fillRect(0, 0, 256, 256);
+        const band = (x0, y0, x1, y1, rx, ry, rw, rh) => {
+            const gr = g.createLinearGradient(x0, y0, x1, y1);
+            gr.addColorStop(0, 'rgba(38,36,90,0.66)');
+            gr.addColorStop(0.5, 'rgba(61,52,140,0.24)');
+            gr.addColorStop(1, 'rgba(38,36,90,0)');
+            g.fillStyle = gr;
+            g.fillRect(rx, ry, rw, rh);
+        };
+        band(0, 0, 0, 26, 0, 0, 256, 26);
+        band(0, 256, 0, 230, 0, 230, 256, 26);
+        band(0, 0, 26, 0, 0, 0, 26, 256);
+        band(256, 0, 230, 0, 230, 0, 26, 256);
+        g.strokeStyle = 'rgba(167,160,240,0.6)';
+        g.lineWidth = 1.6;
+        g.strokeRect(4, 4, 248, 248);
+    });
+
+    // Dream Realm shield backing: a round indigo shade that lifts the nimbus off a bright scene.
+    const dreamShade = _piscesBake(128, 128, g => {
+        const gr = g.createRadialGradient(64, 64, 6, 64, 64, 62);
+        gr.addColorStop(0, 'rgba(38,36,90,0.7)');
+        gr.addColorStop(0.6, 'rgba(38,36,90,0.35)');
+        gr.addColorStop(1, 'rgba(38,36,90,0)');
+        g.fillStyle = gr;
+        g.fillRect(0, 0, 128, 128);
     });
 
     // Dream Realm frame corner, top left: a quarter mosaic nimbus with whiplash curls, beads and a fish.
@@ -1213,7 +1238,7 @@ function _piscesSprites() {
         ripple, droplet, impactGlow, splashCrown, barrierRipple,
         constellationChord, alreschaKnot, starNode, whiplashStream,
         shieldNimbus, shieldInner, shieldArc, markStages, markBloom, burstHalo,
-        stunHalo, stunBind, dreamVignette, dreamCorner, moonShaft, skyPisces,
+        stunHalo, stunBind, dreamVignette, dreamShade, dreamCorner, moonShaft, skyPisces,
         summonLight, lightCurtain
     };
     return _piscesRenderCache;
@@ -1531,15 +1556,20 @@ function _drawPiscesDreamFrame(sprites, now, low) {
     const fade = Math.max(0, Math.min(1, (now - (end - 2500)) / 280, (end - now) / 400));
     if (fade <= 0) return;
     const W = canvas.width, H = canvas.height;
-    ctx.globalAlpha = fade * (low ? 0.4 : 0.55);
+    // Over the bright Yog-Sothoth painting the edge band and corners are drawn twice as hard.
+    const bold = typeof skillShiftActive !== 'undefined' && skillShiftActive;
+    ctx.globalAlpha = fade * (low ? 0.5 : 0.6);
     ctx.drawImage(sprites.dreamVignette, 0, 0, W, H);
-    if (low) return;
-    const s = Math.max(110, Math.min(260, Math.min(W, H) * 0.3)) * (0.92 + 0.08 * fade);
-    ctx.globalAlpha = fade * 0.9;
-    ctx.drawImage(sprites.dreamCorner, 0, 0, s, s);
-    ctx.save(); ctx.translate(W, 0); ctx.scale(-1, 1); ctx.drawImage(sprites.dreamCorner, 0, 0, s, s); ctx.restore();
-    ctx.save(); ctx.translate(0, H); ctx.scale(1, -1); ctx.drawImage(sprites.dreamCorner, 0, 0, s, s); ctx.restore();
-    ctx.save(); ctx.translate(W, H); ctx.scale(-1, -1); ctx.drawImage(sprites.dreamCorner, 0, 0, s, s); ctx.restore();
+    if (bold) { ctx.globalAlpha = fade * 0.55; ctx.drawImage(sprites.dreamVignette, 0, 0, W, H); }
+    if ((window._gfxLevel || 0) >= 3) return;
+    const s = Math.max(100, Math.min(260, Math.min(W, H) * 0.3)) * (0.92 + 0.08 * fade) * (bold ? 1.15 : 1);
+    for (let pass = bold ? 2 : 1; pass > 0; pass--) {
+        ctx.globalAlpha = fade * 0.9;
+        ctx.drawImage(sprites.dreamCorner, 0, 0, s, s);
+        ctx.save(); ctx.translate(W, 0); ctx.scale(-1, 1); ctx.drawImage(sprites.dreamCorner, 0, 0, s, s); ctx.restore();
+        ctx.save(); ctx.translate(0, H); ctx.scale(1, -1); ctx.drawImage(sprites.dreamCorner, 0, 0, s, s); ctx.restore();
+        ctx.save(); ctx.translate(W, H); ctx.scale(-1, -1); ctx.drawImage(sprites.dreamCorner, 0, 0, s, s); ctx.restore();
+    }
 }
 
 // Fish summon screen light: as a fish forms, moonlight blooms across the screen
@@ -1889,8 +1919,11 @@ function _drawPiscesImpacts() {
     ctx.restore();
 }
 
-function _drawPiscesDreamShield() {
+function _drawPiscesDreamShield(onTop) {
     if (typeof _hasBuff === 'undefined' || !_hasBuff('coi_mong')) return;
+    // The Yog-Sothoth time echoes and caption paint over the ship, so under it the shield waits for the top layer.
+    const underYog = typeof skillShiftActive !== 'undefined' && skillShiftActive;
+    if (underYog !== !!onTop) return;
     const now = performance.now();
     const endTime = window._coiMongEndTime || 0;
     const cdEnd = window._coiMongCooldownEnd || 0;
@@ -1938,6 +1971,11 @@ function _drawPiscesDreamShield() {
 
     ctx.save();
     ctx.translate(player.x, player.y);
+    if (underYog) {
+        // A soft indigo backing lifts the pale nimbus off the bright painting.
+        ctx.globalAlpha = 0.85 * smoothFade;
+        ctx.drawImage(sprites.dreamShade, -92, -92, 184, 184);
+    }
 
     const burstElapsed = now - _piscesCoiMongBurstAt;
     if (burstElapsed >= 0 && burstElapsed < 700) {
@@ -1973,7 +2011,7 @@ function _drawPiscesDreamShield() {
     const shieldRadius = 56;
     const shieldDiam = shieldRadius * 2;
 
-    if (!low) {
+    if (gfx < 3) {
         ctx.save();
         ctx.rotate(-slowRot * 0.85);
         ctx.globalAlpha = 0.68 * smoothFade;
@@ -2109,6 +2147,7 @@ function _drawPiscesEvents() {
     const sprites = _piscesSprites();
     ctx.save();
     _drawPiscesDreamFrame(sprites, now, low);
+    _drawPiscesDreamShield(true);
     if (!window._fxOpts || window._fxOpts.sigilLight !== false) _drawPiscesSummonLight(sprites, low);
 
     for (let i = 0; i < _piscesRefundPool.length; i++) {

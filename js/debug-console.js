@@ -736,6 +736,7 @@ window.debugSetYuukiBonus = function () {
         <input type="number" id="dbgDummyDR" class="dbg-enemy-hp" style="width:60px;" value="0" min="0" max="99" placeholder="DR %">
         <button class="dbg-btn" onclick="debugSpawnDummy()">Spawn</button>
         <button class="dbg-btn danger" onclick="debugRemoveDummy()">Remove</button>
+        <button class="dbg-btn" onclick="debugResetDummyDps()">Reset DPS</button>
       </div>
       <div class="dbg-row" style="flex-wrap:wrap; gap:10px;">
         <label style="cursor:pointer; display:flex; gap:4px; align-items:center; font-size:11px;">
@@ -1385,6 +1386,11 @@ window.debugSetYuukiBonus = function () {
         const d = _getDummy();
         if (!d) return;
         d._debugDR = Math.min(0.99, Math.max(0, Number(val) / 100));
+    };
+
+    window.debugResetDummyDps = function () {
+        const d = _getDummy();
+        if (d) d._dps = null;
     };
 
     window.debugRemoveDummy = function () {
