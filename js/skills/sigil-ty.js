@@ -1,5 +1,7 @@
 // Fixed pools share the simulation clock with every Umbral Serpent effect.
-const TY_SERPENT_SPEED_MULT = 1.25;
+const TY_SERPENT_SPEED_MULT = 1.4;
+// After a hunt ends the serpent pulls away with this much extra speed, fading over the rest.
+const TY_SERPENT_POST_BITE_BOOST = 0.5;
 // Each hunt has this chance to latch on for 3 bites. Between bites the serpent
 // dashes to the far side of the prey's body in TY_SERPENT_FRENZY_GAP ms, then
 // rests at the ship for TY_SERPENT_REST_MS.
@@ -11,9 +13,10 @@ const TY_SERPENT_BITE_ATK = 0.60, TY_SERPENT_REST_MS = 450, TY_SERPENT_LATCH_MAX
 const TY_BITE_PCT = 0.002, TY_DEVOUR_PCT = 0.004, TY_SHARD_PCT = 0.003, TY_ARRAY_TICK_PCT = 0.001, TY_ARRAY_BURST_PCT = 0.02;
 // The array keeps its own cooldown so S can open it while a spirit is still out.
 const TY_ARRAY_COOLDOWN = 10000;
+const TY_ARRAY_RADIUS = 190;
 const _tySerpents = Array.from({ length: 10 }, (_, id) => ({
     id, active: false, x: 0, y: 0, angle: 0, target: null, state: 0, chain: 0,
-    hopA: 0, hopR: 0, hopX0: 0, hopY0: 0, hopAt: 0,
+    hopA: 0, hopR: 0, hopX0: 0, hopY0: 0, hopAt: 0, boostUntil: 0,
     nextBite: 0, spawnTime: 0, absorbAt: -1, biteFlashUntil: 0, segX: new Float32Array(10), segY: new Float32Array(10)
 }));
 const _tyDevours = Array.from({ length: 4 }, () => ({
@@ -166,12 +169,12 @@ function _tyPickArrayCenter() {
             for (let i = 0; i < enemies.length; i++) {
                 const e = enemies[i]; if (!_tyIsTarget(e)) continue;
                 const dx = x - e.x, dy = y - e.y;
-                if (dx * dx + dy * dy <= 170 * 170) { count++; hp += e.hp; }
+                if (dx * dx + dy * dy <= TY_ARRAY_RADIUS * TY_ARRAY_RADIUS) { count++; hp += e.hp; }
             }
             if (count > best || (count === best && hp > bestHp)) { best = count; bestHp = hp; bx = x; by = y; }
         }
-        bx = Math.max(Math.min(170, canvas.width / 2), Math.min(canvas.width - Math.min(170, canvas.width / 2), bx));
-        by = Math.max(Math.min(170, canvas.height / 2), Math.min(canvas.height - Math.min(170, canvas.height / 2), by));
+        bx = Math.max(Math.min(TY_ARRAY_RADIUS, canvas.width / 2), Math.min(canvas.width - Math.min(TY_ARRAY_RADIUS, canvas.width / 2), bx));
+        by = Math.max(Math.min(TY_ARRAY_RADIUS, canvas.height / 2), Math.min(canvas.height - Math.min(TY_ARRAY_RADIUS, canvas.height / 2), by));
     }
     _tyArray.x = bx; _tyArray.y = by;
 }
@@ -205,7 +208,7 @@ function _tyTryOpenArray() {
 function _tySpawnSerpents(x, y) {
     for (let i = 0; i < _tySerpents.length; i++) {
         const s = _tySerpents[i]; s.active = true; s.x = x; s.y = y; s.target = null; s.spawnTime = window._tyClock;
-        s.state = 0; s.chain = 0; s.absorbAt = -1;
+        s.state = 0; s.chain = 0; s.absorbAt = -1; s.boostUntil = 0;
         s.nextBite = window._tyClock + 300 + i * 35; s.biteFlashUntil = 0; s.angle = i * Math.PI * 2 / _tySerpents.length;
         s.segX.fill(x); s.segY.fill(y);
     }
@@ -231,7 +234,7 @@ function _tyBlockHit(attacker) {
 function _tyArrayDamage(atk, pct, burst) {
     for (let i = 0; i < enemies.length; i++) {
         const e = enemies[i];
-        if (!_tyIsTarget(e) || Math.hypot(e.x - _tyArray.x, e.y - _tyArray.y) > 170) continue;
+        if (!_tyIsTarget(e) || Math.hypot(e.x - _tyArray.x, e.y - _tyArray.y) > TY_ARRAY_RADIUS) continue;
         if (burst && !_capIsGoliath(e)) e._tyLiftMs = Math.max(e._tyLiftMs || 0, 1250);
         _tyDamage(e, atk, pct, 'Umbral Serpent: Array', false);
     }
@@ -270,7 +273,7 @@ function _tyBeginFrame(ms) {
         if (age >= 180 && age < 1430) for (let i = 0; i < enemies.length; i++) {
             const e = enemies[i]; if (!_tyIsTarget(e) || _capIsGoliath(e)) continue;
             const dx = _tyArray.x - e.x, dy = _tyArray.y - e.y, d = Math.hypot(dx, dy);
-            if (d > 4 && d <= 170) { const pull = Math.min(d - 4, ms * 0.18); e.x += dx / d * pull; e.y += dy / d * pull; }
+            if (d > 4 && d <= TY_ARRAY_RADIUS) { const pull = Math.min(d - 4, ms * 0.18); e.x += dx / d * pull; e.y += dy / d * pull; }
         }
         if (age >= 1430 && !_tyArray.exploded) {
             _tyArray.exploded = true; _tyArrayDamage(3, TY_ARRAY_BURST_PCT, true);
@@ -334,7 +337,9 @@ function _tyBeginFrame(ms) {
         const ty = returning ? player.y : hopping ? s.target.y + Math.sin(s.hopA) * s.hopR : s.target ? s.target.y : player.y + Math.sin(orbit * 1.13) * 35;
         const dx = tx - s.x, dy = ty - s.y, dist = Math.hypot(dx, dy);
         if (!returning) s.state = s.target ? 2 : 0;
-        const step = Math.min(dist, travelMs * (returning || s.target ? 0.72 : 0.38) * TY_SERPENT_SPEED_MULT);
+        let speed = returning || s.target ? 0.72 : 0.38;
+        if (!returning && !s.target && s.boostUntil > now) speed *= 1 + TY_SERPENT_POST_BITE_BOOST * (s.boostUntil - now) / TY_SERPENT_REST_MS;
+        const step = Math.min(dist, travelMs * speed * TY_SERPENT_SPEED_MULT);
         if (hopping) {
             const p = Math.min(1, (now - s.hopAt) / TY_SERPENT_FRENZY_GAP), ease = 1 - (1 - p) * (1 - p) * (1 - p);
             const nx = s.hopX0 + (tx - s.hopX0) * ease, ny = s.hopY0 + (ty - s.hopY0) * ease;
@@ -358,7 +363,7 @@ function _tyBeginFrame(ms) {
                 s.hopR = Math.max(16, (t.size || 30) * 0.4);
                 s.hopX0 = s.x; s.hopY0 = s.y; s.hopAt = now;
                 s.nextBite = now + TY_SERPENT_FRENZY_GAP;
-            } else { s.target = null; s.nextBite = now + TY_SERPENT_REST_MS; }
+            } else { s.target = null; s.nextBite = now + TY_SERPENT_REST_MS; s.boostUntil = s.nextBite; }
             s.biteFlashUntil = now + 100;
             if (hit) _tyOnSerpentBite();
             if (window.AudioMgr) window.AudioMgr.playSfxAt('ty-bite', s.x, s.y);

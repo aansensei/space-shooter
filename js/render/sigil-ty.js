@@ -332,7 +332,7 @@ function _drawTyScorch(g, now, tier) {
     const p = (now - _tyScorch.start) / 1000;
     if (tier >= 3 || p < 0 || p >= 1 || (window._fxOpts && window._fxOpts.sigilBackdrop === false)) return;
     g.save(); g.globalAlpha = _tyBrightness() * (1 - p) * (1 - p) * 0.6;
-    g.drawImage(_tyPolish.scorch, _tyScorch.x - 185, _tyScorch.y - 185, 370, 370); g.restore();
+    const scorchSize = TY_ARRAY_RADIUS * 2.18; g.drawImage(_tyPolish.scorch, _tyScorch.x - scorchSize / 2, _tyScorch.y - scorchSize / 2, scorchSize, scorchSize); g.restore();
 }
 function _drawTyArrayPolish(g, x, y, age, tier, radius) {
     if (tier >= 3) return;
@@ -1247,16 +1247,16 @@ window._drawTyGround = function () {
         const age = now - _tyArray.start;
         if ((!o || o.sigilBackdrop !== false) && g < 3) {
             _fxContext.save(); _fxContext.globalAlpha = _tyBrightness() * (Math.min(1, age / 180) * Math.min(1, (1950 - age) / 500) * (_tyVortexLoaded() ? 0.25 : 0.42));
-            _fxContext.fillStyle = PAL.VOID; _fxContext.beginPath(); _fxContext.arc(_tyArray.x, _tyArray.y, 165, 0, Math.PI * 2); _fxContext.fill(); _fxContext.restore();
+            _fxContext.fillStyle = PAL.VOID; _fxContext.beginPath(); _fxContext.arc(_tyArray.x, _tyArray.y, TY_ARRAY_RADIUS - 5, 0, Math.PI * 2); _fxContext.fill(); _fxContext.restore();
         }
-        drawPhapTran(_fxContext, _tyArray.x, _tyArray.y, age, g, 170);
-        _drawTyArrayPolish(_fxContext, _tyArray.x, _tyArray.y, age, g, 170);
+        drawPhapTran(_fxContext, _tyArray.x, _tyArray.y, age, g, TY_ARRAY_RADIUS);
+        _drawTyArrayPolish(_fxContext, _tyArray.x, _tyArray.y, age, g, TY_ARRAY_RADIUS);
         if (g < 3 && age >= 1230 && age < 1430 && (!o || o.sigilLight !== false)) {
             _fxContext.save(); _fxContext.globalAlpha = _tyBrightness() * Math.pow((age - 1230) / 200, 2) * 0.14;
             _fxContext.fillStyle = PAL.VOID; _fxContext.fillRect(0, 0, viewW, viewH); _fxContext.restore();
         }
         if (age >= 180 && age < 1430) {
-            const reveal = Math.min(1, (age - 180) / 160), r = 110 * reveal;
+            const reveal = Math.min(1, (age - 180) / 160), r = TY_ARRAY_RADIUS * 0.65 * reveal;
             _fxContext.save(); _fxContext.translate(_tyArray.x, _tyArray.y); _fxContext.globalAlpha = _tyBrightness() * (0.8);
             _fxContext.strokeStyle = PAL.VOID; _fxContext.lineWidth = 5;
             _fxContext.beginPath(); _fxContext.moveTo(-r, -r); _fxContext.lineTo(r, r); _fxContext.moveTo(-r, r); _fxContext.lineTo(r, -r); _fxContext.stroke();
@@ -1265,7 +1265,7 @@ window._drawTyGround = function () {
             _fxContext.fillStyle = PAL.EMBER; _fxContext.beginPath(); _fxContext.arc(0, 0, 3.5, 0, Math.PI * 2); _fxContext.fill(); _fxContext.restore();
         }
         if (age >= 1430 && age < 1800) {
-            const p = (age - 1430) / 370, r = 170 * (0.3 + p * 0.9);
+            const p = (age - 1430) / 370, r = TY_ARRAY_RADIUS * (0.3 + p * 0.9);
             _fxContext.save(); _fxContext.translate(_tyArray.x, _tyArray.y);
             _fxContext.globalAlpha = _tyBrightness() * ((1 - p) * 0.7); _fxContext.strokeStyle = PAL.MAGENTA; _fxContext.lineWidth = 1.5;
             _fxContext.beginPath(); _fxContext.arc(0, 0, r, 0, Math.PI * 2); _fxContext.stroke();
