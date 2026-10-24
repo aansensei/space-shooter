@@ -1,12 +1,14 @@
 // Fixed pools share the simulation clock with every Umbral Serpent effect.
 const TY_SERPENT_SPEED_MULT = 1.25;
-// Each hunt has this chance to latch on for 3 bites, TY_SERPENT_FRENZY_GAP ms apart,
-// before the serpent heads back to the ship for the usual 600ms.
-const TY_SERPENT_FRENZY_CHANCE = 0.4, TY_SERPENT_FRENZY_GAP = 200;
+// Each hunt has this chance to latch on for 3 bites. Between bites the serpent
+// dashes to the far side of the prey's body in TY_SERPENT_FRENZY_GAP ms, then
+// heads back to the ship for the usual 600ms.
+const TY_SERPENT_FRENZY_CHANCE = 0.4, TY_SERPENT_FRENZY_GAP = 160;
 // The array keeps its own cooldown so S can open it while a spirit is still out.
 const TY_ARRAY_COOLDOWN = 10000;
 const _tySerpents = Array.from({ length: 10 }, (_, id) => ({
     id, active: false, x: 0, y: 0, angle: 0, target: null, state: 0, chain: 0,
+    hopA: 0, hopR: 0, hopX0: 0, hopY0: 0, hopAt: 0,
     nextBite: 0, spawnTime: 0, absorbAt: -1, biteFlashUntil: 0, segX: new Float32Array(10), segY: new Float32Array(10)
 }));
 const _tyDevours = Array.from({ length: 4 }, () => ({
@@ -59,7 +61,7 @@ function _tyOnEnemyKill(e) {
     e._tySerpentKill = false;
 }
 
-function _tyDamage(e, atk, pct, label, serpent) {
+function _tyDamage(e, atk, pct, label, serpent, ix, iy) {
     const before = window._matchStats ? window._matchStats.allyDamage[label] || 0 : 0;
     _tySource.damage = player.atk * atk; _tySource.percentDamage = pct;
     _tySource._statSrc = label;
@@ -67,7 +69,7 @@ function _tyDamage(e, atk, pct, label, serpent) {
     dealDamage(e, _tySource);
     if (serpent && e.hp > 0 && !e._deathPhase) e._tySerpentKill = false;
     const hit = window._matchStats && (window._matchStats.allyDamage[label] || 0) > before;
-    if (hit && (serpent || label === 'Umbral Serpent: Devour')) _tyImpact(e.x, e.y, serpent ? 0 : 1);
+    if (hit && (serpent || label === 'Umbral Serpent: Devour')) _tyImpact(ix === undefined ? e.x : ix, iy === undefined ? e.y : iy, serpent ? 0 : 1);
     if (hit && label === 'Umbral Serpent: Shards') _tyImpact(e.x, e.y, 3);
     return hit;
 }
@@ -310,22 +312,37 @@ function _tyBeginFrame(ms) {
             if (!s.target && now >= s.nextBite) s.target = _tyNearest(s.x, s.y, Infinity, true);
         }
         const orbit = now * 0.0019 * TY_SERPENT_SPEED_MULT + i * Math.PI * 2 / _tySerpents.length;
-        const tx = returning ? player.x : s.target ? s.target.x : player.x + Math.cos(orbit) * (55 + i * 3);
-        const ty = returning ? player.y : s.target ? s.target.y : player.y + Math.sin(orbit * 1.13) * 35;
+        // Mid frenzy the serpent aims at a spot inside the prey's body instead of its center.
+        const hopping = !returning && s.target && s.chain > 0;
+        const tx = returning ? player.x : hopping ? s.target.x + Math.cos(s.hopA) * s.hopR : s.target ? s.target.x : player.x + Math.cos(orbit) * (55 + i * 3);
+        const ty = returning ? player.y : hopping ? s.target.y + Math.sin(s.hopA) * s.hopR : s.target ? s.target.y : player.y + Math.sin(orbit * 1.13) * 35;
         const dx = tx - s.x, dy = ty - s.y, dist = Math.hypot(dx, dy);
-        s.angle = Math.atan2(dy, dx);
         if (!returning) s.state = s.target ? 2 : 0;
         const step = Math.min(dist, travelMs * (returning || s.target ? 0.72 : 0.38) * TY_SERPENT_SPEED_MULT);
-        if (returning && (s.absorbAt >= 0 || dist <= step + 8)) {
-            s.x = player.x; s.y = player.y;
-            if (s.absorbAt < 0) s.absorbAt = now;
-            if (now - s.absorbAt >= 160) { s.active = false; continue; }
-        } else if (dist > 0) { s.x += dx / dist * step; s.y += dy / dist * step; }
-        if (!returning && s.target && dist <= step + (s.target.size || 30) / 2 && now >= s.nextBite) {
-            const hit = _tyDamage(s.target, 0.35, 0, 'Umbral Serpent: Serpents', true);
+        if (hopping) {
+            const p = Math.min(1, (now - s.hopAt) / TY_SERPENT_FRENZY_GAP), ease = 1 - (1 - p) * (1 - p) * (1 - p);
+            const nx = s.hopX0 + (tx - s.hopX0) * ease, ny = s.hopY0 + (ty - s.hopY0) * ease;
+            if (nx !== s.x || ny !== s.y) s.angle = Math.atan2(ny - s.y, nx - s.x);
+            s.x = nx; s.y = ny;
+        } else {
+            s.angle = Math.atan2(dy, dx);
+            if (returning && (s.absorbAt >= 0 || dist <= step + 8)) {
+                s.x = player.x; s.y = player.y;
+                if (s.absorbAt < 0) s.absorbAt = now;
+                if (now - s.absorbAt >= 160) { s.active = false; continue; }
+            } else if (dist > 0) { s.x += dx / dist * step; s.y += dy / dist * step; }
+        }
+        const arrived = hopping ? now >= s.nextBite : s.target && dist <= step + (s.target.size || 30) / 2;
+        if (!returning && s.target && arrived && now >= s.nextBite) {
+            const hit = _tyDamage(s.target, 0.35, 0, 'Umbral Serpent: Serpents', true, s.x, s.y);
             if (s.chain === 0) s.chain = Math.random() < TY_SERPENT_FRENZY_CHANCE ? 3 : 1;
-            if (--s.chain > 0) s.nextBite = now + TY_SERPENT_FRENZY_GAP;
-            else { s.target = null; s.nextBite = now + 600; }
+            if (--s.chain > 0) {
+                const t = s.target;
+                s.hopA = Math.atan2(s.y - t.y, s.x - t.x) + Math.PI + (Math.random() - 0.5) * 1.1;
+                s.hopR = Math.max(16, (t.size || 30) * 0.4);
+                s.hopX0 = s.x; s.hopY0 = s.y; s.hopAt = now;
+                s.nextBite = now + TY_SERPENT_FRENZY_GAP;
+            } else { s.target = null; s.nextBite = now + 600; }
             s.biteFlashUntil = now + 100;
             if (hit) _tyOnSerpentBite();
             if (window.AudioMgr) window.AudioMgr.playSfxAt('ty-bite', s.x, s.y);

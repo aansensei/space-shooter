@@ -729,6 +729,45 @@ const _fxContext = ctx;
     ctx.strokeStyle = PAL.VOID;
     ctx.lineWidth = 4.6 * scale;
     ctx.stroke();
+    var hunting = serpent.state === 2;
+    if (gfx <= 2) {
+      // Scale chevrons: one V per segment, pointing at the head, batched into a single stroke.
+      var chevHalf = 2.3 * scale, chevPoint = 1.7 * scale;
+      ctx.beginPath();
+      for (var ci = 1; ci < segCount - 1; ci++) {
+        var cdx = segX[ci - 1] - segX[ci + 1], cdy = segY[ci - 1] - segY[ci + 1];
+        var cl = Math.sqrt(cdx * cdx + cdy * cdy) || 1;
+        cdx /= cl; cdy /= cl;
+        ctx.moveTo(segX[ci] - cdy * chevHalf, segY[ci] + cdx * chevHalf);
+        ctx.lineTo(segX[ci] + cdx * chevPoint, segY[ci] + cdy * chevPoint);
+        ctx.lineTo(segX[ci] + cdy * chevHalf, segY[ci] - cdx * chevHalf);
+      }
+      ctx.strokeStyle = hunting ? 'rgba(231,160,255,0.62)' : 'rgba(189,140,255,0.5)';
+      ctx.lineWidth = 0.9;
+      ctx.stroke();
+    }
+    if (gfx <= 1) {
+      // A pointed barb closes the tail.
+      var barbX = segX[segCount - 1], barbY = segY[segCount - 1];
+      var barbDx = barbX - segX[segCount - 2], barbDy = barbY - segY[segCount - 2];
+      var barbLen = Math.sqrt(barbDx * barbDx + barbDy * barbDy) || 1;
+      barbDx /= barbLen; barbDy /= barbLen;
+      ctx.beginPath();
+      ctx.moveTo(barbX - barbDy * 3.2 * scale, barbY + barbDx * 3.2 * scale);
+      ctx.lineTo(barbX + barbDx * 6.5 * scale, barbY + barbDy * 6.5 * scale);
+      ctx.lineTo(barbX + barbDy * 3.2 * scale, barbY - barbDx * 3.2 * scale);
+      ctx.closePath();
+      ctx.fillStyle = hunting ? PAL.MAGENTA : PAL.VIOLET;
+      ctx.fill();
+      // A bright bead runs from head to tail along the spine.
+      var beadPos = (timeMs * 0.012 + serpent.id * 3.1) % (segCount - 1);
+      var beadIdx = Math.floor(beadPos), beadFrac = beadPos - beadIdx;
+      ctx.fillStyle = PAL.LILAC;
+      ctx.beginPath();
+      ctx.arc(segX[beadIdx] + (segX[beadIdx + 1] - segX[beadIdx]) * beadFrac,
+        segY[beadIdx] + (segY[beadIdx + 1] - segY[beadIdx]) * beadFrac, 1.3 * scale, 0, Math.PI * 2);
+      ctx.fill();
+    }
     if (gfx <= 1 && (!window._fxOpts || window._fxOpts.trails !== false)) {
       var tailX = segX[segCount - 1];
       var tailY = segY[segCount - 1];
@@ -759,6 +798,38 @@ const _fxContext = ctx;
     ctx.arc(0, -2.3 * scale, 1.8 * scale, 0, Math.PI * 2);
     ctx.arc(0,  2.3 * scale, 1.8 * scale, 0, Math.PI * 2);
     ctx.fill();
+    if (gfx <= 2) {
+      // Swept back crest horns and a pair of fangs flanking the snout, one stroke.
+      ctx.strokeStyle = PAL.LILAC;
+      ctx.lineWidth = 1.1;
+      ctx.beginPath();
+      ctx.moveTo(-headLen * 0.55, -headW); ctx.lineTo(-headLen * 1.05, -headW * 1.25);
+      ctx.moveTo(-headLen * 0.55, headW); ctx.lineTo(-headLen * 1.05, headW * 1.25);
+      ctx.moveTo(headLen * 0.5, -headW * 0.33); ctx.lineTo(headLen * 0.82, -headW * 0.38);
+      ctx.moveTo(headLen * 0.5, headW * 0.33); ctx.lineTo(headLen * 0.82, headW * 0.38);
+      if (gfx <= 1) {
+        // Head ridge.
+        ctx.moveTo(headLen * 0.7, 0);
+        ctx.lineTo(-headLen * 0.55, 0);
+      }
+      ctx.stroke();
+    }
+    if (gfx <= 1) {
+      // The forked tongue flicks out in short bursts, further while hunting.
+      var tonguePhase = (timeMs * 0.0045 + serpent.id * 0.37) % 1;
+      if (tonguePhase < 0.4) {
+        var tongueLen = Math.sin(tonguePhase / 0.4 * Math.PI) * (3.2 + (hunting ? 2.2 : 0)) * scale;
+        if (tongueLen > 0.6) {
+          ctx.strokeStyle = PAL.MAGENTA;
+          ctx.lineWidth = 0.9;
+          ctx.beginPath();
+          ctx.moveTo(headLen, 0); ctx.lineTo(headLen + tongueLen, 0);
+          ctx.lineTo(headLen + tongueLen + 1.8 * scale, -1.2 * scale);
+          ctx.moveTo(headLen + tongueLen, 0); ctx.lineTo(headLen + tongueLen + 1.8 * scale, 1.2 * scale);
+          ctx.stroke();
+        }
+      }
+    }
     if (timeMs < serpent.biteFlashUntil) {
       ctx.strokeStyle = PAL.LILAC;
       ctx.lineWidth = 1.8;
@@ -978,6 +1049,12 @@ window._drawTyActors = function () {
             _fxContext.beginPath(); _fxContext.moveTo(s.segX[2], s.segY[2]);
             for (let j = 3; j < 10; j++) _fxContext.lineTo(s.segX[j], s.segY[j]);
             _fxContext.stroke(); _fxContext.restore();
+        }
+        if (s.active && s.chain > 0 && s.target && g < 3 && now - s.hopAt < TY_SERPENT_FRENZY_GAP && (!window._fxOpts || window._fxOpts.trails !== false)) {
+            const hp = (now - s.hopAt) / TY_SERPENT_FRENZY_GAP;
+            _fxContext.save(); _fxContext.globalCompositeOperation = 'lighter'; _fxContext.lineCap = 'round';
+            _fxContext.globalAlpha = _tyBrightness() * (1 - hp) * 0.85; _fxContext.strokeStyle = PAL.LILAC; _fxContext.lineWidth = 3;
+            _fxContext.beginPath(); _fxContext.moveTo(s.hopX0, s.hopY0); _fxContext.lineTo(s.x, s.y); _fxContext.stroke(); _fxContext.restore();
         }
         drawSerpent(_fxContext, s, now, g);
         if (s.active && now < s.biteFlashUntil) {

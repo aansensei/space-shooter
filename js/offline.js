@@ -199,6 +199,8 @@
         'assets/audio/sfx/skill-a-orb-hit.mp3', 'assets/audio/sfx/skill-a-orb-lock.mp3', 'assets/audio/sfx/skill-d-charge.mp3',
         'assets/audio/sfx/skill-f-charge.mp3', 'assets/audio/sfx/skill-f-fire.mp3', 'assets/audio/sfx/skill-g-activate.mp3', 'assets/audio/sfx/skill-g-loop.mp3', 'assets/audio/sfx/skill-ready.mp3',
         'assets/audio/sfx/skill-s-summon.mp3',
+        'assets/audio/sfx/ty-array-burst.mp3', 'assets/audio/sfx/ty-array-open.mp3', 'assets/audio/sfx/ty-bite.mp3', 'assets/audio/sfx/ty-devour.mp3',
+        'assets/audio/sfx/ty-flame-full.mp3', 'assets/audio/sfx/ty-scale-break.mp3', 'assets/audio/sfx/ty-serpents-rise.mp3',
         'assets/audio/sfx/skill-unlocked.mp3', 'assets/audio/sfx/spinner-bounce.mp3', 'assets/audio/sfx/stack-overflow-cast.mp3', 'assets/audio/sfx/spirit-arc-slash.mp3', 'assets/audio/sfx/spirit-autofire.mp3',
         'assets/audio/sfx/spirit-finale-laser.mp3',
         'assets/audio/sfx/timeline-distortion-banner.mp3',
