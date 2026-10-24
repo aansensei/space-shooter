@@ -51,7 +51,7 @@ function _drawTyVortexBase(ctx, elapsed, tier, radius, masterAlpha) {
     ctx.save(); ctx.rotate(rotation);
     ctx.globalAlpha = _tyBrightness() * masterAlpha * 0.75 * fade;
     ctx.drawImage(_tyVortexStamp, -size / 2, -size / 2, size, size);
-    if (tier <= 1) {
+    if (tier === 0) {
         ctx.rotate(-2 * rotation);
         ctx.globalAlpha = _tyBrightness() * masterAlpha * 0.35 * fade;
         ctx.drawImage(_tyVortexStamp, -size * 0.4, -size * 0.4, size * 0.8, size * 0.8);
@@ -119,6 +119,260 @@ const MAX_VORTEX_PARTICLES = 28;
 const vortexParticles = Array.from({ length: MAX_VORTEX_PARTICLES }, (_, i) => ({ angle: i / 28 * Math.PI * 2, distRatio: i % 7 / 7, speed: 0.65 + i % 4 * 0.18, size: 2 + i % 3 * 1.1 }));
 let viewW = 1280, viewH = 800, tyClock = 0;
 const _fxContext = ctx;
+function _tyMakeStamp(size) {
+    const c = document.createElement('canvas'); c.width = c.height = size; return c;
+}
+function _tyBakePolish() {
+    const constellation = _tyMakeStamp(384), scorch = _tyMakeStamp(384), plume = _tyMakeStamp(128);
+    let g = constellation.getContext('2d'); g.translate(192, 192);
+    g.strokeStyle = PAL.VIOLET; g.lineWidth = 0.85; g.beginPath();
+    for (let i = 0; i < 28; i++) {
+        const a = -Math.PI / 2 + i * Math.PI / 14, b = a + Math.PI * (i % 4 === 0 ? 3 : 1) / 14;
+        g.moveTo(Math.cos(a) * 182, Math.sin(a) * 182); g.lineTo(Math.cos(b) * 182, Math.sin(b) * 182);
+    }
+    g.stroke();
+    g = scorch.getContext('2d'); g.translate(192, 192);
+    const wash = g.createRadialGradient(0, 0, 8, 0, 0, 170);
+    wash.addColorStop(0, PAL.VOID + 'A0'); wash.addColorStop(0.6, PAL.ABYSS + '70'); wash.addColorStop(1, PAL.VOID + '00');
+    g.fillStyle = wash; g.fillRect(-192, -192, 384, 384);
+    g.strokeStyle = PAL.ABYSS; g.lineWidth = 2; g.globalAlpha = 0.65; g.beginPath();
+    for (let i = 0; i < 16; i++) {
+        const a = i * Math.PI / 8, r = 75 + i % 3 * 17;
+        g.moveTo(Math.cos(a) * 24, Math.sin(a) * 24);
+        g.lineTo(Math.cos(a + 0.08) * r, Math.sin(a + 0.08) * r);
+        g.lineTo(Math.cos(a) * (r + 30), Math.sin(a) * (r + 30));
+    }
+    g.stroke();
+    g = plume.getContext('2d'); g.lineJoin = 'round'; g.fillStyle = PAL.VOID; g.strokeStyle = PAL.MAGENTA; g.lineWidth = 1.25; g.beginPath();
+    for (let i = 0; i < 5; i++) {
+        const x = 34 + i * 15, tip = 8 + i % 3 * 12;
+        g.moveTo(x - 14, 122); g.bezierCurveTo(x - 28, 80, x + 24, 55, x - 5, tip);
+        g.bezierCurveTo(x + 12, 57, x - 4, 86, x + 12, 122); g.closePath();
+    }
+    g.fill(); g.globalAlpha = 0.7; g.stroke(); g.strokeStyle = PAL.LILAC; g.globalAlpha = 0.42; g.beginPath();
+    for (let i = 0; i < 3; i++) { const x = 45 + i * 18; g.moveTo(x, 121); g.bezierCurveTo(x - 8, 94, x + 18, 66, x, 42 + i * 10); }
+    g.stroke();
+    const impacts = [];
+    for (let kind = 0; kind < 4; kind++) {
+        const c = _tyMakeStamp(128); g = c.getContext('2d'); g.translate(64, 64);
+        g.strokeStyle = PAL.MAGENTA; g.lineWidth = 1.4; g.beginPath();
+        if (kind === 0) {
+            for (let i = 0; i < 6; i++) { const a = i * Math.PI / 3; g.moveTo(Math.cos(a) * 8, Math.sin(a) * 8); g.quadraticCurveTo(Math.cos(a - 0.3) * 29, Math.sin(a - 0.3) * 29, Math.cos(a) * 42, Math.sin(a) * 42); g.quadraticCurveTo(Math.cos(a + 0.3) * 29, Math.sin(a + 0.3) * 29, Math.cos(a) * 8, Math.sin(a) * 8); }
+            g.fillStyle = PAL.ABYSS; g.fill(); g.stroke(); g.beginPath();
+            for (let i = 0; i < 6; i++) { const a = i * Math.PI / 3; g.moveTo(Math.cos(a) * 11, Math.sin(a) * 11); g.lineTo(Math.cos(a + 0.1) * 22, Math.sin(a + 0.1) * 22); g.lineTo(Math.cos(a) * 37, Math.sin(a) * 37); }
+        } else if (kind === 1) {
+            for (let side = -1; side <= 1; side += 2) { g.moveTo(-24, side * 31); g.lineTo(-8, side * 8); g.lineTo(0, side * 25); g.lineTo(8, side * 8); g.lineTo(24, side * 31); }
+        } else if (kind === 2) {
+            for (let i = 0; i < 6; i++) { const a = i * Math.PI / 3; g.moveTo(Math.cos(a) * 30, Math.sin(a) * 30); g.arc(0, 0, 30, a, a + 0.55); }
+        } else {
+            for (let side = -1; side <= 1; side += 2) { g.moveTo(-38, side * 14); g.lineTo(0, 0); g.lineTo(38, -side * 14); }
+        }
+        g.stroke(); g.strokeStyle = PAL.LILAC; g.lineWidth = 1; g.beginPath();
+        if (kind === 2) {
+            for (let i = 0; i < 7; i++) { const a = i * 2.4; g.moveTo(Math.cos(a) * 17 - 2, Math.sin(a) * 17); g.lineTo(Math.cos(a) * 17 + 2, Math.sin(a) * 17); }
+        } else { g.moveTo(-9, -4); g.lineTo(-3, 7); g.moveTo(9, -4); g.lineTo(3, 7); }
+        g.stroke();
+        if (kind === 0) { g.fillStyle = PAL.LILAC; g.beginPath(); g.arc(-7, 0, 2.8, 0, Math.PI * 2); g.arc(7, 0, 2.8, 0, Math.PI * 2); g.fill(); }
+        impacts.push(c);
+    }
+    return { constellation, scorch, plume, impacts };
+}
+const _tyPolish = _tyBakePolish();
+function _tyBakeDevourPolish() {
+    const fang = _tyMakeStamp(128), comet = _tyMakeStamp(192), crown = _tyMakeStamp(192);
+    let g = fang.getContext('2d'); g.fillStyle = PAL.VOID; g.strokeStyle = PAL.MAGENTA; g.lineWidth = 2;
+    g.beginPath(); g.moveTo(18, 6); g.bezierCurveTo(3, 53, 40, 89, 110, 99);
+    g.bezierCurveTo(65, 78, 43, 48, 56, 13); g.quadraticCurveTo(34, 25, 18, 6); g.closePath(); g.fill(); g.stroke();
+    g.strokeStyle = PAL.LILAC; g.globalAlpha = 0.8; g.lineWidth = 1.1; g.beginPath();
+    g.moveTo(25, 23); g.bezierCurveTo(17, 63, 58, 88, 105, 97); g.stroke();
+    g.strokeStyle = PAL.VIOLET; g.globalAlpha = 0.45; g.beginPath();
+    for (let i = 0; i < 3; i++) { g.moveTo(22 + i * 9, 42 + i * 12); g.quadraticCurveTo(2 + i * 8, 20 + i * 14, 12 + i * 9, 8); }
+    g.stroke();
+    g = comet.getContext('2d'); g.translate(0, 96); g.fillStyle = PAL.VOID; g.strokeStyle = PAL.VIOLET; g.lineWidth = 1.2; g.beginPath();
+    for (let i = 0; i < 3; i++) {
+        const y = (i - 1) * 8; g.moveTo(187, 0); g.bezierCurveTo(132, y - 17, 53, y + 20, 6 + i * 18, y);
+        g.bezierCurveTo(81, y - 5, 131, y + 8, 187, 0); g.closePath();
+    }
+    g.fill(); g.globalAlpha = 0.7; g.stroke(); g.strokeStyle = PAL.MAGENTA; g.lineWidth = 0.8; g.beginPath();
+    g.moveTo(28, 1); g.bezierCurveTo(91, 14, 145, -7, 187, 0); g.stroke();
+    g = crown.getContext('2d'); g.translate(96, 96); g.strokeStyle = PAL.MAGENTA; g.fillStyle = PAL.VOID; g.lineWidth = 1.1; g.beginPath();
+    for (let i = 0; i < 10; i++) {
+        const a = i * Math.PI / 5;
+        g.moveTo(Math.cos(a - 0.045) * 78, Math.sin(a - 0.045) * 78);
+        g.quadraticCurveTo(Math.cos(a - 0.02) * 84, Math.sin(a - 0.02) * 84, Math.cos(a) * 90, Math.sin(a) * 90);
+        g.quadraticCurveTo(Math.cos(a + 0.06) * 83, Math.sin(a + 0.06) * 83, Math.cos(a + 0.045) * 78, Math.sin(a + 0.045) * 78);
+    }
+    g.fill(); g.stroke(); g.fillStyle = PAL.LILAC; g.globalAlpha = 0.7; g.beginPath();
+    for (let i = 0; i < 7; i++) { const a = i * Math.PI * 2 / 7, x = Math.cos(a) * 92, y = Math.sin(a) * 92; g.moveTo(x, y - 2); g.lineTo(x + 1.4, y); g.lineTo(x, y + 2); g.lineTo(x - 1.4, y); g.closePath(); }
+    g.fill(); return { fang, comet, crown };
+}
+const _tyDevourPolish = _tyBakeDevourPolish();
+const _tyMaturity = { ready: false, at: 0 };
+function _drawTyMaturity(g, now, tier, radius, ready) {
+    if (!ready) { _tyMaturity.ready = false; return; }
+    if (!_tyMaturity.ready || now < _tyMaturity.at) { _tyMaturity.ready = true; _tyMaturity.at = now; }
+    if (tier >= 3 || (window._fxOpts && window._fxOpts.glow === false)) return;
+    const age = now - _tyMaturity.at, settle = Math.min(1, age / 420), size = (radius + 10) * 2;
+    g.save(); g.rotate(-now * 0.00025);
+    g.globalAlpha = _tyBrightness() * (0.22 + 0.16 * Math.sin(now * 0.004) + (1 - settle) * 0.3);
+    g.drawImage(_tyDevourPolish.crown, -size / 2, -size / 2, size, size);
+    if (tier === 0 && settle < 1 && (!window._fxOpts || window._fxOpts.particles !== false)) {
+        g.globalAlpha = _tyBrightness() * (1 - settle) * 0.65; g.fillStyle = PAL.LILAC; g.beginPath();
+        for (let i = 0; i < 7; i++) { const a = i * Math.PI * 2 / 7, r = radius + 5 + Math.sin(settle * Math.PI) * 8; g.rect(Math.cos(a) * r, Math.sin(a) * r, 1.2, 1.2); }
+        g.fill();
+    }
+    g.restore();
+}
+function _drawTyDevourFangs(g, age, tier) {
+    if (tier >= 3 || age < 0 || age >= 480 || (window._fxOpts && window._fxOpts.trails === false)) return;
+    const p = age % 120 / 120, snap = Math.sin(p * Math.PI), gap = (1 - snap) * 18;
+    const small = viewW < 600 || viewH < 500, width = small ? 60 : 72, height = small ? 98 : 118;
+    g.save(); g.globalAlpha = _tyBrightness() * (0.38 + snap * 0.5);
+    g.drawImage(_tyDevourPolish.fang, -width - gap, -height * 0.77, width, height);
+    g.scale(-1, 1); g.drawImage(_tyDevourPolish.fang, -width - gap, -height * 0.77, width, height); g.restore();
+    if (tier === 0 && (!window._fxOpts || window._fxOpts.glow !== false)) {
+        g.save(); g.globalAlpha = _tyBrightness() * snap * (1 - p) * 0.45;
+        g.strokeStyle = PAL.MAGENTA; g.lineWidth = 1.2; g.beginPath(); g.arc(0, 0, 16 + p * 43, 0, Math.PI * 2); g.stroke(); g.restore();
+    }
+}
+function _drawTyCometTail(g, age, tier, lifeRatio) {
+    if (tier >= 3 || (window._fxOpts && window._fxOpts.trails === false)) return;
+    const width = 87 + Math.sin(age * 0.012) * 5;
+    g.save(); g.globalAlpha = _tyBrightness() * lifeRatio * 0.8;
+    g.drawImage(_tyDevourPolish.comet, -width - 7, -17, width, 34);
+    if (tier === 0 && (!window._fxOpts || window._fxOpts.particles !== false)) {
+        g.fillStyle = PAL.LILAC; g.globalAlpha = _tyBrightness() * lifeRatio * 0.6; g.beginPath();
+        for (let i = 0; i < 4; i++) { const p = (age * 0.0016 + i * 0.25) % 1, x = -12 - p * 72, y = Math.sin(i * 2.4 + age * 0.01) * p * 7; g.rect(x, y, (1 - p) * 1.4, (1 - p) * 1.4); }
+        g.fill();
+    }
+    g.restore();
+}
+
+function _tyBakeSnakePolish() {
+    const fill = _tyMakeStamp(64), scales = [], fissure = _tyMakeStamp(128);
+    let g = fill.getContext('2d'); g.translate(32, 32); g.fillStyle = PAL.ABYSS; g.beginPath();
+    for (let i = 0; i < 6; i++) { const a = i * Math.PI / 3; if (i === 0) g.moveTo(Math.cos(a) * 22, Math.sin(a) * 18.04); else g.lineTo(Math.cos(a) * 22, Math.sin(a) * 18.04); }
+    g.closePath(); g.fill();
+    for (let k = 0; k < 3; k++) {
+        const c = _tyMakeStamp(64); g = c.getContext('2d'); g.translate(32, 32);
+        g.strokeStyle = k === 0 ? PAL.VIOLET : k === 1 ? PAL.MAGENTA : PAL.LILAC; g.lineWidth = 1.35; g.beginPath();
+        for (let i = 0; i < 6; i++) { const a = i * Math.PI / 3; if (i === 0) g.moveTo(Math.cos(a) * 22, Math.sin(a) * 18.04); else g.lineTo(Math.cos(a) * 22, Math.sin(a) * 18.04); }
+        g.closePath(); g.stroke(); g.globalAlpha = 0.3; g.beginPath(); g.moveTo(-13, -2); g.lineTo(0, 7); g.lineTo(13, -2); g.stroke(); scales.push(c);
+    }
+    g = fissure.getContext('2d'); g.translate(64, 64); g.fillStyle = PAL.VOID; g.strokeStyle = PAL.MAGENTA; g.lineWidth = 1.4;
+    g.beginPath(); g.moveTo(-54, 0); g.lineTo(-25, -6); g.lineTo(-6, -2); g.lineTo(26, -7); g.lineTo(54, 0); g.lineTo(28, 8); g.lineTo(1, 3); g.lineTo(-29, 7); g.closePath(); g.fill(); g.stroke();
+    return { fill, scales, fissure };
+}
+const _tySnakePolish = _tyBakeSnakePolish();
+const _tyShieldCrack = new Path2D();
+for (let i = 0; i < 5; i++) {
+    const a = Math.PI + (i - 2) * 0.32, c = Math.cos(a), s = Math.sin(a), len = 27 + i % 3 * 10;
+    _tyShieldCrack.moveTo(0, 0); _tyShieldCrack.lineTo(c * len * 0.45 - s * 3, s * len * 0.45 + c * 3);
+    _tyShieldCrack.lineTo(c * len, s * len); _tyShieldCrack.moveTo(c * len * 0.6, s * len * 0.6);
+    _tyShieldCrack.lineTo(c * len * 0.75 - s * 9, s * len * 0.75 + c * 9);
+}
+const _tyWake = Array.from({ length: 60 }, () => ({ active: false, x: 0, y: 0, vx: 0, vy: 0, at: 0 }));
+const _tyWakeTicks = new Float64Array(10).fill(-1);
+let _tyWakeClock = -1;
+function _drawTyWake(g, now, tier) {
+    if (tier !== 0 || (window._fxOpts && (window._fxOpts.particles === false || window._fxOpts.trails === false))) return;
+    if (now < _tyWakeClock) { for (let i = 0; i < 60; i++) _tyWake[i].active = false; _tyWakeTicks.fill(-1); }
+    _tyWakeClock = now;
+    const tick = Math.floor(now / 60);
+    for (let i = 0; i < 10; i++) {
+        const s = _tySerpents[i];
+        if (!s.active || _tyWakeTicks[i] === tick || s.absorbAt >= 0) continue;
+        _tyWakeTicks[i] = tick;
+        const p = _tyWake[i * 6 + tick % 6]; p.active = true; p.x = s.segX[9]; p.y = s.segY[9]; p.at = now;
+        p.vx = -Math.cos(s.angle) * 0.025; p.vy = -Math.sin(s.angle) * 0.025 + 0.014;
+    }
+    g.save(); g.globalAlpha = _tyBrightness() * 0.32; g.fillStyle = PAL.ABYSS; g.beginPath();
+    for (let i = 0; i < 60; i++) {
+        const p = _tyWake[i], age = now - p.at; if (!p.active || age < 0 || age >= 340) continue;
+        const q = age / 340, x = p.x + p.vx * age, y = p.y + p.vy * age, r = (1 - q) * 3;
+        g.moveTo(x - r, y); g.quadraticCurveTo(x + Math.sin(i * 2.4 + q) * 5, y - 8 - q * 9, x + r, y - 2); g.quadraticCurveTo(x + r * 2, y + r, x - r, y);
+    }
+    g.fill(); g.fillStyle = PAL.MAGENTA; g.globalAlpha = _tyBrightness() * 0.43; g.beginPath();
+    for (let i = 0; i < 60; i++) { const p = _tyWake[i], age = now - p.at; if (p.active && age >= 0 && age < 340) { const r = 1.2 * (1 - age / 340); g.rect(p.x + p.vx * age, p.y + p.vy * age, r, r * 1.5); } }
+    g.fill(); g.restore();
+}
+function _drawTyBirthAperture(g, now, tier) {
+    if (tier >= 3 || (window._fxOpts && window._fxOpts.trails === false)) return;
+    let age = 1000;
+    for (let i = 0; i < 10; i++) if (_tySerpents[i].active) age = Math.min(age, now - _tySerpents[i].spawnTime);
+    if (age < 0 || age >= 300) return;
+    g.save(); g.translate(_tyArray.x, _tyArray.y); g.rotate(Math.PI / 4);
+    g.globalAlpha = _tyBrightness() * (1 - age / 300) * 0.85;
+    g.drawImage(_tySnakePolish.fissure, -64, -64, 128, 128); g.restore();
+}
+function _drawTyScaleStamp(g, x, y, r, angle, color, strokeAlpha, fillAlpha) {
+    const size = 64 * r / 22, half = size / 2;
+    g.save(); g.translate(x, y); g.rotate(angle);
+    g.globalAlpha = _tyBrightness() * fillAlpha; g.drawImage(_tySnakePolish.fill, -half, -half, size, size);
+    g.globalAlpha = _tyBrightness() * strokeAlpha;
+    g.drawImage(_tySnakePolish.scales[color === PAL.MAGENTA ? 1 : color === PAL.LILAC ? 2 : 0], -half, -half, size, size); g.restore();
+}
+
+const _tyScorch = { cast: -1, start: -10000, x: 0, y: 0 };
+let _tyVisualClock = -1;
+const _tySlowSeal = new Path2D();
+for (let i = 0; i < 12; i++) {
+    const a = i * Math.PI / 6, c = Math.cos(a), s = Math.sin(a);
+    _tySlowSeal.moveTo(c * 212 - s * 5, s * 212 + c * 5);
+    _tySlowSeal.lineTo(c * 202, s * 202);
+    _tySlowSeal.lineTo(c * 212 + s * 5, s * 212 - c * 5);
+}
+function _drawTyScorch(g, now, tier) {
+    if (now < _tyVisualClock) { _tyScorch.cast = -1; _tyScorch.start = -10000; }
+    _tyVisualClock = now;
+    const age = now - _tyArray.start;
+    if (_tyArray.start >= 0 && age >= 1430 && age < 2430 && _tyScorch.cast !== _tyArray.start) {
+        _tyScorch.cast = _tyArray.start; _tyScorch.start = _tyArray.start + 1430; _tyScorch.x = _tyArray.x; _tyScorch.y = _tyArray.y;
+    }
+    const p = (now - _tyScorch.start) / 1000;
+    if (tier >= 3 || p < 0 || p >= 1 || (window._fxOpts && window._fxOpts.sigilBackdrop === false)) return;
+    g.save(); g.globalAlpha = _tyBrightness() * (1 - p) * (1 - p) * 0.6;
+    g.drawImage(_tyPolish.scorch, _tyScorch.x - 185, _tyScorch.y - 185, 370, 370); g.restore();
+}
+function _drawTyArrayPolish(g, x, y, age, tier, radius) {
+    if (tier >= 3) return;
+    const o = window._fxOpts, bright = _tyBrightness();
+    g.save(); g.translate(x, y);
+    if (age < 1430 && (!o || o.sigilBackdrop !== false)) {
+        const pulse = 1 - ((age + 2070) % 250) / 250, size = radius * 2.1;
+        g.save(); g.rotate(age * 0.00019); g.globalAlpha = bright * Math.min(1, age / 180) * (0.16 + pulse * 0.18);
+        g.drawImage(_tyPolish.constellation, -size / 2, -size / 2, size, size); g.restore();
+    }
+    if (age >= 1430 && age < 1950) {
+        const p = (age - 1430) / 520, height = 60 + radius * 1.18 * Math.sin(p * Math.PI), width = 86 * (1 - p * 0.4);
+        if (!o || o.trails !== false) {
+            g.globalAlpha = bright * (1 - p) * 0.75;
+            g.drawImage(_tyPolish.plume, -width / 2, 24 - height, width, height);
+            if (tier === 0) { g.globalAlpha = bright * (1 - p) * 0.23; g.drawImage(_tyPolish.plume, -width * 0.4 + Math.sin(age * 0.015) * 9, 24 - height * 0.83, width * 0.7, height * 0.83); }
+        }
+        if (tier === 0 && (!o || o.particles !== false)) {
+            g.globalAlpha = bright * (1 - p) * 0.55; g.fillStyle = PAL.MAGENTA; g.beginPath();
+            for (let i = 0; i < 10; i++) {
+                const t = age - 1430 - i * 12;
+                if (t < 0) continue;
+                const px = Math.sin(i * 2.4) * (16 + i % 3 * 9), py = -height * (0.2 + i % 5 * 0.12) + t * t * 0.0005;
+                g.rect(px, py, 1.2, 2.2);
+            }
+            g.fill();
+        }
+    }
+    g.restore();
+}
+function _drawTyImpactStamp(g, f, p, tier) {
+    if (tier >= 3 || (window._fxOpts && window._fxOpts.particles === false)) return false;
+    const size = (f.kind === 1 ? 100 : 78) * (0.7 + p * 0.65);
+    g.save(); g.translate(f.x, f.y); g.rotate(f.angle + (f.kind === 3 ? p * 0.45 : 0));
+    g.globalAlpha = _tyBrightness() * (1 - p);
+    g.drawImage(_tyPolish.impacts[f.kind], -size / 2, -size / 2, size, size);
+    if (tier === 0) _drawGlow(g, 'lilac', 0, 0, size * 0.3, (1 - p) * 0.15);
+    g.restore(); return true;
+}
+
   function _getGlowSprite(key, size, innerCol, midCol, outerCol) {
     if (_glowCache[key]) return _glowCache[key];
     var c = document.createElement('canvas');
@@ -254,6 +508,7 @@ const _fxContext = ctx;
         ctx.stroke();
       }
     }
+    _drawTyMaturity(ctx, timeMs, gfx, baseRadius, isReady);
     ctx.restore();
   }
   function drawDetonation(ctx, x, y, elapsedMs, gfx, shardsPool) {
@@ -301,6 +556,7 @@ const _fxContext = ctx;
       ctx.moveTo(9, -8);  ctx.lineTo(4, -12);  ctx.lineTo(5, -5);  ctx.closePath();
       ctx.fill();
       ctx.restore();
+      _drawTyDevourFangs(ctx, elapsedMs, gfx);
       var fangSnap = Math.sin(biteLocal * Math.PI);
       var jawGap = 18 * (1.0 - 0.72 * fangSnap);
       if (gfx <= 1 && fangSnap > 0.45) {
@@ -365,22 +621,7 @@ const _fxContext = ctx;
         ctx.translate(sh.x, sh.y);
         ctx.rotate(sh.angle);
         ctx.globalAlpha = _tyBrightness() * (lifeRatio);
-        if (gfx <= 1 && (!window._fxOpts || window._fxOpts.trails !== false)) {
-          ctx.beginPath();
-          ctx.moveTo(-8, 0);
-          ctx.lineTo(-30, -4);
-          ctx.lineTo(-24, 0);
-          ctx.lineTo(-30, 4);
-          ctx.closePath();
-          ctx.fillStyle = PAL.ABYSS;
-          ctx.fill();
-          ctx.beginPath();
-          ctx.moveTo(-6, 0);
-          ctx.lineTo(-26, 0);
-          ctx.strokeStyle = PAL.VIOLET;
-          ctx.lineWidth = 2.0;
-          ctx.stroke();
-        }
+        _drawTyCometTail(ctx, age, gfx, lifeRatio);
         if (gfx <= 2) {
           _drawGlow(ctx, 'violet', 0, 0, 20, 0.55 * lifeRatio);
         }
@@ -855,9 +1096,11 @@ const _fxContext = ctx;
     if (shieldObj.state === 1) {
       for (var i = 0; i < numScales; i++) {
         var sa = rot + (i / numScales) * Math.PI * 2;
-        var sx = Math.cos(sa) * (rShield * 0.74);
-        var sy = Math.sin(sa) * (rShield * 0.74);
-        _drawHexScale(ctx, sx, sy, rShield * 0.36, sa, PAL.VIOLET, 0.24, 0.06);
+        var breath = gfx < 3 && (!window._fxOpts || window._fxOpts.glow !== false) ? 1 + Math.sin(timeMs * 0.0027 - i * 0.8) * 0.045 : 1;
+        var sx = Math.cos(sa) * (rShield * 0.74) * breath;
+        var sy = Math.sin(sa) * (rShield * 0.74) * breath;
+        if (gfx < 3) _drawTyScaleStamp(ctx, sx, sy, rShield * 0.36, sa, PAL.VIOLET, 0.24, 0.06);
+        else _drawHexScale(ctx, sx, sy, rShield * 0.36, sa, PAL.VIOLET, 0.24, 0.06);
       }
       ctx.beginPath();
       for (var k = 0; k <= 6; k++) {
@@ -892,6 +1135,11 @@ const _fxContext = ctx;
         ctx.lineTo(hx - Math.cos(hitAng) * 26, hy - Math.sin(hitAng) * 26);
         ctx.stroke();
       }
+      if (gfx < 3 && elapsed < 420 && (!window._fxOpts || window._fxOpts.glow !== false)) {
+        ctx.save(); ctx.translate(hx, hy); ctx.rotate(hitAng); const spread = Math.min(1, elapsed / 220);
+        ctx.scale(spread, spread); ctx.strokeStyle = PAL.LILAC; ctx.lineWidth = 1.2;
+        ctx.globalAlpha = _tyBrightness() * (1 - elapsed / 420) * 0.75; ctx.stroke(_tyShieldCrack); ctx.restore();
+      }
       var fade = 1.0 - breakT;
       for (var si = 0; si < numScales; si++) {
         var sAng = rot + (si / numScales) * Math.PI * 2;
@@ -899,19 +1147,22 @@ const _fxContext = ctx;
         var push = (angDiff < 0.9) ? (breakT * 36) : (breakT * 18);
         var dist = rShield * 0.74 + push;
         var px = Math.cos(sAng) * dist;
-        var py = Math.sin(sAng) * dist;
+        var py = Math.sin(sAng) * dist + (gfx < 3 && (!window._fxOpts || window._fxOpts.particles !== false) ? breakT * breakT * 32 : 0);
         var col = (angDiff < 0.9) ? PAL.LILAC : PAL.MAGENTA;
-        _drawHexScale(ctx, px, py, rShield * 0.35 * (1 - breakT * 0.35), sAng + breakT * 0.6, col, fade * 0.85, fade * 0.22);
+        if (gfx < 3) _drawTyScaleStamp(ctx, px, py, rShield * 0.35 * (1 - breakT * 0.35), sAng + breakT * 0.6, col, fade * 0.85, fade * 0.22);
+        else _drawHexScale(ctx, px, py, rShield * 0.35 * (1 - breakT * 0.35), sAng + breakT * 0.6, col, fade * 0.85, fade * 0.22);
       }
     } else if (shieldObj.state === 3) {
       var refT = Math.min(1.0, elapsed / 420);
       var ease = 1.0 - Math.pow(1.0 - refT, 3);
       for (var ri = 0; ri < numScales; ri++) {
+        if (gfx < 3 && (!window._fxOpts || window._fxOpts.glow !== false)) { var local = Math.max(0, Math.min(1, (elapsed - ri * 35) / 245)); ease = 1 - Math.pow(1 - local, 3); }
         var ra = rot + (ri / numScales) * Math.PI * 2;
         var rDist = (rShield * 1.45) * (1 - ease) + (rShield * 0.74) * ease;
         var rx = Math.cos(ra) * rDist;
         var ry = Math.sin(ra) * rDist;
-        _drawHexScale(ctx, rx, ry, rShield * 0.36 * ease, ra, PAL.LILAC, 0.35 * ease, 0.1 * ease);
+        if (gfx < 3) _drawTyScaleStamp(ctx, rx, ry, rShield * 0.36 * ease, ra, PAL.LILAC, 0.35 * ease, 0.1 * ease);
+        else _drawHexScale(ctx, rx, ry, rShield * 0.36 * ease, ra, PAL.LILAC, 0.35 * ease, 0.1 * ease);
       }
     }
     ctx.restore();
@@ -962,6 +1213,11 @@ const _fxContext = ctx;
       ctx.stroke();
       ctx.setLineDash(_emptyDash);
     }
+    if (gfx <= 2 && curR > 1 && (!window._fxOpts || window._fxOpts.trails !== false)) {
+      ctx.save(); ctx.scale(curR / 220, curR / 220);
+      ctx.globalAlpha = _tyBrightness() * alpha * 0.55; ctx.strokeStyle = PAL.LILAC; ctx.lineWidth = 220 / curR;
+      ctx.stroke(_tySlowSeal); ctx.restore();
+    }
     ctx.restore();
   }
 
@@ -986,6 +1242,7 @@ window._tyReserveRingSpace = function () {
 window._drawTyGround = function () {
     if (!_hasSigil('ty')) return;
     begin(); const g = gfx(), now = window._tyClock, o = window._fxOpts;
+    _drawTyScorch(_fxContext, now, g);
     if (_tyArray.active) {
         const age = now - _tyArray.start;
         if ((!o || o.sigilBackdrop !== false) && g < 3) {
@@ -993,6 +1250,11 @@ window._drawTyGround = function () {
             _fxContext.fillStyle = PAL.VOID; _fxContext.beginPath(); _fxContext.arc(_tyArray.x, _tyArray.y, 165, 0, Math.PI * 2); _fxContext.fill(); _fxContext.restore();
         }
         drawPhapTran(_fxContext, _tyArray.x, _tyArray.y, age, g, 170);
+        _drawTyArrayPolish(_fxContext, _tyArray.x, _tyArray.y, age, g, 170);
+        if (g < 3 && age >= 1230 && age < 1430 && (!o || o.sigilLight !== false)) {
+            _fxContext.save(); _fxContext.globalAlpha = _tyBrightness() * Math.pow((age - 1230) / 200, 2) * 0.14;
+            _fxContext.fillStyle = PAL.VOID; _fxContext.fillRect(0, 0, viewW, viewH); _fxContext.restore();
+        }
         if (age >= 180 && age < 1430) {
             const reveal = Math.min(1, (age - 180) / 160), r = 110 * reveal;
             _fxContext.save(); _fxContext.translate(_tyArray.x, _tyArray.y); _fxContext.globalAlpha = _tyBrightness() * (0.8);
@@ -1036,12 +1298,23 @@ window._drawTyActors = function () {
         if (d.active) drawDetonation(_fxContext, d.x, d.y, now - d.start, g, null);
     }
     drawDetonation(_fxContext, 0, 0, 1000, g, _tyShards);
+    _drawTyWake(_fxContext, now, g);
+    _drawTyBirthAperture(_fxContext, now, g);
+    let absorbPower = 0;
     for (let i = 0; i < _tySerpents.length; i++) {
         const s = _tySerpents[i];
         const absorbing = s.active && s.state === 3 && s.absorbAt >= 0;
+        const emerging = s.active && now - s.spawnTime < 260 && g < 3 && (!window._fxOpts || window._fxOpts.trails !== false);
+        if (emerging) {
+            const birth = Math.max(0, now - s.spawnTime);
+            _fxContext.save(); _fxContext.beginPath(); _fxContext.ellipse(_tyArray.x, _tyArray.y, 10 + birth * 0.75, 10 + birth * 0.55, 0, 0, Math.PI * 2); _fxContext.clip();
+        }
         if (absorbing) {
             const shrink = Math.max(0, 1 - (now - s.absorbAt) / 160);
-            _fxContext.save(); _fxContext.translate(s.x, s.y); _fxContext.scale(shrink, shrink); _fxContext.translate(-s.x, -s.y);
+            absorbPower = Math.max(absorbPower, 1 - shrink);
+            _fxContext.save(); _fxContext.translate(s.x, s.y);
+            if (g < 3 && (!window._fxOpts || window._fxOpts.trails !== false)) _fxContext.rotate((1 - shrink) * Math.PI * 1.5);
+            _fxContext.scale(shrink, shrink); _fxContext.translate(-s.x, -s.y);
         }
         if (s.active && g < 2 && (!window._fxOpts || window._fxOpts.trails !== false)) {
             _fxContext.save(); _fxContext.globalCompositeOperation = 'lighter';
@@ -1063,10 +1336,18 @@ window._drawTyActors = function () {
             _fxContext.beginPath(); _fxContext.moveTo(9, -6); _fxContext.lineTo(17, 0); _fxContext.lineTo(9, 6); _fxContext.stroke(); _fxContext.restore();
         }
         if (absorbing) _fxContext.restore();
+        if (emerging) _fxContext.restore();
+    }
+    if (absorbPower > 0 && g < 3 && (!window._fxOpts || window._fxOpts.glow !== false)) {
+        _fxContext.save(); _fxContext.translate(player.x, player.y); _fxContext.rotate(now * 0.02);
+        _fxContext.globalAlpha = _tyBrightness() * Math.sin(absorbPower * Math.PI) * 0.45;
+        _fxContext.strokeStyle = PAL.LILAC; _fxContext.lineWidth = 1.1;
+        _fxContext.beginPath(); _fxContext.arc(0, 0, 8 + 14 * (1 - absorbPower), 0, Math.PI * 1.8); _fxContext.stroke(); _fxContext.restore();
     }
     for (let i = 0; i < 32; i++) {
         const f = _tyImpacts[i]; if (!f.active) continue;
         const p = Math.max(0, Math.min(1, (now - f.at) / 420)), r = (f.kind === 1 ? 18 : 12) + p * 15;
+        if (_drawTyImpactStamp(_fxContext, f, p, g)) continue;
         _fxContext.save(); _fxContext.translate(f.x, f.y); _fxContext.rotate(f.angle);
         _fxContext.globalAlpha = _tyBrightness() * (1 - p); _fxContext.lineWidth = 1.6;
         _fxContext.strokeStyle = f.kind === 2 ? PAL.EMBER : '#FFFFFF';
