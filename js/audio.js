@@ -1082,6 +1082,7 @@
         _makeTyPool('ty-flame-full', 'skill-s-summon.mp3');
         _makeTyPool('ty-devour', 'dimension-break.mp3');
         _makeTyPool('ty-array-open', 'skill-s-summon.mp3');
+        _makeTyPool('ty-array-pull', 'cancer-whirlpool-spin.mp3');
         _makeTyPool('ty-array-burst', 'goliath-verdict-impact.mp3');
         _makeTyPool('ty-serpents-rise', 'skill-s-summon.mp3');
         _makeTyPool('ty-bite', 'enemy-hit.wav');

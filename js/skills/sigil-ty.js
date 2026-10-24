@@ -2,8 +2,13 @@
 const TY_SERPENT_SPEED_MULT = 1.25;
 // Each hunt has this chance to latch on for 3 bites. Between bites the serpent
 // dashes to the far side of the prey's body in TY_SERPENT_FRENZY_GAP ms, then
-// heads back to the ship for the usual 600ms.
+// rests at the ship for TY_SERPENT_REST_MS.
 const TY_SERPENT_FRENZY_CHANCE = 0.4, TY_SERPENT_FRENZY_GAP = 160;
+// Each fang stack adds this much ATK to a bite, so 40 stacks add 20%.
+const TY_SERPENT_STACK_ATK = 0.005;
+const TY_SERPENT_BITE_ATK = 0.60, TY_SERPENT_REST_MS = 450, TY_SERPENT_LATCH_MAX = 3;
+// Every attack also carries a share of the target's Max HP so it keeps up against big pools.
+const TY_BITE_PCT = 0.002, TY_DEVOUR_PCT = 0.004, TY_SHARD_PCT = 0.003, TY_ARRAY_TICK_PCT = 0.001, TY_ARRAY_BURST_PCT = 0.02;
 // The array keeps its own cooldown so S can open it while a spirit is still out.
 const TY_ARRAY_COOLDOWN = 10000;
 const _tySerpents = Array.from({ length: 10 }, (_, id) => ({
@@ -18,11 +23,11 @@ const _tyDevours = Array.from({ length: 4 }, () => ({
 const _tyShards = Array.from({ length: 16 }, () => ({
     active: false, x: 0, y: 0, vx: 0, vy: 0, angle: 0, spawnTime: 0, lifeMs: 1100, burst: null, bit: 0
 }));
-const _tyArray = { active: false, start: 0, tick: 0, exploded: false, x: 0, y: 0 };
+const _tyArray = { active: false, start: 0, tick: 0, exploded: false, pulled: false, x: 0, y: 0 };
 const _tyShield = { state: 0, stateTime: 0, hitAngle: 0, bites: 0, x: 0, y: 0 };
 const _tyWave = { start: -10000, x: 0, y: 0 };
 const _tyImpacts = Array.from({ length: 32 }, () => ({ active: false, x: 0, y: 0, at: 0, angle: 0, kind: 0 }));
-const _tySource = { damage: 0, percentDamage: 0, isPiercing: true, _statSrc: '', _noHitSfx: true, _noBase60: true };
+const _tySource = { damage: 0, percentDamage: 0, isPiercing: true, _barrierPiercing: true, _statSrc: '', _noHitSfx: true, _noBase60: true };
 
 function _tyReset() {
     for (let i = 0; i < enemies.length; i++) { enemies[i]._tySlowEnd = 0; enemies[i]._tyLiftMs = 0; enemies[i]._tySerpentKill = false; }
@@ -66,7 +71,13 @@ function _tyDamage(e, atk, pct, label, serpent, ix, iy) {
     _tySource.damage = player.atk * atk; _tySource.percentDamage = pct;
     _tySource._statSrc = label;
     if (serpent) e._tySerpentKill = true;
-    dealDamage(e, _tySource);
+    if (e.type === 'marchosias' && e.arcBarrier && e.arcBarrier.hp > 0) {
+        // Every Umbral Serpent hit pierces, so the barrier takes 70% and the body 20%. A bite lands at the
+        // serpent's head, so the barrier's facing arc decides it; hits without an impact
+        // point split the same way regardless of facing, like Skill A's orbs.
+        if (ix === undefined) applyMarchosiasSkillASplit(e, _tySource);
+        else if (!checkMarchosiasArcBarrier(e, _tySource, ix, iy)) dealDamage(e, _tySource);
+    } else dealDamage(e, _tySource);
     if (serpent && e.hp > 0 && !e._deathPhase) e._tySerpentKill = false;
     const hit = window._matchStats && (window._matchStats.allyDamage[label] || 0) > before;
     if (hit && (serpent || label === 'Umbral Serpent: Devour')) _tyImpact(ix === undefined ? e.x : ix, iy === undefined ? e.y : iy, serpent ? 0 : 1);
@@ -125,7 +136,7 @@ function _tyNearest(x, y, radius, latch) {
         if (latch) {
             let n = 0;
             for (let j = 0; j < _tySerpents.length; j++) if (_tySerpents[j].active && _tySerpents[j].target === e) n++;
-            if (n >= 2) continue;
+            if (n >= TY_SERPENT_LATCH_MAX) continue;
         }
         const dx = x - e.x, dy = y - e.y, ds = dx * dx + dy * dy;
         if (ds < distance) { best = e; distance = ds; }
@@ -169,7 +180,7 @@ function _tyOpenArray() {
     if (!_hasBuff('van_xa_trieu_tran')) return false;
     _tyPickArrayCenter();
     _tyArray.active = true; _tyArray.start = window._tyClock;
-    _tyArray.tick = 1; _tyArray.exploded = false;
+    _tyArray.tick = 1; _tyArray.exploded = false; _tyArray.pulled = false;
     window._tySwarmEnd = window._tyClock + 1430 + 8000;
     window._tySwarmLimit = window._tyClock + 1430 + 12000;
     _tyRestoreShield();
@@ -250,15 +261,19 @@ function _tyBeginFrame(ms) {
     }
     if (_tyArray.active) {
         const age = now - _tyArray.start;
-        while (_tyArray.tick <= 5 && age >= 180 + _tyArray.tick * 250) { _tyArrayDamage(0.20, 0, false); _tyArray.tick++; }
+        while (_tyArray.tick <= 5 && age >= 180 + _tyArray.tick * 250) { _tyArrayDamage(0.20, TY_ARRAY_TICK_PCT, false); _tyArray.tick++; }
         // The pull is Dominant: CC Immune enemies are dragged too, only Goliath holds its ground.
+        if (age >= 180 && !_tyArray.pulled) {
+            _tyArray.pulled = true;
+            if (window.AudioMgr) window.AudioMgr.playSfxAt('ty-array-pull', _tyArray.x, _tyArray.y);
+        }
         if (age >= 180 && age < 1430) for (let i = 0; i < enemies.length; i++) {
             const e = enemies[i]; if (!_tyIsTarget(e) || _capIsGoliath(e)) continue;
             const dx = _tyArray.x - e.x, dy = _tyArray.y - e.y, d = Math.hypot(dx, dy);
             if (d > 4 && d <= 170) { const pull = Math.min(d - 4, ms * 0.18); e.x += dx / d * pull; e.y += dy / d * pull; }
         }
         if (age >= 1430 && !_tyArray.exploded) {
-            _tyArray.exploded = true; _tyArrayDamage(3, 0.015, true);
+            _tyArray.exploded = true; _tyArrayDamage(3, TY_ARRAY_BURST_PCT, true);
             if (now < window._tySwarmEnd) _tySpawnSerpents(_tyArray.x, _tyArray.y);
             _setShake(_mobPerf ? 5 : 9, 300);
             if (window.AudioMgr) window.AudioMgr.playSfxAt('ty-array-burst', _tyArray.x, _tyArray.y);
@@ -271,7 +286,7 @@ function _tyBeginFrame(ms) {
             if (!_tyIsTarget(d.target) || !enemies.includes(d.target)) d.target = _tyNearest(d.x, d.y, 160, false);
             if (!d.target) { d.active = false; break; }
             d.x = d.target.x; d.y = d.target.y;
-            _tyDamage(d.target, 0.60, 0, 'Umbral Serpent: Devour', false);
+            _tyDamage(d.target, 0.60, TY_DEVOUR_PCT, 'Umbral Serpent: Devour', false);
             d.bites++; d.nextBite += 120;
             if (d.bites === 4) _tySpawnShards(d);
         }
@@ -295,7 +310,8 @@ function _tyBeginFrame(ms) {
             }
             if (d.hitMasks[k] & s.bit) continue;
             d.hitMasks[k] |= s.bit;
-            _tyDamage(e, 0.45 * (d.hitCounts[k]++ ? 0.25 : 1), 0, 'Umbral Serpent: Shards', false);
+            const repeatHit = d.hitCounts[k]++ > 0, share = repeatHit ? 0.25 : 1;
+            _tyDamage(e, 0.45 * share, TY_SHARD_PCT * share, 'Umbral Serpent: Shards', false);
         }
     }
     for (let i = 0; i < _tySerpents.length; i++) {
@@ -305,8 +321,8 @@ function _tyBeginFrame(ms) {
         const returning = s.state === 3;
         if (!returning) {
             if (!_tyIsTarget(s.target) || !enemies.includes(s.target)) {
-                // A frenzy cut short by a kill still waits the full 600ms from its last bite.
-                if (s.chain > 0) s.nextBite += 600 - TY_SERPENT_FRENZY_GAP;
+                // A frenzy cut short by a kill still rests the full TY_SERPENT_REST_MS from its last bite.
+                if (s.chain > 0) s.nextBite += TY_SERPENT_REST_MS - TY_SERPENT_FRENZY_GAP;
                 s.target = null; s.chain = 0;
             }
             if (!s.target && now >= s.nextBite) s.target = _tyNearest(s.x, s.y, Infinity, true);
@@ -334,7 +350,7 @@ function _tyBeginFrame(ms) {
         }
         const arrived = hopping ? now >= s.nextBite : s.target && dist <= step + (s.target.size || 30) / 2;
         if (!returning && s.target && arrived && now >= s.nextBite) {
-            const hit = _tyDamage(s.target, 0.35, 0, 'Umbral Serpent: Serpents', true, s.x, s.y);
+            const hit = _tyDamage(s.target, TY_SERPENT_BITE_ATK + window._tyFangStacks * TY_SERPENT_STACK_ATK, TY_BITE_PCT, 'Umbral Serpent: Serpents', true, s.x, s.y);
             if (s.chain === 0) s.chain = Math.random() < TY_SERPENT_FRENZY_CHANCE ? 3 : 1;
             if (--s.chain > 0) {
                 const t = s.target;
@@ -342,7 +358,7 @@ function _tyBeginFrame(ms) {
                 s.hopR = Math.max(16, (t.size || 30) * 0.4);
                 s.hopX0 = s.x; s.hopY0 = s.y; s.hopAt = now;
                 s.nextBite = now + TY_SERPENT_FRENZY_GAP;
-            } else { s.target = null; s.nextBite = now + 600; }
+            } else { s.target = null; s.nextBite = now + TY_SERPENT_REST_MS; }
             s.biteFlashUntil = now + 100;
             if (hit) _tyOnSerpentBite();
             if (window.AudioMgr) window.AudioMgr.playSfxAt('ty-bite', s.x, s.y);
