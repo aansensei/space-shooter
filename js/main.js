@@ -1032,6 +1032,9 @@ function update(rawDeltaTime) {
         }
 
         if (enemy.type === 'debug_dummy') {
+            // The dummy heals back instead of dying, so a killing blow must not leave it marked for death:
+            // the targeting of every skill skips enemies carrying that mark.
+            enemy._markedForDeath = false;
             // What the dummy lost this frame feeds its DPS meter, a killing blow counted through the overkill.
             const _dummyPrevHp = enemy._lastHpBeforeFrame, _dummyHpNow = enemy.hp;
             const _dummyBlocks = enemy._isImmune || enemy._ironActive;
