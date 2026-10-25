@@ -122,8 +122,22 @@ function updateSkillA(deltaTime) {
     let dt = deltaTime / 16.67;
     const rotationSpeed = 0.02 * dt;
 
-    // The Thaelis cocoon is untargetable; only its Guards can be locked.
-    let availableEnemy = enemies.find(enemy => !enemy.isTargetedByA && !enemy.inCoronation && !enemy._stealthed && !enemy.type.startsWith('enemy_bullet') && enemy.type !== 'abyssal_chain' && enemy.type !== 'veilshroud_echo' && enemy.type !== 'thaelis_cocoon' && Math.hypot(enemy.x - player.x, enemy.y - player.y) <= skillASensorRadius);
+    // Locks are rebuilt from the live orbs every frame. An orb can be destroyed outside this
+    // file (a defensive orb spent on a hit, a beam sweeping through), and its target must not
+    // stay marked as taken or no other orb would ever lock it again.
+    const lockStamp = window._skillALockStamp = (window._skillALockStamp || 0) + 1;
+    for (let i = 0; i < skillAOrbs.length; i++) {
+        const held = skillAOrbs[i].target;
+        if (held) held._skillALock = lockStamp;
+    }
+    for (let i = 0; i < enemies.length; i++) {
+        const held = enemies[i];
+        if (held.isTargetedByA && held._skillALock !== lockStamp) held.isTargetedByA = false;
+    }
+
+    // The Thaelis cocoon is untargetable; only its Guards can be locked. An enemy already
+    // dying is skipped, an orb sent after it would be removed without ever firing.
+    let availableEnemy = enemies.find(enemy => !enemy.isTargetedByA && !enemy.inCoronation && !enemy._stealthed && enemy.hp > 0 && !enemy._markedForDeath && !enemy._deathPhase && !enemy.dyingLaserPhase && !enemy.type.startsWith('enemy_bullet') && enemy.type !== 'abyssal_chain' && enemy.type !== 'veilshroud_echo' && enemy.type !== 'thaelis_cocoon' && Math.hypot(enemy.x - player.x, enemy.y - player.y) <= skillASensorRadius);
 
     if (availableEnemy) {
         let availableOrb = skillAOrbs.find(orb => !orb.target && !orb.isDefensive && !orb._pierced);
