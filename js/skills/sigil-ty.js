@@ -17,7 +17,7 @@ const TY_ARRAY_RADIUS = 190;
 const _tySerpents = Array.from({ length: 10 }, (_, id) => ({
     id, active: false, x: 0, y: 0, angle: 0, target: null, state: 0, chain: 0,
     hopA: 0, hopR: 0, hopX0: 0, hopY0: 0, hopAt: 0, boostUntil: 0,
-    nextBite: 0, spawnTime: 0, absorbAt: -1, biteFlashUntil: 0, segX: new Float32Array(10), segY: new Float32Array(10)
+    bulletBuffEnd: 0, nextBite: 0, spawnTime: 0, absorbAt: -1, biteFlashUntil: 0, segX: new Float32Array(10), segY: new Float32Array(10)
 }));
 const _tyDevours = Array.from({ length: 4 }, () => ({
     active: false, start: -10000, nextBite: 0, bites: 0, target: null, x: 0, y: 0,
@@ -30,17 +30,20 @@ const _tyArray = { active: false, start: 0, tick: 0, exploded: false, pulled: fa
 const _tyShield = { state: 0, stateTime: 0, hitAngle: 0, bites: 0, x: 0, y: 0 };
 const _tyWave = { start: -10000, x: 0, y: 0 };
 const _tyImpacts = Array.from({ length: 32 }, () => ({ active: false, x: 0, y: 0, at: 0, angle: 0, kind: 0 }));
+const _tyVenomSource = { damage: 0, isTrueDamage: true, _isTyVenomDot: true, _statSrc: 'Umbral Serpent: Venom', _noBase60: true, _noHitSfx: true };
+const _tyVenomSoulSource = { damage: 0, isTrueDamage: true, _isNocToiDot: true, _statSrc: 'Soul Devourer', _noBase60: true, _noHitSfx: true };
 const _tySource = { damage: 0, percentDamage: 0, isPiercing: true, _barrierPiercing: true, _statSrc: '', _noHitSfx: true, _noBase60: true };
 
 function _tyReset() {
-    for (let i = 0; i < enemies.length; i++) { enemies[i]._tySlowEnd = 0; enemies[i]._tyLiftMs = 0; enemies[i]._tySerpentKill = false; }
+    for (let i = 0; i < enemies.length; i++) { _tyClearVenom(enemies[i]); enemies[i]._tySlowEnd = 0; enemies[i]._tyLiftMs = 0; enemies[i]._tySerpentKill = false; }
+    window._tyVenomEpoch = (window._tyVenomEpoch || 0) + 1;
     window._tyClock = 0; window._tyCharge = 0; window._tySpeedEnd = 0;
     window._tySwarmEnd = 0; window._tySwarmLimit = 0;
-    window._tyFangStacks = 0; window._tyLastBite = -10000; window._tyDecayStacks = 0;
+    window._tyVenomBites = 0; window._tyFangStacks = 0; window._tyLastBite = -10000; window._tyDecayStacks = 0;
     _tyArray.active = false; _tyArray.start = -TY_ARRAY_COOLDOWN; _tyShield.state = 0; _tyShield.bites = 0; _tyWave.start = -10000;
     for (let i = 0; i < 32; i++) _tyImpacts[i].active = false;
     for (let i = 0; i < _tySerpents.length; i++) {
-        const s = _tySerpents[i]; s.active = false; s.target = null; s.state = 0; s.chain = 0; s.absorbAt = -1;
+        const s = _tySerpents[i]; s.active = false; s.bulletBuffEnd = 0; s.target = null; s.state = 0; s.chain = 0; s.absorbAt = -1;
     }
     for (let i = 0; i < 16; i++) _tyShards[i].active = false;
     for (let i = 0; i < 4; i++) {
@@ -61,6 +64,7 @@ function _tyChargeFlame(amount) {
 }
 
 function _tyOnEnemyKill(e) {
+    _tyClearVenom(e);
     _tyChargeFlame(300);
     if (e._tySerpentKill && window._tySwarmEnd > window._tyClock) {
         window._tySwarmEnd = Math.min(window._tySwarmLimit, window._tySwarmEnd + 2000);
@@ -101,12 +105,108 @@ function _tyDamageMult() {
     return _hasBuff('van_xa_trieu_tran') ? 1 + window._tyFangStacks * 0.01 : 1;
 }
 
-function _tyOnSerpentBite() {
+function _tyOnSerpentBite(e, x, y) {
     window._tyFangStacks = Math.min(40, window._tyFangStacks + 1);
     window._tyDecayStacks = window._tyFangStacks;
     window._tyLastBite = window._tyClock;
+    if (++window._tyVenomBites % 5 === 0) _tyAddVenom(e, x, y);
     _tyChargeFlame(300);
     if (_tyShield.state === 0 || _tyShield.state === 2) { if (++_tyShield.bites >= 12) _tyRestoreShield(); }
+}
+
+function _tyVenomTarget(e) {
+    return !!e && !!e.type && e.type !== 'uriel' && e.type !== 'thaelis_cocoon'
+        && !e.type.startsWith('enemy_bullet') && e.type !== 'abyssal_chain' && e.type !== 'veilshroud_echo'
+        && !e.inCoronation && e.hp > 0 && !e._markedForDeath && !e._deathPhase && !e.dyingLaserPhase;
+}
+
+function _tyClearVenom(e) {
+    if (e._tyVenomPeak > 0 && e.soulReaverEnd === Infinity) {
+        e.soulReaver = e._tyVenomSrSaved; e.soulReaverEnd = e._tyVenomSrEnd;
+    }
+    e._tyVenomStacks = 0; e._tyVenomPeak = 0; e._tyVenomEnd = 0;
+    e._tyVenomTickAt = 0; e._tyVenomTick = 0; e._tyVenomSoulAt = 0;
+    e._tyVenomSrSaved = false; e._tyVenomSrEnd = 0;
+    e._tyVenomAddedAt = -10000; e._tyVenomAddedX = 0; e._tyVenomAddedY = 0;
+    e._tyVenomPulseAt = -10000; e._tyVenomPulseBig = false; e._tyVenomDropAt = -10000;
+}
+
+function _tyVenomAmount(e, now) {
+    if (!(e._tyVenomPeak > 0)) return 0;
+    return Math.max(0, (e._tyVenomPeak || 0) * Math.min(1, (e._tyVenomEnd + 1000 - now) / 1000));
+}
+
+function _tyHoldVenomSoul(e) {
+    // The game clock owns expiry; the shared wall clock curse stays pinned until cleanup.
+    if (e.soulReaverEnd !== Infinity) {
+        e._tyVenomSrSaved = !!e.soulReaver; e._tyVenomSrEnd = e.soulReaverEnd || 0;
+    }
+    e.soulReaver = true; e.soulReaverEnd = Infinity;
+}
+
+function _tyAddVenom(e, x, y) {
+    if (!_hasBuff('van_xa_trieu_tran') || !_tyVenomTarget(e)) return;
+    const now = window._tyClock;
+    if (e._tyVenomStacks > 0) _tyUpdateVenom(e, now);
+    const before = _tyVenomAmount(e, now);
+    if (before >= 5 || !_tyVenomTarget(e)) return;
+    if (before <= 0) {
+        e._tyVenomSoulAt = now + 350;
+        e._tyVenomSrSaved = !!e.soulReaver; e._tyVenomSrEnd = e.soulReaverEnd || 0;
+        e._tyVenomPulseAt = -10000; e._tyVenomPulseBig = false; e._tyVenomDropAt = -10000;
+    }
+    e._tyVenomStacks = e._tyVenomPeak = Math.min(5, before + 1);
+    e._tyVenomEnd = now + 3000; e._tyVenomTickAt = now + 1000; e._tyVenomTick = 0;
+    e._tyVenomAddedAt = now; e._tyVenomAddedX = x === undefined ? e.x : x; e._tyVenomAddedY = y === undefined ? e.y : y;
+    _tyHoldVenomSoul(e);
+}
+
+function _tyUpdateVenom(e, now) {
+    if (!(e._tyVenomStacks > 0)) return;
+    if (!_hasBuff('van_xa_trieu_tran') || !_tyVenomTarget(e)) { _tyClearVenom(e); return; }
+    _tyHoldVenomSoul(e);
+    // Both tick streams advance in timestamp order, including long frames.
+    while (e._tyVenomStacks > 0) {
+        const venomAt = e._tyVenomTick < 3 ? e._tyVenomTickAt : Infinity;
+        const soulAt = e._tyVenomSoulAt < e._tyVenomEnd + 1000 ? e._tyVenomSoulAt : Infinity;
+        const at = Math.min(venomAt, soulAt);
+        if (at > now) break;
+        e._tySerpentKill = false;
+        if (venomAt <= soulAt) {
+            const last = ++e._tyVenomTick === 3;
+            e._tyVenomTickAt += 1000; e._tyVenomPulseAt = at; e._tyVenomPulseBig = last;
+            _tyVenomSource.damage = player.atk * ((last ? 0.65 : 0.35) + Math.max(0, e._tyVenomPeak - 1) * 0.15);
+            dealDamage(e, _tyVenomSource);
+        } else {
+            e._tyVenomSoulAt += 350; _tyVenomSoulSource.damage = player.atk * 0.069;
+            dealDamage(e, _tyVenomSoulSource);
+        }
+        if (!_tyVenomTarget(e)) { _tyClearVenom(e); return; }
+    }
+    e._tyVenomStacks = _tyVenomAmount(e, now);
+    if (e._tyVenomStacks <= 0) _tyClearVenom(e);
+}
+
+function _tyInterceptBullets(s, ax, ay) {
+    if (!_hasBuff('van_xa_trieu_tran') || s.absorbAt >= 0) return;
+    for (let i = enemies.length - 1; i >= 0; i--) {
+        const e = enemies[i];
+        if (e.type !== 'enemy_bullet' || e.hp <= 0 || e._markedForDeath) continue;
+        const radius = (e.size || 6) + 4;
+        let hit = false, x0 = ax, y0 = ay;
+        // The swept head and the body chain intercept only ordinary bullets.
+        for (let j = -1; j < 9; j++) {
+            const x1 = j < 0 ? s.x : s.segX[j + 1], y1 = j < 0 ? s.y : s.segY[j + 1];
+            const dx = x1 - x0, dy = y1 - y0, len = dx * dx + dy * dy;
+            const t = len > 0 ? Math.max(0, Math.min(1, ((e.x - x0) * dx + (e.y - y0) * dy) / len)) : 0;
+            const px = e.x - x0 - dx * t, py = e.y - y0 - dy * t;
+            if (px * px + py * py <= radius * radius) { hit = true; break; }
+            x0 = j < 0 ? s.segX[0] : x1; y0 = j < 0 ? s.segY[0] : y1;
+        }
+        if (!hit) continue;
+        s.bulletBuffEnd = window._tyClock + 3000;
+        _tyImpact(e.x, e.y, 3); enemies.splice(i, 1);
+    }
 }
 
 function _tyOnShipHit(e, source) {
@@ -228,7 +328,7 @@ function _tyTryOpenArray() {
 function _tySpawnSerpents(x, y) {
     for (let i = 0; i < _tySerpents.length; i++) {
         const s = _tySerpents[i]; s.active = true; s.x = x; s.y = y; s.target = null; s.spawnTime = window._tyClock;
-        s.state = 0; s.chain = 0; s.absorbAt = -1; s.boostUntil = 0;
+        s.state = 0; s.chain = 0; s.absorbAt = -1; s.boostUntil = 0; s.bulletBuffEnd = 0;
         s.nextBite = window._tyClock + 300 + i * 35; s.biteFlashUntil = 0; s.angle = i * Math.PI * 2 / _tySerpents.length;
         s.segX.fill(x); s.segY.fill(y);
     }
@@ -271,6 +371,8 @@ function _tyBeginFrame(ms) {
     if (now - window._tyLastBite > 2000) {
         window._tyFangStacks = Math.max(0, window._tyDecayStacks * (1 - (now - window._tyLastBite - 2000) / 1000));
     }
+    if (window._tyFangStacks <= 0) window._tyVenomBites = 0;
+    for (let i = 0; i < enemies.length; i++) _tyUpdateVenom(enemies[i], now);
     _tyChargeFlame(ms);
     if (_tyShield.state === 3 && now - _tyShield.stateTime >= 420) _tyShield.state = 1;
     if (_tyShield.state === 2 && now - _tyShield.stateTime >= 480) _tyShield.state = 0;
@@ -359,6 +461,8 @@ function _tyBeginFrame(ms) {
         if (!returning) s.state = s.target ? 2 : 0;
         let speed = returning || s.target ? 0.72 : 0.38;
         if (!returning && !s.target && s.boostUntil > now) speed *= 1 + TY_SERPENT_POST_BITE_BOOST * (s.boostUntil - now) / TY_SERPENT_REST_MS;
+        if (now < s.bulletBuffEnd) speed *= 1.05;
+        const ax = s.x, ay = s.y;
         const step = Math.min(dist, travelMs * speed * TY_SERPENT_SPEED_MULT);
         if (hopping) {
             const p = Math.min(1, (now - s.hopAt) / TY_SERPENT_FRENZY_GAP), ease = 1 - (1 - p) * (1 - p) * (1 - p);
@@ -373,9 +477,11 @@ function _tyBeginFrame(ms) {
                 if (now - s.absorbAt >= 160) { s.active = false; continue; }
             } else if (dist > 0) { s.x += dx / dist * step; s.y += dy / dist * step; }
         }
+        _tyInterceptBullets(s, ax, ay);
         const arrived = hopping ? now >= s.nextBite : s.target && dist <= step + (s.target.size || 30) / 2;
         if (!returning && s.target && arrived && now >= s.nextBite) {
-            const hit = _tyDamage(s.target, TY_SERPENT_BITE_ATK + window._tyFangStacks * TY_SERPENT_STACK_ATK, TY_BITE_PCT, 'Umbral Serpent: Serpents', true, s.x, s.y);
+            const bitten = s.target, buff = now < s.bulletBuffEnd ? 1.05 : 1;
+            const hit = _tyDamage(bitten, (TY_SERPENT_BITE_ATK + window._tyFangStacks * TY_SERPENT_STACK_ATK) * buff, TY_BITE_PCT * buff, 'Umbral Serpent: Serpents', true, s.x, s.y);
             if (s.chain === 0) s.chain = Math.random() < TY_SERPENT_FRENZY_CHANCE ? 3 : 1;
             if (--s.chain > 0) {
                 const t = s.target;
@@ -385,7 +491,7 @@ function _tyBeginFrame(ms) {
                 s.nextBite = now + TY_SERPENT_FRENZY_GAP;
             } else { s.target = null; s.nextBite = now + TY_SERPENT_REST_MS; s.boostUntil = s.nextBite; }
             s.biteFlashUntil = now + 100;
-            if (hit) _tyOnSerpentBite();
+            if (hit) _tyOnSerpentBite(bitten, s.x, s.y);
             if (window.AudioMgr) window.AudioMgr.playSfxAt('ty-bite', s.x, s.y);
         }
         s.segX[0] = s.x; s.segY[0] = s.y;

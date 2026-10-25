@@ -704,6 +704,21 @@ function _getEnvyRingSprite(r0) {
     return c;
 }
 
+function _drawSoulReaverIcon(enemy) {
+    if (!enemy.soulReaver) return;
+    const now = performance.now(), o = window._fxOpts;
+    const vuln = enemy.vulnStacks > 0 && enemy.vulnEndTime && now < enemy.vulnEndTime;
+    const glow = !_mobPerf && _gfxLevel < 2 && (!o || o.glow !== false), R = 14;
+    const sprites = _getSoulReaverIconSprites(R);
+    ctx.save(); ctx.translate(vuln ? enemy.x - 15 : enemy.x, enemy.y - (enemy.size || 20) - 28);
+    const pulse = 0.95 + 0.05 * Math.sin(now / 180); ctx.scale(pulse, pulse);
+    ctx.globalAlpha *= Math.max(0, Math.min(1, o ? (o.fxBrightness ?? 100) / 100 : 1));
+    if (glow) { const alpha = ctx.globalAlpha; ctx.globalAlpha *= (0.35 + 0.25 * Math.sin(now / 180)) / 0.6; ctx.drawImage(sprites.halo, -sprites.halo.width / 2, -sprites.halo.height / 2); ctx.globalAlpha = alpha; }
+    if (sprites.icon) { const icon = glow ? sprites.iconGlow : sprites.icon; ctx.drawImage(icon, -icon.width / 2, -icon.height / 2); }
+    else { ctx.strokeStyle = '#ff2a2a'; ctx.lineWidth = 3; ctx.beginPath(); ctx.arc(0, 0, R, 0, Math.PI * 2); ctx.moveTo(-9, -9); ctx.lineTo(9, 9); ctx.moveTo(9, -9); ctx.lineTo(-9, 9); ctx.stroke(); }
+    ctx.restore();
+}
+
 function drawEnemy(enemy) {
     // Uriel, fully stealthed (Camouflage): invisible, untargetable, skip
     // every overlay below too (vuln icon, shield bar, Walpurgis aura...).
@@ -717,6 +732,7 @@ function drawEnemy(enemy) {
     if (enemy.type === 'debug_dummy') {
         _drawDebugDummy(enemy, performance.now());
         _drawDummyDpsPanel(enemy, performance.now());
+        _drawSoulReaverIcon(enemy);
         // The dummy's early return skips every generic overlay below (vuln
         // icon, Walpurgis aura, ...) — re-check just the vuln icon here so
         // debug_dummy targets in guide.html demos still show stacks.
@@ -937,41 +953,7 @@ function drawEnemy(enemy) {
         ctx.restore();
     }
 
-    // Soul reaver icon. Sits next to the Vulnerability badge when both are
-    // up (Soul Reaver on the left, Vuln shifts right by 14 in its own
-    // block), otherwise centered above the enemy.
-    const _vulnActive = enemy.vulnStacks && enemy.vulnStacks > 0 && enemy.vulnEndTime && performance.now() < enemy.vulnEndTime;
-    if (enemy.soulReaver) {
-        const now = performance.now();
-        const srX = _vulnActive ? enemy.x - 15 : enemy.x;
-        const srY = enemy.y - (enemy.size || 20) - 28;
-        const R = 14;
-        ctx.save();
-        ctx.translate(srX, srY);
-        const pulse = 0.95 + 0.05 * Math.sin(now / 180);
-        ctx.scale(pulse, pulse);
-        // Pulsing red glow ring behind the badge so it reads as an active
-        // debuff from across a busy screen, not just a small dark dot.
-        const _srSpr = _getSoulReaverIconSprites(R);
-        if (!_mobPerf) {
-            // Baked halo at full strength; the pulse only changes its opacity.
-            const _srAlpha = ctx.globalAlpha;
-            ctx.globalAlpha = _srAlpha * (0.35 + 0.25 * Math.sin(now / 180)) / 0.6;
-            ctx.drawImage(_srSpr.halo, -_srSpr.halo.width / 2, -_srSpr.halo.height / 2);
-            ctx.globalAlpha = _srAlpha;
-        }
-        if (_srSpr.icon) {
-            const icon = _mobPerf ? _srSpr.icon : _srSpr.iconGlow;
-            ctx.drawImage(icon, -icon.width / 2, -icon.height / 2);
-        } else {
-            ctx.strokeStyle = '#ff2a2a'; ctx.lineWidth = 3;
-            if (!_mobPerf) { ctx.shadowColor = 'red'; ctx.shadowBlur = 10; }
-            ctx.beginPath(); ctx.arc(0, 0, R, 0, Math.PI * 2); ctx.stroke();
-            ctx.beginPath(); ctx.moveTo(-9, -9); ctx.lineTo(9, 9);
-            ctx.moveTo(9, -9); ctx.lineTo(-9, 9); ctx.stroke();
-        }
-        ctx.restore();
-    }
+    _drawSoulReaverIcon(enemy);
 
     // VULNERABILITY (Trọng Thương) icon
     if (enemy.vulnStacks && enemy.vulnStacks > 0 && enemy.vulnEndTime && performance.now() < enemy.vulnEndTime) {
@@ -1145,6 +1127,7 @@ function drawEnemy(enemy) {
         _drawLeviathan(enemy);
     } else if (enemy.type === 'goliath') {
         _drawGoliath(enemy);
+        if (typeof window._drawTyVenomOnBoss === 'function') window._drawTyVenomOnBoss(enemy);
     } else if (enemy.type === 'uriel') {
         _drawUriel(enemy);
     } else if (enemy.type === 'veilshroud') {

@@ -433,6 +433,143 @@ function _drawTyWake(g, now, tier) {
     for (let i = 0; i < 60; i++) { const p = _tyWake[i], age = now - p.at; if (p.active && age >= 0 && age < 340 && i % 3 === 1) { const r = 0.8 * (1 - age / 340), x = p.x + p.vx * age + 2, y = p.y + p.vy * age - 2; g.moveTo(x - r, y); g.lineTo(x, y - r * 2); g.lineTo(x + r, y); g.lineTo(x, y + r); } }
     g.fill(); g.restore();
 }
+function _tyBakeVenom() {
+    const aura = _tyMakeStamp(128), ring = _tyMakeStamp(192), bloom = _tyMakeStamp(256), micro = _tyMakeStamp(96), flat = _tyMakeStamp(128), flash = _tyMakeStamp(64), cracks = _tyMakeStamp(96), icon = _tyMakeStamp(64), marks = _tyMakeStamp(160);
+    let g = aura.getContext('2d'); g.translate(64, 64);
+    const fog = g.createRadialGradient(0, 0, 29, 0, 0, 64); fog.addColorStop(0, PAL.VIOLET + '00'); fog.addColorStop(0.46, PAL.MAGENTA + 'A0'); fog.addColorStop(0.72, PAL.VIOLET + '90'); fog.addColorStop(1, PAL.ABYSS + '00');
+    g.fillStyle = fog; g.fillRect(-64, -64, 128, 128); g.fillStyle = PAL.VIOLET + '80'; g.strokeStyle = PAL.GOLD + '70'; g.lineWidth = 0.6;
+    for (let i = 0; i < 12; i++) { const t = i * Math.PI / 6; _tyLeaf(g, Math.cos(t) * 43, Math.sin(t) * 43, 17, t + 1.7); }
+    g = ring.getContext('2d'); g.translate(96, 96);
+    const mist = g.createRadialGradient(0, 0, 36, 0, 0, 86); mist.addColorStop(0, PAL.ABYSS + '00'); mist.addColorStop(0.7, PAL.VIOLET + '50'); mist.addColorStop(0.9, PAL.MAGENTA + 'A0'); mist.addColorStop(1, PAL.VIOLET + '00');
+    g.fillStyle = mist; g.fillRect(-96, -96, 192, 192); g.fillStyle = PAL.ABYSS + '30'; g.strokeStyle = PAL.ABYSS; g.lineWidth = 5; _tyRosette(g, 80, 12);
+    g.strokeStyle = PAL.MAGENTA; g.lineWidth = 2.4; g.stroke(); g.strokeStyle = PAL.GOLD; g.lineWidth = 0.7; _tyRosette(g, 85, 12);
+    g = bloom.getContext('2d'); g.translate(128, 128);
+    const flame = g.createRadialGradient(0, 0, 18, 0, 0, 116); flame.addColorStop(0, PAL.ABYSS + '00'); flame.addColorStop(0.5, PAL.VIOLET + 'C0'); flame.addColorStop(0.86, PAL.MAGENTA); flame.addColorStop(1, PAL.EMBER);
+    g.fillStyle = flame; g.strokeStyle = PAL.VIOLET; g.lineWidth = 1.2;
+    for (let i = 0; i < 12; i++) { const t = i * Math.PI / 6; _tyLeaf(g, Math.cos(t) * 29, Math.sin(t) * 29, 84, t); }
+    g.strokeStyle = PAL.GOLD; g.lineWidth = 0.7; g.beginPath(); g.arc(0, 0, 89, 0, Math.PI * 2); g.stroke();
+    g = micro.getContext('2d'); g.translate(48, 48); g.fillStyle = PAL.VIOLET + '65'; g.strokeStyle = PAL.MAGENTA; g.lineWidth = 2; _tyRosette(g, 25, 6);
+    g.fillStyle = PAL.EMBER; g.strokeStyle = PAL.GOLD; g.lineWidth = 0.5;
+    for (let i = 0; i < 6; i++) { const t = i * Math.PI / 3; _tyLeaf(g, Math.cos(t) * 23, Math.sin(t) * 23, 14, t); }
+    g = flat.getContext('2d'); g.translate(64, 64); g.fillStyle = PAL.ABYSS + '00'; g.strokeStyle = PAL.ABYSS; g.lineWidth = 5; _tyRosette(g, 51, 10); g.strokeStyle = PAL.VIOLET; g.lineWidth = 2; g.stroke();
+    g.strokeStyle = PAL.GOLD; g.lineWidth = 0.6; g.stroke(); g.fillStyle = PAL.EMBER;
+    for (let i = 0; i < 6; i++) { const t = i * Math.PI / 3; _tyLeaf(g, Math.cos(t) * 48, Math.sin(t) * 48, 10, t); }
+    g = flash.getContext('2d'); g.translate(32, 32); g.fillStyle = PAL.LILAC; g.strokeStyle = PAL.ABYSS; g.lineWidth = 2; g.beginPath();
+    for (let i = 0; i < 16; i++) { const t = i * Math.PI / 8, r = i % 2 ? 5 : 28; if (!i) g.moveTo(Math.cos(t) * r, Math.sin(t) * r); else g.lineTo(Math.cos(t) * r, Math.sin(t) * r); } g.closePath(); g.stroke(); g.fill();
+    g.fillStyle = PAL.EMBER; g.beginPath(); g.arc(0, 0, 5, 0, Math.PI * 2); g.fill();
+    g = cracks.getContext('2d'); g.translate(48, 48); g.strokeStyle = PAL.VIOLET; g.lineWidth = 3; _tyCraquelure(g, 36, 15); g.strokeStyle = PAL.EMBER; g.lineWidth = 0.7; _tyCraquelure(g, 36, 15);
+    g.fillStyle = PAL.EMBER; g.beginPath(); g.arc(0, 0, 3, 0, Math.PI * 2); g.fill();
+    g = icon.getContext('2d'); g.translate(32, 32); g.fillStyle = PAL.ABYSS; g.strokeStyle = PAL.VOID; g.lineWidth = 8;
+    g.beginPath(); g.moveTo(-15, 0); g.bezierCurveTo(-5, -17, 8, -17, 15, 0); g.bezierCurveTo(8, 17, -5, 17, -15, 0); g.closePath(); g.stroke(); g.fill();
+    g.strokeStyle = PAL.VIOLET; g.lineWidth = 2.5; g.stroke(); g.strokeStyle = PAL.GOLD; g.lineWidth = 0.6; g.stroke();
+    g.strokeStyle = PAL.MAGENTA; g.lineWidth = 1.5; g.beginPath();
+    for (let i = 0; i <= 36; i++) { const t = i / 36 * Math.PI * 3.6, r = 10 * (1 - i / 42); const x = Math.cos(t) * r, y = Math.sin(t) * r; if (!i) g.moveTo(x, y); else g.lineTo(x, y); } g.stroke();
+    g.strokeStyle = PAL.EMBER; g.lineWidth = 2.1; g.beginPath(); g.moveTo(-7, -6); g.lineTo(-4, 0); g.moveTo(7, -6); g.lineTo(4, 0); g.stroke(); g.fillStyle = PAL.EMBER; g.beginPath(); g.arc(0, 0, 2.4, 0, Math.PI * 2); g.fill();
+    g = marks.getContext('2d');
+    for (let lit = 0; lit < 2; lit++) for (let j = 0; j < 5; j++) {
+        g.save(); g.translate(j * 32 + 16, lit * 32 + 16); g.rotate((-0.78 + j * 0.14) * Math.PI + Math.PI / 2);
+        g.fillStyle = lit ? PAL.VIOLET : PAL.ABYSS; g.strokeStyle = PAL.VOID; g.lineWidth = 4; g.beginPath(); g.moveTo(0, -11); g.quadraticCurveTo(8, -1, 2, 10); g.lineTo(-2, 10); g.quadraticCurveTo(-8, -1, 0, -11); g.closePath(); g.stroke(); g.fill(); g.strokeStyle = PAL.GOLD; g.lineWidth = 1; g.stroke();
+        if (lit) { g.strokeStyle = PAL.EMBER; g.lineWidth = 3; g.beginPath(); g.moveTo(0, -7); g.quadraticCurveTo(-2, 0, 0, 6); g.stroke(); } g.restore();
+    }
+    return { aura, ring, bloom, micro, flat, flash, cracks, icon, marks };
+}
+const _tyVenomArt = _tyBakeVenom();
+const _tyVenomDrops = Array.from({ length: 96 }, () => ({ active: false, owner: null, at: 0, life: 0, x: 0, y: 0, vx: 0, vy: 0, lime: false }));
+const _tyVenomMicro = Array.from({ length: 24 }, () => ({ active: false, owner: null, at: 0, x: 0, y: 0, size: 0 }));
+const _tyVenomWaves = Array.from({ length: 24 }, () => ({ active: false, owner: null, at: 0, x: 0, y: 0, size: 0, big: false }));
+const _tyVenomFxStats = window._tyVenomFxStats = { epoch: -1, particles: 0, microBursts: 0, waves: 0, devourerIcons: 0, maxParticles: 96, maxBursts: 24 };
+let _tyVenomFxEpoch = -1;
+function _tyVenomParticles(e, x, y, now, count, burst) {
+    let n = 0;
+    for (let i = 0; i < 96 && n < count; i++) {
+        const p = _tyVenomDrops[i]; if (p.active && !(burst && count >= 6 && p.life === 720)) continue;
+        const t = n * 2.399963 + x * 0.017 + now * 0.002, speed = burst ? 35 + n % 4 * 18 : 6;
+        p.active = true; p.owner = e; p.at = now; p.life = burst ? 650 : 720; p.x = x; p.y = y;
+        p.vx = Math.cos(t) * speed; p.vy = burst ? Math.sin(t) * speed - 16 : -22 - n * 3; p.lime = n % 4 === 0; n++;
+    }
+}
+function _drawTyVenom(g, now, tier, only) {
+    const o = window._fxOpts, bright = _tyBrightness(), particles = !o || o.particles !== false, trails = !o || o.trails !== false, glow = tier < 2 && (!o || o.glow !== false);
+    if (_tyVenomFxEpoch !== window._tyVenomEpoch) {
+        _tyVenomFxEpoch = window._tyVenomEpoch;
+        for (let i = 0; i < 96; i++) { _tyVenomDrops[i].active = false; _tyVenomDrops[i].owner = null; }
+        for (let i = 0; i < 24; i++) { _tyVenomMicro[i].active = _tyVenomWaves[i].active = false; _tyVenomMicro[i].owner = _tyVenomWaves[i].owner = null; }
+    }
+    _tyVenomFxStats.epoch = _tyVenomFxEpoch; if (!only) _tyVenomFxStats.particles = _tyVenomFxStats.microBursts = _tyVenomFxStats.waves = _tyVenomFxStats.devourerIcons = 0;
+    if (bright <= 0) return;
+    g.save(); g.globalCompositeOperation = 'source-over'; g.globalAlpha = bright;
+    for (let i = 0; i < enemies.length; i++) {
+        const e = enemies[i], stacks = e._tyVenomStacks;
+        if (!(stacks > 0) || !_tyVenomTarget(e) || (only ? e !== only : e.type === 'goliath')) continue;
+        if (e._tyVenomFxEpoch !== _tyVenomFxEpoch) { e._tyVenomFxEpoch = _tyVenomFxEpoch; e._tyVenomFxPulseSeen = -10000; e._tyVenomDropAt = now; e._tyVenomFxMicroAt = now; }
+        const size = (e.size || 30), r = size + 8, breath = 1 + Math.sin(now * 0.004 + e.x) * 0.045;
+        const pulseAge = now - e._tyVenomPulseAt;
+        const settle = Math.max(0, Math.min(1, (pulseAge - 70) / 690));
+        const surge = e._tyVenomPulseBig && pulseAge >= 0 && pulseAge < 760 ? (pulseAge < 70 ? 1 - 0.12 * pulseAge / 70 : 1 + 0.18 * Math.sin(settle * Math.PI) * (1 - settle) - 0.12 * Math.max(0, 1 - (pulseAge - 70) / 130)) : 1;
+        const auraSize = (size * 2.2 + 24) * breath * surge;
+        g.globalAlpha = bright * (glow ? 0.2 + stacks * 0.027 : 0.38); g.drawImage(glow ? _tyVenomArt.aura : _tyVenomArt.flat, e.x - auraSize / 2, e.y - auraSize / 2, auraSize, auraSize);
+        if (stacks >= 4.9 && tier < 2) { g.globalAlpha = bright * 0.45; const w = size * 1.3; g.drawImage(_tyVenomArt.cracks, e.x - w / 2, e.y - w / 2, w, w); }
+        for (let j = 0; j < 5; j++) {
+            const a = (-0.78 + j * 0.14) * Math.PI, x = e.x + Math.cos(a) * r, y = e.y + Math.sin(a) * r, weight = Math.max(0, Math.min(1, stacks - j));
+            g.globalAlpha = bright * (weight > 0 ? weight : 0.5); g.drawImage(_tyVenomArt.marks, j * 32, weight > 0 ? 32 : 0, 32, 32, x - 7, y - 7, 14, 14);
+        }
+        const vuln = e.vulnStacks > 0 && e.vulnEndTime && performance.now() < e.vulnEndTime;
+        const ix = e.x + (vuln ? 51 : 36), iy = e.y - size - 28;
+        g.globalAlpha = bright; g.drawImage(_tyVenomArt.icon, ix - 32, iy - 32, 64, 64); _tyVenomFxStats.devourerIcons++;
+        const age = now - e._tyVenomPulseAt, duration = e._tyVenomPulseBig ? 760 : 340;
+        if (age >= 0 && age < duration && e._tyVenomFxPulseSeen !== e._tyVenomPulseAt) {
+            e._tyVenomFxPulseSeen = e._tyVenomPulseAt;
+            for (let k = 0; k < 24; k++) { const w = _tyVenomWaves[k]; if (w.active) continue; w.active = true; w.owner = e; w.at = e._tyVenomPulseAt; w.x = e.x; w.y = e.y; w.size = size * 2 + 12; w.big = e._tyVenomPulseBig; break; }
+            if (tier < 2 && particles) _tyVenomParticles(e, e.x, e.y, e._tyVenomPulseAt + 100, tier === 0 ? (e._tyVenomPulseBig ? 12 : 5) : (e._tyVenomPulseBig ? 6 : 2), true);
+        }
+        const added = now - e._tyVenomAddedAt;
+        if (added >= 0 && added < 140 && tier < 3) {
+            const w = 16 + added * 0.06; g.globalAlpha = bright * (1 - added / 140) * 0.75; g.drawImage(_tyVenomArt.flash, e._tyVenomAddedX - w / 2, e._tyVenomAddedY - w / 2, w, w);
+            if (glow) { const a = (-0.78 + (Math.ceil(stacks) - 1) * 0.14) * Math.PI; _drawGlow(g, 'ember', e.x + Math.cos(a) * r, e.y + Math.sin(a) * r, 8, (1 - added / 140) * 0.6); }
+        }
+        if (tier < 2 && particles && now >= e._tyVenomDropAt) { e._tyVenomDropAt = now + (tier === 0 ? 110 : 280); _tyVenomParticles(e, e.x + Math.sin(now * 0.01 + i) * size * 0.5, e.y, now, 1, false); }
+        if (tier < 2 && particles && now >= e._tyVenomFxMicroAt) {
+            const seed = now * 0.017 + e.x * 0.31; e._tyVenomFxMicroAt = now + (450 - stacks * 65) * (tier === 0 ? 1 : 2.5) * (0.85 + 0.15 * Math.sin(seed));
+            for (let k = 0; k < 24; k++) { const m = _tyVenomMicro[k]; if (m.active) continue; m.active = true; m.owner = e; m.at = now; m.x = e.x + Math.cos(seed) * size * 0.45; m.y = e.y + Math.sin(seed * 1.3) * size * 0.45; m.size = 17 + stacks * 2; _tyVenomParticles(e, m.x, m.y, now, tier === 0 ? 2 : 1, true); break; }
+        }
+    }
+    for (let i = 0; i < 24; i++) {
+        const m = _tyVenomMicro[i], age = now - m.at;
+        if (!m.active || (only ? m.owner !== only : m.owner.type === 'goliath')) continue;
+        if (age < 0 || age >= 120 || !(m.owner._tyVenomStacks > 0) || !_tyVenomTarget(m.owner)) { m.active = false; m.owner = null; continue; }
+        _tyVenomFxStats.microBursts++;
+        if (tier >= 2 || !particles) continue;
+        const q = age / 120, w = m.size * (0.55 + q); g.globalAlpha = bright * (1 - q); g.drawImage(_tyVenomArt.micro, m.x - w / 2, m.y - w / 2, w, w);
+    }
+    for (let i = 0; i < 24; i++) {
+        const w = _tyVenomWaves[i], age = now - w.at;
+        if (!w.active || (only ? w.owner !== only : w.owner.type === 'goliath')) continue;
+        const duration = w.big ? 760 : 340;
+        if (age < 0 || age >= duration || !(w.owner._tyVenomStacks > 0) || !_tyVenomTarget(w.owner)) { w.active = false; w.owner = null; continue; }
+        _tyVenomFxStats.waves++;
+        const q = age / duration, ease = 1 - Math.pow(1 - Math.min(1, Math.max(0, (age - 40) / (w.big ? 360 : 200))), 3), width = w.size * (0.6 + ease * (w.big ? 2.1 : 0.9));
+        if (age < 70) { const f = w.size * (w.big ? 0.9 : 0.5) * (1 - age / 100); g.globalAlpha = bright * (1 - age / 70); if (glow) g.globalCompositeOperation = 'lighter'; g.drawImage(_tyVenomArt.flash, w.x - f / 2, w.y - f / 2, f, f); g.globalCompositeOperation = 'source-over'; }
+        if (age >= 40) { g.globalAlpha = bright * (1 - q) * (w.big ? 0.95 : 0.7); g.drawImage(tier >= 3 ? _tyVenomArt.flat : _tyVenomArt.ring, w.x - width / 2, w.y - width / 2, width, width); }
+        if (tier < 3 && trails && age >= 60 && age < (w.big ? 450 : 260)) { const p = (age - 60) / (w.big ? 390 : 200), b = w.size * (0.7 + (1 - Math.pow(1 - p, 3)) * (w.big ? 2.2 : 0.8)); g.globalAlpha = bright * (1 - p) * (w.big ? 0.85 : 0.45); g.drawImage(_tyVenomArt.bloom, w.x - b / 2, w.y - b / 2, b, b); }
+        if (w.big && tier < 2 && age >= 120 && age < 650) { const p = (age - 120) / 530, b = w.size * (0.45 + (1 - Math.pow(1 - p, 3)) * 1.45); g.globalAlpha = bright * (1 - p) * 0.48; g.drawImage(_tyVenomArt.ring, w.x - b / 2, w.y - b / 2, b, b); }
+    }
+    for (let lime = 0; lime < 2; lime++) {
+        g.beginPath(); g.fillStyle = lime ? PAL.EMBER : PAL.MAGENTA; g.globalAlpha = bright * (lime ? 0.9 : 0.7);
+        for (let i = 0; i < 96; i++) {
+            const p = _tyVenomDrops[i], age = now - p.at;
+            if (!p.active || (only ? p.owner !== only : p.owner.type === 'goliath')) continue;
+            if (age >= p.life || !(p.owner._tyVenomStacks > 0) || !_tyVenomTarget(p.owner)) { p.active = false; p.owner = null; continue; }
+            if (age < 0) continue;
+            if (lime === 0) _tyVenomFxStats.particles++;
+            if (tier >= 2 || !particles || p.lime !== !!lime) continue;
+            const q = age / p.life, t = age / 1000, x = p.x + (trails ? p.vx * t : 0), y = p.y + (trails ? p.vy * t + (p.life === 650 ? 35 * t * t : 0) : 0), r = (1 - q) * (p.lime ? 1.7 : 1.2);
+            g.moveTo(x, y - r * 1.6); g.lineTo(x + r, y); g.lineTo(x, y + r); g.lineTo(x - r, y); g.closePath();
+        }
+        g.fill();
+    }
+    g.restore();
+}
+
 function _drawTyBirthAperture(g, now, tier) {
     if (tier >= 3 || (window._fxOpts && window._fxOpts.trails === false)) return;
     let age = 1000;
@@ -1614,6 +1751,10 @@ window._drawTyGround = function () {
     drawSlowWave(_fxContext, _tyWave.x, _tyWave.y, now - _tyWave.start, g, 220);
     finish();
 };
+window._drawTyVenomOnBoss = function (enemy) {
+    if (!_hasSigil('ty') || !(enemy._tyVenomStacks > 0)) return;
+    begin(); _drawTyVenom(_fxContext, window._tyClock, gfx(), enemy); finish();
+};
 window._drawTyActors = function () {
     if (!_hasSigil('ty')) return;
     begin(); const g = gfx(), now = window._tyClock;
@@ -1709,6 +1850,7 @@ window._drawTyActors = function () {
         _fxContext.fillStyle = PAL.LILAC; _fxContext.font = 'bold 11px Georgia, serif'; _fxContext.textAlign = 'center';
         _fxContext.fillText('+' + window._tyFangStacks.toFixed(0) + '%', player.x, player.y - _tyRingRadius() - 9);
     }
+    _drawTyVenom(_fxContext, now, g);
     drawScaleShield(_fxContext, _tyShield.state === 2 ? _tyShield.x : player.x, _tyShield.state === 2 ? _tyShield.y : player.y, now, g, _tyShield);
     for (let i = 0; i < enemies.length; i++) {
         const e = enemies[i]; if (!(e._tyLiftMs > 0)) continue;

@@ -732,14 +732,14 @@ function dealDamage(enemy, source) {
     // (Tesla Coil, Dimensional Rift's Soul Devourer, Solar Flare) - only a
     // direct hit counts against them, so a Guard can't just be tagged with a
     // tick and left to melt on its own.
-    if (enemy.type === 'thaelis_guard' && (source.isTeslaDot || source._isDtuDot || source._isNocToiDot || source._isSthDot || source._isSrDot)) {
+    if (enemy.type === 'thaelis_guard' && (source.isTeslaDot || source._isDtuDot || source._isNocToiDot || source._isSthDot || source._isSrDot || source._isTyVenomDot)) {
         return;
     }
     // Uriel: immune to every DOT source (Tesla Coil, Dimensional Rift's Soul
     // Devourer, Solar Flare, Yog-Sothoth's own tick, Soul Reaver) - a
     // Covenant King never gets whittled down by a lingering tick, only a
     // direct hit counts.
-    if (enemy.type === 'uriel' && (source.isTeslaDot || source._isDtuDot || source._isNocToiDot || source._isSthDot || source._isSrDot)) {
+    if (enemy.type === 'uriel' && (source.isTeslaDot || source._isDtuDot || source._isNocToiDot || source._isSthDot || source._isSrDot || source._isTyVenomDot)) {
         return;
     }
     // Raphael's Custos Aeternus shield, while its layers are still up, is
@@ -751,7 +751,7 @@ function dealDamage(enemy, source) {
     // read as "invulnerable" - a rift left sitting on Raphael could burn
     // through all its layers on its own, no direct hit needed.
     if (enemy.type === 'raphael' && enemy.raphaelInvulnerable
-        && (source.isTeslaDot || source._isDtuDot || source._isNocToiDot || source._isSthDot || source._isSrDot)) {
+        && (source.isTeslaDot || source._isDtuDot || source._isNocToiDot || source._isSthDot || source._isSrDot || source._isTyVenomDot)) {
         // Small cyan ward spark, throttled to once every ~200ms per enemy -
         // a DoT ticks far faster than that, and a full particle burst on
         // every single tick would be both wasteful and visually noisy.
@@ -965,7 +965,7 @@ function dealDamage(enemy, source) {
     if (!isSentinel && !source._vanguardTag && !source._noBase60
         && (source.damage > 0 || (source.percentDamage || 0) > 0)
         && !source.isTeslaDot && !source._isNocToiDot
-        && !source._isDtuDot && !source._isSthDot && !source._isSrDot && !source._yogExplosion) {
+        && !source._isDtuDot && !source._isSthDot && !source._isSrDot && !source._isTyVenomDot && !source._yogExplosion) {
         // Flat impact bonus, expressed as a coefficient of the player's ATK
         // stat (docs/combat-scaling-rebalance.md, Part 1) instead of a bare
         // constant - at the conversion baseline (player.atk = 100) this is
@@ -1524,7 +1524,7 @@ function dealDamage(enemy, source) {
     // return sớm qua Warding Palm ở đầu hàm, không bao giờ chạy tới đây.
     if (enemy.type === 'goliath' && enemy.phase === 'true_form'
         && !source.isTrueDamage && !source.isPiercing
-        && !source.isTeslaDot && !source._isDtuDot && !source._isNocToiDot && !source._isSthDot && !source._isSrDot) {
+        && !source.isTeslaDot && !source._isDtuDot && !source._isNocToiDot && !source._isSthDot && !source._isSrDot && !source._isTyVenomDot) {
         // A low base keeps sustained rapid-fire chip damage from carrying
         // the fight on its own.
         const _capPct = Math.min(0.026, 0.0121 + _goliathDebuffStackCount(enemy) * 0.0025);
@@ -1537,7 +1537,7 @@ function dealDamage(enemy, source) {
     // higher ceiling, so these sources stay stronger than a capped normal
     // hit instead of becoming identical to it.
     if (enemy.type === 'goliath' && enemy.phase === 'true_form'
-        && (source.isTrueDamage || source.isPiercing || source.isTeslaDot || source._isDtuDot || source._isNocToiDot || source._isSthDot || source._isSrDot)) {
+        && (source.isTrueDamage || source.isPiercing || source.isTeslaDot || source._isDtuDot || source._isNocToiDot || source._isSthDot || source._isSrDot || source._isTyVenomDot)) {
         // This is the cap governing Tesla/Leo/Aquarius/Soul-Reaver-style DoT
         // ticks: 3% base, +0.25% per debuff stack, 5% at most.
         const _capPctTrue = Math.min(0.05, 0.030 + _goliathDebuffStackCount(enemy) * 0.0025);
@@ -1944,7 +1944,7 @@ function dealDamage(enemy, source) {
     // Palm) phải luôn trên mọi sigil, kể cả bypass nhỏ này.
     if (_hasBuff('lai_kep') && !isSentinel && enemy.type !== 'goliath'
         && !source._vanguardTag && !source._noBase60 && (source.damage > 0 || (source.percentDamage || 0) > 0)
-        && !source.isTeslaDot && !source._isNocToiDot && !source._isDtuDot && !source._isSthDot && !source._isSrDot && !source._yogExplosion
+        && !source.isTeslaDot && !source._isNocToiDot && !source._isDtuDot && !source._isSthDot && !source._isSrDot && !source._isTyVenomDot && !source._yogExplosion
         && typeof spirits !== 'undefined' && spirits.some(s => s.isPhotokrystos && !s._done)) {
         const _laiKepNow = performance.now();
         if (!enemy._laiKepLastAt || _laiKepNow - enemy._laiKepLastAt >= 250) {

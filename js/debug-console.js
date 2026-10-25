@@ -593,6 +593,7 @@ window.debugSetYuukiBonus = function () {
           <button class="dbg-btn" onclick="debugTyAction('spawn')">Spawn 10 Serpents</button>
           <button class="dbg-btn" onclick="debugTyAction('break')">Break Scale Shield</button>
           <button class="dbg-btn" onclick="debugTyAction('restore')">Restore Scale Shield</button>
+          <button class="dbg-btn" onclick="debugTyAction('venom')">Kịch Độc: 5 tầng</button>
         </div>
       </div>
       <div id="dbgDauSection" style="margin-top:8px; padding-top:8px; border-top:1px solid rgba(0,229,255,0.12); display:none;">
@@ -1565,6 +1566,15 @@ window.debugSetYuukiBonus = function () {
     const _DBG_SIGIL_SECTIONS = [['dbgTySection', 'ty'], ['dbgLeoSection', 'leo'], ['dbgDauSection', 'dau'], ['dbgPiscesSection', 'pisces'], ['dbgCapricornSection', 'capricorn']];
     window.debugTyAction = function (action) {
         if (!_hasSigil('ty')) return;
+        if (action === 'venom') {
+            let found = false;
+            for (let i = 0; i < enemies.length; i++) if (_tyVenomTarget(enemies[i])) { found = true; break; }
+            if (!found) debugSpawnDummy();
+            for (let i = 0; i < enemies.length; i++) {
+                const e = enemies[i]; if (!_tyVenomTarget(e)) continue;
+                _tyClearVenom(e); for (let stack = 0; stack < 5; stack++) _tyAddVenom(e);
+            }
+        }
         if (action === 'fill') _tyChargeFlame(10000);
         if (action === 'detonate') { _tyChargeFlame(10000); _tyDetonate(_tyNearest(player.x, player.y, Infinity, false)); }
         if (action === 'array') _tyOpenArray();
@@ -1586,7 +1596,7 @@ window.debugSetYuukiBonus = function () {
         if (state && _hasSigil('ty')) {
             let alive = 0; for (let i = 0; i < _tySerpents.length; i++) if (_tySerpents[i].active) alive++;
             const phase = !_tyArray.active ? 'idle' : _tyArray.exploded ? 'burst' : window._tyClock - _tyArray.start < 180 ? 'opening' : 'pull';
-            state.textContent = 'Flame: ' + Math.round(window._tyCharge / 100) + '% · Allied damage: +' + window._tyFangStacks.toFixed(1) + '% · Serpents: ' + alive + ' (' + (Math.max(0, window._tySwarmEnd - window._tyClock) / 1000).toFixed(1) + 's) · Shield: ' + (_tyShield.state === 1 || _tyShield.state === 3 ? 'ready' : 'broken') + ' · Bites: ' + _tyShield.bites + '/12 · Array: ' + phase;
+            state.textContent = 'Flame: ' + Math.round(window._tyCharge / 100) + '% · Allied damage: +' + window._tyFangStacks.toFixed(1) + '% · Venom bites: ' + window._tyVenomBites + ' · Serpents: ' + alive + ' (' + (Math.max(0, window._tySwarmEnd - window._tyClock) / 1000).toFixed(1) + 's) · Shield: ' + (_tyShield.state === 1 || _tyShield.state === 3 ? 'ready' : 'broken') + ' · Bites: ' + _tyShield.bites + '/12 · Array: ' + phase;
         }
     }
     function _refreshCapricornStateDisplay() {

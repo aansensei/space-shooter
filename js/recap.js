@@ -133,6 +133,7 @@ const LABEL_VI = {
   "Umbral Serpent: Shards": "Dực Hỏa: Mảnh Hắc Viêm",
   "Umbral Serpent: Array": "Dực Hỏa: Pháp Trận",
   "Umbral Serpent: Serpents": "Dực Hỏa: Bầy Rắn",
+  "Umbral Serpent: Venom": "Dực Hỏa: Kịch Độc",
   "Player Auto-Fire": "Đạn Thường",
   "Player Charged Shot": "Bắn Sạc",
   "Sentinel Auto-Fire": "Sentinel: Đạn Thường",
