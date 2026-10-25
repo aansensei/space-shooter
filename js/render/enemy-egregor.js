@@ -909,6 +909,19 @@ function _bakeRiftArt() {
     return { nebula: ctx.createPattern(nebula, 'repeat'), veil: ctx.createPattern(veil, 'repeat'), galaxy, planet, hole, glow, pillar, nova, portal };
 }
 
+// Baking the rift art takes a noticeable moment, so it is built while the game is idle rather than in the middle of the first Egregor fight.
+(function _prewarmRiftArt() {
+    const warm = (tries) => {
+        try {
+            if (_riftArt) return;
+            if (typeof ctx !== 'undefined' && ctx) _riftArt = _bakeRiftArt();
+            else if (tries < 5) setTimeout(() => warm(tries + 1), 1500);
+        } catch (err) { /* the first draw will bake it instead */ }
+    };
+    if (window.requestIdleCallback) window.requestIdleCallback(() => warm(0), { timeout: 8000 });
+    else setTimeout(() => warm(0), 3000);
+})();
+
 function _riftTrace(a, n) {
     ctx.moveTo(a[0], a[1]);
     for (let i = 1; i < n - 1; i++) ctx.quadraticCurveTo(a[i * 2], a[i * 2 + 1], (a[i * 2] + a[i * 2 + 2]) * 0.5, (a[i * 2 + 1] + a[i * 2 + 3]) * 0.5);
