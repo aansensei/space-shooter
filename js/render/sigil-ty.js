@@ -1,6 +1,6 @@
 (function () {
 const PAL = { VOID: '#07020F', ABYSS: '#190B30', VIOLET: '#BD8CFF', MAGENTA: '#E7A0FF', LILAC: '#FFF6E9', EMBER: '#DFFF85', GOLD: '#CDA85A' };
-const _glowCache = {}, _strikeAngles = [-0.35, 0.38, -0.18, 0.22];
+const _glowCache = {};
 const _dash = [10, 8], _emptyDash = [];
 const _tyFlowDash = [1.3, 15];
 const _tyVortexImage = new Image();
@@ -278,68 +278,70 @@ function _tyBakePolish() {
 }
 const _tyPolish = _tyBakePolish();
 function _tyBakeDevourPolish() {
-    const fang = _tyMakeStamp(128), comet = _tyMakeStamp(192), crown = _tyMakeStamp(192);
-    let g = fang.getContext('2d'); const ivory = g.createLinearGradient(10, 8, 105, 105);
-    ivory.addColorStop(0, PAL.LILAC); ivory.addColorStop(0.18, PAL.VIOLET); ivory.addColorStop(0.72, '#7352A2'); ivory.addColorStop(1, PAL.LILAC);
-    g.fillStyle = ivory; g.strokeStyle = PAL.VIOLET; g.lineWidth = 2;
-    g.beginPath(); g.moveTo(18, 6); g.bezierCurveTo(3, 53, 40, 89, 110, 99); g.bezierCurveTo(65, 78, 43, 48, 56, 13); g.quadraticCurveTo(34, 25, 18, 6); g.closePath(); g.fill(); g.stroke();
-    g.strokeStyle = PAL.LILAC; g.globalAlpha = 0.95; g.lineWidth = 1.4; g.beginPath(); g.moveTo(22, 12); g.bezierCurveTo(10, 53, 43, 84, 105, 97); g.stroke();
-    g.fillStyle = PAL.ABYSS; g.strokeStyle = PAL.GOLD; g.globalAlpha = 0.55; g.lineWidth = 0.7;
-    _tyLeaf(g, 26, 30, 17, 0.8); _tyLeaf(g, 33, 52, 15, 0.55); _tyLeaf(g, 50, 70, 13, 0.2);
-    g = comet.getContext('2d');
-    const tail = g.createLinearGradient(0, 96, 192, 96); tail.addColorStop(0, PAL.VOID + '00'); tail.addColorStop(0.3, PAL.VIOLET + '40'); tail.addColorStop(0.8, PAL.VIOLET + 'C0'); tail.addColorStop(1, PAL.LILAC + 'D0'); g.fillStyle = tail;
-    for (let layer = 0; layer < 6; layer++) {
-        g.globalAlpha = 0.18 + layer * 0.07; g.beginPath(); const w = 24 - layer * 3;
-        g.moveTo(188, 96); g.bezierCurveTo(130, 96 - w, 62, 96 + w, 3, 96 - w * 0.3); g.bezierCurveTo(67, 96 + w * 0.3, 132, 96 + w, 188, 96); g.fill();
+    const fang = _tyMakeStamp(128), flatFang = _tyMakeStamp(128), comet = _tyMakeStamp(192), crown = _tyMakeStamp(192), seal = _tyMakeStamp(192), fire = _tyMakeStamp(256), flash = _tyMakeStamp(64), shard = _tyMakeStamp(64);
+    let g;
+    for (let k = 0; k < 2; k++) {
+        g = (k ? flatFang : fang).getContext('2d');
+        if (k) g.fillStyle = PAL.VIOLET;
+        else { const ivory = g.createLinearGradient(14, 8, 110, 105); ivory.addColorStop(0, PAL.LILAC); ivory.addColorStop(0.28, PAL.VIOLET); ivory.addColorStop(0.7, PAL.ABYSS); ivory.addColorStop(1, PAL.LILAC); g.fillStyle = ivory; }
+        g.strokeStyle = PAL.ABYSS; g.lineWidth = 4; g.beginPath(); g.moveTo(18, 6); g.bezierCurveTo(3, 53, 40, 89, 110, 99); g.bezierCurveTo(65, 78, 43, 48, 56, 13); g.quadraticCurveTo(34, 25, 18, 6); g.closePath(); g.stroke(); g.fill();
+        g.strokeStyle = PAL.GOLD; g.lineWidth = 1.3; g.stroke(); g.strokeStyle = PAL.LILAC; g.lineWidth = 2.4; g.beginPath(); g.moveTo(22, 12); g.bezierCurveTo(10, 53, 43, 84, 105, 97); g.stroke();
+        g.strokeStyle = PAL.MAGENTA; g.lineWidth = 1.4; g.beginPath(); g.moveTo(48, 18); g.bezierCurveTo(38, 54, 61, 80, 102, 96); g.stroke();
+        g.fillStyle = PAL.ABYSS; g.strokeStyle = PAL.GOLD; g.lineWidth = 0.8; _tyLeaf(g, 26, 30, 17, 0.8); _tyLeaf(g, 33, 52, 15, 0.55); _tyLeaf(g, 50, 70, 13, 0.2);
+        g.fillStyle = PAL.EMBER; g.beginPath(); g.moveTo(90, 91); g.lineTo(110, 99); g.lineTo(95, 91); g.closePath(); g.fill();
     }
-    g.strokeStyle = PAL.LILAC; g.globalAlpha = 0.65; g.lineWidth = 1.1; g.beginPath(); g.moveTo(52, 93); g.bezierCurveTo(97, 95, 146, 83, 188, 96); g.stroke();
-    g = crown.getContext('2d'); g.translate(96, 96); g.fillStyle = PAL.ABYSS; g.strokeStyle = PAL.GOLD; g.lineWidth = 0.7;
-    for (let i = 0; i < 20; i++) { const a = i * Math.PI / 10; _tyLeaf(g, Math.cos(a) * 80, Math.sin(a) * 80, 11, a + 1.9); }
-    g.strokeStyle = PAL.VIOLET; g.globalAlpha = 0.55; g.beginPath(); g.arc(0, 0, 81, 0, Math.PI * 2); g.stroke();
-    g.strokeStyle = PAL.LILAC; g.globalAlpha = 0.65; g.beginPath(); g.arc(-0.6, -0.6, 81, Math.PI, Math.PI * 1.6); g.stroke();
-    g.fillStyle = PAL.VOID; g.strokeStyle = PAL.GOLD; g.globalAlpha = 0.75; g.beginPath(); g.moveTo(-11, -81); g.quadraticCurveTo(-13, -91, 0, -94); g.quadraticCurveTo(13, -91, 11, -81); g.quadraticCurveTo(0, -85, -11, -81); g.fill(); g.stroke();
-    g.fillStyle = PAL.LILAC; g.beginPath(); g.ellipse(-1, -89, 1.2, 1.8, 0, 0, Math.PI * 2); g.fill(); return { fang, comet, crown };
+    g = comet.getContext('2d'); const tail = g.createLinearGradient(0, 96, 192, 96); tail.addColorStop(0, PAL.VIOLET + '00'); tail.addColorStop(0.25, PAL.VIOLET + '50'); tail.addColorStop(0.8, PAL.MAGENTA + 'C0'); tail.addColorStop(1, PAL.EMBER); g.fillStyle = tail;
+    for (let layer = 0; layer < 6; layer++) { const w = 27 - layer * 3; g.globalAlpha = 0.22 + layer * 0.09; g.beginPath(); g.moveTo(188, 96); g.bezierCurveTo(130, 96 - w, 62, 96 + w, 3, 96 - w * 0.3); g.bezierCurveTo(67, 96 + w * 0.3, 132, 96 + w, 188, 96); g.fill(); }
+    g.strokeStyle = PAL.LILAC; g.globalAlpha = 0.8; g.lineWidth = 1.4; g.beginPath(); g.moveTo(48, 93); g.bezierCurveTo(97, 95, 146, 83, 188, 96); g.stroke();
+    for (let k = 0; k < 2; k++) { g = (k ? seal : crown).getContext('2d'); g.translate(96, 96);
+        if (!k) { g.strokeStyle = PAL.VIOLET; g.lineWidth = 7; g.globalAlpha = 0.45; g.beginPath(); g.arc(0, 0, 66, 0, Math.PI * 2); g.stroke(); g.globalAlpha = 1; }  g.fillStyle = PAL.ABYSS + '10'; g.strokeStyle = PAL.ABYSS; g.lineWidth = 4; _tyRosette(g, 75, k ? 8 : 12); g.strokeStyle = PAL.GOLD; g.lineWidth = 0.9; g.stroke();
+        g.strokeStyle = PAL.EMBER; g.lineWidth = k ? 1.1 : 3; g.beginPath();
+        for (let i = 0; i < 4; i++) { const a = i * Math.PI / 2; g.moveTo(Math.cos(a) * 70, Math.sin(a) * 70); g.arc(0, 0, 70, a, a + 0.8); } g.stroke();
+        g.fillStyle = k ? PAL.EMBER : PAL.VIOLET; g.strokeStyle = PAL.GOLD; g.lineWidth = 0.7;
+        for (let i = 0; i < (k ? 12 : 20); i++) { const a = i * Math.PI * 2 / (k ? 12 : 20); _tyLeaf(g, Math.cos(a) * 72, Math.sin(a) * 72, k ? 10 : 18, a + 1.7); }
+    }
+    g = fire.getContext('2d'); g.translate(128, 128); const flare = g.createRadialGradient(0, 0, 24, 0, 0, 115); flare.addColorStop(0, PAL.VIOLET + '00'); flare.addColorStop(0.28, PAL.ABYSS + 'C0'); flare.addColorStop(0.6, PAL.VIOLET + 'D0'); flare.addColorStop(0.9, PAL.MAGENTA + 'E0'); flare.addColorStop(1, PAL.LILAC); g.fillStyle = flare; g.strokeStyle = PAL.GOLD; g.lineWidth = 0.7;
+    for (let i = 0; i < 12; i++) { const a = i * Math.PI / 6; _tyLeaf(g, Math.cos(a) * 24, Math.sin(a) * 24, 88, a); }
+    g = flash.getContext('2d'); g.translate(32, 32); g.fillStyle = PAL.LILAC; g.strokeStyle = PAL.ABYSS; g.lineWidth = 2; g.beginPath();
+    for (let i = 0; i < 16; i++) { const a = i * Math.PI / 8, r = i % 2 ? 5 : 28; if (!i) g.moveTo(Math.cos(a) * r, Math.sin(a) * r); else g.lineTo(Math.cos(a) * r, Math.sin(a) * r); } g.closePath(); g.stroke(); g.fill(); g.fillStyle = PAL.EMBER; g.beginPath(); g.arc(0, 0, 5, 0, Math.PI * 2); g.fill();
+    g = shard.getContext('2d'); g.translate(32, 32); g.fillStyle = PAL.VIOLET; g.strokeStyle = PAL.ABYSS; g.lineWidth = 5; g.beginPath(); g.moveTo(23, 0); g.lineTo(-2, -9); g.lineTo(-20, 0); g.lineTo(-2, 9); g.closePath(); g.stroke(); g.fill(); g.strokeStyle = PAL.GOLD; g.lineWidth = 1; g.stroke(); g.fillStyle = PAL.LILAC; g.beginPath(); g.moveTo(22, 0); g.lineTo(0, -3); g.lineTo(4, 0); g.lineTo(0, 3); g.closePath(); g.fill(); g.fillStyle = PAL.EMBER; g.fillRect(10, -1, 5, 2);
+    return { fang, flatFang, comet, crown, seal, fire, flash, shard };
 }
 const _tyDevourPolish = _tyBakeDevourPolish();
-const _tyMaturity = { ready: false, at: 0 };
+const _tyMaturity = { ready: false, at: 0, epoch: -1 };
+const _tyReadyEmbers = new Float32Array(12);
+for (let i = 0; i < 12; i++) _tyReadyEmbers[i] = i * 2.399963;
+const _tyDevourFxStats = window._tyDevourFxStats = { ready: false, readyFlashAt: -10000, attacks: 0, shards: 0, maxAttacks: 4 };
 function _drawTyMaturity(g, now, tier, radius, ready) {
+    if (_tyMaturity.epoch !== window._tyVenomEpoch) { _tyMaturity.epoch = window._tyVenomEpoch; _tyMaturity.ready = false; }
+    _tyDevourFxStats.ready = ready;
     if (!ready) { _tyMaturity.ready = false; return; }
-    if (!_tyMaturity.ready || now < _tyMaturity.at) { _tyMaturity.ready = true; _tyMaturity.at = now; }
-    if (tier >= 3 || (window._fxOpts && window._fxOpts.glow === false)) return;
-    const age = now - _tyMaturity.at, settle = Math.min(1, age / 420), size = (radius + 10) * 2;
-    g.save(); g.rotate(-now * 0.00025);
-    g.globalAlpha = _tyBrightness() * (0.3 + 0.05 * Math.sin(now * 0.0035) + (1 - settle) * 0.15);
-    g.drawImage(_tyDevourPolish.crown, -size / 2, -size / 2, size, size);
-    if (tier === 0 && settle < 1 && (!window._fxOpts || window._fxOpts.particles !== false)) {
-        g.globalAlpha = _tyBrightness() * (1 - settle) * 0.65; g.fillStyle = PAL.LILAC; g.beginPath();
-        for (let i = 0; i < 7; i++) { const a = i * Math.PI * 2 / 7, r = radius + 5 + Math.sin(settle * Math.PI) * 8; const x = Math.cos(a) * r, y = Math.sin(a) * r; g.moveTo(x, y - 1.5); g.lineTo(x + 0.7, y); g.lineTo(x, y + 1.5); g.lineTo(x - 0.7, y); }
-        g.fill();
-    }
+    if (!_tyMaturity.ready || now < _tyMaturity.at) { _tyMaturity.ready = true; _tyMaturity.at = now; _tyDevourFxStats.readyFlashAt = now; }
+    const age = now - _tyMaturity.at, o = window._fxOpts, bright = _tyBrightness(), breath = 1 + Math.sin(now * 0.005) * 0.045, size = (radius + 9) * 2.35 * breath;
+    g.save(); if (tier < 3 && (!o || o.trails !== false)) g.rotate(-now * 0.00035);
+    g.globalAlpha = bright * (0.72 + Math.sin(now * 0.005) * 0.1); g.drawImage(_tyDevourPolish.crown, -size / 2, -size / 2, size, size);
+    if (tier < 2) _drawGlow(g, 'violet', 0, 0, radius * 1.35, 0.26);
+    if (age < 220) { const q = age / 220, w = size * (0.8 + q * 0.45); g.globalAlpha = bright * (1 - q) * 0.9; g.drawImage(_tyDevourPolish.seal, -w / 2, -w / 2, w, w); }
+    if (tier < 2 && (!o || o.particles !== false)) { g.fillStyle = PAL.EMBER; g.globalAlpha = bright * 0.85; g.beginPath();
+        for (let i = 0; i < (tier === 0 ? 12 : 6); i++) { const a = _tyReadyEmbers[i], q = (now * 0.001 + i / 12) % 1, x = Math.cos(a) * radius * (0.6 + q * 0.3), y = -radius * 0.4 - q * 34, r = (1 - q) * 1.5; g.moveTo(x, y - r * 2); g.lineTo(x + r, y); g.lineTo(x, y + r); g.lineTo(x - r, y); } g.fill(); }
     g.restore();
 }
-function _drawTyDevourFangs(g, age, tier) {
-    if (tier >= 3 || age < 0 || age >= 480 || (window._fxOpts && window._fxOpts.trails === false)) return;
-    const p = age % 120 / 120, snap = Math.sin(p * Math.PI), gap = (1 - snap) * 18;
-    const small = viewW < 600 || viewH < 500, width = small ? 60 : 72, height = small ? 98 : 118;
-    g.save(); g.globalAlpha = _tyBrightness() * (0.38 + snap * 0.5);
-    g.drawImage(_tyDevourPolish.fang, -width - gap, -height * 0.77, width, height);
-    g.scale(-1, 1); g.globalAlpha *= 0.62; g.drawImage(_tyDevourPolish.fang, -width - gap, -height * 0.77, width, height); g.restore();
-    if (tier === 0 && (!window._fxOpts || window._fxOpts.glow !== false)) {
-        g.save(); g.globalAlpha = _tyBrightness() * snap * (1 - p) * 0.45;
-        g.strokeStyle = PAL.VIOLET; g.lineWidth = 0.8; g.beginPath(); g.arc(0, 0, 16 + p * 43, Math.PI * 0.15, Math.PI * 1.85); g.stroke(); g.restore();
-    }
+function _drawTyDevourFangs(g, age, tier, radius) {
+    if (age < 0 || age >= 480) return;
+    const p = age % 120 / 120, snap = Math.max(0, 1 - p / 0.85), gap = radius * (0.04 + (1 - snap) * 0.4), width = radius * 1.2, height = radius * 1.5;
+    const o = window._fxOpts, kick = !o || o.trails !== false ? Math.sin(p * Math.PI * 5) * (1 - p) * radius * 0.045 : 0;
+    g.save(); g.translate(kick, -Math.abs(kick) * 0.35); g.globalAlpha = _tyBrightness() * (0.7 + snap * 0.25);
+    const sprite = tier >= 2 ? _tyDevourPolish.flatFang : _tyDevourPolish.fang;
+    g.drawImage(sprite, -width - gap, -height - gap, width, height); g.scale(-1, 1);
+    g.drawImage(sprite, -width - gap, -height - gap, width, height); g.scale(1, -1);
+    g.drawImage(sprite, -width - gap, -height - gap, width, height); g.scale(-1, 1);
+    g.drawImage(sprite, -width - gap, -height - gap, width, height); g.restore();
+    if (p < 0.55) { const w = radius * (0.55 + p * 0.4); g.globalAlpha = _tyBrightness() * (1 - p / 0.55); g.drawImage(_tyDevourPolish.flash, -w / 2, -w / 2, w, w); }
 }
 function _drawTyCometTail(g, age, tier, lifeRatio) {
     if (tier >= 3 || (window._fxOpts && window._fxOpts.trails === false)) return;
-    const width = 87 + Math.sin(age * 0.012) * 5;
-    g.save(); g.globalAlpha = _tyBrightness() * lifeRatio * 0.8;
-    g.drawImage(_tyDevourPolish.comet, -width - 7, -17, width, 34);
-    if (tier === 0 && (!window._fxOpts || window._fxOpts.particles !== false)) {
-        g.fillStyle = PAL.LILAC; g.globalAlpha = _tyBrightness() * lifeRatio * 0.6; g.beginPath();
-        for (let i = 0; i < 4; i++) { const p = (age * 0.0016 + i * 0.25) % 1, x = -12 - p * 72, y = Math.sin(i * 2.4 + age * 0.01) * p * 7; const r = (1 - p) * 1.2; g.moveTo(x - r, y); g.lineTo(x, y - r * 1.8); g.lineTo(x + r, y); g.lineTo(x, y + r); }
-        g.fill();
-    }
-    g.restore();
+    const width = (tier === 0 ? 154 : 120) + Math.sin(age * 0.012) * 5;
+    g.save(); g.globalAlpha = _tyBrightness() * lifeRatio * 0.9; g.drawImage(_tyDevourPolish.comet, -width - 8, -23, width, 46); g.restore();
 }
 
 function _tyBakeSnakePolish() {
@@ -786,7 +788,6 @@ function _drawTyChargeRelief(g, x, y, now, tier, ratio, radius) {
         g.stroke();
         g.strokeStyle = PAL.LILAC; g.globalAlpha = _tyBrightness() * 0.7; g.beginPath(); g.arc(0, 0, r - 1.5, Math.PI * 1.02, Math.PI * 1.57); g.stroke();
     }
-    if (ready) _drawTyMaturity(g, now, tier, radius, true); else _tyMaturity.ready = false;
     g.restore();
 }
 
@@ -893,159 +894,37 @@ function _drawTyChargeRelief(g, x, y, now, tier, ratio, radius) {
         ctx.stroke();
       }
     }
-    _drawTyMaturity(ctx, timeMs, gfx, baseRadius, isReady);
     ctx.restore();
   }
-  function drawDetonation(ctx, x, y, elapsedMs, gfx, shardsPool) {
-    if (gfx < 3 && elapsedMs >= 0 && elapsedMs <= 760) {
-      ctx.save(); ctx.translate(x, y);
-      if (elapsedMs < 480) {
-        _drawTyDevourFangs(ctx, elapsedMs, gfx);
-        const p = elapsedMs % 120 / 120, size = 40 + Math.sin(p * Math.PI) * 17;
-        ctx.globalAlpha = _tyBrightness() * 0.85; ctx.drawImage(_tyPolish.impacts[1], -size / 2, -size / 2, size, size);
-      } else {
-        const p = (elapsedMs - 480) / 280, size = 60 + p * 60;
-        ctx.globalAlpha = _tyBrightness() * (1 - p) * 0.8; ctx.drawImage(_tyPolish.impacts[3], -size / 2, -size / 2, size, size);
-      }
-      ctx.restore(); if (!shardsPool) return;
+  function drawDetonation(g, x, y, age, tier, shardsPool, devour) {
+    const bright = _tyBrightness(), o = window._fxOpts;
+    if (!shardsPool) {
+        if (age < 0 || age >= 1460) return;
+        const target = devour && devour.target, live = target && _tyIsTarget(target);
+        if (live) { x = target.x; y = target.y; }
+        const space = Math.max(42, Math.min(x - 12, viewW - x - 12, y - 28, viewH - y - 12) * 0.54);
+        const radius = Math.max(42, Math.min(space, (target && target.size || 30) * 0.85 + 22));
+        _tyDevourFxStats.attacks++;
+        g.save(); g.translate(x, y); g.globalCompositeOperation = 'source-over';
+        const mark = radius * 2.7, fade = Math.min(1, (1460 - age) / 380);
+        g.save(); if (tier < 3 && (!o || o.trails !== false)) g.rotate(age * 0.0012); g.globalAlpha = bright * fade * 0.8; g.drawImage(_tyDevourPolish.seal, -mark / 2, -mark / 2, mark, mark); g.restore();
+        if (age < 180) { const q = age / 180, w = radius * (0.9 + q * 1.6); g.globalAlpha = bright * (1 - q); g.drawImage(_tyDevourPolish.seal, -w / 2, -w / 2, w, w); }
+        _drawTyDevourFangs(g, age, tier, radius);
+        if (age >= 480) { const q = (age - 480) / 980, w = radius * (2 + (1 - Math.pow(1 - q, 3)) * 3); g.globalAlpha = bright * (1 - q) * 0.9; g.drawImage(tier >= 3 ? _tyDevourPolish.seal : _tyDevourPolish.fire, -w / 2, -w / 2, w, w); }
+        if (tier < 2 && (!o || o.glow !== false) && age < 480) _drawGlow(g, 'violet', 0, 0, radius * 1.05, 0.22);
+        g.restore(); return;
     }
-    ctx.save();
-    if (gfx >= 3 && elapsedMs >= 0 && elapsedMs <= 560) {
-      var biteDuration = 120;
-      var biteIdx = Math.min(3, Math.floor(elapsedMs / biteDuration));
-      var biteLocal = (elapsedMs - biteIdx * biteDuration) / biteDuration;
-      var fadeOut = (elapsedMs > 480) ? Math.max(0, 1 - (elapsedMs - 480) / 80) : 1.0;
-      ctx.save();
-      ctx.translate(x, y);
-      ctx.globalAlpha = _tyBrightness() * (fadeOut);
-      var shadowR = 32 * (0.85 + 0.15 * Math.sin(elapsedMs * 0.02));
-      if (gfx <= 2) {
-        _drawGlow(ctx, 'abyss', 0, 10, shadowR * 1.35, 0.85);
-      }
-      ctx.beginPath();
-      ctx.ellipse(0, 12, shadowR, shadowR * 0.45, 0, 0, Math.PI * 2);
-      ctx.fillStyle = PAL.VOID;
-      ctx.fill();
-      ctx.strokeStyle = PAL.VIOLET;
-      ctx.lineWidth = 1.5;
-      ctx.stroke();
-      var strikeAngles = _strikeAngles;
-      var sAng = strikeAngles[biteIdx];
-      var lungeOffset = Math.sin(biteLocal * Math.PI) * 22;
-      ctx.save();
-      ctx.rotate(sAng);
-      ctx.translate(0, 16 - lungeOffset);
-      ctx.beginPath();
-      ctx.moveTo(0, -28);
-      ctx.lineTo(-16, -6);
-      ctx.lineTo(-11, 18);
-      ctx.lineTo(11, 18);
-      ctx.lineTo(16, -6);
-      ctx.closePath();
-      ctx.fillStyle = PAL.VOID;
-      ctx.fill();
-      ctx.strokeStyle = PAL.MAGENTA;
-      ctx.lineWidth = 1.8;
-      ctx.stroke();
-      ctx.fillStyle = PAL.EMBER;
-      ctx.beginPath();
-      ctx.moveTo(-9, -8); ctx.lineTo(-4, -12); ctx.lineTo(-5, -5); ctx.closePath();
-      ctx.moveTo(9, -8);  ctx.lineTo(4, -12);  ctx.lineTo(5, -5);  ctx.closePath();
-      ctx.fill();
-      ctx.restore();
-      _drawTyDevourFangs(ctx, elapsedMs, gfx);
-      var fangSnap = Math.sin(biteLocal * Math.PI);
-      var jawGap = 18 * (1.0 - 0.72 * fangSnap);
-      if (gfx <= 1 && fangSnap > 0.45) {
-        _drawGlow(ctx, 'lilac', 0, 0, 38, (fangSnap - 0.4) * 0.9);
-      }
-      ctx.strokeStyle = PAL.LILAC;
-      ctx.fillStyle = PAL.LILAC;
-      ctx.lineWidth = 2.0;
-      ctx.beginPath();
-      ctx.moveTo(-14, -jawGap - 6);
-      ctx.lineTo(-8, -jawGap + 8);
-      ctx.lineTo(-3, -jawGap - 4);
-      ctx.lineTo(3, -jawGap - 4);
-      ctx.lineTo(8, -jawGap + 8);
-      ctx.lineTo(14, -jawGap - 6);
-      ctx.stroke();
-      ctx.beginPath();
-      ctx.moveTo(-12, jawGap + 6);
-      ctx.lineTo(-7, jawGap - 6);
-      ctx.lineTo(0, jawGap + 3);
-      ctx.lineTo(7, jawGap - 6);
-      ctx.lineTo(12, jawGap + 6);
-      ctx.stroke();
-      if (fangSnap > 0.55) {
-        var slashLen = 22 * fangSnap;
-        ctx.strokeStyle = (biteIdx % 2 === 0) ? PAL.LILAC : PAL.MAGENTA;
-        ctx.lineWidth = 1.6;
-        ctx.beginPath();
-        ctx.moveTo(-slashLen, -slashLen * 0.6);
-        ctx.lineTo(slashLen, slashLen * 0.6);
-        ctx.moveTo(slashLen, -slashLen * 0.6);
-        ctx.lineTo(-slashLen, slashLen * 0.6);
-        ctx.stroke();
-      }
-      ctx.restore();
+    for (let i = 0; i < shardsPool.length; i++) {
+        const sh = shardsPool[i]; if (!sh.active) continue;
+        const elapsed = tyClock - sh.spawnTime, life = Math.max(0, Math.min(1, 1 - elapsed / sh.lifeMs));
+        if (elapsed < 0 || life <= 0) continue;
+        _tyDevourFxStats.shards++; g.save(); g.translate(sh.x, sh.y); g.rotate(sh.angle);
+        _drawTyCometTail(g, elapsed, tier, life); g.globalAlpha = bright * life;
+        g.drawImage(_tyDevourPolish.shard, -30, -30, 60, 60);
+        if (elapsed < 90) { const w = 26 + elapsed * 0.2; g.globalAlpha = bright * (1 - elapsed / 90); g.drawImage(_tyDevourPolish.flash, -w / 2, -w / 2, w, w); }
+        g.restore();
     }
-    if (gfx >= 3 && elapsedMs >= 480 && elapsedMs <= 760) {
-      var burstT = (elapsedMs - 480) / 280;
-      var burstAlpha = 1.0 - burstT;
-      ctx.save();
-      ctx.translate(x, y);
-      if (gfx <= 2) {
-        _drawGlow(ctx, 'magenta', 0, 0, 64 * (0.5 + burstT * 0.7), burstAlpha * 0.75);
-      }
-      ctx.strokeStyle = PAL.LILAC;
-      ctx.globalAlpha = _tyBrightness() * (burstAlpha);
-      ctx.lineWidth = 2.2 * (1 - burstT * 0.5);
-      var arm = 18 + burstT * 52;
-      ctx.beginPath();
-      ctx.moveTo(-arm, -arm); ctx.lineTo(arm, arm);
-      ctx.moveTo(arm, -arm);  ctx.lineTo(-arm, arm);
-      ctx.stroke();
-      ctx.restore();
-    }
-    if (shardsPool) {
-      for (var i = 0; i < shardsPool.length; i++) {
-        var sh = shardsPool[i];
-        if (!sh.active) continue;
-        var age = tyClock - sh.spawnTime;
-        var lifeRatio = Math.max(0, Math.min(1, 1 - age / sh.lifeMs));
-        ctx.save();
-        ctx.translate(sh.x, sh.y);
-        ctx.rotate(sh.angle);
-        ctx.globalAlpha = _tyBrightness() * (lifeRatio);
-        _drawTyCometTail(ctx, age, gfx, lifeRatio);
-        if (gfx <= 2) {
-          _drawGlow(ctx, 'violet', 0, 0, 20, 0.55 * lifeRatio);
-        }
-        ctx.beginPath();
-        ctx.moveTo(15, 0);
-        ctx.lineTo(-2, -6.5);
-        ctx.lineTo(-12, 0);
-        ctx.lineTo(-2, 6.5);
-        ctx.closePath();
-        ctx.fillStyle = PAL.VOID;
-        ctx.fill();
-        ctx.strokeStyle = PAL.MAGENTA;
-        ctx.lineWidth = 1.75;
-        ctx.stroke();
-        ctx.beginPath();
-        ctx.moveTo(12, 0);
-        ctx.lineTo(2, -2.2);
-        ctx.lineTo(2, 2.2);
-        ctx.closePath();
-        ctx.fillStyle = PAL.LILAC;
-        ctx.fill();
-        ctx.restore();
-      }
-    }
-    ctx.restore();
   }
-
 
 function _drawTyEye(g, age, tier, core, fade) {
     const o = window._fxOpts, width = core * 2.45, open = Math.min(1, Math.max(0.05, age / 180));
@@ -1752,15 +1631,21 @@ window._drawTyGround = function () {
     finish();
 };
 window._drawTyVenomOnBoss = function (enemy) {
-    if (!_hasSigil('ty') || !(enemy._tyVenomStacks > 0)) return;
-    begin(); _drawTyVenom(_fxContext, window._tyClock, gfx(), enemy); finish();
+    if (!_hasSigil('ty')) return;
+    const now = window._tyClock; let devour = false;
+    for (let i = 0; i < 4; i++) if (_tyDevours[i].target === enemy && now - _tyDevours[i].start >= 0 && now - _tyDevours[i].start < 1460) devour = true;
+    if (!(enemy._tyVenomStacks > 0) && !devour) return;
+    begin(); const tier = gfx(); if (enemy._tyVenomStacks > 0) _drawTyVenom(_fxContext, now, tier, enemy);
+    for (let i = 0; i < 4; i++) { const d = _tyDevours[i]; if (d.target === enemy) drawDetonation(_fxContext, d.x, d.y, now - d.start, tier, null, d); }
+    finish();
 };
 window._drawTyActors = function () {
     if (!_hasSigil('ty')) return;
     begin(); const g = gfx(), now = window._tyClock;
+    _tyDevourFxStats.attacks = _tyDevourFxStats.shards = 0;
     for (let i = 0; i < 4; i++) {
         const d = _tyDevours[i];
-        if (d.active) drawDetonation(_fxContext, d.x, d.y, now - d.start, g, null);
+        if (now - d.start >= 0 && now - d.start < 1460 && !(d.target && d.target.type === 'goliath')) drawDetonation(_fxContext, d.x, d.y, now - d.start, g, null, d);
     }
     drawDetonation(_fxContext, 0, 0, 1000, g, _tyShards);
     _drawTyWake(_fxContext, now, g);
@@ -1845,6 +1730,7 @@ window._drawTyActors = function () {
         }
         _fxContext.restore();
     }
+    _fxContext.save(); _fxContext.translate(player.x, player.y); _drawTyMaturity(_fxContext, now, g, _tyRingRadius(), _hasBuff('hac_viem_phe_hon') && window._tyCharge >= 10000); _fxContext.restore();
     if (_hasBuff('hac_viem_phe_hon') && window._tyCharge > 0.01) drawHacViemRing(_fxContext, player.x, player.y, now, g, window._tyCharge / 10000, _tyRingRadius());
     if (window._tyFangStacks > 0) {
         _fxContext.fillStyle = PAL.LILAC; _fxContext.font = 'bold 11px Georgia, serif'; _fxContext.textAlign = 'center';

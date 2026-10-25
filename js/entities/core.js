@@ -183,7 +183,9 @@ function handleEnemyKill(enemy) {
     if (enemy.type === 'egregor') {
         window._lastEgregorKillTime = performance.now();
         if (!window._egregorDeathBursts) window._egregorDeathBursts = [];
-        window._egregorDeathBursts.push({ x: enemy.x, y: enemy.y, size: enemy.size, spawnAt: performance.now(), duration: 900 });
+        let tentMask = 0;
+        for (let i = 0; i < 10; i++) if (!enemy._tentacleHps || enemy._tentacleHps[i] > 0) tentMask |= 1 << i;
+        window._egregorDeathBursts.push({ x: enemy.x, y: enemy.y, size: enemy.size, spawnAt: performance.now(), duration: 900, rage: enemy._rageStacks || 0, tentMask });
         createParticles(enemy.x, enemy.y, 40, '#aa44ff', 3, 11);
         createParticles(enemy.x, enemy.y, 20, '#ffffff', 2, 7);
         _setShake(16, 420);
@@ -603,6 +605,7 @@ function _updateTimelineFavorRegen(enemy, deltaTime) {
 }
 
 function dealDamage(enemy, source) {
+    if (source.type === 'player_auto' || source.type === 'player_charged') _tyOnShipHit(enemy, source);
     if (window._capMountain && (enemy.hasOwnProperty('shotsFiredSinceSpecial') || enemy.role || window.skillDSpaceships.includes(enemy))
         && _capBlocksSource(source, enemy)) return;
     if (enemy.type === 'abyssal_chain') return;
@@ -1103,8 +1106,11 @@ function dealDamage(enemy, source) {
                 if (_ti === -1) return;
                 const _tentMaxHp = Math.ceil(enemy.maxHp * 0.80);
                 const _wasAlive = enemy._tentacleHps[_ti] > 0;
+                if (enemy._tentHitAt) enemy._tentHitAt[_ti] = performance.now();
                 enemy._tentacleHps[_ti] = Math.max(0, enemy._tentacleHps[_ti] - _tenDmg);
                 if (_wasAlive && enemy._tentacleHps[_ti] <= 0) {
+                    if (enemy._tentLostAt) enemy._tentLostAt[_ti] = performance.now();
+                    enemy._ragePulseAt = performance.now();
                     enemy._tentaclesLost = (enemy._tentaclesLost || 0) + 1;
                     const _hpBefore = enemy.hp;
                     enemy.hp = Math.min(enemy.maxHp, enemy.hp + Math.ceil(enemy.maxHp * 0.04 * _walpurgisHealShieldMult())); // docs/combat-scaling-rebalance.md Part 3
@@ -1123,12 +1129,16 @@ function dealDamage(enemy, source) {
 
             if (!source.isPiercing) {
                 const _aliveTents = enemy._tentacleHps.filter(hp => hp > 0).length;
-                if (Math.random() < (_aliveTents / 10) * 0.60) return;
+                if (Math.random() < (_aliveTents / 10) * 0.60) {
+                    if (enemy._tentHitAt) enemy._tentHitAt[enemy._tentacleHps.findIndex(hp => hp > 0)] = performance.now();
+                    return;
+                }
                 _applyTentacleDmg();
                 // ≥4 tentacles lost: normal hits bleed through — 88% DR, hard cap 12% MaxHP
                 if ((enemy._tentaclesLost || 0) >= 4) {
                     const _bleedDmg = Math.ceil(Math.min(totalDamage * 0.12, enemy.maxHp * 0.12));
                     enemy.hp = Math.max(0, enemy.hp - _bleedDmg);
+                    enemy._egBodyHitAt = performance.now();
                 }
                 return;
             }
@@ -1144,12 +1154,14 @@ function dealDamage(enemy, source) {
             if (enemy._nullSlashPhase === 'charging') _pierceDmg = Math.ceil(_pierceDmg * 0.70);
             _pierceDmg = _capPierceBurstDamage(enemy, _pierceDmg);
             enemy.hp = Math.max(0, enemy.hp - _pierceDmg);
+            enemy._egBodyHitAt = performance.now();
             return;
         }
         // All tentacles dead: normal attacks — 50% DR, hard cap 30% MaxHP, applied directly
         if (!source.isPiercing) {
             const _bodyDmg = Math.min(Math.ceil(totalDamage * 0.50), Math.ceil(enemy.maxHp * 0.30));
             enemy.hp = Math.max(0, enemy.hp - _bodyDmg);
+            enemy._egBodyHitAt = performance.now();
             return;
         }
     }
@@ -1726,7 +1738,6 @@ function dealDamage(enemy, source) {
     // use an intentionally absurd raw value to guarantee a kill through any
     // mitigation, and logging that raw value would blow the leaderboard up
     // to a meaningless number instead of real damage dealt.
-    if (!isSentinel && !isSpaceship && _hitSizeForBurst > 0) _tyOnShipHit(enemy, source);
     _recordStat(
         (isSentinel || isSpaceship) ? 'enemyDamage' : 'allyDamage',
         _classifyDamageSource(source, !(isSentinel || isSpaceship)),
@@ -1818,6 +1829,8 @@ function dealDamage(enemy, source) {
             enemy.hp -= totalDamage;
         }
     }
+
+    if (enemy.type === 'egregor' && _hpDamageDealt > 0) enemy._egBodyHitAt = performance.now();
 
     // Divine Fate: every hit that lands on a Digiform enemy charges the meter.
     if (enemy.type === 'goliath' && !enemy._deathPhase && _hpDamageDealt + _shieldDamageDealt > 0) {

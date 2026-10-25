@@ -211,6 +211,7 @@ function _tyInterceptBullets(s, ax, ay) {
 
 function _tyOnShipHit(e, source) {
     if ((source.type !== 'player_auto' && source.type !== 'player_charged') || !_tyIsTarget(e)) return;
+    if (source.isTeslaDot || source._isDtuDot || source._isNocToiDot || source._isSthDot || source._isSrDot || source._isTyVenomDot || source._isWisdomZoneDot || source.isSpirit || source.isSpiritLaser) return;
     _tyDetonate(e);
 }
 
@@ -436,7 +437,8 @@ function _tyBeginFrame(ms) {
             if (d.hitMasks[k] & s.bit) continue;
             d.hitMasks[k] |= s.bit;
             const repeatHit = d.hitCounts[k]++ > 0, share = repeatHit ? 0.25 : 1;
-            _tyDamage(e, 0.45 * share, TY_SHARD_PCT * share, 'Umbral Serpent: Shards', false);
+            const hit = _tyDamage(e, 0.45 * share, TY_SHARD_PCT * share, 'Umbral Serpent: Shards', false);
+            if (!hit) _tyImpact(e.x, e.y, 3);
         }
     }
     for (let i = 0; i < _tySerpents.length; i++) {

@@ -667,6 +667,8 @@
 
     window._dimBreakZones = [];
     window._egregorDeathBursts = [];
+    const _egregorTempestEchoes = new Array(24).fill(null);
+    const _egregorTempestScars = new Float32Array(24 * 3);
     window._parryBursts = [];
     window._levDeathLasers = [];
     window._levPersBeams = [];
@@ -676,20 +678,6 @@
     // Ported verbatim from js/main.js (not <script src>'d — main.js bootstraps
     // the full game loop/input, unsafe to include wholesale). Self-contained:
     // only touches state already mocked above.
-    // Ported verbatim from js/entities.js — tiny, self-contained jittered-line
-    // generator used by the real Egregor Tempest bolt drawing.
-    function _egregorGenBolt(x1, y1, x2, y2, detail, jitter) {
-      const pts = [{ x: x1, y: y1 }];
-      const dx = x2 - x1, dy = y2 - y1;
-      for (let i = 1; i < detail; i++) {
-        const t = i / detail;
-        const s = Math.sin(t * Math.PI);
-        pts.push({ x: x1 + dx * t + (Math.random() - 0.5) * jitter * 2 * s, y: y1 + dy * t + (Math.random() - 0.5) * jitter * 2 * s });
-      }
-      pts.push({ x: x2, y: y2 });
-      return pts;
-    }
-
     function _triggerAccurateParry() {
       const now = performance.now();
       accurateParryActive = true;
@@ -755,13 +743,13 @@
   </script>
   <script src="js/canvas-guard.js"></script>
   <script src="js/render/core.js"></script>
-  <script src="js/render/fx.js"></script>
+  <script src="js/render/fx.js?v=20261025g"></script>
   <script src="js/render/player.js"></script>
   <script src="js/render/enemy-common.js"></script>
   <script src="js/render/enemy-goliath.js"></script>
   <script src="js/render/enemy-thaelis.js"></script>
   <script src="js/render/enemy-dargruel.js"></script>
-  <script src="js/render/enemy-egregor.js"></script>
+  <script src="js/render/enemy-egregor.js?v=20261025h"></script>
   <script src="js/render/enemy-uriel.js"></script>
   <script src="js/render/skill-s-spirit.js"></script>
   <script src="js/render/skill-a.js"></script>
@@ -1124,7 +1112,7 @@
 <div class="sfc-inner"><div class="sfc-front">
 <canvas class="sfc-glyph-cv" data-sigil="ty"></canvas><div class="sfc-name">UMBRAL SERPENT</div><div class="sfc-el">Venomancy</div><div class="sfc-atk"><span>ATK <b>+5%</b></span></div><div class="sfc-theme">SEAL OF UMBRAL FIRE</div>
 <div class="sfc-buffs">
-<div class="sfc-row"><span class="sbt atk">ATK</span><b>Umbral Devour</b> <span class="sbd">Charge in 10s. Kills hasten charge by 0.3s. Your next bullet hit triggers 4 bites (60% ATK + 0.4% Max HP each), then 4 piercing shards (45% ATK + 0.3% Max HP, repeated hits deal 25%). Gain 50% speed for 1s and refund 1s on D and S.</span></div>
+<div class="sfc-row"><span class="sbt atk">ATK</span><b>Umbral Devour</b> <span class="sbd">Charge in 10s. Kills hasten charge by 0.3s. Your next ship bullet contact with a targetable enemy triggers Devour even if tentacles, armor, barriers or immunity block the bullet. Deal 4 bites (60% ATK + 0.4% Max HP each), then 4 piercing shards (45% ATK + 0.3% Max HP, repeated hits deal 25%). Gain 50% speed for 1s and refund 1s on D and S.</span></div>
 <div class="sfc-row"><span class="sbt spec">SPEC</span><b>Serpent Array</b> <span class="sbd">Skill S opens a 190px array (10s cooldown, also while the spirit is out) that pulls enemies in (Dominant) for 20% ATK + 0.1% Max HP every 0.25s for 1.25s, then 300% ATK + 2% Max HP and 1.25s Dominant. Summon 10 serpents for 8s (60% ATK + 0.2% Max HP per 0.45s, up to 3 on one target, 51% chance to latch on for 3 bites in a row, kills extend 2s up to 12s, bites charge 3%). Gain a one-hit shield, restored after 12 bites, and slow nearby enemies 50% for 2s. Each swarm bite grants the player side +1% damage, up to 40%, and adds 0.5% ATK to serpent bites, up to 20%. After 2s without a bite, stacks fade to zero over 1s. Every 5th bite in a row (counted by the fang stacks) adds a Venom stack to the bitten enemy and applies Soul Reaver and Soul Devourer. Venom deals 35% ATK per second for 3s, 65% on the third, and each stack after the first adds 15% ATK, up to 5. Gaining a stack renews them all; after 3s they fade out over 1s. A serpent crossing an ordinary enemy bullet erases it and gains 5% movement speed and 5% bite damage for 3s. This does not stack and affects only that serpent.</span></div>
 </div><div class="sfc-hint">click to read lore</div>
 </div><div class="sfc-back"><canvas class="sfc-glyph-sm-cv" data-sigil="ty"></canvas>
@@ -1199,16 +1187,15 @@
 <li><span style="color:var(--cyan);font-size:10px">SKILL</span> <b>Swords</b> — <span class="det-full"><span class="hi">25% chance</span> per barrier hit or per evaded hit (guaranteed on barrier break); queues a sword (0.65s cooldown between triggers). <b>Max 4 swords per barrier cycle</b> — when the 4th sword is triggered, the barrier immediately <b>self-detonates</b> (3s revive, same break buffs). Resets when the barrier revives. At <span class="hi">1% HP</span> all queued swords fire simultaneously. <span class="hr">Indestructible.</span> Sentinel: <span class="hr">27% Max HP</span> (1st hit) / <span class="hr">23%</span> (2nd) / <span class="hr">21%</span> (3rd+). Player: <span class="hr">1 life</span>.</span><span class="det-short">25% chance per barrier/evaded hit to queue an indestructible sword; max 4 per cycle — 4th sword triggers barrier self-detonation (3s revive). Sentinel: 27/23/21% Max HP. Player: 1 life.</span></li>
 </ul></div>
 
-<div class="card"><h2 class="dsname" style="color:#ff8844">EGREGOR <span class="dsclass" style="font-size:10px;color:#ff8844">ELITE</span></h2><div class="sub">Wave 2 • HP 2,200–4,750 • Body DR 40% • Evade 5→10% • CAP 1 • Speed 1.5 u/s • CC Immune</div>
-<div class="ab" style="height:270px"><canvas id="cvEgregor" style="width:100%;height:100%"></canvas><button class="play-btn" id="btnPlayEgregor" onclick="playWidget('egregor', this)"><i class="ico ico-play"></i>Play</button></div>
+<div class="card"><h2 class="dsname" style="color:#ff8844">EGREGOR <span class="dsclass" style="font-size:10px;color:#ff8844">ELITE</span></h2><div class="sub">Wave 2 • HP 2,530–5,463 • Body DR 40% • Evade 5→10% • CAP 1 • Speed 1.5 u/s • CC Immune</div>
+<div class="ab" style="height:320px"><canvas id="cvEgregor" style="width:100%;height:100%"></canvas><button class="play-btn" id="btnPlayEgregor" onclick="playWidget('egregor', this)"><i class="ico ico-play"></i>Play</button></div>
 <ul>
-<li><span style="color:#a855f7;font-size:10px">PASSIVE</span> <b>Collective Mind</b> — <span class="det-full"><span class="hi">10 tentacles</span>, each with independent HP equal to <span class="hi">80% of Egregor's MaxHP</span>. Non-true-damage: deflect chance <span class="hi">scales with alive tentacles</span> (alive÷10 × 60%, down to 0 when all dead); on non-deflect, hit absorbed by a tentacle at ~<span class="dmg">26% of original damage</span> (35% × 75% DR). <b>When a tentacle dies:</b> Egregor body <span class="hgr">heals 4% MaxHP</span>, body <span class="hg">MaxHP increases by 20% of that tentacle's HP</span>, body gains <span class="hg">+3% DR</span> (cumulative, max +15% at 5 losses). Once <span class="hi">≥4 tentacles are lost</span>, normal attacks (and all non-piercing, non-true sources) also <span class="dmg">bleed through to the body</span> at <span class="hi">12% of their damage</span>, hard-capped at <span class="hi">12% MaxHP</span> per hit. Body reachable by <span class="dmg">true damage</span> (capped <span class="hi">max(25%, 90−10n)%</span> MaxHP) or <span class="dmg">piercing attacks</span> (tentacle takes ~26% dmg, body takes <span class="hi">30%</span> of original, capped <span class="hi">30% MaxHP</span>). Cannot coexist with Veilshroud. Body has <span class="hg">5% chance to dodge any hit</span>.</span><span class="det-short">10 tentacles intercept all hits. Each tentacle death heals body +4% MaxHP, boosts body MaxHP, and adds +3% DR (max +15%). Once ≥4 tentacles lost, normal hits bleed through at 12% damage, cap 12% MaxHP.</span></li>
-<li><span style="color:#a855f7;font-size:10px">PASSIVE</span> <b>Mind Link</b> — <span class="det-full">Each non-Egregor enemy death within <span class="hi">600px</span> (red dashed ring) grants a <span class="hg">Rage Stack</span> (max 5, 8s each). Per stack: <span class="hg">+18% movement speed</span>, <span class="hg">+15% Max HP</span>, <span class="hg">Heal 12% MaxHP</span>, <span class="hg">tentacles heal 10% HP</span> and gain <span class="hg">+5% DR</span> (max +25% at 5 stacks). Each new stack immediately triggers a Psychic Tempest cast.</span><span class="det-short">Each nearby enemy death gives a Rage Stack (max 5): boosts speed and HP, heals Egregor and tentacles, and immediately triggers Psychic Tempest.</span></li>
-<li><span style="color:#a855f7;font-size:10px">PASSIVE</span> <b>Boon and Bane</b> — <span class="det-full">When Egregor enters the Null Slash windup, it immediately gains a <span class="hg">base Barrier of 250</span>. Throughout the windup, every body hit Egregor receives grants it an additional <span class="hg">Barrier equal to 75% of that damage</span>. This barrier accumulates and absorbs subsequent non-true-damage body hits. <span class="dmg">True damage pierces the barrier</span>. <b>Immediately when Null Slash fires</b>, Egregor deals <span class="hr">self-inflicted true damage equal to 50% of the total barrier accumulated from hits</span> during that windup, bypassing its own DR and per-hit caps, hard-capped at <span class="hr">40% MaxHP</span>. Barrier and accumulation counter reset each Null Slash cycle.</span><span class="det-short">During Null Slash charge: each body hit grants Egregor a barrier (75% of that damage) that absorbs future hits. On slash release: self-inflict 50% of total accumulated barrier as true damage, cap 40% MaxHP.</span></li>
-<li><span style="color:var(--cyan);font-size:10px">SKILL</span> <b>Psychic Tempest</b> <span class="cd">CD 4s</span> — <span class="det-full">Selects up to <span class="hi">3</span> random targets (player + sentinels). After a <span class="hi">1.2s</span> telegraph (shrinking ring + converging sparks), simultaneous psychic lightning strikes in <span class="hi">100px</span> radius. Target positions <span class="hi">locked at cast</span> — bolts do not track. Fires even if Egregor dies mid-cast. Player: <span class="hr">costs 1 life</span>. Sentinel: <span class="hr">20% MaxHP damage</span>. CD 15% faster with any rage stack.</span><span class="det-short">Strikes 3 random targets with psychic lightning after 1.2s warning. Player: 1 life. Sentinel: 20% MaxHP.</span></li>
-<li><span style="color:var(--cyan);font-size:10px">SKILL</span> <b>Null Slash</b> <span class="cd">CD 3.5s</span> — <span class="det-full"><span class="hi">Windup 1–3s</span> (base 3s / 2.5s with any rage, reduced 0.35s per stack, min 1s). Egregor moves at <span class="hi">10% speed</span> and tracks the player live during windup, gaining <span class="hg">+40% DR</span>. Movement returns to normal after the slash. <b>Boon and Bane</b> is active during this phase (see passive above). At release, target position locks and a <span class="hi">180° arc</span> sweeps toward it — any sentinel or player inside the arc is hit, and <b>Boon and Bane backlash fires simultaneously</b>. <b>Player</b>: no life lost, <span class="hr">−50% movement 1.5s</span> (purple slow ring + falling particles; Yog-Sothoth can dodge). <b>Sentinel</b>: <span class="hr">30% MaxHP (1 hit) / 35% (2) / 40% (3+)</span>, true damage, rage bonus <span class="hg">+6% per stack</span> (max <span class="hg">+30%</span>). After the slash, leaves a <b>Dimension Break</b> zone (glowing purple arc) that lingers for <span class="hi">1s</span> — player walking through it is <span class="hr">slowed 20%</span>.</span><span class="det-short">180° arc slash after 1–3s windup; slows player 50% for 1.5s, deals 30–40% true dmg to sentinels, leaves a 1s slow zone. Boon and Bane backlash triggers on release.</span></li>
+<li><span style="color:#a855f7;font-size:10px">PASSIVE</span> <b>Collective Mind:</b> <span class="det-full"><span class="hi">10 tentacles</span>, each starting with <span class="hi">80% of body MaxHP</span>. Ordinary hits have a deflect chance of <span class="hi">living tentacles ÷ 10 × 60%</span>. Otherwise a living tentacle receives <span class="dmg">35% × 75% of the incoming damage</span>, then the rage reduction applies. At zero rage this is <span class="dmg">26.25% before rounding</span>. A lost tentacle heals the body for <span class="hgr">4% MaxHP</span>, then increases body MaxHP by <span class="hg">20% of the current tentacle MaxHP</span>. Each loss adds <span class="hg">3% body DR</span>, capped at <span class="hg">15%</span>. With at least <span class="hi">4 losses</span>, ordinary hits also deal <span class="dmg">12% damage to the body</span>, capped at <span class="hi">12% body MaxHP</span>. Piercing hits graze a tentacle and deal <span class="hi">30% damage to the body</span>, capped at <span class="hi">30% MaxHP</span>, with an additional <span class="hi">5% rejection chance</span>; during Null Slash windup that body damage is multiplied by <span class="hi">0.70</span>. While a tentacle lives, piercing body damage also has a shared <span class="hi">20% MaxHP limit per 700ms</span>. With all tentacles lost, ordinary hits deal <span class="dmg">50% damage</span>, capped at <span class="hi">30% MaxHP</span>. Body hits have a per hit cap of <span class="hi">max(25%, 90% less 10% per lost tentacle)</span>, except Boon and Bane backlash. Native evade rises from <span class="hi">5% to 10%</span> over the first <span class="hi">3 minutes</span>. Egregor cannot spawn alongside Veilshroud.</span><span class="det-short">10 tentacles with 80% MaxHP each. Ordinary deflect chance is living tentacles ÷ 10 × 60%; a tentacle otherwise takes 26.25% damage before rage reduction and rounding. Each loss heals and strengthens the body. Four losses allow 12% ordinary damage through; losing all tentacles exposes the body.</span></li>
+<li><span style="color:#a855f7;font-size:10px">PASSIVE</span> <b>Mind Link:</b> <span class="det-full">An enemy death within <span class="hi">600px</span>, excluding Egregor and enemy bullets, grants one rage stack when below the <span class="hg">5 stack cap</span>. Each stack lasts <span class="hi">8s</span>, adds <span class="hg">18% movement speed</span> and <span class="hg">15% MaxHP</span>, heals <span class="hg">12% of the new body MaxHP</span>, and heals living tentacles for <span class="hg">10% of their current MaxHP</span>. Tentacle damage reduction gains <span class="hg">5% per stack</span>, normally capped at <span class="hg">25%</span>. Nearby deaths let Tempest start on the next update if it is ready. A soul travels into the body; the quiet range ornament brightens near living enemies or a received soul. Any rage shortens Tempest warning and cooldown by <span class="hi">15%</span>; it grants no separate attack speed bonus.</span><span class="det-short">Nearby deaths grant up to 5 rage stacks lasting 8s each: +18% movement, +15% MaxHP, 12% healing based on the new MaxHP and 10% healing for living tentacles. Any rage shortens Tempest warning and cooldown by 15%.</span></li>
+<li><span style="color:#a855f7;font-size:10px">PASSIVE</span> <b>Boon and Bane:</b> <span class="det-full">Null Slash windup starts with a <span class="hg">250 Vessel</span>. Eligible body hits add <span class="hg">75% of their processed damage</span> to the Vessel and its accumulation counter. Vessel absorbs ordinary body damage; <span class="dmg">true damage passes through</span>. At the end of the <span class="hi">950ms strike animation</span>, backlash deals <span class="hr">50% of the accumulated gain</span> as true damage to Egregor, bypassing its ordinary hit cap and capped at <span class="hr">40% MaxHP</span>. The initial 250 is not included in the accumulated gain. Both counters reset after the strike.</span><span class="det-short">Windup grants 250 Vessel. Eligible body hits add 75% processed damage. At the end of the strike, Egregor takes 50% of the accumulated gain as true backlash, capped at 40% MaxHP.</span></li>
+<li><span style="color:var(--cyan);font-size:10px">SKILL</span> <b>Psychic Tempest</b> <span class="cd">CD 4s, or 3.4s with rage</span>: <span class="det-full">Locks the positions of up to <span class="hi">3 random targets</span> from the player and Sentinels. Egregor visibly plants a tentacle and sends roots toward violet portals. Each target keeps a sharp <span class="hi">100px danger circle</span> and countdown. Warning lasts <span class="hi">1200ms</span>, or <span class="hi">1020ms with any rage</span>. Giant tentacles erupt at the damage event and retract during a <span class="hi">700ms strike</span>. Secondary limbs are visual only. A player hit costs <span class="hr">1 life</span>, subject to defenses. Each Sentinel hit deals <span class="hr">1.5% × min(Egregor MaxHP, 8000)</span> before its defenses, at most once per cast. Walls can block the strike without a hit flash. If Egregor dies during warning, the portals strike immediately and finish independently of the body.</span><span class="det-short">Up to 3 locked portals erupt after 1200ms, or 1020ms with rage. Hit radius 100px. Player: 1 life. Sentinel: 1.5% of Egregor's bounded MaxHP basis. Strike 700ms; cooldown 4s or 3.4s with rage.</span></li>
+<li><span style="color:var(--cyan);font-size:10px">SKILL</span> <b>Null Slash</b> <span class="cd">CD 3.5s</span>: <span class="det-full">Windup is <span class="hi">max(1s, base less 0.35s per rage stack)</span>, with a <span class="hi">3s base</span> at zero rage and <span class="hi">2.5s base</span> with any rage. Egregor tracks the player, moves at <span class="hi">10% speed</span> and gains <span class="hg">25% body DR</span> during windup. Release locks the target and starts a <span class="hi">180° sweep</span>. The animation lasts <span class="hi">950ms</span>, with the hit at <span class="hi">460ms</span>. The player loses no life but is <span class="hr">50% slower for 1.5s</span>. Sentinels in the sweep take true damage equal to <span class="hr">1.50 / 1.75 / 2.00 × Egregor ATK</span> for <span class="hi">one / two / at least three Sentinel targets</span>, multiplied by <span class="hi">0.80 plus 0.40 times Egregor's lost HP fraction</span>. ATK is snapshotted at spawn from a base of <span class="hi">60</span> and the wave multiplier. There is no direct per stack rage damage bonus. At <span class="hi">720ms</span>, a cosmic rift remains over the arc: the slowing zone lasts <span class="hi">1000ms</span>, covers <span class="hi">45px on each side</span>, and slows the player by <span class="hr">20%</span>. The layered violet tear remains visible for <span class="hi">1800ms</span>, gains galaxies and deeper objects with rage, then closes from both ends.</span><span class="det-short">A 180° sweep after a 1s to 3s windup. Player: 50% slow for 1.5s, no life loss. Sentinels: 1.50 / 1.75 / 2.00 ATK times the lost HP multiplier. The slow zone lasts 1s and the cosmic tear stays visible for 1.8s.</span></li>
 </ul></div>
-
 <div class="card"><h2 class="dsname" style="color:#cc55ff">DARGRUEL <span class="dsclass" style="font-size:10px;color:#cc55ff">DOMINATOR</span></h2><div class="sub">Wave 3 • HP 6,200–16,000 • Evade 10→15% • CAP 1 • Speed ~1.6 u/s • CC Immune</div>
 <div class="ab" style="height:130px"><canvas id="cvDargruel" style="width:100%;height:100%"></canvas></div>
 <ul>
@@ -1338,6 +1325,7 @@
 <div class="ul-date">2026-10-23 &middot; Dực Hỏa Tinh Quan</div>
 <p class="det-short ul-summary">Umbral Serpent joins the Vietnamese Zodiac with charged black flame, a summoning array, ten hunting serpents and a scale shield.</p>
 <ul class="det-full">
+<li><span class="ul-tag tag-buff">BUFF</span> <b>Umbral Devour contact:</b> a charged ship bullet triggers Devour on contact with a targetable enemy even through tentacles, armor, barriers or immunity. A breathing violet and lime crown signals readiness; four scaled flame fangs, a gilded seal, larger comet shards and a fading fire bloom make every release visible.</li>
 <li><span class="ul-tag tag-buff">BUFF</span> <b>Serpent Array:</b> each landed swarm bite grants all player allies +1% damage, up to 40%. After 2s without a bite, the current bonus fades evenly to zero over 1s.</li>
 <li><span class="ul-tag tag-buff">BUFF</span> <b>Serpent Frenzy:</b> each hunt has a 51% chance for the serpent to latch on and bite its prey 3 times, dashing to a new spot on its body between bites (0.16s each), before it returns to the ship.</li>
 <li><span class="ul-tag tag-buff">BUFF</span> <b>Serpent Array pull:</b> the pull is now Dominant, so CC Immune enemies are dragged into the seal too. Goliath still holds its ground.</li>
@@ -1361,6 +1349,11 @@
 <li><span class="ul-tag tag-feat">FEAT</span> <b>Virulent Venom:</b> every fifth landed serpent bite applies Venom to its victim, up to five stacks, with one Soul Reaver curse and one Soul Devourer stream. Venom ticks for 35%, 35% and 65% ATK, plus 15% ATK per additional stack. Gaining a stack renews the cycle; stacks fade over one second after it ends.</li>
 <li><span class="ul-tag tag-feat">FEAT</span> <b>Serpent interception:</b> crossing an ordinary enemy bullet erases it and grants only that serpent 5% movement speed and 5% bite damage for three seconds. Further interceptions refresh the duration without stacking.</li>
 <li><span class="ul-tag tag-feat">FEAT</span> <b>Venom radiation:</b> a living violet aura, rising motes, intermittent micro bursts and five gilded crystal segments mark infected enemies. The third tick blooms through an ivory and lime flash, twelve leaf rays, a gilded shockwave, an echo and curved debris. Soul Devourer has its own violet icon beside the shared Soul Reaver artwork, which also appears on the combat dummy.</li>
+<li><span class="ul-tag tag-feat">FEAT</span> <b>Egregor, cosmic Null Slash:</b> six rage levels open deeper violet space, from drifting nebulae and stars to spiral galaxies, a ringed planet, aurorae, gravitational arcs, a black hole and supernovae. Shaded torn walls, crossing fragments and a seam that closes from both ends give the rift depth. Lower graphics and phones retain lighter layers and distinct rage stages.</li>
+<li><span class="ul-tag tag-feat">FEAT</span> <b>Egregor, Psychic Tempest:</b> a planted tentacle tears open a violet well and sends living roots to each marked target. Giant hooked tentacles erupt from every portal, with staggered secondary limbs, shaded wet skin, large suckers and impact debris. The 100px warning boundary stays clear, blocked portals flicker without a hit flash, and portals finish their strike even when Egregor dies.</li>
+<li><span class="ul-tag tag-feat">FEAT</span> <b>Egregor, living hive:</b> breathing flesh, moving gill light, graded rage eyes, expiring eye sigils, individual tentacle hit flashes, wounded skin and severed roots reveal the state of Collective Mind. Souls follow psychic strands into the body, a quiet range ornament responds to nearby life, and rage light settles smoothly.</li>
+<li><span class="ul-tag tag-feat">FEAT</span> <b>Egregor, arrival and collapse:</b> a space tear opens at the top of the arena as the parasite crawls through. On death the tentacles retract, four eyes extinguish, the body collapses into a light well, and cosmic fragments erupt before a final tear closes. The sequence lasts 0.9 seconds and leaves gameplay running.</li>
+<li><span class="ul-tag tag-feat">FEAT</span> <b>Tempest sounds:</b> a plant thud, racing veins, a portal tearing open, a warning swell, the burst, three slams and the retreat, each timed to the cast. Every portal has its own voice, so three at once are all heard.</li>
 <li><span class="ul-tag tag-perf">PERF</span> <b>Effects:</b> fixed serpent and shard pools, cached glow sprites and reduced detail at lower graphics levels. Advanced Graphics controls lighting, particles, trails and flashes.</li>
 <li><span class="ul-tag tag-perf">PERF</span> <b>Umbral Serpent rendering:</b> reusable canvas stamps, batched paths and a fixed pool of 60 wake particles keep the added drawing work small. Medium drops secondary layers and wake particles; Low retains the main shapes; Minimal and Performance retain their core effects. Advanced Graphics switches control each added layer.</li>
 <li><span class="ul-tag tag-perf">PERF</span> <b>Chaos frame rendering:</b> reusable surfaces are baked at reduced resolution when the viewport changes. High uses at most three image draws, Medium uses two, Low uses one, and Minimal and Performance omit the border. Advanced Graphics controls smoke, movement, lighting and flashes.</li>
@@ -1371,8 +1364,18 @@
 <li><span class="ul-tag tag-fix">FIX</span> <b>Dream Realm:</b> on phones the four corners and the lavender edge band now stay down to Low instead of dropping to a faint tint, and while Shift holds Yog-Sothoth the edge band and corners are drawn twice as hard and the shield is redrawn above the domain on an indigo shade, so they no longer sink into the painting.</li>
 <li><span class="ul-tag tag-fix">FIX</span> <b>Skill A orbs:</b> now and then the orbs stopped firing at an enemy in range. When an orb that held a target was destroyed elsewhere (a defensive orb spent on a hit, a boss beam sweeping through), that enemy stayed marked as taken and no other orb would lock it again. Locks are now rebuilt from the live orbs every frame, and enemies that are already dying are no longer locked.</li>
 <li><span class="ul-tag tag-fix">FIX</span> <b>Combat dummy:</b> after it was killed once and healed back it kept its mark for death, so no skill would target it again, neither the serpents nor Skill A. It no longer carries that mark.</li>
+<li><span class="ul-tag tag-fix">FIX</span> <b>Egregor, Null Slash rift:</b> the torn space used to vanish the moment the sweep ended, and it only showed with rage stacks and never on phones. It now opens at every rage level, stays open for 1.8 seconds over the slow arc, then seals shut. Its inside is a drifting galaxy, and phones get a lighter version.</li>
+<li><span class="ul-tag tag-fix">FIX</span> <b>Egregor collapse mask:</b> the shrinking body uses the same organic clip as the living body, so its opaque texture corners cannot appear as a colored square in the game or Guide.</li>
+<li><span class="ul-tag tag-fix">FIX</span> <b>Egregor sprite validation:</b> automated magenta background checks cover every baked body, aura, iris and rift sprite. Opaque body and repeating texture sources require documented clips at every drawing path.</li>
+<li><span class="ul-tag tag-fix">FIX</span> <b>Egregor Guide statistics:</b> both languages and the canvas labels match the current tentacle HP, damage allocation, movement, healing, Tempest timing and damage, Null Slash damage and Vessel backlash rules.</li>
+<li><span class="ul-tag tag-fix">FIX</span> <b>Egregor Guide framing:</b> a taller responsive canvas and fitted world view keep the warning arc, cosmic rift, portals, giant tentacles and death sequence inside the preview.</li>
+<li><span class="ul-tag tag-fix">FIX</span> <b>Egregor Guide Tempest:</b> the widget supplies the planted tentacle, three locked portals, rage and impact data to the game renderer. Obsolete electrical bolt data is removed.</li>
+<li><span class="ul-tag tag-fix">FIX</span> <b>Egregor Guide echoes:</b> detached portal targets finish their attack after the body dies, and the death snapshot carries its rage and living tentacle mask.</li>
+<li><span class="ul-tag tag-fix">FIX</span> <b>Egregor Guide body visibility:</b> hazards draw before the body, matching the game. Null Slash no longer covers the eyes and gills with its tentacle and cosmic layers.</li>
+<li><span class="ul-tag tag-fix">FIX</span> <b>Guide, Egregor card:</b> the demo is a compact frame again like the other cards, with the notes beside it and a short header. The demo player no longer jumps between frames because the other demos on the page moved it.</li>
 <li><span class="ul-tag tag-global">GLOBAL</span> <b>Guide and Voyage Recap:</b> English and Vietnamese blessing text, separate Umbral Serpent damage labels and dedicated debug controls.</li>
 <li><span class="ul-tag tag-global">GLOBAL</span> <b>Combat dummy:</b> it now shows a DPS meter above it while you hit it, with the live damage per second, a ten second trace, the total, the peak and the time of the fight. It goes idle after three quiet seconds, starts a new fight on the next hit, and a Reset DPS button in the debug console clears it.</li>
+<li><span class="ul-tag tag-global">GLOBAL</span> <b>Debug console, Egregor:</b> a Rage Stack button adds a stack (up to five, each lasting a minute) so Null Slash can be tested at any rage level.</li>
 </ul></div>
 
 <div class="ul-entry" style="--ul-accent:#4d9b2a">
@@ -2753,16 +2756,15 @@
 <li><span style="color:var(--cyan);font-size:10px">SKILL</span> <b>Kiếm</b> — <span class="det-full"><span class="hi">25% cơ hội</span> mỗi khi Kết giới trúng đòn hoặc mỗi khi né được đòn (chắc chắn khi Kết giới vỡ); xếp hàng 1 kiếm (hồi chiêu 0.65s giữa các lần kích hoạt). <b>Tối đa 4 kiếm mỗi chu kỳ Kết giới</b> — khi kiếm thứ 4 kích hoạt, Kết giới <b>tự kích nổ ngay lập tức</b> (hồi sinh 3s, cùng buff như khi vỡ). Reset khi Kết giới hồi sinh. Ở <span class="hi">1% HP</span>, mọi kiếm đang xếp hàng bắn ra cùng lúc. <span class="hr">Bất khả phá hủy.</span> Vệ Binh: <span class="hr">27% Max HP</span> (đòn 1) / <span class="hr">23%</span> (đòn 2) / <span class="hr">21%</span> (đòn 3+). Người chơi: <span class="hr">1 mạng</span>.</span><span class="det-short">25% cơ hội mỗi khi Kết giới trúng đòn/né đòn để xếp hàng 1 kiếm bất khả phá hủy; tối đa 4 mỗi chu kỳ — kiếm thứ 4 kích hoạt tự kích nổ Kết giới (hồi sinh 3s). Vệ Binh: 27/23/21% Max HP. Người chơi: 1 mạng.</span></li>
 </ul></div>
 
-<div class="card"><h2 class="dsname" style="color:#ff8844">EGREGOR <span class="dsclass" style="font-size:10px;color:#ff8844">TINH ANH</span></h2><div class="sub">Wave 2 • HP 2,200–4,750 • DR thân 40% • Né 5→10% • CAP 1 • Tốc độ 1.5 u/s • Miễn nhiễm khống chế</div>
-<div class="ab" style="height:270px"><canvas id="cvEgregor" style="width:100%;height:100%"></canvas><button class="play-btn" id="btnPlayEgregor" onclick="playWidget('egregor', this)"><i class="ico ico-play"></i>Play</button></div>
+<div class="card"><h2 class="dsname" style="color:#ff8844">EGREGOR <span class="dsclass" style="font-size:10px;color:#ff8844">TINH ANH</span></h2><div class="sub">Wave 2 • HP 2,530–5,463 • DR thân 40% • Né 5→10% • CAP 1 • Tốc độ 1.5 u/s • Miễn nhiễm khống chế</div>
+<div class="ab" style="height:320px"><canvas id="cvEgregor" style="width:100%;height:100%"></canvas><button class="play-btn" id="btnPlayEgregor" onclick="playWidget('egregor', this)"><i class="ico ico-play"></i>Play</button></div>
 <ul>
-<li><span style="color:#a855f7;font-size:10px">PASSIVE</span> <b>Tâm Trí Tập Thể</b> — <span class="det-full"><span class="hi">10 xúc tu</span>, mỗi cái có bể HP độc lập bằng <span class="hi">80% MaxHP</span> của Egregor. Không phải sát thương chuẩn: <span class="hi">cơ hội bật lại tăng theo số xúc tu còn sống</span> (còn sống÷10 × 60%, về 0 khi chết hết); nếu không bật lại, đòn đánh bị 1 xúc tu hấp thụ ở mức ~<span class="dmg">26% sát thương gốc</span> (35% × 75% DR). <b>Khi 1 xúc tu chết:</b> thân Egregor <span class="hgr">hồi 4% MaxHP</span>, <span class="hg">MaxHP thân tăng thêm 20% HP của xúc tu đó</span>, thân nhận <span class="hg">+3% DR</span> (tích lũy, tối đa +15% khi mất 5 xúc tu). Khi mất <span class="hi">≥4 xúc tu</span>, đòn đánh thường (và mọi nguồn không xuyên, không phải chuẩn) cũng <span class="dmg">rò rỉ vào thân</span> ở mức <span class="hi">12% sát thương của chúng</span>, CAP cứng <span class="hi">12% MaxHP</span> mỗi đòn. Thân có thể bị đánh trúng qua <span class="dmg">sát thương chuẩn</span> (CAP <span class="hi">max(25%, 90−10n)%</span> MaxHP) hoặc <span class="dmg">đòn xuyên</span> (xúc tu nhận ~26% sát thương, thân nhận <span class="hi">30%</span> sát thương gốc, CAP <span class="hi">30% MaxHP</span>). Không thể cùng tồn tại với Veilshroud. Thân có <span class="hg">5% cơ hội né bất kỳ đòn nào</span>.</span><span class="det-short">10 xúc tu chặn mọi đòn đánh. Mỗi lần xúc tu chết hồi thân +4% MaxHP, tăng MaxHP thân, và cộng +3% DR (max +15%). Khi mất ≥4 xúc tu, đòn thường rò rỉ vào thân ở mức 12% sát thương, CAP 12% MaxHP.</span></li>
-<li><span style="color:#a855f7;font-size:10px">PASSIVE</span> <b>Liên Kết Tâm Trí</b> — <span class="det-full">Mỗi lần 1 kẻ địch không phải Egregor chết trong <span class="hi">bán kính 600px</span> (vòng nét đứt đỏ) cấp 1 <span class="hg">Lớp Cuồng Nộ</span> (tối đa 5, mỗi lớp 8s). Mỗi lớp: <span class="hg">+18% tốc độ di chuyển</span>, <span class="hg">+15% Max HP</span>, <span class="hg">hồi 12% MaxHP</span>, xúc tu <span class="hg">hồi 10% HP</span> và nhận <span class="hg">+5% DR</span> (tối đa +25% ở 5 lớp). Mỗi lớp mới kích hoạt ngay 1 lần thi triển Psychic Tempest.</span><span class="det-short">Mỗi lần kẻ địch gần đó chết cho 1 Lớp Cuồng Nộ (tối đa 5): tăng tốc độ và HP, hồi máu Egregor và xúc tu, và kích hoạt ngay Psychic Tempest.</span></li>
-<li><span style="color:#a855f7;font-size:10px">PASSIVE</span> <b>Họa Phúc Song Hành</b> — <span class="det-full">Khi Egregor vào giai đoạn chuẩn bị Hư Không Trảm, nó nhận ngay <span class="hg">1 Barrier gốc 250</span>. Suốt giai đoạn chuẩn bị, mỗi đòn đánh vào thân Egregor nhận được cấp thêm <span class="hg">1 Barrier bằng 75% sát thương đó</span>. Barrier này tích lũy và hấp thụ các đòn đánh vào thân tiếp theo (không phải sát thương chuẩn). <span class="dmg">Sát thương chuẩn xuyên qua Barrier.</span> <b>Ngay khi Hư Không Trảm được tung ra</b>, Egregor <span class="hr">tự gây cho mình sát thương chuẩn bằng 50% tổng Barrier tích lũy</span> từ các đòn trong giai đoạn chuẩn bị đó, bỏ qua DR và CAP mỗi đòn của chính nó, CAP cứng <span class="hr">40% MaxHP</span>. Barrier và bộ đếm tích lũy reset mỗi chu kỳ Hư Không Trảm.</span><span class="det-short">Trong lúc sạc Hư Không Trảm: mỗi đòn đánh vào thân cấp cho Egregor 1 barrier (75% sát thương đó) hấp thụ đòn tương lai. Khi tung chiêu: tự gây 50% tổng barrier tích lũy dưới dạng sát thương chuẩn, CAP 40% MaxHP.</span></li>
-<li><span style="color:var(--cyan);font-size:10px">SKILL</span> <b>Psychic Tempest</b> <span class="cd">HỒI CHIÊU 4s</span> — <span class="det-full">Chọn tối đa <span class="hi">3</span> mục tiêu ngẫu nhiên (người chơi + Vệ Binh). Sau <span class="hi">1.2s</span> báo hiệu (vòng tròn thu nhỏ + tia lửa hội tụ), sét tâm linh giáng xuống đồng loạt trong bán kính <span class="hi">100px</span>. Vị trí mục tiêu <span class="hi">bị khóa lúc tung chiêu</span> — tia sét không bám theo. Vẫn bắn dù Egregor chết giữa chừng. Người chơi: <span class="hr">tốn 1 mạng</span>. Vệ Binh: <span class="hr">20% sát thương MaxHP</span>. Hồi chiêu nhanh hơn 15% nếu có bất kỳ lớp cuồng nộ nào.</span><span class="det-short">Đánh 3 mục tiêu ngẫu nhiên bằng sét tâm linh sau 1.2s cảnh báo. Người chơi: 1 mạng. Vệ Binh: 20% MaxHP.</span></li>
-<li><span style="color:var(--cyan);font-size:10px">SKILL</span> <b>Hư Không Trảm</b> <span class="cd">HỒI CHIÊU 3.5s</span> — <span class="det-full"><span class="hi">Chuẩn bị 1–3s</span> (gốc 3s / 2.5s nếu có bất kỳ cuồng nộ nào, giảm 0.35s mỗi lớp, tối thiểu 1s). Egregor di chuyển ở <span class="hi">10% tốc độ</span> và bám theo người chơi liên tục trong lúc chuẩn bị, nhận <span class="hg">+40% DR</span>. Di chuyển trở lại bình thường sau nhát chém. <b>Họa Phúc Song Hành</b> hoạt động trong giai đoạn này (xem passive ở trên). Khi tung chiêu, vị trí mục tiêu bị khóa và 1 <span class="hi">cung 180°</span> quét về phía đó — bất kỳ Vệ Binh hay người chơi nào trong cung đều bị trúng, và <b>phản đòn Họa Phúc Song Hành kích hoạt đồng thời</b>. <b>Người chơi</b>: không mất mạng, <span class="hr">−50% tốc độ di chuyển trong 1.5s</span> (vòng chậm màu tím + hạt rơi; Yog-Sothoth có thể né). <b>Vệ Binh</b>: <span class="hr">30% MaxHP (đòn 1) / 35% (đòn 2) / 40% (đòn 3+)</span>, sát thương chuẩn, bonus cuồng nộ <span class="hg">+6% mỗi lớp</span> (tối đa <span class="hg">+30%</span>). Sau nhát chém, để lại 1 vùng <b>Dimension Break</b> (cung tím phát sáng) tồn tại trong <span class="hi">1s</span> — người chơi đi qua bị <span class="hr">chậm 20%</span>.</span><span class="det-short">Nhát chém cung 180° sau 1–3s chuẩn bị; làm chậm người chơi 50% trong 1.5s, gây 30–40% sát thương chuẩn vào Vệ Binh, để lại vùng chậm 1s. Phản đòn Họa Phúc Song Hành kích hoạt khi tung chiêu.</span></li>
+<li><span style="color:#a855f7;font-size:10px">PASSIVE</span> <b>Tâm Trí Tập Thể:</b> <span class="det-full"><span class="hi">10 xúc tu</span>, mỗi cái khởi đầu với <span class="hi">80% MaxHP thân</span>. Đòn thường có xác suất bật lại bằng <span class="hi">số xúc tu còn sống ÷ 10 × 60%</span>. Nếu không bật lại, một xúc tu sống nhận <span class="dmg">35% × 75% sát thương đầu vào</span>, rồi áp dụng giảm sát thương từ rage. Khi không có rage, lượng này là <span class="dmg">26,25% trước làm tròn</span>. Mỗi xúc tu mất giúp thân <span class="hgr">hồi 4% MaxHP</span>, rồi tăng MaxHP thân thêm <span class="hg">20% MaxHP xúc tu hiện tại</span>. Mỗi lần mất cộng <span class="hg">3% DR thân</span>, tối đa <span class="hg">15%</span>. Khi mất ít nhất <span class="hi">4 xúc tu</span>, đòn thường còn gây <span class="dmg">12% sát thương lên thân</span>, CAP <span class="hi">12% MaxHP thân</span>. Đòn xuyên sượt xúc tu rồi gây <span class="hi">30% sát thương lên thân</span>, CAP <span class="hi">30% MaxHP</span>, với thêm <span class="hi">5% cơ hội bỏ qua phần trúng thân</span>; phần sát thương này nhân <span class="hi">0,70</span> khi đang chuẩn bị Hư Không Trảm. Khi còn xúc tu, tổng sát thương xuyên lên thân còn chịu CAP <span class="hi">20% MaxHP mỗi 700ms</span>. Khi mất hết xúc tu, đòn thường gây <span class="dmg">50% sát thương</span>, CAP <span class="hi">30% MaxHP</span>. CAP đòn lên thân là <span class="hi">max(25%, 90% trừ 10% mỗi xúc tu mất)</span>, trừ phản đòn Họa Phúc Song Hành. Né tự nhiên tăng từ <span class="hi">5% đến 10%</span> trong <span class="hi">3 phút</span> đầu. Egregor không xuất hiện cùng Veilshroud.</span><span class="det-short">10 xúc tu với 80% MaxHP mỗi cái. Đòn thường có cơ hội bật lại bằng số xúc tu sống ÷ 10 × 60%; nếu không bật lại, xúc tu nhận 26,25% sát thương trước giảm từ rage và làm tròn. Mỗi xúc tu mất hồi và tăng HP thân. Mất 4 xúc tu cho 12% sát thương thường đi qua; mất hết thì thân lộ ra.</span></li>
+<li><span style="color:#a855f7;font-size:10px">PASSIVE</span> <b>Liên Kết Tâm Trí:</b> <span class="det-full">Kẻ địch chết trong <span class="hi">600px</span>, trừ Egregor và đạn địch, cấp một tầng nếu chưa chạm giới hạn <span class="hg">5 tầng</span>. Mỗi tầng tồn tại <span class="hi">8s</span>, cộng <span class="hg">18% tốc độ di chuyển</span> và <span class="hg">15% MaxHP</span>, hồi <span class="hg">12% MaxHP thân mới</span>, đồng thời hồi cho xúc tu còn sống <span class="hg">10% MaxHP hiện tại của chúng</span>. Xúc tu nhận thêm <span class="hg">5% giảm sát thương mỗi tầng</span>, thường tối đa <span class="hg">25%</span>. Cái chết ở gần cho Tempest bắt đầu ở nhịp cập nhật tiếp theo nếu chiêu đang sẵn sàng. Đốm hồn bay vào thân; vòng ornament mờ sáng lên khi có địch sống ở gần hoặc vừa nhận hồn. Có bất kỳ rage nào cũng rút ngắn thời gian báo trước và hồi chiêu Tempest <span class="hi">15%</span>, không cộng tốc độ đánh riêng.</span><span class="det-short">Địch chết gần cấp tối đa 5 tầng rage, mỗi tầng 8s: +18% di chuyển, +15% MaxHP, hồi thân 12% MaxHP mới và hồi xúc tu sống 10% MaxHP. Có rage rút ngắn báo trước và hồi Tempest 15%.</span></li>
+<li><span style="color:#a855f7;font-size:10px">PASSIVE</span> <b>Họa Phúc Song Hành:</b> <span class="det-full">Khi chuẩn bị Hư Không Trảm, Egregor nhận <span class="hg">250 Vessel</span>. Các đòn trúng thân hợp lệ cộng thêm <span class="hg">75% sát thương đã xử lý</span> vào Vessel và bộ đếm tích lũy. Vessel hấp thụ sát thương thường lên thân; <span class="dmg">sát thương chuẩn đi qua</span>. Khi kết thúc <span class="hi">950ms hoạt ảnh chém</span>, Egregor tự nhận sát thương chuẩn bằng <span class="hr">50% phần đã tích lũy</span>, bỏ qua CAP đòn thông thường và chịu CAP riêng <span class="hr">40% MaxHP</span>. Phần 250 ban đầu không được tính vào bộ đếm tích lũy. Hai bộ đếm reset sau nhát chém.</span><span class="det-short">Chuẩn bị cấp 250 Vessel. Đòn trúng thân hợp lệ cộng 75% sát thương đã xử lý. Kết thúc hoạt ảnh chém, Egregor tự nhận 50% phần tích lũy thành sát thương chuẩn, CAP 40% MaxHP.</span></li>
+<li><span style="color:var(--cyan);font-size:10px">SKILL</span> <b>Psychic Tempest</b> <span class="cd">HỒI 4s, có rage là 3,4s</span>: <span class="det-full">Khóa vị trí tối đa <span class="hi">3 mục tiêu ngẫu nhiên</span> trong người chơi và Vệ Binh. Egregor cắm xúc tu xuống nền, truyền mạch tới các cổng tím. Mỗi mục tiêu luôn có <span class="hi">vòng nguy hiểm bán kính 100px</span> rõ và chỉ báo thời gian. Báo trước kéo dài <span class="hi">1200ms</span>, hoặc <span class="hi">1020ms khi có rage</span>. Cụm xúc tu khổng lồ đâm lên đúng lúc gây sát thương, rồi rút về trong <span class="hi">700ms đánh</span>. Các xúc tu phụ chỉ là hình ảnh. Người chơi bị trúng mất <span class="hr">1 mạng</span>, sau các cơ chế phòng thủ. Mỗi Vệ Binh nhận sát thương bằng <span class="hr">1,5% × min(MaxHP Egregor, 8000)</span> trước phòng thủ, tối đa một lần mỗi lượt. Màn chắn có thể chặn mà không có chớp trúng đòn. Nếu Egregor chết lúc báo trước, các cổng đánh ngay và hoàn thành độc lập với thân.</span><span class="det-short">Tối đa 3 cổng khóa vị trí đâm lên sau 1200ms, hoặc 1020ms khi có rage. Bán kính trúng 100px. Người chơi: 1 mạng. Vệ Binh: 1,5% cơ sở MaxHP có giới hạn của Egregor. Đánh 700ms, hồi 4s hoặc 3,4s khi có rage.</span></li>
+<li><span style="color:var(--cyan);font-size:10px">SKILL</span> <b>Hư Không Trảm</b> <span class="cd">HỒI 3,5s</span>: <span class="det-full">Thời gian chuẩn bị là <span class="hi">max(1s, thời gian gốc trừ 0,35s mỗi tầng rage)</span>, với gốc <span class="hi">3s</span> khi không có rage hoặc <span class="hi">2,5s</span> khi có rage. Egregor bám theo người chơi, di chuyển ở <span class="hi">10% tốc độ</span> và nhận thêm <span class="hg">25% DR thân</span> trong lúc chuẩn bị. Khi thả chiêu, mục tiêu bị khóa và <span class="hi">cung 180°</span> quét qua. Hoạt ảnh kéo dài <span class="hi">950ms</span>, trúng ở <span class="hi">460ms</span>. Người chơi không mất mạng nhưng bị <span class="hr">chậm 50% trong 1,5s</span>. Vệ Binh trong cung nhận sát thương chuẩn bằng <span class="hr">1,50 / 1,75 / 2,00 × ATK Egregor</span> khi có <span class="hi">một / hai / ít nhất ba Vệ Binh trong vùng</span>, rồi nhân <span class="hi">0,80 cộng 0,40 lần tỷ lệ HP Egregor đã mất</span>. ATK được chốt lúc sinh từ gốc <span class="hi">60</span> và hệ số wave. Không có bonus sát thương trực tiếp theo tầng rage. Tại <span class="hi">720ms</span>, vết nứt vũ trụ lưu lại trên cung: vùng làm chậm tồn tại <span class="hi">1000ms</span>, rộng <span class="hi">45px mỗi bên</span>, làm người chơi <span class="hr">chậm 20%</span>. Vết rách tím nhiều lớp còn hiển thị <span class="hi">1800ms</span>, có thêm thiên hà và vật thể sâu theo rage, rồi khép từ hai đầu.</span><span class="det-short">Cung chém 180° sau 1s đến 3s chuẩn bị. Người chơi chậm 50% trong 1,5s, không mất mạng. Vệ Binh nhận 1,50 / 1,75 / 2,00 ATK nhân hệ số HP đã mất. Vùng chậm tồn tại 1s, vết rách vũ trụ còn hiển thị 1,8s.</span></li>
 </ul></div>
-
 <div class="card"><h2 class="dsname" style="color:#cc55ff">DARGRUEL <span class="dsclass" style="font-size:10px;color:#cc55ff">MA THẦN</span></h2><div class="sub">Wave 3 • HP 6,200–16,000 • Né 10→15% • CAP 1 • Tốc độ ~1.6 u/s • Miễn nhiễm khống chế</div>
 <div class="ab" style="height:130px"><canvas id="cvDargruel" style="width:100%;height:100%"></canvas></div>
 <ul>
@@ -4561,342 +4563,185 @@
           drawMar(performance.now());
         }
 
-        // EGREGOR — Elite
+        // The Guide uses the game renderer with a fitted world view.
         const sEg = setup('cvEgregor');
         if (sEg) {
           const { c, w, h } = sEg;
-          const egCx = w * 0.28, egCy = h * 0.5;
-          const egSc = Math.min(w, h) * 0.28 / 110;
-          const egBase = 110 * egSc;
-          const NUM_TENT_G = 10, NUM_SEG_G = 12;
-          const egTents = [];
-          for (let i = 0; i < NUM_TENT_G; i++) {
-            egTents.push({
-              baseAngle: (i / NUM_TENT_G) * Math.PI * 2,
-              length: (150 + (i % 5) * 16) * egSc,
-              phase: (i * 2.39996) % (Math.PI * 2),
-              speedMult: 0.8 + (i % 3) * 0.3,
-            });
+          const vi = document.body.classList.contains('lang-vi');
+          // Scene on the left, notes on the right (notes are skipped on a narrow card, the list below carries them).
+          const showNotes = w >= 560;
+          const sceneW = showNotes ? Math.round(w * 0.58) : w, noteX = sceneW + 10, noteW = w - noteX - 12;
+          const world = { left: 290, top: 105, width: 620, height: 545 };
+          const scale = Math.min((sceneW - 12) / world.width, (h - 34) / world.height);
+          const sceneX = (sceneW - world.width * scale) / 2, sceneY = 28;
+          const notes = vi ? [
+            ['TÂM TRÍ TẬP THỂ', ['10 xúc tu, mỗi cái 80% MaxHP', 'Bật đòn: xúc tu sống / 10 × 60%', 'Xúc tu nhận: 35% × 75%, rồi giảm theo rage', 'CAP đòn vào thân: max(25%, 90% trừ 10% mỗi xúc tu mất)']],
+            ['LIÊN KẾT TÂM TRÍ · CUỒNG NỘ', ['Mỗi tầng: +18% di chuyển, +15% MaxHP', 'Hồi thân 12% MaxHP mới, xúc tu sống hồi 10%', 'Tempest 1200ms, hồi 4000ms, có rage nhân 0.85', 'Tối đa 5 tầng, mỗi tầng 8s']]
+          ] : [
+            ['COLLECTIVE MIND', ['10 tentacles, 80% MaxHP each', 'Deflect: living tentacles / 10 × 60%', 'Tentacle hit: 35% × 75%, then rage reduction', 'Body hit cap: max(25%, 90% less 10% per lost tentacle)']],
+            ['MIND LINK · RAGE', ['Per stack: +18% movement, +15% MaxHP', 'Body heals 12% new MaxHP, tentacles heal 10%', 'Tempest 1200ms, CD 4000ms, rage multiplies by 0.85', 'Up to 5 stacks, 8s each']]
+          ];
+          function wrapText(c2, text, maxW) {
+            const words = text.split(' '), lines = []; let line = '';
+            for (const word of words) {
+              const test = line ? line + ' ' + word : word;
+              if (line && c2.measureText(test).width > maxW) { lines.push(line); line = word; } else line = test;
+            }
+            if (line) lines.push(line);
+            return lines;
           }
-          // Calm 0-4s → rage 4-9s cycle — this idle loop is left exactly as-is
-          // and keeps running by default; playWidget('egregor') below takes
-          // over the canvas for one real-effects run, then hands back here.
+          function makeEnemy() {
+            return {
+              type: 'egregor', x: 600, y: 310, size: 160, hp: 4750, maxHp: 4750,
+              _rageStacks: 0, _visualRage: 0, _rageEndTimes: [],
+              _tentacleHps: new Array(10).fill(3800), _tentaclesLost: 0,
+              _eyeBlinkTimers: new Float32Array(4), _eyeNextBlinks: new Float32Array([2000, 2800, 1500, 3500]),
+              _tempestPhase: 'ready', _tempestTargets: [], _tempestTentacle: 0,
+              _tempestOriginX: 600, _tempestOriginY: 328, _tempestPlantX: 712, _tempestPlantY: 358,
+              _nullSlashPhase: 'ready', _nullSlashWindupTimer: 0, _nullSlashWindupDur: 1000,
+              _nullSlashAngle: Math.PI / 2, _nullSlashTargetX: 600, _nullSlashTargetY: 530
+            };
+          }
           let egPlaying = false;
-          function drawEg(t) {
-            if (egPlaying) { activeAnimations.push(requestAnimationFrame(() => drawEg(performance.now()))); return; }
-            c.clearRect(0, 0, w, h);
-            c.fillStyle = 'rgba(2,2,10,0.92)'; c.fillRect(0, 0, w, h);
-            const cp = (t % 9000) / 9000;
-            const rageF = cp < 0.5 ? (cp > 0.44 ? (cp - 0.44) / 0.06 : 0) : (cp > 0.94 ? (1 - (cp - 0.94) / 0.06) : 1);
-            const isR = rageF > 0.5;
-            const tentC = isR ? '#880011' : '#004455';
-            const strkC = isR ? '#ff3300' : '#00ffaa';
-            const glwC  = isR ? '#ff3300' : '#00ffaa';
-
-            c.save(); c.translate(egCx, egCy);
-
-            // Aura
-            const aRad = (110 * 1.8 + Math.sin(t / 300) * 20) * egSc;
-            const aG = c.createRadialGradient(0, 0, 110 * 0.5 * egSc, 0, 0, aRad);
-            aG.addColorStop(0, isR ? 'rgba(255,0,0,0.4)' : 'rgba(0,100,150,0.4)');
-            aG.addColorStop(1, 'transparent');
-            c.fillStyle = aG; c.beginPath(); c.arc(0, 0, aRad, 0, Math.PI * 2); c.fill();
-
-            // Tentacles (chain sim)
-            c.lineCap = 'round';
-            for (const tent of egTents) {
-              let cx2 = Math.cos(tent.baseAngle) * 110 * 0.4 * egSc;
-              let cy2 = Math.sin(tent.baseAngle) * 110 * 0.4 * egSc;
-              let cAngle = tent.baseAngle;
-              const sLen = tent.length / NUM_SEG_G;
-              const pts = [{ x: cx2, y: cy2, a: cAngle }];
-              const ws = isR ? 150 : 350;
-              for (let i = 0; i < NUM_SEG_G; i++) {
-                const wave = Math.sin(t / ws * tent.speedMult + i * 0.25 + tent.phase);
-                cAngle += wave * 0.2; cAngle = cAngle * 0.95 + tent.baseAngle * 0.05;
-                cx2 += Math.cos(cAngle) * sLen; cy2 += Math.sin(cAngle) * sLen;
-                pts.push({ x: cx2, y: cy2, a: cAngle });
-              }
-              for (let i = 0; i < pts.length - 1; i++) {
-                const tap = 1 - i / pts.length;
-                c.beginPath(); c.moveTo(pts[i].x, pts[i].y); c.lineTo(pts[i+1].x, pts[i+1].y);
-                c.lineWidth = Math.max(0.5, 36 * egSc * tap);
-                c.strokeStyle = tentC; c.stroke();
-              }
-              // Suckers
-              for (let i = 2; i < pts.length - 2; i++) {
-                const p = pts[i]; const tap = 1 - i / pts.length;
-                const px2 = Math.cos(p.a - Math.PI / 2), py2 = Math.sin(p.a - Math.PI / 2);
-                const sr = Math.max(0.4, 7 * egSc * tap);
-                const sx = p.x + px2 * 16 * egSc * tap, sy = p.y + py2 * 16 * egSc * tap;
-                c.fillStyle = isR ? '#440000' : '#002233'; c.beginPath(); c.arc(sx, sy, sr, 0, Math.PI * 2); c.fill();
-                c.fillStyle = isR ? '#ff4444' : '#00ffaa'; c.beginPath(); c.arc(sx, sy, sr * 0.55, 0, Math.PI * 2); c.fill();
-              }
-            }
-
-            // Body blob
-            const noiseI = 8 * egSc, tdiv = isR ? 150 : 300;
-            c.beginPath();
-            for (let i = 0; i <= 60; i++) {
-              const a = (i / 60) * Math.PI * 2;
-              const r = egBase + (Math.sin(a * 4 + t / tdiv) * 0.8 + Math.cos(a * 6 - t / (tdiv * 1.2)) * 0.5 + Math.sin(a * 3 + t / (tdiv * 0.8)) * 0.4) * noiseI;
-              i === 0 ? c.moveTo(Math.cos(a) * r, Math.sin(a) * r) : c.lineTo(Math.cos(a) * r, Math.sin(a) * r);
-            }
-            c.closePath();
-            const bG = c.createRadialGradient(0, 0, 0, 0, 0, egBase * 1.2);
-            if (isR) { bG.addColorStop(0, '#550000'); bG.addColorStop(0.7, '#2b0000'); bG.addColorStop(1, '#ff0022'); }
-            else { bG.addColorStop(0, '#003344'); bG.addColorStop(0.7, '#001a2b'); bG.addColorStop(1, '#00ffcc'); }
-            c.fillStyle = bG; c.fill();
-            c.shadowColor = glwC; c.shadowBlur = isR ? 30 : 20;
-            c.strokeStyle = strkC; c.lineWidth = (isR ? 5 : 3) * egSc; c.stroke(); c.shadowBlur = 0;
-
-            // Gills (5 layers)
-            const brP = (Math.sin(t / 500) + 1) / 2;
-            for (const side of [-1, 1]) {
-              for (let i = 0; i < 5; i++) {
-                c.save();
-                c.translate(side * 12 * egSc, (10 + i * 12) * egSc);
-                c.rotate(side * (0.2 + brP * 0.3 + i * 0.1));
-                c.beginPath(); c.moveTo(0, 0);
-                c.quadraticCurveTo(side * 30 * egSc, -8 * egSc, side * 55 * egSc, 15 * egSc);
-                c.quadraticCurveTo(side * 20 * egSc, 25 * egSc, 0, 0);
-                c.fillStyle = isR ? '#660000' : '#004455'; c.fill();
-                c.shadowColor = isR ? '#ff4444' : '#00ffff'; c.shadowBlur = 6;
-                c.strokeStyle = isR ? '#ff4444' : '#00ffff'; c.lineWidth = 1.5; c.stroke();
-                c.shadowBlur = 0; c.restore();
-              }
-            }
-
-            // 4 eyes
-            const eyeD = [
-              { a: -Math.PI / 3,           d: 30, s: 20 },
-              { a: -Math.PI * 2 / 3,       d: 30, s: 20 },
-              { a: -Math.PI / 6 + 0.2,     d: 55, s: 12 },
-              { a: -Math.PI * 5 / 6 - 0.2, d: 55, s: 12 },
-            ];
-            // Fake player orbits for guide animation
-            const plxG = egCx + Math.cos(t * 0.0008) * 50, plyG = egCy + Math.sin(t * 0.0006) * 25 + 25;
-            for (const eye of eyeD) {
-              const ef = Math.sin(t / 500 + eye.a) * 4 * egSc;
-              const ex = Math.cos(eye.a) * (eye.d * egSc + ef);
-              const ey2 = Math.sin(eye.a) * (eye.d * egSc + ef);
-              const er = eye.s * egSc;
-              const ddx2 = plxG - egCx - ex, ddy2 = plyG - egCy - ey2;
-              const aTP = Math.atan2(ddy2, ddx2);
-              const maxPD = er * 0.4;
-              const pX = Math.cos(aTP) * Math.min(Math.hypot(ddx2, ddy2) * 0.05, maxPD);
-              const pY = Math.sin(aTP) * Math.min(Math.hypot(ddx2, ddy2) * 0.05, maxPD);
-              c.save(); c.translate(ex, ey2);
-              c.beginPath(); c.ellipse(0, 0, er, er, 0, 0, Math.PI * 2); c.clip();
-              c.fillStyle = isR ? '#ffcccc' : '#f0f8ff'; c.fillRect(-er, -er, er * 2, er * 2);
-              const iG2 = c.createRadialGradient(pX, pY, 0, pX, pY, er * (isR ? 0.7 : 0.6));
-              iG2.addColorStop(0, isR ? '#ffaa00' : '#00ffaa'); iG2.addColorStop(1, isR ? '#ff0000' : '#00aaff');
-              c.fillStyle = iG2; c.beginPath(); c.arc(pX, pY, er * (isR ? 0.7 : 0.6), 0, Math.PI * 2); c.fill();
-              const pd = isR ? 0.15 : 0.26;
-              c.fillStyle = '#000'; c.beginPath();
-              c.ellipse(pX, pY, er * pd, er * (isR ? 0.5 : pd * 1.5), aTP, 0, Math.PI * 2); c.fill();
-              c.fillStyle = 'rgba(255,255,255,0.8)'; c.beginPath(); c.arc(pX - er * 0.15, pY - er * 0.15, er * 0.12, 0, Math.PI * 2); c.fill();
-              c.restore();
-              c.strokeStyle = isR ? '#660000' : '#003344'; c.lineWidth = 2;
-              c.beginPath(); c.ellipse(ex, ey2, er, er, 0, 0, Math.PI * 2); c.stroke();
-            }
-
-            // State label
-            c.fillStyle = isR ? '#ff9999' : '#88ffd4';
-            c.font = `bold ${Math.ceil(7 + 6 * egSc)}px monospace`; c.textAlign = 'center'; c.textBaseline = 'alphabetic';
-            c.fillText(isR ? 'MIND LINK ACTIVE' : '— COLLECTIVE MIND —', 0, egBase * 1.6);
+          const idleEnemy = makeEnemy();
+          function renderFrame(enemy, alive, title) {
+            ctx = c; canvas = { width: 1200, height: 1040 };
+            player.x = 600; player.y = 530; // the other demos on this page move the shared player between frames
+            c.save(); c.setTransform(dpr, 0, 0, dpr, 0, 0);
+            c.clearRect(0, 0, w, h); c.fillStyle = '#050713'; c.fillRect(0, 0, w, h);
+            c.save(); c.beginPath(); c.rect(0, 0, sceneW, h); c.clip();
+            _miniStars(c, sceneW, h, performance.now(), 30);
+            c.fillStyle = '#c7b5dd'; c.font = 'bold 11px Arial, sans-serif'; c.textAlign = 'center'; c.fillText(title, sceneW / 2, 17);
+            c.save(); c.translate(sceneX - world.left * scale, sceneY - world.top * scale); c.scale(scale, scale);
+            _drawEgregorEffects();
+            _drawDimBreakZones();
+            if (alive) _drawEgregor(enemy);
+            _drawEgregorDeathBursts();
+            particles.forEach(drawParticle); explosions.forEach(drawExplosion);
             c.restore();
-
-            // Info labels (right side)
-            c.textAlign = 'left'; c.textBaseline = 'alphabetic';
-            c.fillStyle = '#ff8844'; c.font = 'bold 8px Orbitron, sans-serif';
-            c.fillText('COLLECTIVE MIND', w * 0.52, h * 0.12);
-            c.fillStyle = '#8899bb'; c.font = '6.5px Share Tech Mono, monospace';
-            c.fillText('10 tentacles · 75% MaxHP each', w * 0.52, h * 0.12 + 12);
-            c.fillText('Non-true: 60% deflect | 40%→tentacle (40% dmg)', w * 0.52, h * 0.12 + 23);
-            c.fillText('True dmg cap: max(25%, 90−10n)% per hit', w * 0.52, h * 0.12 + 34);
-            c.fillStyle = isR ? '#ff9999' : '#88ffd4'; c.font = 'bold 8px Orbitron, sans-serif';
-            c.fillText('MIND LINK' + (isR ? ' · RAGE' : ''), w * 0.52, h * 0.62);
-            c.fillStyle = '#8899bb'; c.font = '6.5px Share Tech Mono, monospace';
-            c.fillText('+12% atk spd  +10% move spd  (per stack)', w * 0.52, h * 0.62 + 12);
-            c.fillText('+10% MaxHP  Heal 10% MaxHP  (per stack)', w * 0.52, h * 0.62 + 23);
-
-            activeAnimations.push(requestAnimationFrame(() => drawEg(performance.now())));
+            c.restore();
+            if (showNotes) {
+              c.textAlign = 'left';
+              let y = 26;
+              for (const [head, lines] of notes) {
+                c.fillStyle = '#ff8844'; c.font = 'bold 10px Arial, sans-serif'; c.fillText(head, noteX, y); y += 14;
+                c.fillStyle = '#9fb0c8'; c.font = '9.5px Consolas, "Courier New", monospace';
+                for (const line of lines) for (const part of wrapText(c, line, noteW)) { c.fillText(part, noteX, y); y += 12; }
+                y += 16;
+              }
+            }
+            c.restore();
           }
-          drawEg(performance.now());
-
-          // PLAY: real _drawEgregor()/_drawEgregorEffects()/_drawEgregorDeathBursts()
-          // (js/render/enemy-egregor.js + fx.js), hand-driven through the real
-          // phase fields from js/entities.js's spawnEgregor()/updateEgregor() —
-          // appear → 5 rage stacks → Null Slash → Psychic Tempest → death + roar.
+          function idle() {
+            if (!egPlaying) {
+              enemies = [idleEnemy]; sentinels = []; player.x = 600; player.y = 530;
+              renderFrame(idleEnemy, true, vi ? 'EGREGOR: TÂM TRÍ TẬP THỂ' : 'EGREGOR: COLLECTIVE MIND');
+            }
+            activeAnimations.push(requestAnimationFrame(idle));
+          }
+          idle();
           _widgetPlayers.egregor = function () {
             const btn = document.getElementById('btnPlayEgregor');
             btn.dataset.running = 'true'; btn.dataset.paused = 'false'; delete btn.dataset._pauseAnchorAt; _setBtnIcon(btn, 'pause', 'Pause');
             egPlaying = true;
-            particles.length = 0; explosions.length = 0;
-            window._egregorDeathBursts = [];
-
-            const ex = w * 0.5, ey = h * 0.36;
-            const enemy = {
-              x: ex, y: ey, size: 160, speed: 0.8, hp: 4750, maxHp: 4750,
-              type: 'egregor',
-              _rageStacks: 0, _rageEndTimes: [],
-              _tempestPhase: 'ready', _tempestTargets: [], _tempestOriginX: ex, _tempestOriginY: ey,
-              _nullSlashPhase: 'ready', _nullSlashWindupTimer: 0, _nullSlashWindupDur: 3000,
-              _nullSlashAngle: 0, _nullSlashTargetX: 0, _nullSlashTargetY: 0,
-              _tentacleHps: Array(10).fill(3800), _tentaclesLost: 0,
-              _tentacles: null, _eyeBlinkTimers: [0, 0, 0, 0], _eyeNextBlinks: [2000, 2800, 1500, 3500],
-            };
-            enemies.length = 0;
-            enemies.push(enemy);
-            sentinels = [{ x: w * 0.72, y: h * 0.86 }];
-            player.x = w * 0.28; player.y = h * 0.86;
-            // The real Null Slash charge telegraph sizes itself off canvas.width
-            // alone (js/render/enemy-egregor.js:519, `canvas.width * 0.5`), which
-            // assumes a full desktop game canvas — in this much shorter, wider
-            // preview box that literal value balloons far past the visible area.
-            // canvas.width/height are a plain mock object here (not the real DOM
-            // element), so reporting a shorter "world width" keeps that one real
-            // formula proportionate to this canvas without touching the source;
-            // nothing else in the Egregor draw path reads canvas.width/height.
-            const egFakeCanvasW = h * 1.7;
-
+            particles.length = 0; explosions.length = 0; window._egregorDeathBursts = []; window._dimBreakZones = [];
+            _egregorTempestEchoes.fill(null); _egregorTempestScars.fill(0);
+            const enemy = makeEnemy(); enemies = [enemy];
+            player.x = 600; player.y = 530;
+            sentinels = [{ x: 415, y: 510 }, { x: 785, y: 510 }];
             if (window.AudioMgr) window.AudioMgr.startEgregorCrawl();
-
-            let nsHitDone = false, nullSlashStarted = false;
-            let tempestStruckDone = false, tempestStarted = false;
-            let deathDone = false;
-            // elapsed (and every phase timer below) is an ACCUMULATION of a
-            // per-frame delta clamped to 50ms, not a raw `now - anchor`
-            // difference. Raw differences can leap straight past several
-            // phase thresholds in one frame after any real-world stall (tab
-            // backgrounded, a slow paint, this tool's own hiccups) — that
-            // leap was firing Null Slash, Tempest, and the rage jump all in
-            // the same tick, which is exactly the "multiple moves back to
-            // back with no gap" bug. Clamping means a stall just pauses the
-            // sequence and it resumes at normal speed, never skips ahead.
-            let elapsed = 0;
-            let lastT = performance.now();
+            let elapsed = 0, lastT = performance.now();
+            let slashStarted = false, slashHit = false, zoneSpawned = false, tempestStarted = false, echoStarted = false, deathDone = false;
+            function startTempest() {
+              enemy._tempestPhase = 'telegraphing'; enemy._tempestPlantPulse = false;
+              enemy._tempestTentacle = enemy._tentacleHps.findIndex(hp => hp > 0);
+              enemy._tempestTargets = [player, ...sentinels].map(target => ({
+                tx: target.x, ty: target.y, countdown: 1200, strikeLife: 0, strikeMaxLife: 700,
+                struck: false, blocked: false, impact: false, rage: enemy._rageStacks,
+                x: enemy._tempestOriginX, y: enemy._tempestOriginY, type: 'egregor', ownerRef: enemy
+              }));
+            }
+            function strikeTempest(detached, nowT) {
+              for (let i = 0; i < enemy._tempestTargets.length; i++) {
+                const target = enemy._tempestTargets[i];
+                target.struck = true; target.strikeLife = 700; target.impact = !target.blocked;
+                if (detached) { target._echoAt = nowT; _egregorTempestEchoes[i] = target; }
+              }
+              enemy._tempestPhase = 'striking';
+              if (window.AudioMgr) window.AudioMgr.playSfx('egregor-tempest-strike');
+            }
             function tick() {
-              const nowT = performance.now();
-              const dt = Math.min(nowT - lastT, 50); lastT = nowT;
+              const nowT = performance.now(), dt = Math.min(nowT - lastT, 50); lastT = nowT;
+              player.x = 600; player.y = 530;
               if (_widgetPauseGuard(btn, nowT)) { activeAnimations.push(requestAnimationFrame(tick)); return; }
               elapsed += dt;
-              ctx = c; canvas = { width: egFakeCanvasW, height: h };
-              c.clearRect(0, 0, w, h);
-              c.fillStyle = 'rgba(2,2,10,0.92)'; c.fillRect(0, 0, w, h);
               if (window.AudioMgr) window.AudioMgr.tickEgregorCrawl();
-
-              // Phase transitions (real field names/values from js/entities.js),
-              // each with a real rest gap before the next move starts so every
-              // beat reads clearly instead of chaining straight into the next.
-              if (elapsed >= 900 && enemy._rageStacks < 5 && !deathDone) {
-                enemy._rageStacks = 5;
+              if (elapsed >= 900 && !enemy._rageStacks && !deathDone) {
+                enemy._rageStacks = 5; enemy._visualRage = 5; enemy._rageEndTimes = new Array(5).fill(nowT + 8000);
               }
-              if (elapsed >= 1700 && !nullSlashStarted) {
-                nullSlashStarted = true;
-                enemy._nullSlashPhase = 'charging';
-                enemy._nullSlashWindupTimer = 0;
-                enemy._nullSlashWindupDur = Math.max(1000, 2500 - enemy._rageStacks * 350);
+              if (elapsed >= 1700 && !slashStarted) {
+                slashStarted = true; enemy._nullSlashPhase = 'charging'; enemy._nullSlashWindupTimer = 0;
                 if (window.AudioMgr) window.AudioMgr.startNullSlashWindup();
               }
               if (enemy._nullSlashPhase === 'charging') {
-                enemy._nullSlashAngle = Math.atan2(player.y - enemy.y, player.x - enemy.x);
-                enemy._nullSlashTargetX = player.x; enemy._nullSlashTargetY = player.y;
                 enemy._nullSlashWindupTimer += dt;
                 if (enemy._nullSlashWindupTimer >= enemy._nullSlashWindupDur) {
-                  enemy._nullSlashPhase = 'striking';
-                  enemy._nullSlashStrikeTimer = 0;
-                  enemy._nullSlashOriginX = enemy.x;
-                  enemy._nullSlashOriginY = enemy.y;
+                  enemy._nullSlashPhase = 'striking'; enemy._nullSlashStrikeTimer = 0;
+                  enemy._nullSlashOriginX = enemy.x; enemy._nullSlashOriginY = enemy.y;
                   if (window.AudioMgr) { window.AudioMgr.stopNullSlashWindup(); window.AudioMgr.playSfx('egregor-nullslash-slash'); }
                 }
-              }
-              if (enemy._nullSlashPhase === 'striking') {
+              } else if (enemy._nullSlashPhase === 'striking') {
                 enemy._nullSlashStrikeTimer += dt;
                 const st = enemy._nullSlashStrikeTimer;
-                if (!nsHitDone && st >= 460) {
-                  nsHitDone = true;
-                  createParticles(enemy._nullSlashTargetX, enemy._nullSlashTargetY, 20, '#aa44ff', 3, 9);
-                  addExplosion(enemy._nullSlashTargetX, enemy._nullSlashTargetY, 90, '#6600cc');
+                if (!slashHit && st >= 460) {
+                  slashHit = true;
                   if (window.AudioMgr) window.AudioMgr.playSfx('egregor-nullslash-hit');
                 }
-                if (st >= 950) {
-                  enemy._nullSlashPhase = 'ready';
+                if (!zoneSpawned && st >= 720) {
+                  zoneSpawned = true;
+                  window._dimBreakZones.push({ cx: enemy.x, cy: enemy.y, arcR: Math.hypot(player.x - enemy.x, player.y - enemy.y) + enemy._rageStacks * 5,
+                    arcStart: enemy._nullSlashAngle - Math.PI / 2, angle: enemy._nullSlashAngle, rage: enemy._rageStacks, spawnAt: nowT, expireAt: nowT + 1000, fxEnd: nowT + 1800 });
+                  if (window.AudioMgr) window.AudioMgr.playSfx('dimension-break');
                 }
+                if (st >= 950) enemy._nullSlashPhase = 'ready';
               }
-              if (elapsed >= 4450 && !tempestStarted) {
-                tempestStarted = true;
-                enemy._tempestPhase = 'telegraphing';
-                enemy._tempestOriginX = enemy.x; enemy._tempestOriginY = enemy.y + 25 * (enemy.size / 2 / 110);
-                enemy._tempestTargets = [
-                  { tx: player.x, ty: player.y, countdown: 1200, strikeLife: 0, struck: false },
-                  { tx: sentinels[0].x, ty: sentinels[0].y, countdown: 1200, strikeLife: 0, struck: false },
-                ];
-              }
+              if (elapsed >= 5500 && !tempestStarted) { tempestStarted = true; startTempest(); }
+              if (elapsed >= 7800 && !echoStarted) { echoStarted = true; startTempest(); }
               if (enemy._tempestPhase === 'telegraphing') {
-                let allDone = true;
-                for (const tg of enemy._tempestTargets) {
-                  tg.countdown -= dt;
-                  if (tg.countdown > 0) allDone = false;
-                }
-                if (allDone && !tempestStruckDone) {
-                  tempestStruckDone = true;
-                  const ox = enemy._tempestOriginX, oy = enemy._tempestOriginY;
-                  addExplosion(ox, oy, 65, '#8800cc');
-                  createParticles(ox, oy, 22, '#cc44ff', 4, 10);
-                  if (window.AudioMgr) window.AudioMgr.playSfx('egregor-tempest-strike');
-                  for (const tg of enemy._tempestTargets) {
-                    tg.struck = true; tg.strikeLife = 700;
-                    tg._mainBolt = _egregorGenBolt(ox, oy, tg.tx, tg.ty, 16, 32);
-                    tg._outerBolt = _egregorGenBolt(ox, oy, tg.tx, tg.ty, 12, 48);
-                    tg._thinBolt = _egregorGenBolt(ox, oy, tg.tx, tg.ty, 8, 18);
-                    tg._branchA = _egregorGenBolt(ox, oy, tg.tx, tg.ty, 10, 38);
-                  }
-                  enemy._tempestPhase = 'striking';
-                }
+                for (const target of enemy._tempestTargets) target.countdown -= dt / 0.85;
+                if (enemy._tempestTargets.every(target => target.countdown <= 0)) strikeTempest(false, nowT);
+              } else if (enemy._tempestPhase === 'striking') {
+                for (const target of enemy._tempestTargets) target.strikeLife -= dt;
+                if (enemy._tempestTargets.every(target => target.strikeLife <= 0)) { enemy._tempestPhase = 'ready'; enemy._tempestTargets = []; }
               }
-              if (enemy._tempestPhase === 'striking') {
-                let anyAlive = false;
-                for (const tg of enemy._tempestTargets) {
-                  if (tg.struck && tg.strikeLife > 0) { tg.strikeLife -= dt; if (tg.strikeLife > 0) anyAlive = true; }
-                }
-                if (!anyAlive) { enemy._tempestPhase = 'ready'; enemy._tempestTargets = []; }
-              }
-              if (elapsed >= 7150 && !deathDone) {
+              if (elapsed >= 8350 && !deathDone) {
                 deathDone = true;
-                window._egregorDeathBursts.push({ x: enemy.x, y: enemy.y, size: enemy.size, spawnAt: nowT, duration: 900 });
-                createParticles(enemy.x, enemy.y, 40, '#aa44ff', 3, 11);
-                createParticles(enemy.x, enemy.y, 20, '#ffffff', 2, 7);
+                if (enemy._tempestPhase === 'telegraphing') strikeTempest(true, nowT);
+                let tentMask = 0;
+                for (let i = 0; i < 10; i++) if (enemy._tentacleHps[i] > 0) tentMask |= 1 << i;
+                window._egregorDeathBursts.push({ x: enemy.x, y: enemy.y, size: enemy.size, spawnAt: nowT, duration: 900, rage: enemy._rageStacks, tentMask });
+                enemies = [];
                 if (window.AudioMgr) { window.AudioMgr.playSfx('egregor-death-roar'); window.AudioMgr.stopEgregorCrawl(); }
-                enemies.length = 0;
               }
+              window._dimBreakZones = window._dimBreakZones.filter(zone => nowT < zone.fxEnd);
+              window._egregorDeathBursts = window._egregorDeathBursts.filter(burst => nowT - burst.spawnAt < burst.duration);
               _tickParticlesAndExplosions(dt);
-
-              if (!deathDone) {
-                if (elapsed < 400) { c.save(); c.globalAlpha = elapsed / 400; }
-                _drawEgregor(enemy);
-                _drawEgregorEffects();
-                if (elapsed < 400) c.restore();
-              }
-              _drawEgregorDeathBursts();
-              particles.forEach(drawParticle);
-              explosions.forEach(drawExplosion);
-
-              if (elapsed < 8250) {
-                activeAnimations.push(requestAnimationFrame(tick));
-              } else {
-                window._egregorDeathBursts = []; particles.length = 0; explosions.length = 0;
-                sentinels = []; enemies.length = 0;
-                egPlaying = false;
+              const title = deathDone ? (vi ? 'SỤP ĐỔ TẬP THỂ VÀ TIẾNG VỌNG TEMPEST' : 'COLLECTIVE COLLAPSE AND TEMPEST ECHOES')
+                : enemy._tempestPhase !== 'ready' ? (vi ? 'TEMPEST: CẮM XÚC TU, MỞ CỔNG, ĐÂM LÊN' : 'TEMPEST: PLANT, OPEN, ERUPT')
+                : enemy._nullSlashPhase !== 'ready' || window._dimBreakZones.length ? (vi ? 'HƯ KHÔNG TRẢM VÀ VẾT NỨT VŨ TRỤ' : 'NULL SLASH AND COSMIC RIFT')
+                : (vi ? 'EGREGOR: CUỒNG NỘ' : 'EGREGOR: RAGE');
+              renderFrame(enemy, !deathDone, title);
+              if (elapsed < 9600) activeAnimations.push(requestAnimationFrame(tick));
+              else {
+                window._egregorDeathBursts = []; window._dimBreakZones = []; _egregorTempestEchoes.fill(null); _egregorTempestScars.fill(0);
+                particles.length = 0; explosions.length = 0; enemies = []; sentinels = []; egPlaying = false;
                 btn.dataset.running = 'false'; btn.dataset.paused = 'false'; delete btn.dataset._pauseAnchorAt; _setBtnIcon(btn, 'play', 'Play');
-                drawEg(performance.now());
+                renderFrame(idleEnemy, true, vi ? 'EGREGOR: TÂM TRÍ TẬP THỂ' : 'EGREGOR: COLLECTIVE MIND');
               }
             }
             tick();
           };
         }
-
         // Dargruel
         const sd = setup('cvDargruel');
         if (sd) {

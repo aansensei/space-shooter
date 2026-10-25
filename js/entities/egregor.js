@@ -4,6 +4,24 @@
 // load after entities.js and before main.js.
 
 // EGREGOR, Plump Parasite (Elite)
+const _egregorTempestEchoes = new Array(24).fill(null);
+let _egregorTempestEchoCursor = 0;
+const _egregorTempestScars = new Float32Array(24 * 3);
+let _egregorTempestScarCursor = 0;
+
+// A fixed cosmetic draw count keeps target randomness stable across casts.
+function _egregorTempestVisualSeed(t) {
+    let phase = 0;
+    for (let i = 0; i < 84; i++) phase += Math.random();
+    t._vfxPhase = phase;
+}
+
+function _egregorTempestScar(t) {
+    const i = _egregorTempestScarCursor * 3;
+    _egregorTempestScars[i] = t.tx; _egregorTempestScars[i + 1] = t.ty; _egregorTempestScars[i + 2] = performance.now() + 700;
+    _egregorTempestScarCursor = (_egregorTempestScarCursor + 1) % 24;
+}
+
 function spawnEgregor() {
     const size = 160;
     const hpFromTime = Math.floor(gameElapsedTime / 10000);
@@ -42,9 +60,15 @@ function spawnEgregor() {
         _tentacleHps: null,   // initialized in updateEgregor on first tick
         _tentaclesLost: 0,
         // Visual
-        _tentacles: null,
-        _eyeBlinkTimers: [0, 0, 0, 0],
-        _eyeNextBlinks: [2000, 2800, 1500, 3500],
+        _tentHitAt: new Float32Array(10),
+        _tentLostAt: new Float32Array(10),
+        _mindLinkFx: new Float32Array(8 * 3),
+        _mindLinkCursor: 0,
+        _visualRage: 0,
+        _egSpawnAt: performance.now(),
+        _spawnTime: performance.now() - 600,
+        _eyeBlinkTimers: new Float32Array(4),
+        _eyeNextBlinks: new Float32Array([2000, 2800, 1500, 3500]),
     });
     _enemySnapshotAtk(enemies[enemies.length - 1], 'egregor');
 }
@@ -52,6 +76,8 @@ function spawnEgregor() {
 function updateEgregor(enemy, deltaTime) {
     const now = performance.now();
     const dt = deltaTime / 16.67;
+    enemy._visualRage += ((enemy._rageStacks || 0) - enemy._visualRage) * Math.min(1, deltaTime / 350);
+    if (Math.abs(enemy._visualRage - (enemy._rageStacks || 0)) < 0.01) enemy._visualRage = enemy._rageStacks || 0;
 
     // Signature-monster crawl texture: two alternating one-shots cross-started
     // by AudioMgr so the loop never has a silent gap. startEgregorCrawl is a
@@ -101,6 +127,22 @@ function updateEgregor(enemy, deltaTime) {
     }
 }
 
+function _egregorMindLinkVisual(enemy, x, y, now) {
+    if (!enemy._mindLinkFx) return;
+    const i = enemy._mindLinkCursor * 3;
+    enemy._mindLinkFx[i] = x; enemy._mindLinkFx[i + 1] = y; enemy._mindLinkFx[i + 2] = now;
+    enemy._mindLinkCursor = (enemy._mindLinkCursor + 1) % 8;
+    enemy._ragePulseAt = now;
+}
+
+// Tempest sound cues fire from the cast timers so they stay in step with the strike. The -b and -c keys give each target its own voice.
+const _TEMPEST_CUE_SUFFIX = ['', '-b', '-c'];
+function _egregorTempestCue(name, enemy, t) {
+    const a = window.AudioMgr; if (!a) return;
+    const key = 'egregor-tempest-' + name + _TEMPEST_CUE_SUFFIX[Math.max(0, enemy._tempestTargets.indexOf(t)) % 3];
+    if (t.target === player) a.playSfx(key); else a.playSfxAt(key, t.tx, t.ty);
+}
+
 function _updateEgregorTempest(enemy, deltaTime, now, cooldown) {
     if (enemy._tempestPhase === 'ready') {
         if (now >= (enemy._tempestCooldownEnd || 0)) {
@@ -112,15 +154,22 @@ function _updateEgregorTempest(enemy, deltaTime, now, cooldown) {
                     target: pool[i],
                     tx: pool[i].x, ty: pool[i].y,
                     countdown: 1200, strikeLife: 0, strikeMaxLife: 700,
-                    struck: false, _mainBolt: null, _outerBolt: null, _thinBolt: null,
+                    struck: false, blocked: false, impact: false, rage: enemy._rageStacks || 0,
                 });
             }
             if (enemy._tempestTargets.length > 0) {
                 enemy._tempestPhase = 'telegraphing';
+                enemy._tempestPlantPulse = false;
                 // Origin between gills (L2D gill center at y+25*sc from body center)
                 const _gillSc = (enemy.size / 2) / 110;
                 enemy._tempestOriginX = enemy.x;
                 enemy._tempestOriginY = enemy.y + 25 * _gillSc;
+                enemy._tempestTentacle = enemy._tentacleHps ? enemy._tentacleHps.findIndex(hp => hp > 0) : 0;
+                const plantAngle = enemy._tempestTentacle / 10 * Math.PI * 2;
+                enemy._tempestPlantX = enemy.x + Math.cos(plantAngle) * enemy.size * 0.7;
+                enemy._tempestPlantY = enemy.y + Math.sin(plantAngle) * enemy.size * 0.7 + enemy.size * 0.3;
+                enemy._tempestVeinsCue = false;
+                if (window.AudioMgr) window.AudioMgr.playSfxAt('egregor-tempest-plant', enemy._tempestPlantX, enemy._tempestPlantY);
             }
         }
         return;
@@ -134,33 +183,43 @@ function _updateEgregorTempest(enemy, deltaTime, now, cooldown) {
             t.countdown -= deltaTime * _tempestTickMult;
             // No tracking: tx/ty are locked at targeting moment
             if (t.countdown > 0) allDone = false;
+            if (t.countdown > 0) {
+                const elapsed = 1200 - t.countdown;
+                if (!enemy._tempestVeinsCue && elapsed >= 80 && window.AudioMgr) {
+                    enemy._tempestVeinsCue = true;
+                    window.AudioMgr.playSfxAt('egregor-tempest-veins', enemy._tempestPlantX, enemy._tempestPlantY);
+                }
+                if (!t._cuePortal && elapsed >= 250 + enemy._tempestTargets.indexOf(t) * 120) { t._cuePortal = true; _egregorTempestCue('portal', enemy, t); }
+                if (!t._cueWarn && t.countdown <= 300) { t._cueWarn = true; _egregorTempestCue('warn', enemy, t); }
+            }
         }
         if (allDone) {
             const ox = enemy._tempestOriginX, oy = enemy._tempestOriginY;
-            // Muzzle burst from gill area
-            addExplosion(ox, oy, 65, '#8800cc');
-            createParticles(ox, oy, 22, '#cc44ff', 4, 10);
-            if (window.AudioMgr) window.AudioMgr.playSfxAt('egregor-tempest-strike', ox, oy);
+            // The planted well releases the pressure pulse.
+            addExplosion(enemy._tempestPlantX ?? ox, enemy._tempestPlantY ?? oy, 65, '#8800cc');
+            createParticles(enemy._tempestPlantX ?? ox, enemy._tempestPlantY ?? oy, 22, '#cc44ff', 4, 10);
             let _playerHit = false;
             const _hitSentinels = new Set();
             for (const t of enemy._tempestTargets) {
                 t.struck = true; t.strikeLife = 700;
                 t.x = ox; t.y = oy; t.type = 'egregor'; t.ownerRef = enemy;
-                t._mainBolt  = _egregorGenBolt(ox, oy, t.tx, t.ty, 16, 32);
-                t._outerBolt = _egregorGenBolt(ox, oy, t.tx, t.ty, 12, 48);
-                t._thinBolt  = _egregorGenBolt(ox, oy, t.tx, t.ty,  8, 18);
-                t._branchA   = _egregorGenBolt(ox, oy, t.tx, t.ty, 10, 38);
-                if (_capShields(ox, oy, t.tx, t.ty, 'laser', enemy)) continue;
+                _egregorTempestScar(t);
+                _egregorTempestVisualSeed(t);
+                t.blocked = _capShields(ox, oy, t.tx, t.ty, 'laser', enemy);
+                _egregorTempestCue(t.blocked ? 'blocked' : 'burst', enemy, t);
+                if (t.blocked) continue;
                 // Damage (radius 100px), player and each sentinel hit at most once per cast
                 if (!_playerHit && Math.hypot(player.x - t.tx, player.y - t.ty) < 100 && !_capBlocksSource(t, player) && !_capShields(t.tx, t.ty, player.x, player.y, 'area', enemy)) {
                     if (!_yuushaPierceRedirect(0.015 * _enemyHs(enemy), false, t)) playerTakesHit(enemy);
                     _playerHit = true;
+                    t.impact = true;
                 }
                 for (const s of sentinels) {
                     if (!_hitSentinels.has(s) && Math.hypot(s.x - t.tx, s.y - t.ty) < 100 && !_capBlocksSource(t, s) && !_capShields(t.tx, t.ty, s.x, s.y, 'area', enemy)) {
                         // Own-Max-HP category (docs/combat-scaling-rebalance.md Part 2)
                         dealDamage(s, { damage: 0.015 * _enemyHs(enemy), isTrueDamage: false, _noHitSfx: true, _attackerType: 'egregor', _capSource: enemy });
                         _hitSentinels.add(s);
+                        t.impact = true;
                     }
                 }
             }
@@ -172,7 +231,12 @@ function _updateEgregorTempest(enemy, deltaTime, now, cooldown) {
     if (enemy._tempestPhase === 'striking') {
         let anyAlive = false;
         for (const t of enemy._tempestTargets) {
-            if (t.struck && t.strikeLife > 0) { t.strikeLife -= deltaTime; if (t.strikeLife > 0) anyAlive = true; }
+            if (t.struck && t.strikeLife > 0) {
+                t.strikeLife -= deltaTime; if (t.strikeLife > 0) anyAlive = true;
+                const since = 700 - t.strikeLife, slams = t._cueSlams || 0;
+                if (!t.blocked && slams < 3 && since >= 60 + slams * 70) { t._cueSlams = slams + 1; _egregorTempestCue('slam', enemy, t); }
+                if (!t._cueRetreat && since >= 450) { t._cueRetreat = true; _egregorTempestCue('retreat', enemy, t); }
+            }
         }
         if (!anyAlive) {
             enemy._tempestPhase = 'ready';
@@ -182,43 +246,35 @@ function _updateEgregorTempest(enemy, deltaTime, now, cooldown) {
     }
 }
 
-function _egregorGenBolt(x1, y1, x2, y2, detail, jitter) {
-    const pts = [{ x: x1, y: y1 }];
-    const dx = x2 - x1, dy = y2 - y1;
-    for (let i = 1; i < detail; i++) {
-        const t = i / detail;
-        const s = Math.sin(t * Math.PI);
-        pts.push({ x: x1 + dx * t + (Math.random() - 0.5) * jitter * 2 * s, y: y1 + dy * t + (Math.random() - 0.5) * jitter * 2 * s });
-    }
-    pts.push({ x: x2, y: y2 });
-    return pts;
-}
-
 // Fire pending Tempest immediately (called when Egregor dies mid-telegraph)
 function _forceFireEgregorTempest(enemy) {
     if (enemy._tempestPhase !== 'telegraphing' || !enemy._tempestTargets.length) return;
     const ox = enemy._tempestOriginX, oy = enemy._tempestOriginY;
-    addExplosion(ox, oy, 65, '#8800cc');
-    createParticles(ox, oy, 22, '#cc44ff', 4, 10);
-    if (window.AudioMgr) window.AudioMgr.playSfxAt('egregor-tempest-strike', ox, oy);
+    addExplosion(enemy._tempestPlantX ?? ox, enemy._tempestPlantY ?? oy, 65, '#8800cc');
+    createParticles(enemy._tempestPlantX ?? ox, enemy._tempestPlantY ?? oy, 22, '#cc44ff', 4, 10);
     let _playerHit = false;
     const _hitSentinels = new Set();
     for (const t of enemy._tempestTargets) {
         t.struck = true; t.strikeLife = 700;
         t.x = ox; t.y = oy; t.type = 'egregor'; t.ownerRef = enemy;
-        t._mainBolt  = _egregorGenBolt(ox, oy, t.tx, t.ty, 16, 32);
-        t._outerBolt = _egregorGenBolt(ox, oy, t.tx, t.ty, 12, 48);
-        t._thinBolt  = _egregorGenBolt(ox, oy, t.tx, t.ty,  8, 18);
-        t._branchA   = _egregorGenBolt(ox, oy, t.tx, t.ty, 10, 38);
-        if (_capShields(ox, oy, t.tx, t.ty, 'laser', enemy)) continue;
+        _egregorTempestScar(t);
+        _egregorTempestVisualSeed(t);
+        t._echoAt = performance.now();
+        _egregorTempestEchoes[_egregorTempestEchoCursor] = t;
+        _egregorTempestEchoCursor = (_egregorTempestEchoCursor + 1) % _egregorTempestEchoes.length;
+        t.blocked = _capShields(ox, oy, t.tx, t.ty, 'laser', enemy);
+                _egregorTempestCue(t.blocked ? 'blocked' : 'burst', enemy, t);
+        if (t.blocked) continue;
         if (!_playerHit && Math.hypot(player.x - t.tx, player.y - t.ty) < 100 && !_capBlocksSource(t, player) && !_capShields(t.tx, t.ty, player.x, player.y, 'area', enemy)) {
             if (!_yuushaPierceRedirect(0.015 * _enemyHs(enemy), false, t)) playerTakesHit(enemy);
             _playerHit = true;
+            t.impact = true;
         }
         for (const s of sentinels) {
             if (!_hitSentinels.has(s) && Math.hypot(s.x - t.tx, s.y - t.ty) < 100 && !_capBlocksSource(t, s) && !_capShields(t.tx, t.ty, s.x, s.y, 'area', enemy)) {
                 dealDamage(s, { damage: 0.015 * _enemyHs(enemy), isTrueDamage: false, _noHitSfx: true, _attackerType: 'egregor', _capSource: enemy });
                 _hitSentinels.add(s);
+                t.impact = true;
             }
         }
     }
@@ -339,7 +395,9 @@ function _updateEgregorNullSlash(enemy, deltaTime, now) {
                 angle: enemy._nullSlashAngle,
                 arcStart: enemy._nullSlashAngle - Math.PI / 2,
                 spawnAt: now,
-                expireAt: now + 1000
+                expireAt: now + 1000,
+                rage: enemy._rageStacks || 0,
+                fxEnd: now + 1800
             });
             if (window.AudioMgr) window.AudioMgr.playSfxAt('dimension-break', ox, oy);
         }

@@ -1113,6 +1113,15 @@
         _makePool('egregor-nullslash-hit',   'assets/audio/sfx/egregor-nullslash-hit.mp3',   2);
         _makePool('egregor-death-roar',      'assets/audio/sfx/egregor-death-roar.mp3',      1, true); // bypass duck so it stays clear
         _makePool('egregor-tempest-strike',  'assets/audio/sfx/egregor-tempest-strike.mp3',  2);
+        // Tempest cues. The -b and -c keys play the same file so three portals firing in one frame are not dropped by the per-key repeat guard.
+        const _tempestGain = { plant: 1.0, veins: 0.9, portal: 1.0, warn: 1.0, burst: 1.2, slam: 0.9, retreat: 0.9, blocked: 1.0 };
+        for (const cue of Object.keys(_tempestGain)) {
+            const file = cue === 'blocked' ? 'egregor-nullslash-hit' : 'egregor-tempest-' + cue;
+            for (const suffix of ['', '-b', '-c']) {
+                SFX_BASE['egregor-tempest-' + cue + suffix] = _tempestGain[cue];
+                _makePool('egregor-tempest-' + cue + suffix, 'assets/audio/sfx/' + file + '.mp3', 2);
+            }
+        }
         _makePool('chain-lightning',         'assets/audio/sfx/chain-lightning.mp3',         4);
         _makePool('photokrystos-summon-converge', 'assets/audio/sfx/photokrystos-summon-converge.mp3', 1);
         _makePool('photokrystos-summon-flash',    'assets/audio/sfx/photokrystos-summon-flash.mp3',    1);

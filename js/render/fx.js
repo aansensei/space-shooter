@@ -514,76 +514,62 @@ function _drawDimensionalRiftsCtx() {
     ctx.restore();
 }
 
-// Egregor death: "Collective Collapse" — a dedicated, larger burst distinct
-// from the generic enemy explosion, themed to match Null Slash's violet
-// palette. A shrinking dark-void core (the hive-mind collapsing inward)
-// followed by a large double shockwave ring and jagged "tentacle snap"
-// crack lines radiating outward.
+// Collective Collapse keeps its original lifetime while the body dissolves in stages.
 function _drawEgregorDeathBursts() {
-    if (!window._egregorDeathBursts || window._egregorDeathBursts.length === 0) return;
-    const now = performance.now();
+    if (!window._egregorDeathBursts || !window._egregorDeathBursts.length) return;
+    if (!_riftArt) _riftArt = _bakeRiftArt();
+    if (!_egBodyArt) _egBodyArt = _bakeEgregorBodyArt();
+    const now = performance.now(), fo = window._fxOpts, glow = !fo || fo.glow !== false, parts = !fo || fo.particles !== false;
+    const low = _mobPerf || _gfxLevel >= 2;
     for (const b of window._egregorDeathBursts) {
         const t = (now - b.spawnAt) / b.duration;
-        if (t >= 1) continue;
-        ctx.save();
-        ctx.translate(b.x, b.y);
-
-        if (t < 0.22) {
-            // Implosion: the body collapses into a dark void core
-            const it = t / 0.22;
-            const r = Math.max(1, b.size * (0.9 - it * 0.7));
-            const vg = ctx.createRadialGradient(0, 0, 0, 0, 0, r);
-            vg.addColorStop(0, 'rgba(10,0,20,0.9)');
-            vg.addColorStop(0.6, 'rgba(90,0,160,0.7)');
-            vg.addColorStop(1, 'rgba(0,0,0,0)');
-            ctx.fillStyle = vg;
-            ctx.beginPath(); ctx.arc(0, 0, r, 0, Math.PI * 2); ctx.fill();
-        } else {
-            // Eruption: white-hot violet core expanding + twin shockwave rings
-            const et = (t - 0.22) / 0.78;
-            const fade = 1 - et;
-            const r = b.size * 0.3 + et * b.size * 2.2;
-
-            const cg = ctx.createRadialGradient(0, 0, 0, 0, 0, Math.max(1, r));
-            cg.addColorStop(0, `rgba(255,255,255,${fade * 0.9})`);
-            cg.addColorStop(0.25, `rgba(190,80,255,${fade * 0.75})`);
-            cg.addColorStop(0.6, `rgba(90,0,160,${fade * 0.45})`);
-            cg.addColorStop(1, 'rgba(0,0,0,0)');
-            ctx.fillStyle = cg;
-            ctx.beginPath(); ctx.arc(0, 0, Math.max(1, r), 0, Math.PI * 2); ctx.fill();
-
-            ctx.strokeStyle = `rgba(220,180,255,${fade * 0.85})`;
-            ctx.lineWidth = 5;
-            if (!_mobPerf) { ctx.shadowColor = '#aa44ff'; ctx.shadowBlur = 20; }
-            ctx.beginPath(); ctx.arc(0, 0, r, 0, Math.PI * 2); ctx.stroke();
-
-            const r2 = Math.max(0, r - b.size * 0.5);
-            ctx.strokeStyle = `rgba(140,50,220,${fade * 0.5})`;
-            ctx.lineWidth = 3;
-            ctx.shadowBlur = 0;
-            ctx.beginPath(); ctx.arc(0, 0, r2, 0, Math.PI * 2); ctx.stroke();
-
-            // Jagged tentacle-snap cracks
-            if (_gfxLevel < 2) {
-                const crackCount = _gfxLevel < 1 ? 10 : 6;
-                ctx.strokeStyle = `rgba(230,200,255,${fade * 0.6})`;
-                ctx.lineWidth = 2;
-                for (let i = 0; i < crackCount; i++) {
-                    const a = (i / crackCount) * Math.PI * 2 + i * 0.7;
-                    const midA = a + Math.sin(i * 5.7) * 0.15;
-                    ctx.beginPath();
-                    ctx.moveTo(Math.cos(a) * r * 0.4, Math.sin(a) * r * 0.4);
-                    ctx.lineTo(Math.cos(midA) * r * 0.7, Math.sin(midA) * r * 0.7);
-                    ctx.lineTo(Math.cos(a) * r, Math.sin(a) * r);
-                    ctx.stroke();
-                }
+        if (t < 0 || t >= 1) continue;
+        ctx.save(); ctx.translate(b.x, b.y); ctx.shadowBlur = 0;
+        if (t < 0.44) {
+            const fold = Math.max(0.015, 1 - Math.pow(t / 0.44, 1.6)), base = b.size * 0.5 * fold;
+            ctx.lineCap = 'round';
+            for (let i = 0; i < 10; i++) {
+                if (b.tentMask !== undefined && !(b.tentMask & (1 << i))) continue;
+                const a = i / 10 * Math.PI * 2 + Math.sin(t * 70 + i) * 0.09;
+                const rr = b.size * (0.85 + i % 3 * 0.12) * fold;
+                ctx.strokeStyle = '#39263f'; ctx.lineWidth = 16 * fold + 1;
+                ctx.beginPath(); ctx.moveTo(Math.cos(a) * base * 0.3, Math.sin(a) * base * 0.3);
+                ctx.quadraticCurveTo(Math.cos(a + 0.5) * rr * 0.7, Math.sin(a + 0.5) * rr * 0.7, Math.cos(a) * rr, Math.sin(a) * rr); ctx.stroke();
+                ctx.strokeStyle = '#9a6f9e'; ctx.lineWidth = 2 * fold; ctx.stroke();
             }
+            _drawEgregorBodySurface(Math.min(5, b.rage || 0), base, now, low ? 36 : 80);
+            for (let i = 0; i < 4; i++) {
+                const fade = Math.max(0, 1 - (t - i * 0.055) / 0.08);
+                if (fade <= 0) continue;
+                ctx.globalAlpha = fade; ctx.fillStyle = '#e3e2df';
+                ctx.beginPath(); ctx.ellipse((i & 1 ? -1 : 1) * base * (i < 2 ? 0.18 : 0.5), -base * (i < 2 ? 0.28 : 0.18), base * (i < 2 ? 0.16 : 0.1), base * 0.12, 0, 0, Math.PI * 2); ctx.fill();
+            }
+            ctx.globalAlpha = 1;
+            if (glow) { ctx.globalCompositeOperation = 'lighter'; ctx.globalAlpha = 0.5; const size = 35 + (1 - fold) * 75; ctx.drawImage(_riftArt.glow, -size / 2, -size / 2, size, size); ctx.globalCompositeOperation = 'source-over'; }
+            if (parts) {
+                ctx.globalAlpha = 0.65; ctx.strokeStyle = '#c7b1e0'; ctx.lineWidth = 1; ctx.beginPath();
+                for (let i = 0; i < (low ? 10 : 30); i++) { const a = i * 2.39996, rr = b.size * (0.4 + (1 - t / 0.44) * (0.2 + i % 5 * 0.15)); ctx.moveTo(Math.cos(a) * rr, Math.sin(a) * rr); ctx.lineTo(Math.cos(a) * rr * 0.83, Math.sin(a) * rr * 0.83); } ctx.stroke();
+            }
+        } else {
+            const p = (t - 0.44) / 0.56, fade = 1 - p, radius = b.size * (0.15 + Math.sqrt(p) * 2.1);
+            if (glow) {
+                ctx.globalCompositeOperation = 'lighter'; ctx.globalAlpha = Math.max(0, 1 - p * 3.5) * 0.8;
+                const size = b.size * (0.8 + p); ctx.drawImage(_riftArt.nova, -size / 2, -size / 2, size, size);
+            }
+            ctx.globalAlpha = fade * 0.8; ctx.strokeStyle = '#d7bbeb'; ctx.lineWidth = 3;
+            ctx.beginPath(); ctx.arc(0, 0, radius, 0, Math.PI * 2); ctx.stroke();
+            ctx.globalAlpha = fade * 0.4; ctx.strokeStyle = '#8e63b7'; ctx.lineWidth = 6;
+            ctx.beginPath(); ctx.arc(0, 0, radius * 0.83, 0, Math.PI * 2); ctx.stroke();
+            if (parts) {
+                ctx.globalAlpha = fade * 0.9; ctx.fillStyle = '#cfb5e7'; ctx.beginPath();
+                for (let i = 0; i < (low ? 14 : 48); i++) { const a = i * 2.39996 + p * 0.2, rr = radius * (0.35 + i % 7 * 0.085), x = Math.cos(a) * rr, y = Math.sin(a) * rr, s = (1.5 + i % 4) * fade; ctx.moveTo(x, y - s * 2); ctx.lineTo(x + s, y + s); ctx.lineTo(x - s, y + s); ctx.closePath(); } ctx.fill();
+            }
+            ctx.globalCompositeOperation = 'source-over';
+            if (t > 0.72) _drawEgregorPortal(0, 0, Math.max(0.1, (1 - t) / 0.28 * 25), now, (1 - t) / 0.28, false);
         }
-
         ctx.restore();
     }
 }
-
 // Yog-Sothoth Accurate Parry burst: "Temporal Fracture," a dedicated
 // gold/blue ring-and-spoke flash distinct from the flat gold explosion
 // shared with Sentinel Parry, themed to match the domain's own Van Gogh
@@ -876,10 +862,22 @@ function _drawDimBreakZones() {
     if (!window._dimBreakZones || window._dimBreakZones.length === 0) return;
     const now = performance.now();
     for (const dbz of window._dimBreakZones) {
+        if (dbz.fxEnd) {
+            // Egregor's torn space: open and bright for the first part, then it seals shut
+            const age = now - dbz.spawnAt, total = dbz.fxEnd - dbz.spawnAt;
+            if (age < 0 || age >= total) continue;
+            const p = age / total;
+            ctx.save();
+            if (typeof _capClipEnemyDraw === 'function') _capClipEnemyDraw(ctx, dbz.cx, dbz.cy, dbz);
+            _drawEgregorRift(dbz.cx, dbz.cy, dbz.arcR, dbz.arcStart, Math.PI, dbz.rage || 0, 1,
+                p < 0.62 ? 1 : Math.max(0, 1 - Math.pow((p - 0.62) / 0.38, 1.4)), now, Math.max(0, 1 - age / 170));
+            ctx.restore();
+            continue;
+        }
         const dbAlpha = Math.max(0, (dbz.expireAt - now) / 1000);
         if (dbAlpha <= 0) continue;
         ctx.save();
-        _capClipEnemyDraw(ctx, dbz.cx, dbz.cy, dbz);
+        if (typeof _capClipEnemyDraw === 'function') _capClipEnemyDraw(ctx, dbz.cx, dbz.cy, dbz);
         ctx.lineCap = 'round';
         const dbEnd = dbz.arcStart + Math.PI;
 

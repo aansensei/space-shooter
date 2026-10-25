@@ -804,8 +804,9 @@ function update(rawDeltaTime) {
 
     let _dimBreakMult = 1.0;
     if (window._dimBreakZones && window._dimBreakZones.length) {
-        window._dimBreakZones = window._dimBreakZones.filter(dbz => currentTime < dbz.expireAt);
+        window._dimBreakZones = window._dimBreakZones.filter(dbz => currentTime < (dbz.fxEnd || dbz.expireAt));
         for (const dbz of window._dimBreakZones) {
+            if (currentTime >= dbz.expireAt) continue;
             const _dbDx = player.x - dbz.cx, _dbDy = player.y - dbz.cy;
             const _dbDist = Math.hypot(_dbDx, _dbDy);
             if (Math.abs(_dbDist - dbz.arcR) < 45) {
@@ -1467,6 +1468,7 @@ function update(rawDeltaTime) {
                         if (_eg._rageEndTimes.length < 5) {
                             _eg._rageEndTimes.push(_dNow + 8000);
                             _eg._rageStacks = _eg._rageEndTimes.length;
+                            _egregorMindLinkVisual(_eg, enemy.x, enemy.y, _dNow);
                             // +15% MaxHP and heal 12% of new Max HP (docs/combat-scaling-rebalance.md Part 3)
                             _eg.maxHp = Math.ceil(_eg.maxHp * 1.15);
                             _eg.hp = Math.min(_eg.maxHp, _eg.hp + Math.ceil(_eg.maxHp * 0.12));
@@ -2119,6 +2121,7 @@ function update(rawDeltaTime) {
                         if (_eg._rageEndTimes.length < 5) {
                             _eg._rageEndTimes.push(_dNow + 8000);
                             _eg._rageStacks = _eg._rageEndTimes.length;
+                            _egregorMindLinkVisual(_eg, enemy.x, enemy.y, _dNow);
                             // +15% MaxHP and heal 12% of new Max HP (docs/combat-scaling-rebalance.md Part 3)
                             _eg.maxHp = Math.ceil(_eg.maxHp * 1.15);
                             _eg.hp = Math.min(_eg.maxHp, _eg.hp + Math.ceil(_eg.maxHp * 0.12));
@@ -3672,6 +3675,8 @@ function startGame() {
     window._levDeathLaserSoundPending = false;
     window._levPersBeams = [];
     window._dimBreakZones = [];
+    _egregorTempestEchoes.fill(null);
+    _egregorTempestScars.fill(0);
     window._egregorDeathBursts = [];
     window._levDeathBursts = [];
     window._levShieldBreaks = [];

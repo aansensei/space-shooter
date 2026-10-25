@@ -1774,6 +1774,12 @@ window.debugSetYuukiBonus = function () {
         if (!e) return;
         if (which === 'ns') e._nullSlashCooldownEnd = 0;
         if (which === 'tempest') e._tempestCooldownEnd = 0;
+        if (which === 'rage') {
+            // a debug stack lasts 60s so Null Slash can be tested at each rage level, and the five stack cap still applies
+            if (!e._rageEndTimes) e._rageEndTimes = [];
+            if (e._rageEndTimes.length < 5) e._rageEndTimes.push(performance.now() + 60000);
+            e._rageStacks = e._rageEndTimes.length;
+        }
         if (which === 'sword') { e.lastSwordTriggerTime = 0; if (typeof _tryTriggerMarchosiasCounter === 'function') _tryTriggerMarchosiasCounter(e); }
         if (which === 'haki' && typeof spawnBossShockwave === 'function') spawnBossShockwave(e.x, e.y, 'dargruel', 0.0095 * _enemyHs(e));
         if (which === 'chains') e.chainTimer = 0;
@@ -1836,7 +1842,7 @@ window.debugSetYuukiBonus = function () {
 
     function enemySkillButtons(e) {
         const i = enemies.indexOf(e);
-        if (e.type === 'egregor') return `<button class="dbg-btn" onclick="debugForceEnemySkill(${i},'ns')">Null Slash</button><button class="dbg-btn" onclick="debugForceEnemySkill(${i},'tempest')">Tempest</button>`;
+        if (e.type === 'egregor') return `<button class="dbg-btn" onclick="debugForceEnemySkill(${i},'ns')">Null Slash</button><button class="dbg-btn" onclick="debugForceEnemySkill(${i},'tempest')">Tempest</button><button class="dbg-btn" onclick="debugForceEnemySkill(${i},'rage')">+Rage Stack (${e._rageStacks || 0}/5)</button>`;
         if (e.type === 'marchosias') return `<button class="dbg-btn" onclick="debugForceEnemySkill(${i},'sword')">Sword</button>`;
         if (e.type === 'dargruel') return `<button class="dbg-btn" onclick="debugForceEnemySkill(${i},'haki')">Maou Haki</button><button class="dbg-btn" onclick="debugForceEnemySkill(${i},'chains')">Chains</button>`;
         if (e.type === 'raphael') return `<button class="dbg-btn" onclick="debugForceEnemySkill(${i},'laser')">Laser</button><button class="dbg-btn" onclick="debugForceEnemySkill(${i},'wisdom_orb')">Wisdom Orb</button>`;
