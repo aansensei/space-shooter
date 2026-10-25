@@ -908,7 +908,7 @@ function dealDamage(enemy, source) {
                 _evade = 0;
             }
         }
-        if (_evade > 0 && Math.random() < _evade) {
+        if (_evade > 0 && !source._ignoreEvade && Math.random() < _evade) {
             if (enemy.type === 'goliath') {
                 // Riêng cho Goliath: vòng lục giác tím giãn ra + thân nhấp
                 // nháy nhanh (xem _drawGoliathEvadeFlash, enemy-goliath.js) —

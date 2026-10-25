@@ -77,6 +77,8 @@ function _tyDamage(e, atk, pct, label, serpent, ix, iy) {
     const before = window._matchStats ? window._matchStats.allyDamage[label] || 0 : 0;
     _tySource.damage = player.atk * atk; _tySource.percentDamage = pct;
     _tySource._statSrc = label;
+    // The array is Dominant: its hits cannot be evaded, whoever is standing in it.
+    _tySource._ignoreEvade = label === 'Umbral Serpent: Array';
     if (serpent) e._tySerpentKill = true;
     if (e.type === 'marchosias' && e.arcBarrier && e.arcBarrier.hp > 0) {
         // Every Umbral Serpent hit pierces, so the barrier takes 70% and the body 20%. A bite lands at the

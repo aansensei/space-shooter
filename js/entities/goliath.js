@@ -496,7 +496,7 @@ function _goliathTryTriggerSword(enemy) {
 function _goliathMarchosiasBarrier(enemy, source) {
     const s = enemy._jokerState['Marchosias'];
     if (!s || s.barrierDown || source.isTrueDamage) return null;
-    if (Math.random() < 0.10) {
+    if (!source._ignoreEvade && Math.random() < 0.10) {
         _goliathTryTriggerSword(enemy);
         addExplosion(enemy.x, enemy.y, enemy.size * 0.35, '#aaddff');
         if (window.AudioMgr) window.AudioMgr.playSfxAt('metal-hit', enemy.x, enemy.y);
