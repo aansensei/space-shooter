@@ -94,11 +94,20 @@ function updateEgregor(enemy, deltaTime) {
         enemy._tentaclesLost = 0;
     }
     // Sync lost count (source of truth: tentacleHps)
-    enemy._tentaclesLost = enemy._tentacleHps.filter(hp => hp <= 0).length;
+    let lost = 0;
+    for (let i = 0; i < enemy._tentacleHps.length; i++) if (enemy._tentacleHps[i] <= 0) lost++;
+    enemy._tentaclesLost = lost;
 
     // Rage stack decay (before movement so multipliers are current this frame)
-    enemy._rageEndTimes = (enemy._rageEndTimes || []).filter(t => t > now);
-    enemy._rageStacks = enemy._rageEndTimes.length;
+    if (!enemy._rageEndTimes) enemy._rageEndTimes = [];
+    const rageEndTimes = enemy._rageEndTimes;
+    let rageCount = 0;
+    for (let i = 0; i < rageEndTimes.length; i++) {
+        const end = rageEndTimes[i];
+        if (end > now) rageEndTimes[rageCount++] = end;
+    }
+    rageEndTimes.length = rageCount;
+    enemy._rageStacks = rageCount;
 
     // Speed bonus from rage (+18% move speed per stack)
     const _speedMult = 1 + enemy._rageStacks * 0.18;

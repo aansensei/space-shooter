@@ -4026,7 +4026,7 @@
             let _autoTier = 0;
             let _upgChecks = 0;       // upgrade cần 2 checks liên tiếp
             let _lastTierCheck = 0;   // timestamp của lần check gần nhất
-            let _fps1sArr = [];       // raw dt samples trong 1 giây gần nhất
+            let _fps1sSum = 0, _fps1sCount = 0; // Raw frame deltas retain only their sum and count.
             let _skipNextSample = false; // bỏ qua sample resume-stutter sau khi tab bị ẩn dài
 
             function fpsColor(fps) {
@@ -4094,13 +4094,13 @@
                     _skipNextSample = true;
                 } else if (dt > 0) {
                     if (_skipNextSample) _skipNextSample = false;
-                    else _fps1sArr.push(dt);
+                    else { _fps1sSum += dt; _fps1sCount++; }
                 }
-                if (now - _lastTierCheck >= 1000 && _fps1sArr.length > 0 && window._smartQuality !== false && !window._shiftActive) {
+                if (now - _lastTierCheck >= 1000 && _fps1sCount > 0 && window._smartQuality !== false && !window._shiftActive) {
                     _lastTierCheck = now;
-                    const avgDt = _fps1sArr.reduce((a, b) => a + b, 0) / _fps1sArr.length;
+                    const avgDt = _fps1sSum / _fps1sCount;
                     const avg1s = avgDt > 0 ? 1000 / avgDt : 0;
-                    _fps1sArr = [];
+                    _fps1sSum = 0; _fps1sCount = 0;
                     const target = _targetTier(avg1s);
 
                     if (target > _autoTier) {
@@ -4204,7 +4204,7 @@
     <script src="js/background.js?v=20261020o"></script>
     <script src="js/config.js?v=20261020k"></script>
     <script src="js/timeline-distortion.js?v=20261018c"></script>
-    <script src="js/sigils/core.js?v=20261023b"></script>
+    <script src="js/sigils/core.js?v=20261027perf2"></script>
     <script src="js/sigils/aries.js?v=20261012c"></script>
     <script src="js/sigils/taurus.js?v=20261012c"></script>
     <script src="js/sigils/gemini.js?v=20261012c"></script>
@@ -4225,7 +4225,7 @@
     <script src="js/entities/sentinel.js?v=20261008a"></script>
     <script src="js/entities/veilshroud.js?v=20261019a"></script>
     <script src="js/entities/uriel.js?v=20261019a"></script>
-    <script src="js/entities/egregor.js?v=20261025h"></script>
+    <script src="js/entities/egregor.js?v=20261027perf1"></script>
     <script src="js/entities/leviathan.js?v=20261019a"></script>
     <script src="js/entities/marchosias.js?v=20261013d"></script>
     <script src="js/entities/misc-enemies.js?v=20261008a"></script>
@@ -4279,7 +4279,7 @@
     <script src="js/recap.js?v=20261025c"></script>
     <script src="js/pixi-renderer.js?v=20261020i"></script>
     <script src="js/input.js?v=20261019r"></script>
-    <script src="js/main.js?v=20261025e"></script>
+    <script src="js/main.js?v=20261027perf1"></script>
     <script>
         // Debug/cheat console is a local-dev-only tool (spawn/kill any
         // enemy, force skills, edit HP, etc.) — never fetch/load it on the

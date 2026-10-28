@@ -309,11 +309,18 @@ const _enemyGridMap = new Map();
 const _enemyGridBucketPool = [];
 // Also reused every frame (was a fresh `[]` per update() call before).
 const _gridCandidates = [];
+// Signed cell coordinates share an exact numeric key within the safe integer range.
+function _enemyGridKey(x, y) {
+    const sx = x < 0 ? -x * 2 - 1 : x * 2;
+    const sy = y < 0 ? -y * 2 - 1 : y * 2;
+    const sum = sx + sy;
+    return sum <= 67108863 ? sum * (sum + 1) / 2 + sy : x + ',' + y;
+}
 function _buildEnemyGrid() {
     _enemyGridMap.clear();
     let _bucketsUsed = 0;
     for (const enemy of enemies) {
-        const key = Math.floor(enemy.x / _COLLISION_CELL) + ',' + Math.floor(enemy.y / _COLLISION_CELL);
+        const key = _enemyGridKey(Math.floor(enemy.x / _COLLISION_CELL), Math.floor(enemy.y / _COLLISION_CELL));
         let bucket = _enemyGridMap.get(key);
         if (!bucket) {
             bucket = _enemyGridBucketPool[_bucketsUsed];
@@ -334,7 +341,7 @@ function _queryEnemyGrid(grid, x, y, out) {
     const cy = Math.floor(y / _COLLISION_CELL);
     for (let dx = -1; dx <= 1; dx++) {
         for (let dy = -1; dy <= 1; dy++) {
-            const bucket = grid.get((cx + dx) + ',' + (cy + dy));
+            const bucket = grid.get(_enemyGridKey(cx + dx, cy + dy));
             if (bucket) for (const e of bucket) out.push(e);
         }
     }
@@ -1206,7 +1213,9 @@ function update(rawDeltaTime) {
         let enemyRadius = enemy.type.startsWith('enemy_bullet') ? enemy.size : enemy.size / 2;
 
         let raphaelSpeedMultiplier = 1.0;
-        for (const raphael of enemies) {
+        const raphaelEnemies = enemies;
+        for (let ri = 0; ri < raphaelEnemies.length; ri++) {
+            const raphael = raphaelEnemies[ri];
             if (raphael.type === 'raphael') {
                 if (Math.hypot(enemy.x - raphael.x, enemy.y - raphael.y) <= canvas.width / 2) {
                     raphaelSpeedMultiplier = 1.05;

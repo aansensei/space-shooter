@@ -134,6 +134,8 @@ function _onSigilApplied(sigilId, buffId) {
     if (buffId === 'mui_ten_vang') { window._muiTenVangHitCount = 0; }
     if (buffId === 'lai_kep')      { window._laiKepPEAccum = 0; window._laiKepFireRateBonus = 0; window._capStacks = 0; window._capSinceGain = 0; window._capPEFrac = 0; }
     if (buffId === 'thai_son_ap_dinh') { window._capLey = 0; window._capricornReady = false; window._capMountain = null; }
+    // Capricorn's sprites are baked at the pick, while the game is paused, rather than mid fight at the first effect.
+    if (buffId === 'lai_kep' || buffId === 'thai_son_ap_dinh') { if (typeof _capSprites === 'function') _capSprites(); }
     if (buffId === 'doi_hinh_chien') {
         window._yuushaSquad = [];
         window._yuushaBlades = []; window._yuushaProjectiles = []; window._yuushaParticles = [];
