@@ -391,6 +391,16 @@ function _enemyHs(enemy) {
     return Math.min(enemy.maxHp || h0, 2 * h0);
 }
 
+// Damage multiplier for an enemy attack landing on a Sentinel. Goliath keeps its own multiplier, and every
+// other hostile source (anything tagged with an owner) shares this buff, from Apostle up to Dargruel and Leviathan.
+const ENEMY_SENTINEL_DMG_MULT = 1.25;
+function _sentinelIncomingMult(source) {
+    if (source._attackerType === 'goliath') return GOLIATH_SENTINEL_DMG_MULT;
+    const owner = source._capSource;
+    if (owner && (owner.type === 'goliath' || owner._ownerType === 'goliath')) return 1;
+    return (owner || source._attackerType || source._vanguardTag || source._isWisdomZoneDot) ? ENEMY_SENTINEL_DMG_MULT : 1;
+}
+
 // Enrage multiplier for the handful of attacks that scale off how much HP
 // the attacker itself has already lost (docs/combat-scaling-rebalance.md
 // Part 2) - averages the old nominal amount over a uniformly traversed HP

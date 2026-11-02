@@ -950,7 +950,7 @@ function dealDamage(enemy, source) {
     // scaling basis is retired; MaxHP alone is the only number that matters here.
     const effectiveHp = enemyMaxHp;
     let totalDamage = Math.ceil(((source.damage === undefined ? 0 : source.damage) + (effectiveHp * (source.percentDamage || 0))) * _adaptiveSkillMult(source, enemy));
-    if (isSentinel && source._attackerType === 'goliath') totalDamage = Math.ceil(totalDamage * GOLIATH_SENTINEL_DMG_MULT);
+    if (isSentinel) totalDamage = Math.ceil(totalDamage * _sentinelIncomingMult(source));
 
     // Warding Palm (NEW, thử nghiệm): mọi sát thương từ Phōtokrystos (đạn
     // homing gắn isPhoto, boomerang gắn _isPhotoSourced) giảm thẳng 40% khi
@@ -1380,7 +1380,7 @@ function dealDamage(enemy, source) {
         // side's damage - this is an enemy attack landing on a Sentinel, so
         // none of them apply here (matches the main isSentinel guard above).
         let rawDmg = Math.ceil((source.damage || 0) + effHp * (source.percentDamage || 0));
-        if (source._attackerType === 'goliath') rawDmg = Math.ceil(rawDmg * GOLIATH_SENTINEL_DMG_MULT);
+        rawDmg = Math.ceil(rawDmg * _sentinelIncomingMult(source));
         rawDmg = Math.max(0, rawDmg);
         // BUG A fix: apply vanguard DR (each source 10%, max 30%)
         const _vIsTrueDmg = source.isTrueDamage || inTrueDmgWindow;
