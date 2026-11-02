@@ -749,7 +749,7 @@
   <script src="js/render/enemy-goliath.js"></script>
   <script src="js/render/enemy-thaelis.js"></script>
   <script src="js/render/enemy-dargruel.js"></script>
-  <script src="js/render/enemy-egregor.js?v=20261025j"></script>
+  <script src="js/render/enemy-egregor.js?v=20261102a"></script>
   <script src="js/render/enemy-uriel.js"></script>
   <script src="js/render/skill-s-spirit.js"></script>
   <script src="js/render/skill-a.js"></script>
@@ -1334,6 +1334,7 @@
 <li><span class="ul-tag tag-buff">BUFF</span> <b>Max HP share:</b> serpent bites, Devour bites and shards, array ticks and the array burst now also deal a share of the target's Max HP (0.2%, 0.4%, 0.3%, 0.1% and 2%), so they keep up against bosses with big health pools.</li>
 <li><span class="ul-tag tag-buff">BUFF</span> <b>Fang stacks:</b> every stack of the +1% damage bonus now also adds 0.5% ATK to serpent bites, up to +20% ATK at 40 stacks, so a full swarm bites for 80% ATK.</li>
 <li><span class="ul-tag tag-buff">BUFF</span> <b>Serpent speed and array reach:</b> serpents fly about 12% faster and pull away with a burst of speed after a bite that fades over their rest, and the array grows from 170px to 190px so it catches more enemies.</li>
+<li><span class="ul-tag tag-balance">BALANCE</span> <b>Egregor, Tempest and Null Slash:</b> Tempest now hits a Sentinel for 1.4 times Egregor's attack (with its enrage, like Null Slash) instead of 1.5% of its Max HP, and a Yuusha redirect uses the same amount. Null Slash hits a Sentinel harder: 2.0, 2.3 and 2.6 times its attack for one, two and three victims, up from 1.5, 1.75 and 2.0. Tempest always stays under a Null Slash hit, and a Sentinel barrier still absorbs both first.</li>
 <li><span class="ul-tag tag-feat">FEAT</span> <b>Umbral Devour:</b> 10s charge, four 60% ATK bites, four 45% ATK piercing shards, a speed burst and D/S cooldown refunds.</li>
 <li><span class="ul-tag tag-feat">FEAT</span> <b>Serpent Array:</b> Skill S opens a 190px seal that pulls, erupts for 300% ATK + 1.5% Max HP and applies 1.25s Dominant. Ten serpents hunt for 8s, extend their time through kills and rebuild a one-hit Scale Shield after twelve bites.</li>
 <li><span class="ul-tag tag-feat">FEAT</span> <b>Array vortex:</b> a swirling abyss now spins under the seal, tightens as it pulls, sends a ring inward on every damage tick and flares open with eight rays when the array erupts.</li>
@@ -1354,6 +1355,7 @@
 <li><span class="ul-tag tag-feat">FEAT</span> <b>Egregor, living hive:</b> breathing flesh, moving gill light, graded rage eyes, expiring eye sigils, individual tentacle hit flashes, wounded skin and severed roots reveal the state of Collective Mind. Souls follow psychic strands into the body, a quiet range ornament responds to nearby life, and rage light settles smoothly.</li>
 <li><span class="ul-tag tag-feat">FEAT</span> <b>Egregor, arrival and collapse:</b> a space tear opens at the top of the arena as the parasite crawls through. On death the tentacles retract, four eyes extinguish, the body collapses into a light well, and cosmic fragments erupt before a final tear closes. The sequence lasts 0.9 seconds and leaves gameplay running.</li>
 <li><span class="ul-tag tag-feat">FEAT</span> <b>Tempest sounds:</b> a plant thud, racing veins, a portal tearing open, a warning swell, the burst, three slams and the retreat, each timed to the cast. Every portal has its own voice, so three at once are all heard.</li>
+<li><span class="ul-tag tag-feat">FEAT</span> <b>Egregor, Tempest hits and warning:</b> a hit on the ship now shows a shock ring and a burst of cracks. The warning is much louder: the portal opens wider and faster, the danger zone glows red and pulses, cracks race across the ground, a ring closes in, a clock of ticks lights up, a pillar of light rises, and the edges of the screen throb when the ship is the target.</li>
 <li><span class="ul-tag tag-perf">PERF</span> <b>Effects:</b> fixed serpent and shard pools, cached glow sprites and reduced detail at lower graphics levels. Advanced Graphics controls lighting, particles, trails and flashes.</li>
 <li><span class="ul-tag tag-perf">PERF</span> <b>Umbral Serpent rendering:</b> reusable canvas stamps, batched paths and a fixed pool of 60 wake particles keep the added drawing work small. Medium drops secondary layers and wake particles; Low retains the main shapes; Minimal and Performance retain their core effects. Advanced Graphics switches control each added layer.</li>
 <li><span class="ul-tag tag-perf">PERF</span> <b>Chaos frame rendering:</b> reusable surfaces are baked at reduced resolution when the viewport changes. High uses at most three image draws, Medium uses two, Low uses one, and Minimal and Performance omit the border. Advanced Graphics controls smoke, movement, lighting and flashes.</li>

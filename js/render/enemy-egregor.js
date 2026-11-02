@@ -261,6 +261,99 @@ function _drawEgregorPortalLimb(x, y, reach, bend, rage, fade, now, widthMult = 
     }
     ctx.restore();
 }
+// The Tempest warning is loud on purpose: a pulsing zone that turns hot, cracks racing over the ground, a ring closing in,
+// a clock of ticks that lights up and a pillar of light that rises as the strike gets close.
+function _drawEgregorTempestWarning(t, now, progress, low, glow) {
+    const x = t.tx, y = t.ty, hot = Math.max(0, (progress - 0.45) / 0.55);
+    const pulse = 0.5 + 0.5 * Math.sin(now * (0.007 + progress * 0.022));
+    const fo = window._fxOpts, parts = !fo || fo.particles !== false;
+    ctx.save(); ctx.shadowBlur = 0;
+    ctx.globalAlpha = 0.2 + progress * 0.26 + pulse * (0.06 + hot * 0.12);
+    ctx.fillStyle = 'rgb(' + Math.round(200 + 55 * hot) + ',' + Math.round(34 + 22 * hot) + ',' + Math.round(52 + 18 * hot) + ')';
+    ctx.beginPath(); ctx.arc(x, y, 100, 0, Math.PI * 2); ctx.fill();
+    if (!low) {
+        ctx.globalAlpha = 0.25 + progress * 0.45; ctx.strokeStyle = '#ff9d8a'; ctx.lineWidth = 1.4; ctx.beginPath();
+        for (let i = 0; i < 12; i++) {
+            const a = i * 0.5236 + (t.tx % 7) * 0.05; let px = x, py = y;
+            ctx.moveTo(px, py);
+            for (let s = 1; s <= 5; s++) {
+                const reach = 100 * progress * s / 5, jit = Math.sin(i * 3.1 + s * 1.7) * 0.16;
+                px = x + Math.cos(a + jit) * reach; py = y + Math.sin(a + jit) * reach * 0.8; ctx.lineTo(px, py);
+            }
+        }
+        ctx.stroke();
+    }
+    ctx.globalAlpha = 0.3 + progress * 0.5; ctx.strokeStyle = '#ff8f80'; ctx.lineWidth = 2 + hot * 3;
+    ctx.beginPath(); ctx.arc(x, y, 100 + (1 - progress) * 95, 0, Math.PI * 2); ctx.stroke();
+    const lit = Math.floor(progress * 24);
+    for (let pass = 0; pass < 2; pass++) {
+        ctx.globalAlpha = pass ? 1 : 0.45; ctx.strokeStyle = pass ? '#ffb0a0' : '#7a3a46'; ctx.lineWidth = pass ? 3 : 2; ctx.beginPath();
+        for (let i = 0; i < 24; i++) {
+            if ((i < lit) !== !!pass) continue;
+            const a = -Math.PI / 2 + i * Math.PI / 12;
+            ctx.moveTo(x + Math.cos(a) * 108, y + Math.sin(a) * 108); ctx.lineTo(x + Math.cos(a) * 120, y + Math.sin(a) * 120);
+        }
+        ctx.stroke();
+    }
+    if (parts) {
+        ctx.globalAlpha = 0.55 + progress * 0.3; ctx.fillStyle = '#ffb8a8'; ctx.beginPath();
+        const n = low ? 8 : 22;
+        for (let i = 0; i < n; i++) {
+            const ph = (now * 0.0007 * (1 + progress * 2) + i * 0.618034) % 1, r = 12 + 125 * (1 - ph), a = i * 2.39996 + ph * 5, s = 1.4 + (i % 3) * 0.7;
+            ctx.rect(x + Math.cos(a) * r, y + Math.sin(a) * r * 0.62, s, s);
+        }
+        ctx.fill();
+    }
+    if (progress > 0.5) {
+        const k = Math.min(1, (progress - 0.5) / 0.5);
+        if (glow && !low && _riftArt) {
+            ctx.globalCompositeOperation = 'lighter'; ctx.globalAlpha = k * 0.7;
+            ctx.drawImage(_riftArt.glow, x - 40, y - 150 * k - 20, 80, 170 * k + 20);
+            ctx.globalAlpha = k * 0.5; ctx.fillStyle = '#ffe9d6';
+            ctx.fillRect(x - 2, y - 170 * k, 4, 170 * k);
+            ctx.globalCompositeOperation = 'source-over';
+        } else {
+            ctx.globalAlpha = k * 0.5; ctx.fillStyle = '#ffb0a8'; ctx.fillRect(x - 6, y - 100 * k, 12, 100 * k);
+        }
+    }
+    if (progress > 0.88) {
+        ctx.globalCompositeOperation = 'lighter'; ctx.globalAlpha = (progress - 0.88) * 3.2; ctx.fillStyle = '#fff3e8';
+        ctx.beginPath(); ctx.arc(x, y, 100, 0, Math.PI * 2); ctx.fill(); ctx.globalCompositeOperation = 'source-over';
+    }
+    // When the ship is the one being hunted, the edges of the screen throb red as well.
+    if (t.target === player && progress > 0.6 && !low && _gfxLevel === 0 && (!fo || fo.screenFlash !== false)) {
+        const W = canvas.width, H = canvas.height, k = (progress - 0.6) / 0.4;
+        const g = ctx.createRadialGradient(W / 2, H / 2, H * 0.4, W / 2, H / 2, H * 0.95);
+        g.addColorStop(0, 'rgba(210,50,100,0)'); g.addColorStop(1, 'rgba(210,50,100,' + (k * 0.26 * (0.6 + 0.4 * pulse)) + ')');
+        ctx.globalAlpha = 1; ctx.fillStyle = g; ctx.fillRect(0, 0, W, H);
+    }
+    ctx.restore();
+}
+
+// Shows Tempest landing on the ship: a shock ring, a flash and a burst of cracks.
+function _drawEgregorTempestHits(t, now) {
+    const fo = window._fxOpts, glow = !fo || fo.glow !== false, low = _mobPerf || _gfxLevel >= 2;
+    for (let i = 0; i < t.hits.length; i++) {
+        const h = t.hits[i], age = now - h.at; if (age < 0 || age >= 700) continue;
+        const q = age / 700, shock = Math.min(1, age / 220);
+        ctx.save(); ctx.translate(h.x, h.y); ctx.lineCap = 'round';
+        ctx.globalAlpha = (1 - q) * 0.95; ctx.strokeStyle = '#ffe3f1'; ctx.lineWidth = 4 * (1 - q) + 1;
+        ctx.beginPath(); ctx.arc(0, 0, 14 + shock * 130, 0, Math.PI * 2); ctx.stroke();
+        if (age < 360) {
+            const k = 1 - age / 360;
+            if (glow && _riftArt) { ctx.globalCompositeOperation = 'lighter'; ctx.globalAlpha = k * 0.9; ctx.drawImage(_riftArt.nova, -95, -95, 190, 190); ctx.globalCompositeOperation = 'source-over'; }
+            ctx.globalAlpha = k; ctx.strokeStyle = '#fff6ea'; ctx.lineWidth = 2; ctx.beginPath();
+            const spikes = low ? 6 : 12;
+            for (let s = 0; s < spikes; s++) {
+                const a = s * Math.PI * 2 / spikes + 0.3, r0 = 12 + shock * 10, r1 = 70 * (0.5 + shock * 0.7) * (1 + (s % 3) * 0.2);
+                ctx.moveTo(Math.cos(a) * r0, Math.sin(a) * r0); ctx.lineTo(Math.cos(a + 0.08) * (r0 + r1) * 0.5, Math.sin(a + 0.08) * (r0 + r1) * 0.5); ctx.lineTo(Math.cos(a) * (r0 + r1), Math.sin(a) * (r0 + r1));
+            }
+            ctx.stroke();
+        }
+        ctx.restore();
+    }
+}
+
 function _drawEgregorTempestTarget(t, now, life) {
     const warning = !t.struck, progress = Math.max(0, Math.min(1, 1 - t.countdown / 1200));
     const age = warning ? 0 : 700 - life, fo = window._fxOpts, rage = t.rage || 0;
@@ -268,8 +361,8 @@ function _drawEgregorTempestTarget(t, now, life) {
     const low = _mobPerf || _gfxLevel >= 2, blocked = t.blocked === true;
     const count = low ? 3 + (rage >= 3 ? 1 : 0) : 3 + Math.floor(rage * 0.6);
     const fade = warning ? 1 : Math.max(0, Math.min(1, life / 130));
-    const openness = warning ? 0.16 + Math.pow(progress, 0.75) * 0.84 : Math.min(1, life / 190);
-    const radius = (64 + rage * 2.3) * openness;
+    const openness = warning ? 0.3 + Math.pow(progress, 0.6) * 0.7 : Math.min(1, life / 190);
+    const radius = (64 + rage * 2.3) * openness * (warning ? 1.3 : 1);
     const flicker = blocked ? 0.3 + 0.3 * Math.pow(Math.sin(now * 0.035), 2) : 1;
     // Gleam samples retain the cosmetic random cadence during the first impact.
     if (!warning && !t._echoAt && life > 550 && _gfxLevel < 2) {
@@ -278,9 +371,7 @@ function _drawEgregorTempestTarget(t, now, life) {
         t._vfxGleam = gleam / 12;
     }
     ctx.save(); ctx.shadowBlur = 0;
-    if (warning) {
-        ctx.globalAlpha = 0.07; ctx.fillStyle = '#a756ac'; ctx.beginPath(); ctx.arc(t.tx, t.ty, 100, 0, Math.PI * 2); ctx.fill();
-    }
+    if (warning) _drawEgregorTempestWarning(t, now, progress, low, glow);
     _drawEgregorPortal(t.tx, t.ty, radius, now, fade * flicker, blocked);
     if (warning && progress > 0.75) {
         for (let i = 0; i < (low ? 2 : 3); i++) {
@@ -349,17 +440,18 @@ function _drawEgregorTempestTarget(t, now, life) {
     if (warning) {
         ctx.globalAlpha = 0.85; ctx.strokeStyle = '#100c1c'; ctx.lineWidth = 8;
         ctx.beginPath(); ctx.arc(t.tx, t.ty, 100, 0, Math.PI * 2); ctx.stroke();
-        ctx.globalAlpha = 1; ctx.strokeStyle = progress > 0.75 ? '#f3d1c4' : '#d6a8d9'; ctx.lineWidth = 2.5; ctx.stroke();
-        ctx.strokeStyle = '#f0c2a9'; ctx.lineWidth = 3.5; ctx.beginPath(); ctx.arc(t.tx, t.ty, 100, -Math.PI / 2, -Math.PI / 2 + Math.PI * 2 * progress); ctx.stroke();
-        ctx.globalAlpha = 0.55; ctx.strokeStyle = '#d0a3d9'; ctx.lineWidth = 1.3;
+        ctx.globalAlpha = 1; ctx.strokeStyle = progress > 0.75 ? '#ff7a6a' : '#ff5a6a'; ctx.lineWidth = 2.5; ctx.stroke();
+        ctx.strokeStyle = '#ff9a80'; ctx.lineWidth = 3.5; ctx.beginPath(); ctx.arc(t.tx, t.ty, 100, -Math.PI / 2, -Math.PI / 2 + Math.PI * 2 * progress); ctx.stroke();
+        ctx.globalAlpha = 0.6; ctx.strokeStyle = '#ff8a8a'; ctx.lineWidth = 1.3;
         ctx.beginPath(); ctx.arc(t.tx, t.ty, 16 + (1 - progress) * 76, 0, Math.PI * 2); ctx.stroke();
-        ctx.globalAlpha = 1; ctx.fillStyle = '#f0c2a9';
+        ctx.globalAlpha = 1; ctx.fillStyle = '#ff9a80';
         for (let i = 0; i < 4; i++) {
             const a = i * Math.PI / 2;
             ctx.save(); ctx.translate(t.tx + Math.cos(a) * 100, t.ty + Math.sin(a) * 100); ctx.rotate(a);
             ctx.beginPath(); ctx.moveTo(-5, 0); ctx.lineTo(4, -3); ctx.lineTo(4, 3); ctx.closePath(); ctx.fill(); ctx.restore();
         }
     }
+    if (!warning && t.hits) _drawEgregorTempestHits(t, now);
     ctx.restore();
 }
 function _drawEgregorTempest(enemy, now) {

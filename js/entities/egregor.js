@@ -144,6 +144,22 @@ function _egregorMindLinkVisual(enemy, x, y, now) {
     enemy._ragePulseAt = now;
 }
 
+// Psychic Tempest hits a Sentinel for this many times Egregor's attack, with its enrage like Null Slash does.
+// It stays well under a Null Slash hit (2.0 times and up), and a Yuusha redirect uses the same amount.
+const TEMPEST_SENTINEL_ATK_COEFF = 1.4;
+function _egregorTempestDamage(enemy) { return TEMPEST_SENTINEL_ATK_COEFF * enemy.atk * _enemyEnrageMult(enemy); }
+
+// Remembers where Tempest landed so the draw code can show the hit: who, where and how much.
+function _egregorTempestRecordHit(t, x, y, kind, amount) {
+    if (!t.hits) t.hits = [];
+    if (t.hits.length < 4) t.hits.push({ x, y, kind, amount, at: performance.now() });
+    t.impact = true;
+}
+function _egregorTempestHitSentinel(enemy, t, s) {
+    dealDamage(s, { damage: _egregorTempestDamage(enemy), isTrueDamage: false, _noHitSfx: true, _attackerType: 'egregor', _capSource: enemy });
+    t.impact = true;
+}
+
 // Tempest sound cues fire from the cast timers so they stay in step with the strike. The -b and -c keys give each target its own voice.
 const _TEMPEST_CUE_SUFFIX = ['', '-b', '-c'];
 function _egregorTempestCue(name, enemy, t) {
@@ -219,16 +235,15 @@ function _updateEgregorTempest(enemy, deltaTime, now, cooldown) {
                 if (t.blocked) continue;
                 // Damage (radius 100px), player and each sentinel hit at most once per cast
                 if (!_playerHit && Math.hypot(player.x - t.tx, player.y - t.ty) < 100 && !_capBlocksSource(t, player) && !_capShields(t.tx, t.ty, player.x, player.y, 'area', enemy)) {
-                    if (!_yuushaPierceRedirect(0.015 * _enemyHs(enemy), false, t)) playerTakesHit(enemy);
+                    if (!_yuushaPierceRedirect(_egregorTempestDamage(enemy), false, t)) playerTakesHit(enemy);
                     _playerHit = true;
-                    t.impact = true;
+                    _egregorTempestRecordHit(t, player.x, player.y, 'player', 0);
                 }
                 for (const s of sentinels) {
                     if (!_hitSentinels.has(s) && Math.hypot(s.x - t.tx, s.y - t.ty) < 100 && !_capBlocksSource(t, s) && !_capShields(t.tx, t.ty, s.x, s.y, 'area', enemy)) {
                         // Own-Max-HP category (docs/combat-scaling-rebalance.md Part 2)
-                        dealDamage(s, { damage: 0.015 * _enemyHs(enemy), isTrueDamage: false, _noHitSfx: true, _attackerType: 'egregor', _capSource: enemy });
+                        _egregorTempestHitSentinel(enemy, t, s);
                         _hitSentinels.add(s);
-                        t.impact = true;
                     }
                 }
             }
@@ -275,15 +290,14 @@ function _forceFireEgregorTempest(enemy) {
                 _egregorTempestCue(t.blocked ? 'blocked' : 'burst', enemy, t);
         if (t.blocked) continue;
         if (!_playerHit && Math.hypot(player.x - t.tx, player.y - t.ty) < 100 && !_capBlocksSource(t, player) && !_capShields(t.tx, t.ty, player.x, player.y, 'area', enemy)) {
-            if (!_yuushaPierceRedirect(0.015 * _enemyHs(enemy), false, t)) playerTakesHit(enemy);
+            if (!_yuushaPierceRedirect(_egregorTempestDamage(enemy), false, t)) playerTakesHit(enemy);
             _playerHit = true;
-            t.impact = true;
+            _egregorTempestRecordHit(t, player.x, player.y, 'player', 0);
         }
         for (const s of sentinels) {
             if (!_hitSentinels.has(s) && Math.hypot(s.x - t.tx, s.y - t.ty) < 100 && !_capBlocksSource(t, s) && !_capShields(t.tx, t.ty, s.x, s.y, 'area', enemy)) {
-                dealDamage(s, { damage: 0.015 * _enemyHs(enemy), isTrueDamage: false, _noHitSfx: true, _attackerType: 'egregor', _capSource: enemy });
+                _egregorTempestHitSentinel(enemy, t, s);
                 _hitSentinels.add(s);
-                t.impact = true;
             }
         }
     }
@@ -374,7 +388,7 @@ function _updateEgregorNullSlash(enemy, deltaTime, now) {
                 // Lost-HP/enrage category (docs/combat-scaling-rebalance.md
                 // Part 2): coefficient scales with victim count, output then
                 // rises the more of its own HP Egregor has already lost.
-                const coeff = hc === 1 ? 1.50 : hc === 2 ? 1.75 : 2.00;
+                const coeff = hc === 1 ? 2.00 : hc === 2 ? 2.30 : 2.60;
                 const _nsDmg = coeff * enemy.atk * _enemyEnrageMult(enemy);
                 for (const s of hitSents) {
                     dealDamage(s, { damage: _nsDmg, isTrueDamage: true, _noHitSfx: true, _attackerType: 'egregor', _capSource: enemy });
