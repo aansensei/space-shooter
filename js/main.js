@@ -1597,9 +1597,11 @@ function update(rawDeltaTime) {
             // Also consume chain if hit player but no sentinel nearby
             if (enemy._hitPlayer && enemy.hp > 0) { enemy.hp = 0; }
 
-            // Off-screen, bay hết màn hình mới dừng
-            if (enemy.x < -200 || enemy.x > canvas.width + 200 || enemy.y < -200 || enemy.y > canvas.height + 200) {
-                enemies.splice(i, 1); // O(1) vì loop đi ngược, không cần indexOf
+            // Incoming chains can start above the arena while Dargruel enters.
+            // Outgoing chains expire beyond the 200 pixel margin.
+            if ((enemy.x < -200 && enemy.vx <= 0) || (enemy.x > canvas.width + 200 && enemy.vx >= 0)
+                || (enemy.y < -200 && enemy.vy <= 0) || (enemy.y > canvas.height + 200 && enemy.vy >= 0)) {
+                enemies.splice(i, 1);
             }
 
         } else if (enemy.type.startsWith('enemy_bullet')) {
@@ -3621,6 +3623,7 @@ function gameLoop(timeStamp) {
 }
 
 function startGame() {
+    if (window.AudioMgr && window.AudioMgr.prepareGameplay) window.AudioMgr.prepareGameplay();
     _updateAllyScratch.length = 0;
     if (window._timelineDistortion && window._timelineDistortion.id !== 'stack_overflow') _clearTimelineDistortion();
     gameState = "playing"; lives = START_LIVES;

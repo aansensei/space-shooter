@@ -49,6 +49,9 @@ window._pixiRender       = null;
         window._usePixi = false;
         console.warn('[Pixi] WebGL context lost — falling back to Canvas2D bullets/particles.');
     });
+    pc.addEventListener('webglcontextrestored', () => {
+        window._usePixi = true;
+    });
 
     // Stage layers (back → front)
     const nebulaLayer  = new PIXI.Container(); // distant nebula atmosphere

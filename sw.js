@@ -5,7 +5,7 @@
 //
 // One cache, versioned by CACHE_NAME. Bump the version string whenever the
 // CORE_FILES list changes so old clients pick up the new set on next visit.
-const CACHE_VERSION = 'v564';
+const CACHE_VERSION = 'v574';
 const CACHE_NAME = 'pisces-cache-' + CACHE_VERSION;
 
 // App shell — everything needed for the game to boot and run at all.
@@ -167,34 +167,40 @@ const CORE_FILES = [
         'js/render/sigil-ty.js',
     'js/render/skill-g.js',
     'js/render/skill-s-spirit.js',
+    'assets/audio/sfx/ingame-slices.json',
 ];
+
+const PRECACHE_FILES = CORE_FILES.filter(url => ![
+    'assets/images/site/gameplay.png',
+    'assets/images/site/pisces_banner.png',
+    'assets/images/site/update-log-hero.png',
+    'assets/images/site/kanade-genesis.png',
+    'assets/video/frozen-realm.mp4',
+].includes(url));
 
 self.addEventListener('install', (event) => {
     self.skipWaiting();
     event.waitUntil(
         caches.open(CACHE_NAME).then((cache) => {
-            // Best-effort: a single failed file (e.g. offline on first
-            // install) shouldn't block the rest of the shell from caching.
-            return Promise.all(
-                CORE_FILES.map((url) => cache.add(url).catch(() => {}))
-            );
+            // Small batches bound update traffic while a match is running.
+            return (async () => {
+                for (let i = 0; i < PRECACHE_FILES.length; i += 4) {
+                    await Promise.all(PRECACHE_FILES.slice(i, i + 4).map(url => cache.add(url).catch(() => {})));
+                }
+                const present = await Promise.all(PRECACHE_FILES.map(url => cache.match(url)));
+                if (!present.every(Boolean)) throw Error('Offline update incomplete');
+            })();
         })
     );
 });
 
 self.addEventListener('activate', (event) => {
     event.waitUntil(
-        // If install ran while offline, cache.add() for every CORE_FILES
-        // entry silently failed (caught above) and CACHE_NAME is empty or
-        // partial. Deleting the old cache unconditionally in that case would
-        // wipe the last working offline copy with nothing to replace it —
-        // exactly the "reverts to a broken state while offline" bug. Only
-        // clean up old caches once the new one actually has the app shell;
-        // otherwise leave old caches in place as a fallback (the fetch
-        // handler's global caches.match() already checks across all caches,
-        // so they keep serving requests until a future online update
-        // finishes populating CACHE_NAME).
-        caches.open(CACHE_NAME).then((cache) => cache.match('index.html')).then((hasShell) => {
+        // Retain the previous offline copy until every automatic file is present.
+        caches.open(CACHE_NAME).then(async (cache) => {
+            const present = await Promise.all(PRECACHE_FILES.map(url => cache.match(url)));
+            return present.every(Boolean);
+        }).then((hasShell) => {
             if (!hasShell) return;
             return caches.keys().then((names) =>
                 Promise.all(

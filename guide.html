@@ -596,6 +596,16 @@
     // checklist, point 3). Their core.js defaults (HIGH quality, not
     // mobile) are exactly what these widgets want anyway.
     let canvas = null, ctx = null;
+    window._dangerGuide = true;
+    const _guideDangerCanvas = { width: 0, height: 0 };
+    function _guideDanger(c, w, h, shape, x, y, radius, progress, intensity, now, angle = 0, width = 0) {
+      const previousCtx = ctx, previousCanvas = canvas;
+      _guideDangerCanvas.width = w; _guideDangerCanvas.height = h;
+      ctx = c; canvas = _guideDangerCanvas;
+      try { _drawDangerZone(shape, x, y, radius, progress, intensity, now, angle, width); }
+      finally { ctx = previousCtx; canvas = previousCanvas; }
+    }
+
     let gameElapsedTime = 0;
     let player = { x: 0, y: 0, width: 40, height: 40, speed: 8.6, hitRadius: 5.75 };
     let playerClones = [];
@@ -742,15 +752,15 @@
     }
   </script>
   <script src="js/canvas-guard.js"></script>
-  <script src="js/render/core.js"></script>
-  <script src="js/render/fx.js?v=20261025g"></script>
+  <script src="js/render/core.js?v=20261102f"></script>
+  <script src="js/render/fx.js?v=20261102d"></script>
   <script src="js/render/player.js"></script>
-  <script src="js/render/enemy-common.js"></script>
-  <script src="js/render/enemy-goliath.js"></script>
+  <script src="js/render/enemy-common.js?v=20261102c"></script>
+  <script src="js/render/enemy-goliath.js?v=20261102c"></script>
   <script src="js/render/enemy-thaelis.js"></script>
   <script src="js/render/enemy-dargruel.js"></script>
-  <script src="js/render/enemy-egregor.js?v=20261102a"></script>
-  <script src="js/render/enemy-uriel.js"></script>
+  <script src="js/render/enemy-egregor.js?v=20261102f"></script>
+  <script src="js/render/enemy-uriel.js?v=20261102c"></script>
   <script src="js/render/skill-s-spirit.js"></script>
   <script src="js/render/skill-a.js"></script>
   <script src="js/render/skill-d.js"></script>
@@ -1154,8 +1164,8 @@
 <ul>
 <li><span style="color:#a855f7;font-size:10px">PASSIVE</span> <b>Void Echo</b> — <span class="det-full">On death leaves an <b>untargetable Phantom Portal</b> at the death spot, immune to all damage &amp; CC. <span class="hi">0&ndash;3s</span>: the portal births <b>real Apostles</b>, 2 every 600ms (~10 total), each telegraphed by a dark patch for 450ms before it forms. Apostle HP = <span class="hg">max(60, 30% of the total damage this Veilshroud soaked while in Phantom over its whole life)</span>; they move <span class="hr">20% slower</span> than a wave Apostle. At <span class="hi">5s</span> the portal <span class="hr">collapses</span>: white flash, screen shake, <span class="dmg">erases every ally projectile</span> (Arc Blades included) within <span class="hr">345px</span>, and any player inside 345px at that instant loses <span class="dmg">1 life</span> (Dream Realm / Great Sage / Yog-Sothoth / Skill A orb / Final Defense still get first say). It then leaves a <span class="hi">2s</span> zone (345px, ticks every 500ms, 4 ticks): <span class="dmg">Sentinels 6% Max HP/tick</span>; the player takes no life loss from the zone, only the collapse. <span style="color:var(--dim)">The wave system counts Veilshroud as dead the moment the portal opens.</span></span><span class="det-short">On death opens an untargetable, immune Phantom Portal that births ~10 real Apostles over 3s (HP scales off Phantom damage soaked). At 5s it collapses: wipes ally projectiles in 345px, costs the player 1 life if inside, then a 2s zone hits Sentinels for 6% MaxHP/tick (no player life loss).</span></li>
 <li><span style="color:var(--gold);font-size:10px">NORMAL ATK</span> Fires a 2-bullet volley every 500ms at nearest target. Disabled during Phantom / countdown.</li>
-<li><span style="color:var(--cyan);font-size:10px">SKILL: Alteration</span> <b>Phase Shift &amp; Void Strike</b> — <span class="det-full">Every 0.45s: <span class="hi">40% chance</span> to enter <b>Phantom</b> state (1.5s, <span class="dmg">99% DR</span>, stops moving &amp; attacking). While in Phantom: <span class="dmg">no single hit can exceed 25% MaxHP</span> (absolute cap); healing &amp; shields received are reduced by <span class="dmg">25%</span>. On hit: additional <span class="hi">40% chance</span> to instantly dodge and activate Phantom. On Phantom exit: marks a random target; after 1.5s a <span class="hr">red lightning bolt</span> strikes. Player: <span class="hr">1 life</span>. Sentinels in 100px: <span class="dmg">18% Max HP</span>. In normal state: incoming healing also grants equal shield; incoming shield boosted <span class="hi">+20%</span>. Receiving healing in normal state grants <span class="hg">+10% DR for 3 seconds</span>.</span><span class="det-short">Randomly enters an untargetable Phantom state (99% DR) that blocks damage; on exit fires a red lightning bolt — Player: 1 life. Sentinels in 100px: 18% Max HP. Healing in normal state → +10% DR (3s).</span></li>
-<li><span style="color:#a855f7;font-size:10px">PASSIVE</span> <b>Energy Accumulation</b> — <span class="det-full">While in <b>Phantom</b>, Veilshroud records all damage it absorbs. On Phantom exit, converts the accumulated absorption into a shield: <span class="hg">min(1200, ⌈(35% × absorbed + 200) × 1.15⌉)</span>. The base 200 guarantees a minimum shield of <span class="hg">230</span> even if no damage was taken.</span><span class="det-short">Converts damage absorbed during Phantom into a shield on exit (base 230, cap 1200).</span></li>
+<li><span style="color:var(--cyan);font-size:10px">SKILL: Alteration</span> <b>Phase Shift &amp; Void Strike</b> — <span class="det-full">Every 0.45s: <span class="hi">40% chance</span> to enter <b>Phantom</b> state (1.5s, <span class="dmg">99% DR</span>, stops moving &amp; attacking). While in Phantom: <span class="dmg">no single hit can exceed 15% MaxHP</span> (absolute cap); healing &amp; shields received are reduced by <span class="dmg">25%</span>. On hit: additional <span class="hi">40% chance</span> to instantly dodge and activate Phantom. On Phantom exit: marks a random target; after 1.5s a <span class="hr">red lightning bolt</span> strikes. Player: <span class="hr">1 life</span>. Sentinels in 100px: <span class="dmg">18% Max HP</span>. In normal state: incoming healing also grants equal shield; incoming shield boosted <span class="hi">+20%</span>. Receiving healing in normal state grants <span class="hg">+10% DR for 3 seconds</span>.</span><span class="det-short">Randomly enters an untargetable Phantom state (99% DR) that blocks damage; on exit fires a red lightning bolt — Player: 1 life. Sentinels in 100px: 18% Max HP. Healing in normal state → +10% DR (3s).</span></li>
+<li><span style="color:#a855f7;font-size:10px">PASSIVE</span> <b>Energy Accumulation</b> — <span class="det-full">While in <b>Phantom</b>, Veilshroud records all damage it absorbs. On Phantom exit, converts the accumulated absorption into a shield: <span class="hg">min(1500, ⌈(45% × absorbed + 240) × 1.15⌉)</span>. The base 200 guarantees a minimum shield of <span class="hg">276</span> even if no damage was taken.</span><span class="det-short">Converts damage absorbed during Phantom into a shield on exit (base 276, cap 1500).</span></li>
 </ul></div>
 
 <div class="card"><h2 class="dsname" style="color:#22cc55">URIEL <span class="dsclass" style="font-size:10px;color:#22cc55">ABNORMAL</span></h2><div class="sub">HP 1,725–4,140 • CAP 1 • Base DR 40% • Per-hit cap 30% MaxHP • Evade 99%→30% (decays on hit)</div>
@@ -1334,6 +1344,7 @@
 <li><span class="ul-tag tag-buff">BUFF</span> <b>Max HP share:</b> serpent bites, Devour bites and shards, array ticks and the array burst now also deal a share of the target's Max HP (0.2%, 0.4%, 0.3%, 0.1% and 2%), so they keep up against bosses with big health pools.</li>
 <li><span class="ul-tag tag-buff">BUFF</span> <b>Fang stacks:</b> every stack of the +1% damage bonus now also adds 0.5% ATK to serpent bites, up to +20% ATK at 40 stacks, so a full swarm bites for 80% ATK.</li>
 <li><span class="ul-tag tag-buff">BUFF</span> <b>Serpent speed and array reach:</b> serpents fly about 12% faster and pull away with a burst of speed after a bite that fades over their rest, and the array grows from 170px to 190px so it catches more enemies.</li>
+<li><span class="ul-tag tag-buff">BUFF</span> <b>Veilshroud Phantom is tougher:</b> while in Phantom, no single hit (true damage included) can take more than <span class="hg">15%</span> of its Max HP, down from 25%. The shield it banks on exit is bigger too: <span class="hg">min(1500, ⌈(45% × absorbed + 240) × 1.15⌉)</span>, up from <span class="hg">min(1200, ⌈(35% × absorbed + 200) × 1.15⌉)</span>. Phantom length, odds and the lightning follow-up are unchanged.</li>
 <li><span class="ul-tag tag-balance">BALANCE</span> <b>Egregor, Tempest and Null Slash:</b> Tempest now hits a Sentinel for 1.4 times Egregor's attack (with its enrage, like Null Slash) instead of 1.5% of its Max HP, and a Yuusha redirect uses the same amount. Null Slash hits a Sentinel harder: 2.0, 2.3 and 2.6 times its attack for one, two and three victims, up from 1.5, 1.75 and 2.0. Tempest always stays under a Null Slash hit, and a Sentinel barrier still absorbs both first.</li>
 <li><span class="ul-tag tag-balance">BALANCE</span> <b>Enemy damage on Sentinels:</b> every enemy except Goliath, from Apostle up to Dargruel and Leviathan, now deals 25% more to Sentinels, on the normal route and on the Vanguard route. Goliath keeps its own multiplier. Damage to the ship is life based and does not change.</li>
 <li><span class="ul-tag tag-feat">FEAT</span> <b>Umbral Devour:</b> 10s charge, four 60% ATK bites, four 45% ATK piercing shards, a speed burst and D/S cooldown refunds.</li>
@@ -1350,13 +1361,24 @@
 <li><span class="ul-tag tag-feat">FEAT</span> <b>Chaos frame:</b> an active swarm holds a quiet gilded border, while serpent and Devour bites strengthen the broken acanthus frame and soft dark smoke. The bite glow fades after the last bite, leaves the arena center clear and stays below enemies and projectiles. High graphics adds slow candlelight at the edges.</li>
 <li><span class="ul-tag tag-feat">FEAT</span> <b>Virulent Venom:</b> every fifth landed serpent bite applies Venom to its victim, up to five stacks, with one Soul Reaver curse and one Soul Devourer stream. Venom ticks for 35%, 35% and 65% ATK, plus 15% ATK per additional stack. Gaining a stack renews the cycle; stacks fade over one second after it ends.</li>
 <li><span class="ul-tag tag-feat">FEAT</span> <b>Serpent interception:</b> crossing an ordinary enemy bullet erases it and grants only that serpent 5% movement speed and 5% bite damage for three seconds. Further interceptions refresh the duration without stacking.</li>
-<li><span class="ul-tag tag-feat">FEAT</span> <b>Venom radiation:</b> a living violet aura, rising motes, intermittent micro bursts and five gilded crystal segments mark infected enemies. The third tick blooms through an ivory and lime flash, twelve leaf rays, a gilded shockwave, an echo and curved debris. Soul Devourer has its own violet icon beside the shared Soul Reaver artwork, which also appears on the combat dummy.</li>
+<li><span class="ul-tag tag-feat">FEAT</span> <b>Venom radiation:</b> a hollow violet aura grows brighter, wider and faster with each stack. Five larger gilded crystals distinguish active stacks from empty slots. Cracks and orbiting motes appear from three stacks, with a hot lime ring and body cracks at five, including Low graphics. The third tick blooms through an ivory and lime flash, twelve leaf rays, a gilded shockwave, an echo and curved debris. Soul Devourer has its own violet icon beside the shared Soul Reaver artwork, which also appears on the combat dummy.</li>
 <li><span class="ul-tag tag-feat">FEAT</span> <b>Egregor, cosmic Null Slash:</b> six rage levels open deeper violet space, from drifting nebulae and stars to spiral galaxies, a ringed planet, aurorae, gravitational arcs, a black hole and supernovae. Shaded torn walls, crossing fragments and a seam that closes from both ends give the rift depth. Lower graphics and phones retain lighter layers and distinct rage stages.</li>
 <li><span class="ul-tag tag-feat">FEAT</span> <b>Egregor, Psychic Tempest:</b> a planted tentacle tears open a violet well and sends living roots to each marked target. Giant hooked tentacles erupt from every portal, with staggered secondary limbs, shaded wet skin, large suckers and impact debris. The 100px warning boundary stays clear, blocked portals flicker without a hit flash, and portals finish their strike even when Egregor dies.</li>
 <li><span class="ul-tag tag-feat">FEAT</span> <b>Egregor, living hive:</b> breathing flesh, moving gill light, graded rage eyes, expiring eye sigils, individual tentacle hit flashes, wounded skin and severed roots reveal the state of Collective Mind. Souls follow psychic strands into the body, a quiet range ornament responds to nearby life, and rage light settles smoothly.</li>
 <li><span class="ul-tag tag-feat">FEAT</span> <b>Egregor, arrival and collapse:</b> a space tear opens at the top of the arena as the parasite crawls through. On death the tentacles retract, four eyes extinguish, the body collapses into a light well, and cosmic fragments erupt before a final tear closes. The sequence lasts 0.9 seconds and leaves gameplay running.</li>
 <li><span class="ul-tag tag-feat">FEAT</span> <b>Tempest sounds:</b> a plant thud, racing veins, a portal tearing open, a warning swell, the burst, three slams and the retreat, each timed to the cast. Every portal has its own voice, so three at once are all heard.</li>
 <li><span class="ul-tag tag-feat">FEAT</span> <b>Egregor, Tempest hits and warning:</b> a hit on the ship now shows a shock ring and a burst of cracks. The warning is much louder: the portal opens wider and faster, the danger zone glows red and pulses, cracks race across the ground, a ring closes in, a clock of ticks lights up, a pillar of light rises, and the edges of the screen throb when the ship is the target.</li>
+<li><span class="ul-tag tag-feat">FEAT</span> <b>Venom stack clarity:</b> brighter hollow auras and larger crystals keep one, three and five stacks distinct on small enemies and Egregor, with the curse icon clear of the stack crown.</li>
+<li><span class="ul-tag tag-feat">FEAT</span> <b>Area attack warnings:</b> bright red magic seals, dark boundary underlays, inset timing marks and delicate moving rings on High and Medium surround the original attack artwork. Low retains clear static seals. Goliath gem attacks use the same language. Yog Target Lock stays separate, and map wide waves retain their own artwork.</li>
+<li><span class="ul-tag tag-feat">FEAT</span> <b>Null Slash charge:</b> Egregor gathers violet void currents and etched energy veins across the full native slash reach. The red warning surrounds the charge. Damage, windup and strike timing stay the same.</li>
+<li><span class="ul-tag tag-feat">FEAT</span> <b>Phantom has a voice:</b> Veilshroud's Phantom, and the copy Goliath borrows, now sounds at every step: slipping out of reality, a ghostly hum while it holds, soft thuds as hits sink into it, the snap back to solid, a ping on each marked spot and a rising charge that ends right as the lightning drops.</li>
+<li><span class="ul-tag tag-feat">FEAT</span> <b>Settings, danger warnings:</b> Red danger warning hides the red area decoration while keeping neutral boundaries, closing outlines and timing marks. Guide previews always show the full warning. Original charge artwork and Yog Target Lock stay visible.</li>
+<li><span class="ul-tag tag-feat">FEAT</span> <b>Settings switches:</b> Screen Shake, Vibration and Skip Kanade use the same hexagonal switch as Tap Effect. Defaults and saved choices stay the same, and focused switches work with Space.</li>
+<li><span class="ul-tag tag-feat">FEAT</span> <b>Voyage's End:</b> a quiet silver, gold and cyan sheen crosses the opening title as constellation stars brighten in sequence. The opening hold and every transition keep their original duration.</li>
+<li><span class="ul-tag tag-perf">PERF</span> <b>Danger warning switch:</b> disabling decoration skips its drawing commands, including magic inscriptions and moving inner rings.</li>
+<li><span class="ul-tag tag-perf">PERF</span> <b>Audio memory:</b> space ambience decodes short windows of the original MP3, with the next section prepared ahead. Combat sounds prepare for the enemies and blessings in use, and at most three decodes run together.</li>
+<li><span class="ul-tag tag-perf">PERF</span> <b>Offline updates:</b> four files download at a time. Guide artwork and the frozen realm video cache when viewed. An incomplete update keeps the previous playable version.</li>
+<li><span class="ul-tag tag-perf">PERF</span> <b>Settled Venom:</b> five cached stamps combine the aura and cracks into one image draw, retaining stack detail on Low graphics.</li>
 <li><span class="ul-tag tag-perf">PERF</span> <b>Effects:</b> fixed serpent and shard pools, cached glow sprites and reduced detail at lower graphics levels. Advanced Graphics controls lighting, particles, trails and flashes.</li>
 <li><span class="ul-tag tag-perf">PERF</span> <b>Umbral Serpent rendering:</b> reusable canvas stamps, batched paths and a fixed pool of 60 wake particles keep the added drawing work small. Medium drops secondary layers and wake particles; Low retains the main shapes; Minimal and Performance retain their core effects. Advanced Graphics switches control each added layer.</li>
 <li><span class="ul-tag tag-perf">PERF</span> <b>Chaos frame rendering:</b> reusable surfaces are baked at reduced resolution when the viewport changes. High uses at most three image draws, Medium uses two, Low uses one, and Minimal and Performance omit the border. Advanced Graphics controls smoke, movement, lighting and flashes.</li>
@@ -1365,6 +1387,8 @@
 <li><span class="ul-tag tag-perf">PERF</span> <b>Combat memory:</b> collision cells use numeric keys, the Raphael aura scan uses indexed iteration, and Egregor counts lost tentacles and expires rage stacks without building filtered arrays. Target order, damage and timing remain the same.</li>
 <li><span class="ul-tag tag-perf">PERF</span> <b>Quality sampling:</b> the FPS controller keeps the sum and count of frame gaps instead of retaining every sample while Smart Quality is off or suspended. The displayed FPS and quality decisions use the same calculation.</li>
 <li><span class="ul-tag tag-perf">PERF</span> <b>Capricorn, first effect:</b> its sprites were built the first time an effect showed up in a fight, which cost about a tenth of a second on a PC and more than half a second on a slow phone. They are now built when you pick the blessing, while the game is paused, like Pisces and Dawn Herald.</li>
+<li><span class="ul-tag tag-fix">FIX</span> <b>Abyssal Chains:</b> incoming chains survive above the arena while Dargruel enters, instead of vanishing after the launch cue. Outgoing chains still expire beyond the arena margin. Launch timing, speed and damage stay the same.</li>
+<li><span class="ul-tag tag-fix">FIX</span> <b>Graphics recovery:</b> the space background and projectile layer return after WebGL restoration. Failed Egregor sprite builds use lighter fallback artwork, and Smart Quality starts gently on devices reporting 2 GB of memory or less while preserving chosen settings.</li>
 <li><span class="ul-tag tag-fix">FIX</span> <b>Umbral Serpent visibility:</b> ivory rims, violet bellies, rounded jaws and paired bright eyes define the swimming serpents against space, while dark relief preserves their contrast inside Yog-Sothoth. Lit violet wakes, deep violet impacts with fractured shock rings, erupting chaos shards and brief magenta flashes, brighter fangs, comet trails and shield scales keep the Renaissance detail visible. Low retains the main shapes without glow; Minimal and Performance keep a clear serpent silhouette.</li>
 <li><span class="ul-tag tag-fix">FIX</span> <b>Serpent Array placement:</b> the array evaluates visible enemy positions and local groups across the full arena, including prey beside or below the ship and near the screen edges. It prioritizes the covered enemy count, then HP and a compact center, and uses the ship only when no visible target is available.</li>
 <li><span class="ul-tag tag-fix">FIX</span> <b>Marchosias barrier:</b> Umbral Serpent bites, Devour, shards and the array skipped the Arc Barrier and hit the body directly. They now go through it like other piercing attacks, with 70% to the barrier and 20% to the body, and a bite from outside the barrier arc still reaches the body.</li>
@@ -2733,8 +2757,8 @@
 <ul>
 <li><span style="color:#a855f7;font-size:10px">PASSIVE</span> <b>Vọng Hư Không</b> — <span class="det-full">Khi chết để lại 1 <b>Cổng Hư Ảo không bị chọn làm mục tiêu</b> tại chỗ chết, miễn nhiễm mọi sát thương &amp; khống chế. <span class="hi">0&ndash;3s</span>: cổng sinh ra <b>Apostle thật</b>, 2 con mỗi 600ms (~10 con), mỗi con báo hiệu bằng 1 vệt tối 450ms trước khi hiện. HP mỗi Apostle = <span class="hg">max(60, 30% tổng sát thương con Veilshroud này đã hứng trong lúc Phantom suốt cả đời)</span>; chúng chậm hơn Apostle wave <span class="hr">20%</span>. Tại giây thứ <span class="hi">5</span> cổng <span class="hr">sụp đổ</span>: chớp trắng, rung màn hình, <span class="dmg">xóa mọi đạn/đòn phe ta</span> (kể cả Arc Blade) trong <span class="hr">345px</span>, và người chơi đứng trong 345px đúng lúc đó mất <span class="dmg">1 mạng</span> (Cõi Mộng / Đại Thánh / Yog-Sothoth / cầu phòng thủ Skill A / Phòng Thủ Tối Thượng vẫn được quyền cản trước). Sau đó để lại 1 vùng <span class="hi">2s</span> (345px, tick mỗi 500ms, 4 tick): <span class="dmg">Vệ Binh 6% Max HP/tick</span>; người chơi không mất mạng do vùng này, chỉ do cú sụp đổ. <span style="color:var(--dim)">Hệ thống wave tính Veilshroud là đã chết ngay khi cổng mở ra.</span></span><span class="det-short">Khi chết mở 1 Cổng Hư Ảo không bị chọn làm mục tiêu, sinh ~10 Apostle thật trong 3s (HP scale theo sát thương hứng lúc Phantom). Tại giây thứ 5 cổng sụp: xóa đạn phe ta trong 345px, người chơi trong vùng mất 1 mạng, rồi vùng 2s đánh Vệ Binh 6% MaxHP/tick (người chơi không mất mạng).</span></li>
 <li><span style="color:var(--gold);font-size:10px">ĐÒN THƯỜNG</span> Bắn 1 đợt 2 đạn mỗi 500ms vào mục tiêu gần nhất. Vô hiệu hóa trong lúc Phantom / đếm ngược.</li>
-<li><span style="color:var(--cyan);font-size:10px">SKILL: Biến Đổi</span> <b>Dịch Chuyển Pha &amp; Đòn Đánh Hư Không</b> — <span class="det-full">Mỗi 0.45s: <span class="hi">40% cơ hội</span> vào trạng thái <b>Phantom</b> (1.5s, <span class="dmg">99% DR</span>, ngừng di chuyển &amp; tấn công). Trong lúc Phantom: <span class="dmg">không đòn đánh đơn lẻ nào được vượt quá 25% MaxHP</span> (CAP tuyệt đối); hồi máu &amp; khiên nhận vào bị giảm <span class="dmg">25%</span>. Khi trúng đòn: thêm <span class="hi">40% cơ hội</span> né ngay lập tức và kích hoạt Phantom. Khi thoát Phantom: đánh dấu 1 mục tiêu ngẫu nhiên; sau 1.5s 1 <span class="hr">tia sét đỏ</span> giáng xuống. Người chơi: <span class="hr">1 mạng</span>. Vệ Binh trong 100px: <span class="dmg">18% Max HP</span>. Ở trạng thái bình thường: hồi máu nhận vào cũng cấp khiên tương đương; khiên nhận vào tăng <span class="hi">+20%</span>. Nhận hồi máu ở trạng thái bình thường cấp <span class="hg">+10% DR trong 3 giây</span>.</span><span class="det-short">Ngẫu nhiên vào trạng thái Phantom không bị chọn làm mục tiêu (99% DR) chặn sát thương; khi thoát bắn 1 tia sét đỏ — Người chơi: 1 mạng. Vệ Binh trong 100px: 18% Max HP. Hồi máu ở trạng thái bình thường → +10% DR (3s).</span></li>
-<li><span style="color:#a855f7;font-size:10px">PASSIVE</span> <b>Tích Lũy Năng Lượng</b> — <span class="det-full">Trong lúc Phantom, Veilshroud ghi nhận mọi sát thương nó hấp thụ. Khi thoát Phantom, chuyển lượng hấp thụ tích lũy thành khiên: <span class="hg">min(1200, ⌈(35% × lượng hấp thụ + 200) × 1.15⌉)</span>. Con số gốc 200 đảm bảo khiên tối thiểu <span class="hg">230</span> dù không nhận sát thương nào.</span><span class="det-short">Chuyển sát thương hấp thụ được trong lúc Phantom thành khiên khi thoát ra (gốc 230, CAP 1200).</span></li>
+<li><span style="color:var(--cyan);font-size:10px">SKILL: Biến Đổi</span> <b>Dịch Chuyển Pha &amp; Đòn Đánh Hư Không</b> — <span class="det-full">Mỗi 0.45s: <span class="hi">40% cơ hội</span> vào trạng thái <b>Phantom</b> (1.5s, <span class="dmg">99% DR</span>, ngừng di chuyển &amp; tấn công). Trong lúc Phantom: <span class="dmg">không đòn đánh đơn lẻ nào được vượt quá 15% MaxHP</span> (CAP tuyệt đối); hồi máu &amp; khiên nhận vào bị giảm <span class="dmg">25%</span>. Khi trúng đòn: thêm <span class="hi">40% cơ hội</span> né ngay lập tức và kích hoạt Phantom. Khi thoát Phantom: đánh dấu 1 mục tiêu ngẫu nhiên; sau 1.5s 1 <span class="hr">tia sét đỏ</span> giáng xuống. Người chơi: <span class="hr">1 mạng</span>. Vệ Binh trong 100px: <span class="dmg">18% Max HP</span>. Ở trạng thái bình thường: hồi máu nhận vào cũng cấp khiên tương đương; khiên nhận vào tăng <span class="hi">+20%</span>. Nhận hồi máu ở trạng thái bình thường cấp <span class="hg">+10% DR trong 3 giây</span>.</span><span class="det-short">Ngẫu nhiên vào trạng thái Phantom không bị chọn làm mục tiêu (99% DR) chặn sát thương; khi thoát bắn 1 tia sét đỏ — Người chơi: 1 mạng. Vệ Binh trong 100px: 18% Max HP. Hồi máu ở trạng thái bình thường → +10% DR (3s).</span></li>
+<li><span style="color:#a855f7;font-size:10px">PASSIVE</span> <b>Tích Lũy Năng Lượng</b> — <span class="det-full">Trong lúc Phantom, Veilshroud ghi nhận mọi sát thương nó hấp thụ. Khi thoát Phantom, chuyển lượng hấp thụ tích lũy thành khiên: <span class="hg">min(1500, ⌈(45% × lượng hấp thụ + 240) × 1.15⌉)</span>. Con số gốc 200 đảm bảo khiên tối thiểu <span class="hg">276</span> dù không nhận sát thương nào.</span><span class="det-short">Chuyển sát thương hấp thụ được trong lúc Phantom thành khiên khi thoát ra (gốc 276, CAP 1500).</span></li>
 </ul></div>
 
 <div class="card"><h2 class="dsname" style="color:#22cc55">URIEL <span class="dsclass" style="font-size:10px;color:#22cc55">THƯỢNG CẤP</span></h2><div class="sub">HP 1.725–4.140 • CAP 1 • DR nền 40% • Trần mỗi đòn 30% MaxHP • Né 99%→30% (giảm khi trúng đòn)</div>
@@ -4141,22 +4165,7 @@
               c.fillText('VOID STRIKE', w * 0.48, h * 0.12);
               c.fillStyle = '#8899bb'; c.font = '7px Share Tech Mono,monospace';
               c.fillText('targeting random sentinel/player', w * 0.48, h * 0.12 + 12);
-              // Target circle
-              c.strokeStyle = `rgba(255,30,30,0.75)`; c.lineWidth = 2;
-              c.setLineDash([7, 5]);
-              c.beginPath(); c.arc(tx, ty, circR, 0, Math.PI * 2); c.stroke(); c.setLineDash([]);
-              // expanding fill from center
-              if (phaseT > 0.04) {
-                const fG = c.createRadialGradient(tx, ty, 0, tx, ty, circR * phaseT);
-                fG.addColorStop(0, `rgba(255,30,30,${0.32 * phaseT})`); fG.addColorStop(1, 'rgba(255,0,0,0)');
-                c.fillStyle = fG; c.beginPath(); c.arc(tx, ty, circR * phaseT, 0, Math.PI * 2); c.fill();
-              }
-              // crosshairs
-              c.strokeStyle = 'rgba(255,80,80,0.65)'; c.lineWidth = 1;
-              c.beginPath(); c.moveTo(tx - circR * 1.3, ty); c.lineTo(tx + circR * 1.3, ty);
-              c.moveTo(tx, ty - circR * 1.3); c.lineTo(tx, ty + circR * 1.3); c.stroke();
-              c.fillStyle = 'rgba(255,100,100,0.9)';
-              c.beginPath(); c.arc(tx, ty, 4, 0, Math.PI * 2); c.fill();
+              _guideDanger(c, w, h, 'circle', tx, ty, circR, phaseT, 0.3, t);
               c.fillStyle = 'rgba(255,100,100,0.7)'; c.font = '7px Share Tech Mono,monospace'; c.textAlign = 'center';
               c.fillText('TARGET', tx, ty - circR - 5);
               c.fillText(`${((1 - phaseT) * 1.5).toFixed(1)}s`, tx, ty + circR + 12);
@@ -4261,6 +4270,7 @@
             }
 
             ctx = c; canvas = { width: w, height: h }; player.x = w * 0.5; player.y = h * 0.98;
+            if (phase === 1) _guideDanger(c, w, h, 'strip', uEnemy.x, uEnemy.y, h - uEnemy.y, (now - uEnemy._swordChargeStart) / 500, 0.3, now, Math.PI / 2, 12);
             _drawUriel(uEnemy);
             _drawUrielMotes();
             _drawUrielHolySwords();
@@ -4369,14 +4379,8 @@
             const novaTargets = [[w * 0.6, h * 0.75], [w * 0.45, h * 0.25], [w * 0.75, h * 0.35], [w * 0.85, h * 0.7]];
             if (novaPhase < 0.3) {
               const wA = novaPhase / 0.3;
-              novaTargets.forEach(([tx, ty], ti) => {
-                c.strokeStyle = `rgba(255,0,0,${wA * 0.1})`; c.lineWidth = 16;
-                c.beginPath(); c.moveTo(cx2, cy2); c.lineTo(tx, ty); c.stroke();
-                c.strokeStyle = `rgba(255,100,100,${wA * 0.75})`; c.lineWidth = 1.2;
-                c.setLineDash([8, 8]); c.beginPath(); c.moveTo(cx2, cy2); c.lineTo(tx, ty); c.stroke(); c.setLineDash([]);
-                c.fillStyle = `rgba(255,80,80,${wA * 0.8})`; c.beginPath(); c.arc(tx, ty, 4, 0, Math.PI * 2); c.fill();
-                c.fillStyle = `rgba(255,100,100,${wA * 0.6})`; c.font = '6px Share Tech Mono,monospace'; c.textAlign = 'center';
-                c.fillText(ti === 0 ? 'PLAYER' : 'SENTINEL', tx, ty - 7); c.textAlign = 'left';
+              novaTargets.forEach(([tx, ty]) => {
+                _guideDanger(c, w, h, 'strip', cx2, cy2, Math.hypot(tx - cx2, ty - cy2), wA, 0.3, t, Math.atan2(ty - cy2, tx - cx2), 8);
               });
             } else if (novaPhase < 0.45) {
               const fA = 1 - (novaPhase - 0.3) / 0.15;
@@ -4463,21 +4467,7 @@
             const swordOriginX = cx2, swordOriginY = cy2;
             const swordTargetAngle = Math.PI * 0.35; // aim toward bottom-right
             if (sp < 0.35) {
-              // Warning beam phase: orange dashed line from Mar to target
-              const warnAlpha = 0.4 + 0.5 * Math.sin(t / 80);
-              const warnLen = w * 0.55;
-              c.save(); c.translate(swordOriginX, swordOriginY); c.rotate(swordTargetAngle);
-              // Wide warning fill
-              c.fillStyle = `rgba(255,180,0,${warnAlpha * 0.15})`;
-              c.fillRect(0, -20, warnLen, 40);
-              // Edge lines
-              c.strokeStyle = `rgba(255,150,0,${warnAlpha * 0.7})`; c.lineWidth = 1.2;
-              c.beginPath(); c.moveTo(0, -20); c.lineTo(warnLen, -20); c.stroke();
-              c.beginPath(); c.moveTo(0, 20); c.lineTo(warnLen, 20); c.stroke();
-              // Center dashed
-              c.setLineDash([10, 7]); c.strokeStyle = `rgba(255,220,80,${warnAlpha * 0.6})`; c.lineWidth = 1;
-              c.beginPath(); c.moveTo(0, 0); c.lineTo(warnLen, 0); c.stroke(); c.setLineDash([]);
-              c.restore();
+              _guideDanger(c, w, h, 'strip', swordOriginX, swordOriginY, w * 0.55, sp / 0.35, 0.3, t, swordTargetAngle, 20);
 
               // Charge-up: energy gathers fast into the origin right before it fires
               if (sp > 0.28) {
@@ -4579,7 +4569,7 @@
           // Scene on the left, notes on the right (notes are skipped on a narrow card, the list below carries them).
           const showNotes = w >= 560;
           const sceneW = showNotes ? Math.round(w * 0.58) : w, noteX = sceneW + 10, noteW = w - noteX - 12;
-          const world = { left: 290, top: 105, width: 620, height: 545 };
+          const world = { left: 100, top: 0, width: 1000, height: 800 };
           const scale = Math.min((sceneW - 12) / world.width, (h - 34) / world.height);
           const sceneX = (sceneW - world.width * scale) / 2, sceneY = 28;
           const notes = vi ? [
@@ -4765,12 +4755,10 @@
               const hT = (hakiPhase - 0.7) / 0.25;
               const hR = hT * Math.max(w, h) * 0.85;
               const hFade = Math.max(0, 1 - hT);
-              const hBlink = 0.7 + 0.3 * Math.sin(t / 40);
-              c.globalAlpha = hFade * 0.15 * hBlink;
-              c.fillStyle = 'rgba(100,0,200,1)'; c.beginPath(); c.arc(cx2, cy2, hR, 0, Math.PI * 2); c.fill();
-              c.globalAlpha = 1;
-              c.strokeStyle = `rgba(138,43,226,${hFade * (0.7 + 0.3 * hBlink)})`; c.lineWidth = 4;
-              c.beginPath(); c.arc(cx2, cy2, hR, 0, Math.PI * 2); c.stroke();
+              c.globalAlpha = hFade * 0.15;
+              c.fillStyle = '#6400c8'; c.beginPath(); c.arc(cx2, cy2, hR, 0, Math.PI * 2); c.fill();
+              c.globalAlpha = hFade; c.strokeStyle = '#8a2be2'; c.lineWidth = 4;
+              c.beginPath(); c.arc(cx2, cy2, hR, 0, Math.PI * 2); c.stroke(); c.globalAlpha = 1;
               c.fillStyle = `rgba(200,100,255,${hFade})`; c.font = 'bold 9px Orbitron, sans-serif'; c.textAlign = 'center';
               c.fillText('MAOU HAKI', cx2, cy2 - hR - 4); c.textAlign = 'left';
             }
@@ -5179,15 +5167,8 @@
             if (isPers) {
               const persT = (bp - 0.32) / 0.20;
               if (persT < 0.35) {
-                // Charge warning
                 const chgP = persT / 0.35;
-                c.save(); c.translate(cx2, cy2);
-                c.strokeStyle = `rgba(255,0,0,${chgP * 0.35})`; c.lineWidth = 3 + chgP * 6;
-                c.beginPath(); c.arc(0, 0, r * (0.6 + chgP * 1.2), 0, Math.PI * 2); c.stroke();
-                c.save(); c.rotate(t / 300); c.globalAlpha = chgP * 0.5; c.setLineDash([8, 6]);
-                c.strokeStyle = '#ff0000'; c.lineWidth = 2; c.beginPath(); c.arc(0, 0, r * 0.8, 0, Math.PI * 2); c.stroke();
-                c.restore(); c.setLineDash([]); c.globalAlpha = 1;
-                c.restore();
+                _guideDanger(c, w, h, 'strip', cx2, cy2, Math.hypot(w, h), chgP, 0.6, t, -Math.PI, 16);
               } else {
                 // 360° sweep
                 const sweepP = (persT - 0.35) / 0.65;

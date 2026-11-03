@@ -1035,13 +1035,28 @@
 }
 .rc-root.rc-intro .rc-title {
   text-shadow: 0 0 30px rgba(0, 229, 255, 0.75), 0 0 2px rgba(255, 255, 255, 0.6);
-  animation: rcTitleIn 1.14s cubic-bezier(0.22, 1, 0.36, 1) both;
+  background: linear-gradient(110deg, var(--rc-silver) 36%, #fff5d5 47%, #a8f4ff 52%, var(--rc-silver) 64%) 140% 0 / 240% 100%;
+  background-clip: text;
+  -webkit-background-clip: text;
+  color: transparent;
+  animation: rcTitleIn 1.14s cubic-bezier(0.22, 1, 0.36, 1) both, rcTitleSheen 1.14s ease-out both;
 }
 .rc-root.rc-intro .rc-subtitle-top {
   animation: rcFadeUp 0.55s 0.5s ease both;
 }
 .rc-root.rc-intro .rc-pisces-emblem {
   animation: rcEmblemIn 1.27s 0.18s ease both;
+}
+.rc-root.rc-intro .rc-pisces-emblem circle {
+  transform-box: fill-box;
+  transform-origin: center;
+  animation: rcConstellationGlow 0.64s 0.28s ease-out both;
+}
+.rc-root.rc-intro .rc-pisces-emblem circle:nth-of-type(2n) {
+  animation-delay: 0.42s;
+}
+.rc-root.rc-intro .rc-pisces-emblem circle:nth-of-type(3n) {
+  animation-delay: 0.55s;
 }
 .rc-divider-line {
   transform-origin: right center;
@@ -1063,6 +1078,23 @@
 @keyframes rcFadeUp {
   from { opacity: 0; transform: translateY(6px); }
   to { opacity: 1; transform: translateY(0); }
+}
+@keyframes rcTitleSheen {
+  from { background-position: 140% 0; }
+  to { background-position: -70% 0; }
+}
+@keyframes rcConstellationGlow {
+  0% { opacity: 0.25; transform: scale(0.8); }
+  40% { opacity: 1; transform: scale(1.65); }
+  100% { opacity: 1; transform: scale(1); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .rc-root.rc-intro .rc-title {
+    background: none;
+    color: var(--rc-silver);
+    animation: rcTitleIn 1.14s cubic-bezier(0.22, 1, 0.36, 1) both;
+  }
+  .rc-root.rc-intro .rc-pisces-emblem circle { animation: none; }
 }
 @keyframes rcEmblemIn {
   from { opacity: 0; }

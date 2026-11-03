@@ -31,6 +31,7 @@ let _bgCacheFrame = 0;  // frame counter for cache refresh
 // Intercept ctx.shadowBlur on mobile, return to 0 for most calls
 // Wrapped lazily after canvas is set up (see initMobilePerf)
 function _initMobilePerf() {
+    if (!_gfxLevelDecided && window._smartQuality !== false && navigator.deviceMemory && navigator.deviceMemory <= 2) _applyGfxLevel(2);
     // Force safe mode immediately on entering mobile, instead of waiting for
     // the FPS watchdog to react (which used to cost a few seconds of visible
     // lag on real devices) - but ONLY while no real tier decision exists yet.
@@ -254,23 +255,8 @@ function _drawThreatRing(x, y, radius, progress) {
 // the charge builds. Same red as the threat ring so every "this is coming at
 // you" cue reads alike. Two flat strokes per frame with no blur or gradient,
 // and the dashes march outward so the line reads as a direction, not a wall.
-function _drawLaunchTelegraph(x, y, ang, progress) {
-    const rgb = '255,46,46';
-    const len = Math.hypot(canvas.width, canvas.height);
-    const ex = x + Math.cos(ang) * len, ey = y + Math.sin(ang) * len;
-    const a = 0.25 + 0.4 * Math.min(1, Math.max(0, progress));
-    ctx.save();
-    ctx.lineCap = 'round';
-    ctx.beginPath(); ctx.moveTo(x, y); ctx.lineTo(ex, ey);
-    ctx.strokeStyle = `rgba(${rgb},${a * 0.3})`;
-    ctx.lineWidth = 6;
-    ctx.stroke();
-    ctx.setLineDash([14, 10]);
-    ctx.lineDashOffset = -performance.now() * 0.06;
-    ctx.strokeStyle = `rgba(${rgb},${a})`;
-    ctx.lineWidth = 2;
-    ctx.stroke();
-    ctx.restore();
+function _drawLaunchTelegraph(x, y, ang, progress, halfWidth = 15) {
+    _drawDangerZone('strip', x, y, Math.hypot(canvas.width, canvas.height), progress, 0.3, performance.now(), ang, halfWidth);
 }
 
 // Round energy-orb bullet, baked once into a sprite: a soft falloff halo,
@@ -2410,6 +2396,10 @@ function draw(deltaTime) {
     }
 
     if (gameState === "playing") {
+        _drawEnemyDangerWarnings();
+        drawBossShockwaves();
+        _drawUrielSwordTelegraphs();
+        _drawRaphaelWisdomTelegraphs();
         _drawTyGround();
         sentinels.forEach(drawSentinel);
         // Vanguard Network threads (5+ sentinels)
@@ -2483,7 +2473,6 @@ function draw(deltaTime) {
         drawSkillDLasers();
         drawSkillDBolts();
 
-        drawBossShockwaves();
         _drawCapricornMountain();
 
         if (laserActive) {
@@ -2592,9 +2581,6 @@ function draw(deltaTime) {
         // skill effects) - Uriel's Holy Sword and Raphael's Wisdom Orb.
         // Both must stay readable no matter how much else is on screen.
         enemies.forEach(e => { if (e.type.startsWith('enemy_bullet') || e.type === 'abyssal_chain') drawEnemy(e); });
-        // aim lines sit up here too, or Raphael's half-screen aura would wash them out
-        _drawUrielSwordTelegraphs();
-        _drawRaphaelWisdomTelegraphs();
         if (typeof _drawUrielHolySwords === 'function') _drawUrielHolySwords();
         _drawRaphaelWisdomOrbs();
         if (_camZoom !== 1) ctx.restore();

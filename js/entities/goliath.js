@@ -1416,10 +1416,16 @@ function _goliathUpdateJoker(enemy, deltaTime, now) {
             s.targets = _goliathLockTargets(2);
             s.lightningPending = true;
             s.lightningCountdown = 0;
+            // hold fades out into the exit thud, then each locked point pings on its own key slot and one charge builds at the first
+            if (s._phHoldVoice) { s._phHoldVoice.cancel(0.08); s._phHoldVoice = null; }
+            _phantomCue('phantom-exit', s, enemy.x, enemy.y);
+            s.targets.forEach((t, i) => _phantomCue('phantom-lock', s, t.x, t.y, i & 1));
+            if (s.targets.length > 0) s._phChargeVoice = _phantomCue('phantom-charge', s, s.targets[0].x, s.targets[0].y);
         } else if (s.lightningPending) {
             s.lightningCountdown += deltaTime;
             if (s.lightningCountdown >= 1500) {
                 s.lightningPending = false;
+                s._phChargeVoice = null;
                 s.lightningEnd = now + 400;
                 if (window.AudioMgr && s.targets.length > 0) window.AudioMgr.playSfxAt('phantom-strike', s.targets[0].x, s.targets[0].y);
                 // Đúng thật (_veilshroudStrike): sét đánh vào TOẠ ĐỘ đã chốt,
@@ -1448,6 +1454,8 @@ function _goliathUpdateJoker(enemy, deltaTime, now) {
             if (s.wantPhantom && _goliathCanStartSkill(enemy, now, 'phantom')) {
                 s.wantPhantom = false;
                 s.phantomEnd = now + 3000;
+                _phantomCue('phantom-enter', s, enemy.x, enemy.y);
+                s._phHoldVoice = _phantomCue('phantom-hold', s, enemy.x, enemy.y);
             }
         }
     }

@@ -1182,6 +1182,7 @@ function drawEnemy(enemy) {
         const halfW = 36;
         for (const gw of enemy._ghostWindups) {
             const frozen = gw.freezeTimer > 0;
+            if (frozen) continue;
             const alpha = frozen ? 1.0 : Math.max(0, gw.fadeTimer / gw.maxFade);
             if (alpha <= 0) continue;
             // Khi frozen: origin theo vị trí Mar hiện tại (Mar đang di chuyển)

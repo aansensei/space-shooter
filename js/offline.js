@@ -155,6 +155,7 @@
         'js/render/skill-f.js',
         'js/render/skill-g.js',
         'js/render/skill-s-spirit.js',
+        'assets/audio/sfx/ingame-slices.json',
     ];
 
     // Kept as a static list (not scraped from audio.js's _makePool calls at
@@ -193,7 +194,7 @@
         'assets/audio/sfx/laser.mp3', 'assets/audio/sfx/laser-fire.mp3',
         'assets/audio/sfx/leviathan-death-roar.mp3', 'assets/audio/sfx/leviathan-idle.mp3', 'assets/audio/sfx/leviathan-perseverance.mp3', 'assets/audio/sfx/life-lost.mp3',
         'assets/audio/sfx/low-hp.mp3', 'assets/audio/sfx/maou-haki.mp3', 'assets/audio/sfx/menu-space-1.mp3', 'assets/audio/sfx/menu-space-2.mp3', 'assets/audio/sfx/menu-space-3.mp3', 'assets/audio/sfx/metal-hit.mp3', 'assets/audio/sfx/new-wave.mp3',
-        'assets/audio/sfx/overlay.wav', 'assets/audio/sfx/phantom-strike.mp3', 'assets/audio/sfx/photokrystos-boomerang-hit.mp3', 'assets/audio/sfx/photokrystos-boomerang-throw.mp3',
+        'assets/audio/sfx/overlay.wav', 'assets/audio/sfx/phantom-strike.mp3', 'assets/audio/sfx/phantom-enter.mp3', 'assets/audio/sfx/phantom-hold.mp3', 'assets/audio/sfx/phantom-deflect.mp3', 'assets/audio/sfx/phantom-exit.mp3', 'assets/audio/sfx/phantom-lock.mp3', 'assets/audio/sfx/phantom-charge.mp3','assets/audio/sfx/photokrystos-boomerang-hit.mp3', 'assets/audio/sfx/photokrystos-boomerang-throw.mp3',
         'assets/audio/sfx/photokrystos-btm-firing.mp3', 'assets/audio/sfx/photokrystos-btm-kill.mp3', 'assets/audio/sfx/photokrystos-btm-shockwave.mp3',
         'assets/audio/sfx/photokrystos-btm-warming.mp3', 'assets/audio/sfx/photokrystos-dnt-laser.mp3', 'assets/audio/sfx/photokrystos-idle.mp3',
         'assets/audio/sfx/photokrystos-summon-converge.mp3', 'assets/audio/sfx/photokrystos-summon-flash.mp3', 'assets/audio/sfx/photokrystos-summon-holy.mp3',

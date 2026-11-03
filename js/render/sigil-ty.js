@@ -473,7 +473,30 @@ function _tyBakeVenom() {
         g.fillStyle = lit ? PAL.VIOLET : PAL.ABYSS; g.strokeStyle = PAL.VOID; g.lineWidth = 4; g.beginPath(); g.moveTo(0, -11); g.quadraticCurveTo(8, -1, 2, 10); g.lineTo(-2, 10); g.quadraticCurveTo(-8, -1, 0, -11); g.closePath(); g.stroke(); g.fill(); g.strokeStyle = PAL.GOLD; g.lineWidth = 1; g.stroke();
         if (lit) { g.strokeStyle = PAL.EMBER; g.lineWidth = 3; g.beginPath(); g.moveTo(0, -7); g.quadraticCurveTo(-2, 0, 0, 6); g.stroke(); } g.restore();
     }
-    return { aura, ring, bloom, micro, flat, flash, cracks, icon, marks };
+    const settled = [];
+    for (let stacks = 1; stacks <= 5; stacks++) {
+        const stamp = _tyMakeStamp(192); g = stamp.getContext('2d'); g.translate(96, 96);
+        const haze = g.createRadialGradient(0, 0, 33, 0, 0, 94);
+        haze.addColorStop(0, PAL.VIOLET + '00'); haze.addColorStop(0.4, PAL.VIOLET + '70');
+        haze.addColorStop(0.7, PAL.MAGENTA + 'D0'); haze.addColorStop(1, PAL.VIOLET + '00');
+        g.fillStyle = haze; g.fillRect(-96, -96, 192, 192);
+        g.strokeStyle = PAL.VOID; g.lineWidth = 4; g.beginPath(); g.arc(0, 0, 71, 0, Math.PI * 2); g.stroke();
+        g.strokeStyle = PAL.VIOLET; g.lineWidth = 1.8 + stacks * 0.35; g.stroke();
+        g.strokeStyle = stacks === 5 ? PAL.EMBER : PAL.GOLD; g.lineWidth = 1; g.beginPath(); g.arc(0, 0, 75, 0, Math.PI * 2); g.stroke();
+        if (stacks >= 3) {
+            g.strokeStyle = PAL.MAGENTA; g.lineWidth = 1.4; _tyCraquelure(g, 67, stacks * 3);
+            g.fillStyle = PAL.LILAC;
+            for (let j = 0; j < stacks * 2; j++) {
+                const a = j * 2.399963; g.beginPath(); g.arc(Math.cos(a) * 80, Math.sin(a) * 80, 1.5, 0, Math.PI * 2); g.fill();
+            }
+        }
+        if (stacks === 5) {
+            g.globalAlpha = 0.8; g.drawImage(cracks, -38, -38, 76, 76);
+            g.strokeStyle = PAL.EMBER; g.lineWidth = 2.2; g.beginPath(); g.arc(0, 0, 53, 0, Math.PI * 2); g.stroke();
+        }
+        settled.push(stamp);
+    }
+    return { aura, ring, bloom, micro, flat, flash, cracks, icon, marks, settled };
 }
 const _tyVenomArt = _tyBakeVenom();
 const _tyVenomDrops = Array.from({ length: 96 }, () => ({ active: false, owner: null, at: 0, life: 0, x: 0, y: 0, vx: 0, vy: 0, lime: false }));
@@ -504,19 +527,20 @@ function _drawTyVenom(g, now, tier, only) {
         const e = enemies[i], stacks = e._tyVenomStacks;
         if (!(stacks > 0) || !_tyVenomTarget(e) || (only ? e !== only : e.type === 'goliath')) continue;
         if (e._tyVenomFxEpoch !== _tyVenomFxEpoch) { e._tyVenomFxEpoch = _tyVenomFxEpoch; e._tyVenomFxPulseSeen = -10000; e._tyVenomDropAt = now; e._tyVenomFxMicroAt = now; }
-        const size = (e.size || 30), r = size + 8, breath = 1 + Math.sin(now * 0.004 + e.x) * 0.045;
+        const size = (e.size || 30), r = Math.max(size + 14, 66), breath = 1 + Math.sin(now * (0.003 + stacks * 0.0012) + e.x) * (0.025 + stacks * 0.006);
         const pulseAge = now - e._tyVenomPulseAt;
         const settle = Math.max(0, Math.min(1, (pulseAge - 70) / 690));
         const surge = e._tyVenomPulseBig && pulseAge >= 0 && pulseAge < 760 ? (pulseAge < 70 ? 1 - 0.12 * pulseAge / 70 : 1 + 0.18 * Math.sin(settle * Math.PI) * (1 - settle) - 0.12 * Math.max(0, 1 - (pulseAge - 70) / 130)) : 1;
-        const auraSize = (size * 2.2 + 24) * breath * surge;
-        g.globalAlpha = bright * (glow ? 0.2 + stacks * 0.027 : 0.38); g.drawImage(glow ? _tyVenomArt.aura : _tyVenomArt.flat, e.x - auraSize / 2, e.y - auraSize / 2, auraSize, auraSize);
-        if (stacks >= 4.9 && tier < 2) { g.globalAlpha = bright * 0.45; const w = size * 1.3; g.drawImage(_tyVenomArt.cracks, e.x - w / 2, e.y - w / 2, w, w); }
+        const auraSize = (size * (2.4 + stacks * 0.08) + 24) * breath * surge;
+        g.globalAlpha = bright * Math.min(1, stacks) * (0.58 + stacks * 0.08);
+        g.drawImage(_tyVenomArt.settled[Math.max(0, Math.min(4, Math.ceil(stacks) - 1))], e.x - auraSize / 2, e.y - auraSize / 2, auraSize, auraSize);
+        const markSize = _mobPerf ? 28 : 32;
         for (let j = 0; j < 5; j++) {
             const a = (-0.78 + j * 0.14) * Math.PI, x = e.x + Math.cos(a) * r, y = e.y + Math.sin(a) * r, weight = Math.max(0, Math.min(1, stacks - j));
-            g.globalAlpha = bright * (weight > 0 ? weight : 0.5); g.drawImage(_tyVenomArt.marks, j * 32, weight > 0 ? 32 : 0, 32, 32, x - 7, y - 7, 14, 14);
+            g.globalAlpha = bright * (weight > 0 ? weight : 0.75); g.drawImage(_tyVenomArt.marks, j * 32, weight > 0 ? 32 : 0, 32, 32, x - markSize / 2, y - markSize / 2, markSize, markSize);
         }
         const vuln = e.vulnStacks > 0 && e.vulnEndTime && performance.now() < e.vulnEndTime;
-        const ix = e.x + (vuln ? 51 : 36), iy = e.y - size - 28;
+        const ix = e.x + Math.max(vuln ? 51 : 36, r + 24), iy = e.y - size - 28;
         g.globalAlpha = bright; g.drawImage(_tyVenomArt.icon, ix - 32, iy - 32, 64, 64); _tyVenomFxStats.devourerIcons++;
         const age = now - e._tyVenomPulseAt, duration = e._tyVenomPulseBig ? 760 : 340;
         if (age >= 0 && age < duration && e._tyVenomFxPulseSeen !== e._tyVenomPulseAt) {

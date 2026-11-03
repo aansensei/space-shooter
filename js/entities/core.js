@@ -180,6 +180,8 @@ function handleEnemyKill(enemy) {
         // since this whole function runs the instant hp hits 0, the same
         // frame the laser sequence starts, well before it's actually done.
     }
+    if (enemy.type === 'veilshroud') _phantomStopVoices(enemy);
+    if (enemy.type === 'goliath' && enemy._jokerState && enemy._jokerState['Veilshroud']) _phantomStopVoices(enemy._jokerState['Veilshroud']);
     if (enemy.type === 'egregor') {
         window._lastEgregorKillTime = performance.now();
         if (!window._egregorDeathBursts) window._egregorDeathBursts = [];
@@ -1556,9 +1558,9 @@ function dealDamage(enemy, source) {
         totalDamage = Math.min(totalDamage, Math.ceil(enemy.maxHp * _capPctTrue));
     }
 
-    // Veilshroud Phantom: damage capped at 25% maxHP per hit
+    // Veilshroud Phantom: damage capped at 15% maxHP per hit
     if (enemy.type === 'veilshroud' && enemy.inPhantom) {
-        totalDamage = Math.min(totalDamage, Math.ceil(enemy.maxHp * 0.25));
+        totalDamage = Math.min(totalDamage, Math.ceil(enemy.maxHp * 0.15));
         // Energy Accumulation: record absorbed damage
         enemy._phantomAbsorb = (enemy._phantomAbsorb || 0) + Math.max(0, _veilPreDr - totalDamage);
         // Phantom Portal (Void Echo): lifetime tally of real damage actually
@@ -1566,6 +1568,11 @@ function dealDamage(enemy, source) {
         // spawned apostles scale off how much punishment this Veilshroud
         // actually soaked up, not just its base MaxHP.
         enemy._totalPhantomDamageReceived = (enemy._totalPhantomDamageReceived || 0) + totalDamage;
+        // one soft thud per ~90ms, so a barrage of bullets does not turn into a buzz
+        if (currentTime - (enemy._phDeflectAt || 0) >= 90) {
+            enemy._phDeflectAt = currentTime;
+            _phantomCue('phantom-deflect', enemy, enemy.x, enemy.y);
+        }
     }
 
     // Per-hit cap 30% MaxHP, always on (Covenant King never lets a single

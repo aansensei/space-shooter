@@ -134,6 +134,10 @@ function _drawLeviathanEffects() {
         }
         ctx.restore();
     });
+    for (const e of enemies) {
+        if (e.type !== 'leviathan' || !e.perseveranceCharging || e.hp <= 0) continue;
+        _drawDangerZone('strip', e.x, e.y, len, (now - e.perseveranceChargeStart) / 1000, 0.6, now, -Math.PI, 40, Math.PI, false, true);
+    }
 
     // Perseverance sweep beams (objects độc lập trong _levPersBeams)
     if (window._levPersBeams) {

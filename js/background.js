@@ -57,6 +57,10 @@
         window._bgReady = false;
         console.warn('[Background] WebGL context lost — falling back to 2D star field.');
     });
+    pc.addEventListener('webglcontextrestored', () => {
+        window._bgReady = true;
+        _syncSoon();
+    });
 
     const W = () => app.renderer.width;
     const H = () => app.renderer.height;
@@ -126,10 +130,10 @@
         for (const k in f) out[k] = Math.round(base[k] * f[k]);
         return out;
     }
-    let _bgDetail = 'full';
+    let _bgDetail = _isTouchDevice && navigator.deviceMemory && navigator.deviceMemory <= 2 ? 'low' : 'full';
     try {
         const savedDetail = localStorage.getItem('pisces_bg_detail');
-        if (savedDetail === 'low' || savedDetail === 'detail') _bgDetail = savedDetail;
+        if (savedDetail === 'low' || savedDetail === 'detail' || savedDetail === 'full') _bgDetail = savedDetail;
     } catch (_) {}
     window._bgDetail = _bgDetail;
     let _baseCfg = _isTouchDevice ? MOBILE_CFG : DESKTOP_CFG;
@@ -809,4 +813,4 @@
 
     window._bgReady = true;
 
-})();
+})().catch(() => { window._bgReady = false; });

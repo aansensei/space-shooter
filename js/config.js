@@ -376,6 +376,7 @@ const _ENEMY_ATK_TABLE = {
 // (Walpurgis Max HP stacks, Sentinel count, etc.) never silently changes an
 // already-launched or already-spawned enemy's own offense.
 function _enemySnapshotAtk(enemy, speciesKey) {
+    if (window.AudioMgr && window.AudioMgr.prepareEnemy) window.AudioMgr.prepareEnemy(speciesKey);
     const spec = _ENEMY_ATK_TABLE[speciesKey];
     if (!spec) return;
     enemy.atk = spec.e0 * _atkWaveMult(typeof _waveNumber !== 'undefined' ? Math.max(1, _waveNumber) : 1);

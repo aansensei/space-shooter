@@ -96,7 +96,7 @@
     <link href="https://fonts.googleapis.com/css2?family=LXGW+WenKai+TC:wght@700&text=%E5%A4%A9%E7%A9%BA%E5%B4%A9%E5%A1%8C&display=swap" rel="stylesheet">
     <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@600&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="css/style.css?v=20261019r">
-    <link rel="stylesheet" href="css/recap.css?v=20261020l">
+    <link rel="stylesheet" href="css/recap.css?v=20261102g">
 
     <style>
         body {
@@ -1243,16 +1243,20 @@
                         <!-- GAMEPLAY -->
                         <section class="st-card">
                             <div class="st-card-head"><i class="st-mark"></i><span data-i18n="gameplay.section">Gameplay</span></div>
-                            <div class="st-row">
+                            <label class="st-row st-row-click">
                                 <span class="st-row-text">
                                     <span class="st-label" data-i18n="gameplay.screenShake">Screen Shake</span>
                                     <span class="st-desc st-desc-warn" data-i18n="gameplay.screenShakeWarn">Turning on screen shake may cause lag on some devices.</span>
                                 </span>
-                                <span class="st-pair">
-                                    <button class="stg-onoff-btn" id="shake-on" onclick="onShakeChange(true)" data-i18n="gameplay.on">ON</button>
-                                    <button class="stg-onoff-btn stg-onoff-active" id="shake-off" onclick="onShakeChange(false)" data-i18n="gameplay.off">OFF</button>
+                                <span class="stg-toggle-wrap"><input type="checkbox" id="shake-check" onchange="onShakeChange(this.checked)"><span class="stg-toggle-track"></span><span class="stg-toggle-thumb"></span></span>
+                            </label>
+                            <label class="st-row st-row-click">
+                                <span class="st-row-text">
+                                    <span class="st-label" data-i18n="gameplay.dangerWarn">Red danger warning</span>
+                                    <span class="st-desc" data-i18n="gameplay.dangerWarnDesc">Shows the red zone, closing ring and screen edge pulse before big area attacks.</span>
                                 </span>
-                            </div>
+                                <span class="stg-toggle-wrap"><input type="checkbox" id="dangerwarn-check" data-fx="dangerWarn" onchange="_commitFx()" checked><span class="stg-toggle-track"></span><span class="stg-toggle-thumb"></span></span>
+                            </label>
                             <label class="st-row st-row-click">
                                 <span class="st-row-text">
                                     <span class="st-label" data-i18n="gameplay.tapFx">Tap Effect</span>
@@ -1265,28 +1269,22 @@
                                 </span>
                             </label>
                             <!-- Phones that can vibrate only; iPhone browsers cannot. -->
-                            <div class="st-row" id="vibrate-row" style="display:none;">
+                            <label class="st-row st-row-click" id="vibrate-row" style="display:none;">
                                 <span class="st-row-text">
                                     <span class="st-label" data-i18n="gameplay.vibrate">Vibration</span>
                                     <span class="st-desc" data-i18n="gameplay.vibrateDesc">Short buzz on hits, sigil picks and skill buttons.</span>
                                 </span>
-                                <span class="st-pair">
-                                    <button class="stg-onoff-btn stg-onoff-active" id="vibrate-on" onclick="onVibrateChange(true)" data-i18n="gameplay.on">ON</button>
-                                    <button class="stg-onoff-btn" id="vibrate-off" onclick="onVibrateChange(false)" data-i18n="gameplay.off">OFF</button>
-                                </span>
-                            </div>
+                                <span class="stg-toggle-wrap"><input type="checkbox" id="vibrate-check" onchange="onVibrateChange(this.checked)" checked><span class="stg-toggle-track"></span><span class="stg-toggle-thumb"></span></span>
+                            </label>
                             <!-- Only shown once the player has actually watched Kanade's
                                  cutscene through once; before that it is not an option. -->
-                            <div class="st-row" id="kanade-skip-row" style="display:none;">
+                            <label class="st-row st-row-click" id="kanade-skip-row" style="display:none;">
                                 <span class="st-row-text">
                                     <span class="st-label" data-i18n="gameplay.skipKanade">Skip Kanade Animation</span>
                                     <span class="st-desc" id="kanade-skip-note" data-i18n="gameplay.skipKanadeNote">The boss wave still rolls and applies its Timeline Distortion either way.</span>
                                 </span>
-                                <span class="st-pair">
-                                    <button class="stg-onoff-btn" id="kanade-skip-on" onclick="onKanadeSkipChange(true)" data-i18n="gameplay.on">ON</button>
-                                    <button class="stg-onoff-btn stg-onoff-active" id="kanade-skip-off" onclick="onKanadeSkipChange(false)" data-i18n="gameplay.off">OFF</button>
-                                </span>
-                            </div>
+                                <span class="stg-toggle-wrap"><input type="checkbox" id="kanade-skip-check" onchange="onKanadeSkipChange(this.checked)"><span class="stg-toggle-track"></span><span class="stg-toggle-thumb"></span></span>
+                            </label>
                         </section>
 
                         <!-- SYSTEM: language, offline play, defaults -->
@@ -1777,40 +1775,6 @@
                     transform: scaleX(1);
                 }
 
-                /* ON/OFF: two small plates side by side. */
-                .st-pair {
-                    display: flex;
-                    flex-shrink: 0;
-                }
-
-                .stg-onoff-btn {
-                    min-width: 52px;
-                    padding: 6px 10px;
-                    font-family: var(--st-font);
-                    font-size: 11px;
-                    font-weight: 700;
-                    letter-spacing: 0.1em;
-                    color: var(--rc-silver-dim);
-                    background: rgba(2, 6, 18, 0.9);
-                    border: 1px solid rgba(140, 166, 198, 0.3);
-                    cursor: pointer;
-                    transition: color 0.18s ease, background 0.18s ease, border-color 0.18s ease;
-                }
-
-                .stg-onoff-btn + .stg-onoff-btn {
-                    border-left: 0;
-                }
-
-                .stg-onoff-active {
-                    color: #EAFDFF;
-                    background: rgba(0, 229, 255, 0.18);
-                    border-color: var(--rc-electric);
-                }
-
-                .stg-onoff-btn + .stg-onoff-active {
-                    box-shadow: -1px 0 0 var(--rc-electric);
-                }
-
                 /* Sliders: a thin line filled to the value, with a diamond grip. */
                 .stg-slider {
                     -webkit-appearance: none;
@@ -2275,6 +2239,8 @@
                         'gameplay.section': 'Gameplay', 'gameplay.screenShake': 'Screen Shake',
                         'gameplay.on': 'ON', 'gameplay.off': 'OFF',
                         'gameplay.screenShakeWarn': 'Turning on screen shake may cause unexpected lag on some devices.',
+                        'gameplay.dangerWarn': 'Red danger warning',
+                        'gameplay.dangerWarnDesc': 'Shows the red zone, closing ring and screen edge pulse before big area attacks.',
                         'gameplay.tapFx': 'Tap Effect',
                         'gameplay.tapFxDesc': 'A glowing ring where you click or touch; on a button it wraps the button.',
                         'gameplay.vibrate': 'Vibration',
@@ -2358,6 +2324,8 @@
                         'gameplay.section': 'Lối Chơi', 'gameplay.screenShake': 'Rung Màn Hình',
                         'gameplay.on': 'BẬT', 'gameplay.off': 'TẮT',
                         'gameplay.screenShakeWarn': 'Bật rung màn hình có thể gây giật lag trên một số thiết bị.',
+                        'gameplay.dangerWarn': 'Viền đỏ cảnh báo nguy hiểm',
+                        'gameplay.dangerWarnDesc': 'Hiện vùng đỏ, vòng thu hẹp và viền màn hình đập nhịp trước các đòn khu vực lớn.',
                         'gameplay.tapFx': 'Hiệu Ứng Chạm',
                         'gameplay.tapFxDesc': 'Vòng sáng ở chỗ bạn bấm hoặc chạm; bấm vào nút thì vòng ôm theo nút.',
                         'gameplay.vibrate': 'Rung Máy',
@@ -2775,20 +2743,17 @@
                     if (window._bgSetBrightness) window._bgSetBrightness(parseInt(val) / 100);
                 }
 
-                // Screen shake → only update button highlight
+                // Gameplay switches share the same checkbox presentation.
                 function onShakeChange(enabled) {
-                    document.getElementById('shake-on').classList.toggle('stg-onoff-active', enabled);
-                    document.getElementById('shake-off').classList.toggle('stg-onoff-active', !enabled);
+                    document.getElementById('shake-check').checked = enabled;
                 }
 
                 function onVibrateChange(enabled) {
-                    document.getElementById('vibrate-on').classList.toggle('stg-onoff-active', enabled);
-                    document.getElementById('vibrate-off').classList.toggle('stg-onoff-active', !enabled);
+                    document.getElementById('vibrate-check').checked = enabled;
                 }
 
                 function onKanadeSkipChange(enabled) {
-                    document.getElementById('kanade-skip-on').classList.toggle('stg-onoff-active', enabled);
-                    document.getElementById('kanade-skip-off').classList.toggle('stg-onoff-active', !enabled);
+                    document.getElementById('kanade-skip-check').checked = enabled;
                 }
 
                 // APPLY: read UI state, apply everything, then close.
@@ -2815,16 +2780,16 @@
                     // Audio: 3-slider volumes are applied live via onAudioSlider
 
                     // Screen shake
-                    window._screenShakeEnabled = document.getElementById('shake-on').classList.contains('stg-onoff-active');
+                    window._screenShakeEnabled = document.getElementById('shake-check').checked;
 
                     // Skip Kanade animation
                     if (typeof _setKanadeCutsceneSkipped === 'function') {
-                        _setKanadeCutsceneSkipped(document.getElementById('kanade-skip-on').classList.contains('stg-onoff-active'));
+                        _setKanadeCutsceneSkipped(document.getElementById('kanade-skip-check').checked);
                     }
 
                     window._showFps = document.getElementById('showfps-check').checked;
                     window._tapFxEnabled = document.getElementById('tapfx-check').checked;
-                    window._vibrateEnabled = document.getElementById('vibrate-on').classList.contains('stg-onoff-active');
+                    window._vibrateEnabled = document.getElementById('vibrate-check').checked;
                     try {
                         localStorage.setItem('pisces_show_fps', window._showFps ? '1' : '0');
                         localStorage.setItem('pisces_vibrate', window._vibrateEnabled ? '1' : '0');
@@ -2869,10 +2834,9 @@
                 }
                 _setFpsCounter(window._showFps);
 
-                // Advanced Graphics. The switches are saved in window._fxOpts
-                // (localStorage pisces_fx) but nothing reads them yet.
+                // Graphics controls share one persisted options object.
                 const _FX_ROWS = ['explosions', 'particles', 'glow', 'screenFlash', 'sigilLight', 'sigilBackdrop', 'nebula', 'trails', 'jewelTwinkle'];
-                window._fxOpts = { fxBrightness: 100, flashIntensity: 100 };
+                window._fxOpts = { fxBrightness: 100, flashIntensity: 100, dangerWarn: true };
                 _FX_ROWS.forEach(k => { window._fxOpts[k] = true; });
                 try {
                     const saved = JSON.parse(localStorage.getItem('pisces_fx') || 'null');
@@ -2907,18 +2871,25 @@
                     document.querySelectorAll('#st-fx-rows input[data-fx]').forEach(i => { i.checked = on; });
                 }
                 function _syncFxUI() {
-                    document.querySelectorAll('#st-fx-rows input[data-fx]').forEach(i => { i.checked = window._fxOpts[i.dataset.fx] !== false; });
+                    document.querySelectorAll('input[data-fx]').forEach(i => { i.checked = window._fxOpts[i.dataset.fx] !== false; });
                     const b = document.getElementById('fx-bright-slider'), f = document.getElementById('fx-flash-slider');
                     b.value = window._fxOpts.fxBrightness; onFxSlider('fx-bright', b.value);
                     f.value = window._fxOpts.flashIntensity; onFxSlider('fx-flash', f.value);
                 }
                 function _commitFx() {
-                    document.querySelectorAll('#st-fx-rows input[data-fx]').forEach(i => { window._fxOpts[i.dataset.fx] = i.checked; });
+                    document.querySelectorAll('input[data-fx]').forEach(i => { window._fxOpts[i.dataset.fx] = i.checked; });
                     window._fxOpts.fxBrightness = parseInt(document.getElementById('fx-bright-slider').value);
                     window._fxOpts.flashIntensity = parseInt(document.getElementById('fx-flash-slider').value);
                     try { localStorage.setItem('pisces_fx', JSON.stringify(window._fxOpts)); } catch (_) { }
                     window._fxBrightMul = window._fxOpts.fxBrightness / 100;
                 }
+                // Space operates focused switches without triggering combat keys.
+                function _settingsSwitchKey(event) {
+                    if (event.code === 'Space' && event.target.matches('input[type="checkbox"]')) event.stopPropagation();
+                }
+                const _settingsSwitchHost = document.getElementById('settingsOverlay');
+                _settingsSwitchHost.addEventListener('keydown', _settingsSwitchKey);
+                _settingsSwitchHost.addEventListener('keyup', _settingsSwitchKey);
 
                 // Restore Defaults opens a Yes / No box; Yes puts every setting
                 // back at once and leaves the panel open. Language is left alone.
@@ -2954,6 +2925,7 @@
                         _buildMusicDropdown();
                     }
                     setAllFx(true);
+                    document.getElementById('dangerwarn-check').checked = true;
                     document.getElementById('fx-bright-slider').value = 100;
                     onFxSlider('fx-bright', '100');
                     document.getElementById('fx-flash-slider').value = 100;
@@ -4199,12 +4171,12 @@
 
     <script src="js/vendor/pixi.min.js"></script>
     <script src="js/canvas-guard.js?v=20261008a"></script>
-    <script src="js/audio.js?v=20261025h"></script>
-    <script src="js/offline.js?v=20261025h"></script>
-    <script src="js/background.js?v=20261020o"></script>
-    <script src="js/config.js?v=20261102b"></script>
+    <script src="js/audio.js?v=20261102f"></script>
+    <script src="js/offline.js?v=20261102f"></script>
+    <script src="js/background.js?v=20261102f"></script>
+    <script src="js/config.js?v=20261102f"></script>
     <script src="js/timeline-distortion.js?v=20261018c"></script>
-    <script src="js/sigils/core.js?v=20261027perf2"></script>
+    <script src="js/sigils/core.js?v=20261102f"></script>
     <script src="js/sigils/aries.js?v=20261012c"></script>
     <script src="js/sigils/taurus.js?v=20261012c"></script>
     <script src="js/sigils/gemini.js?v=20261012c"></script>
@@ -4221,16 +4193,16 @@
     <script src="js/sigils/dau.js?v=20261018a"></script>
     <script src="js/sigils/ty.js?v=20261025i"></script>
     <script src="js/yuusha-party.js?v=20261019a"></script>
-    <script src="js/entities/core.js?v=20261102b"></script>
+    <script src="js/entities/core.js?v=20261102d"></script>
     <script src="js/entities/sentinel.js?v=20261008a"></script>
-    <script src="js/entities/veilshroud.js?v=20261019a"></script>
+    <script src="js/entities/veilshroud.js?v=20261102b"></script>
     <script src="js/entities/uriel.js?v=20261019a"></script>
     <script src="js/entities/egregor.js?v=20261102a"></script>
     <script src="js/entities/leviathan.js?v=20261019a"></script>
     <script src="js/entities/marchosias.js?v=20261013d"></script>
     <script src="js/entities/misc-enemies.js?v=20261008a"></script>
     <script src="js/entities/raphael.js?v=20261019a"></script>
-    <script src="js/entities/goliath.js?v=20261025i"></script>
+    <script src="js/entities/goliath.js?v=20261102a"></script>
     <script src="js/skills/skill-a.js?v=20261024a"></script>
     <script src="js/skills/skill-s-spirit.js?v=20261023c"></script>
     <script src="js/skills/skill-d.js?v=20261023b"></script>
@@ -4249,21 +4221,21 @@
     <script src="js/skills/sigil-gemini.js?v=20260911a"></script>
     <script src="js/skills/sigil-aries.js?v=20260902a"></script>
     <script src="js/skills/sigil-virgo.js?v=20260911a"></script>
-    <script src="js/render/core.js?v=20261023b"></script>
+    <script src="js/render/core.js?v=20261102f"></script>
     <script src="js/render/kanade-face.js?v=20261015c"></script>
-    <script src="js/render/kanade-cutscene.js?v=20261020i"></script>
-    <script src="js/render/fx.js?v=20261025g"></script>
+    <script src="js/render/kanade-cutscene.js?v=20261102f"></script>
+    <script src="js/render/fx.js?v=20261102d"></script>
     <script src="js/render/player.js?v=20261015a"></script>
-    <script src="js/render/enemy-common.js?v=20261025c"></script>
+    <script src="js/render/enemy-common.js?v=20261102c"></script>
     <script src="js/render/enemy-raphael.js?v=20261010d"></script>
     <script src="js/render/enemy-thaelis.js?v=20261008a"></script>
     <script src="js/render/enemy-dargruel.js?v=20261010d"></script>
     <script src="js/render/enemy-marchosias.js?v=20261010d"></script>
-    <script src="js/render/enemy-leviathan.js?v=20261019a"></script>
-    <script src="js/render/enemy-goliath.js?v=20261019echo2"></script>
-    <script src="js/render/enemy-veilshroud.js?v=20261019a"></script>
-    <script src="js/render/enemy-uriel.js?v=20261010d"></script>
-    <script src="js/render/enemy-egregor.js?v=20261102a"></script>
+    <script src="js/render/enemy-leviathan.js?v=20261102c"></script>
+    <script src="js/render/enemy-goliath.js?v=20261102c"></script>
+    <script src="js/render/enemy-veilshroud.js?v=20261102c"></script>
+    <script src="js/render/enemy-uriel.js?v=20261102c"></script>
+    <script src="js/render/enemy-egregor.js?v=20261102f"></script>
     <script src="js/render/skill-s-spirit.js?v=20260909a"></script>
     <script src="js/render/skill-a.js?v=20261013n"></script>
     <script src="js/render/skill-d.js?v=20260914b"></script>
@@ -4273,13 +4245,13 @@
     <script src="js/render/sigil-dau.js?v=20261013p"></script>
     <script src="js/render/sigil-pisces.js?v=20261024a"></script>
     <script src="js/render/sigil-capricorn.js?v=20261020i"></script>
-    <script src="js/render/sigil-ty.js?v=20261025d"></script>
+    <script src="js/render/sigil-ty.js?v=20261102c"></script>
     <script src="js/render/skill-g.js?v=20261013n"></script>
     <script src="js/render/skill-buttons.js?v=20261023a"></script>
     <script src="js/recap.js?v=20261025c"></script>
-    <script src="js/pixi-renderer.js?v=20261020i"></script>
+    <script src="js/pixi-renderer.js?v=20261102f"></script>
     <script src="js/input.js?v=20261019r"></script>
-    <script src="js/main.js?v=20261027perf1"></script>
+    <script src="js/main.js?v=20261102f"></script>
     <script>
         // Debug/cheat console is a local-dev-only tool (spawn/kill any
         // enemy, force skills, edit HP, etc.) — never fetch/load it on the

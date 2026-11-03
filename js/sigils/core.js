@@ -93,6 +93,7 @@ function _triggerSigilPicker(entry) {
 }
 
 function _completeSigilPicker(sigilId) {
+    if (window.AudioMgr && window.AudioMgr.prepareSigil) window.AudioMgr.prepareSigil(sigilId);
     window._playerSigils = window._playerSigils || [];
     window._playerSigils.push({ sigilId, atWave: typeof _waveNumber === 'number' ? _waveNumber : 0 });
     window._sigilPool = (window._sigilPool || []).filter(id => id !== sigilId);

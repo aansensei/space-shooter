@@ -60,23 +60,39 @@
     const _bufferCache = {};
     // Decoded buffers by src, so a one-shot can start without a promise hop.
     const _decodedBuffers = {};
+    const _decodeQueue = [];
+    let _decoding = 0;
+    function _queueDecode(load) {
+        return new Promise(resolve => {
+            _decodeQueue.push({ load, resolve });
+            _pumpDecodes();
+        });
+    }
+    function _pumpDecodes() {
+        while (_decoding < 3 && _decodeQueue.length) {
+            const job = _decodeQueue.shift(); _decoding++;
+            Promise.resolve().then(job.load).catch(() => null).then(buf => {
+                _decoding--; job.resolve(buf); _pumpDecodes();
+            });
+        }
+    }
     function _decodeBuffer(src) {
         if (!actx) return Promise.resolve(null);
         if (_bufferCache[src]) return _bufferCache[src];
-        const p = fetch(src)
-            .then(r => r.arrayBuffer())
-            .then(ab => actx.decodeAudioData(ab))
-            .then(buf => { if (buf && _bufferCache[src] === p) _decodedBuffers[src] = buf; return buf; })
+        const p = _queueDecode(() => fetch(src)
+            .then(r => { if (!r.ok) throw Error('Audio unavailable'); return r.arrayBuffer(); })
+            .then(ab => actx.decodeAudioData(ab)))
+            .then(buf => {
+                if (buf && _bufferCache[src] === p) _decodedBuffers[src] = buf;
+                if (!buf && _bufferCache[src] === p) delete _bufferCache[src];
+                return buf;
+            })
             .catch(e => { console.warn('[Audio] buffer decode failed for ' + src, e); return null; });
         _bufferCache[src] = p;
         return p;
     }
 
-    // Fire-and-forget one-shot playback (sfx pools, positional sfx). Skips
-    // silently if the buffer hasn't decoded yet — sfx are prefetched at
-    // boot, so in practice this only matters for a sound triggered in the
-    // first instant after page load, and a single missed cue there is a
-    // fair trade against ever blocking on decode mid-gameplay.
+    // Cold one-shots wait for decoding and keep their cancellation handle.
     // returns a cancel handle - most callers ignore it, but a long one-shot
     // (gameover) needs to be killable if the player bails to menu mid-ring
     // Live positional one-shots. Past the cap a new combat sound is dropped:
@@ -86,10 +102,11 @@
     let _liveVoices = 0;
     function _playVoice(src, gainValue, bypass, capped) {
         if (!actx || gainValue <= 0) return { cancel() {} };
-        let cancelled = false, liveNode = null;
+        let cancelled = false, liveNode = null, liveGain = null;
         const start = buf => {
             if (!buf || cancelled || (capped && _liveVoices >= MAX_SFX_VOICES)) return;
             const g = actx.createGain();
+            liveGain = g;
             g.gain.value = gainValue;
             g.connect(bypass ? _bypassGain : _duckGain);
             const node = actx.createBufferSource();
@@ -103,9 +120,18 @@
         const ready = _decodedBuffers[src];
         if (ready) start(ready); else _decodeBuffer(src).then(start);
         return {
-            cancel() {
+            // fadeSec above 0 ramps the voice down first so a cut mid-sound does not click
+            cancel(fadeSec) {
                 cancelled = true;
-                if (liveNode) { try { liveNode.stop(); } catch (_) {} }
+                if (!liveNode) return;
+                try {
+                    if (fadeSec > 0 && liveGain) {
+                        const t = actx.currentTime;
+                        liveGain.gain.setValueAtTime(liveGain.gain.value, t);
+                        liveGain.gain.linearRampToValueAtTime(0, t + fadeSec);
+                        liveNode.stop(t + fadeSec + 0.01);
+                    } else liveNode.stop();
+                } catch (_) {}
             }
         };
     }
@@ -184,15 +210,17 @@
                 if (wasPlaying) this.play();
             },
             setSrc(src, loop = true) {
-                bridgeSrc = src; bufferPromise = _decodeBuffer(src); shouldLoop = loop;
+                bridgeSrc = src; bufferPromise = null; shouldLoop = loop;
                 _savedPos = 0;
             },
+            prepare() { return bridgeSrc ? _decodeBuffer(bridgeSrc) : Promise.resolve(); },
             setOnEnded(cb) { onEndedCb = cb; },
             play() {
-                if (!actx || !bufferPromise) return Promise.resolve();
+                if (!actx || !bridgeSrc) return Promise.resolve();
                 // already sounding: a second start would leave the first
                 // source running underneath, heard as the track doubling
                 if (playing) return Promise.resolve();
+                if (!bufferPromise) bufferPromise = _decodeBuffer(bridgeSrc);
                 playing = true;
                 const myBufferPromise = bufferPromise;
                 // A fresh decode takes real async time, so a quick stop+
@@ -239,8 +267,104 @@
                 // clear it first so pausing/switching never misfires the
                 // "track finished, advance to a new one" callback.
                 if (source) { try { source.onended = null; source.stop(); } catch (_) {} source = null; }
+                bufferPromise = null;
             },
         };
+    }
+
+    // Decode overlapping MP3 windows and schedule only their central samples.
+    function _makeAmbientStream() {
+        const src = 'assets/audio/sfx/ingame.mp3', fallback = _makeBufferLoop();
+        fallback.setSrc(src);
+        const gain = actx ? actx.createGain() : null;
+        if (gain) gain.connect(_duckGain);
+        let decoder, encoded, info, loading, failed = false, playing = false, volume = 1;
+        let token = 0, filling = 0, saved = 0, began = 0, nextAt = 0, cursor = 0, offset = 0;
+        let nodes = [];
+        const parts = new Map();
+        function stopNodes() {
+            for (const n of nodes) { n.onended = null; try { n.stop(); n.disconnect(); } catch (_) {} }
+            nodes = [];
+        }
+        function fail() {
+            if (failed) return;
+            if (playing && began) saved += Math.max(0, actx.currentTime - began);
+            failed = true; token++; stopNodes(); parts.clear(); encoded = null; decoder = null;
+            fallback.volume = volume; fallback.currentTime = saved;
+            if (playing) fallback.play().catch(() => {});
+            console.warn('[Audio] Ambient window decoding unavailable: using full track.');
+        }
+        function ready() {
+            if (!loading) loading = Promise.all([
+                fetch('assets/audio/sfx/ingame-slices.json').then(r => { if (!r.ok) throw Error('Ambient index unavailable'); return r.json(); }),
+                fetch(src).then(r => { if (!r.ok) throw Error('Ambient unavailable'); return r.arrayBuffer(); }),
+            ]).then(([manifest, bytes]) => {
+                if (bytes.byteLength !== manifest.bytes) throw Error('Ambient index mismatch');
+                decoder = new (window.OfflineAudioContext || window.webkitOfflineAudioContext)(2, 1, manifest.rate);
+                info = manifest; encoded = bytes;
+            }).catch(fail);
+            return loading;
+        }
+        function loadPart(index) {
+            if (!parts.has(index)) {
+                const p = info.parts[index];
+                parts.set(index, _queueDecode(() => decoder.decodeAudioData(encoded.slice(p[0], p[1]))).then(buf => {
+                    if (!buf) throw Error('Ambient window unavailable');
+                    return buf;
+                }));
+            }
+            return parts.get(index);
+        }
+        async function fill(id) {
+            if (filling === id || failed || !playing || id !== token) return;
+            filling = id;
+            try {
+                while (nodes.length < 2 && playing && id === token) {
+                    const index = cursor, buf = await loadPart(index);
+                    if (!playing || id !== token) return;
+                    const part = info.parts[index], n = actx.createBufferSource();
+                    const duration = part[3] / info.rate - offset;
+                    n.buffer = buf; n.connect(gain); nodes.push(n);
+                    n.onended = () => { n.disconnect(); nodes = nodes.filter(v => v !== n); fill(id); };
+                    const at = Math.max(nextAt, actx.currentTime + .025);
+                    if (!began) began = at;
+                    n.start(at, part[2] / info.rate + offset, duration);
+                    nextAt = at + duration; offset = 0; cursor = (cursor + 1) % info.parts.length;
+                    parts.delete(index);
+                }
+                if (playing && id === token) loadPart(cursor).catch(fail);
+            } catch (_) { if (id === token) fail(); }
+            finally { if (filling === id) filling = 0; }
+        }
+        const loop = {
+            get paused() { return failed ? fallback.paused : !playing; },
+            get volume() { return volume; },
+            set volume(v) { volume = v; if (gain) gain.gain.value = v; fallback.volume = v; },
+            get duration() { return failed ? fallback.duration : info ? info.frames / info.rate : NaN; },
+            set currentTime(v) {
+                if (failed) { fallback.currentTime = v; return; }
+                const active = playing; if (active) loop.pause(); saved = Math.max(0, v || 0); if (active) loop.play();
+            },
+            prepare() { return ready().then(() => failed ? null : Promise.all([loadPart(0), loadPart(1)])).catch(fail); },
+            play() {
+                if (failed) return fallback.play();
+                if (!actx || playing) return Promise.resolve();
+                playing = true; const id = ++token;
+                return ready().then(() => {
+                    if (failed || id !== token || !playing) return;
+                    saved %= info.frames / info.rate; cursor = Math.floor(saved / 12); offset = saved - cursor * 12;
+                    began = 0; nextAt = actx.currentTime + .025;
+                    return fill(id);
+                });
+            },
+            pause() {
+                if (failed) { fallback.pause(); return; }
+                if (playing && began) saved = (saved + Math.max(0, actx.currentTime - began)) % (info.frames / info.rate);
+                playing = false; token++; stopNodes(); parts.clear();
+            },
+        };
+        if (actx) loop.prepare();
+        return loop;
     }
 
     // Yog-Sothoth Domain theme: a full-volume music bed, never ducked or
@@ -415,6 +539,9 @@
         'laser-fire': 1.0, 'goliath-verdict-launch': 1.0,
         'dargruel-chain-launch': 1.0, 'dargruel-chain-root': 1.0,
         'metal-hit': 1.0, 'phantom-strike': 1.0, 'goliath-transform': 1.0,
+        // Phantom cues were exported quiet, so most sit above 1.0 to land near phantom-strike
+        'phantom-enter': 1.45, 'phantom-hold': 4.0, 'phantom-deflect': 2.0, 'phantom-exit': 1.2, 'phantom-lock': 3.2, 'phantom-charge': 0.7,
+        'phantom-enter-b': 1.45, 'phantom-hold-b': 4.0, 'phantom-deflect-b': 2.0, 'phantom-exit-b': 1.2, 'phantom-lock-b': 3.2, 'phantom-charge-b': 0.7,
         'goliath-idle': 1.0, 'goliath-fracture-step': 1.0, 'goliath-verdict-impact': 1.0, 'goliath-verdict-charge': 1.0,
         'leviathan-perseverance': 1.0, 'goliath-death': 1.0, 'goliath-spawn': 1.0, 'goliath-kill-stamp': 1.0, 'goliath-kill-ambience': 1.0,
         'goliath-corrupted-meteor': 1.0, 'goliath-unbroken-wave': 1.0,
@@ -574,15 +701,31 @@
         const src = 'assets/audio/sfx/' + key + '.mp3';
         _makePool(key, 'assets/audio/sfx/' + fallback);
         if (!actx) return;
-        fetch(src).then(r => r.ok ? r.arrayBuffer() : null).then(ab => ab ? actx.decodeAudioData(ab) : null).then(buf => {
+        _queueDecode(() => fetch(src).then(r => r.ok ? r.arrayBuffer() : null).then(ab => ab ? actx.decodeAudioData(ab) : null)).then(buf => {
             if (!buf) return;
             _decodedBuffers[src] = buf; _bufferCache[src] = Promise.resolve(buf); state.pool[key].src = src;
         }).catch(() => {});
     }
 
     function _makePool(key, src, size = 3, bypass = false) {
-        _decodeBuffer(src);
         state.pool[key] = { src, bypass };
+        if (/^(click|hover|overlay|sigil-|new-wave|enemy-hit|enemy-death|autoshot|shield-hit|life-lost|skill-ready|dargruel-chain-launch|goliath-spawn)/.test(key)) _decodeBuffer(src);
+    }
+
+    function prepareEnemy(type) {
+        const prefixes = { egregor: /^(egregor|dimension)/, veilshroud: /^(veilshroud|phantom)/, goliath: /^(goliath|phantom|egregor-null|leviathan-perseverance)/, dargruel: /^dargruel/, leviathan: /^leviathan/, uriel: /^uriel/, raphael: /^raphael/, marchosias: /^metal-hit/, kanade: /^(kanade|goliath-descend|stack-overflow|timeline-distortion)/ };
+        const match = prefixes[type];
+        if (!match) return;
+        for (const key of Object.keys(state.pool)) if (match.test(key)) _decodeBuffer(state.pool[key].src);
+        const refs = { egregor: ['crawlEl', 'nullSlashWindupEl'], goliath: ['goliathIdleEl', 'goliathVerdictChargeEl'], leviathan: ['leviathanIdleEl'], uriel: ['urielIdleEl', 'urielSwordHoverEl'], raphael: ['raphaelIdleEl'], kanade: ['kanadeAmbienceEl', 'kanadeCollapseEl', 'kanadeMusicEl'] };
+        for (const ref of refs[type] || []) if (state[ref]) state[ref].prepare();
+    }
+    function prepareGameplay() {
+        const enemy = /^(egregor|dimension|goliath|dargruel|leviathan|uriel|raphael|phantom|veilshroud|kanade|stack-overflow|timeline-distortion|dau-|ty-)/;
+        for (const key of Object.keys(state.pool)) if (!enemy.test(key)) _decodeBuffer(state.pool[key].src);
+    }
+    function prepareSigil(id) {
+        if (id === 'dau' || id === 'ty') for (const key of Object.keys(state.pool)) if (key.startsWith(id + '-')) _decodeBuffer(state.pool[key].src);
     }
 
     // Kanade's boss-wave cutscene stops time, and nothing is allowed to make a
@@ -711,7 +854,7 @@
         const g = sfxGain(key) * (cue ? 1 : _distanceGain(x, y));
         if (g <= 0.005) return;
         if (_sfxTooSoon(key)) return;
-        _playVoice(p.src, g, p.bypass, !cue);
+        return _playVoice(p.src, g, p.bypass, !cue);
     }
 
     // Loop controls for sustained sfx (charging, laser, crawl, idle, ...). Idempotent.
@@ -1046,7 +1189,7 @@
     function startLowHp() { startLoop('lowHpEl', 'low-hp'); enterDuck('lowhp'); }
     function stopLowHp()  { stopLoop('lowHpEl'); exitDuck('lowhp'); }
 
-    // Boot: prefetch/decode one-shot sfx and set up singleton loops.
+    // Prepare common cues and register the remaining sounds for their encounters.
     function _boot() {
         state.bgmEl = _makeBufferLoop(); // src set per-track in _switchBgm
         // Kick off the menu track's decode immediately on page load instead
@@ -1137,6 +1280,10 @@
         _makePool('dargruel-chain-root',    'assets/audio/sfx/dargruel-chain-root.mp3',    2);
         _makePool('metal-hit',              'assets/audio/sfx/metal-hit.mp3',              6);
         _makePool('phantom-strike',         'assets/audio/sfx/phantom-strike.mp3',         2);
+        // The -b keys play the same files so two Phantoms changing state in one frame are not dropped by the per-key repeat guard.
+        for (const cue of ['enter', 'hold', 'deflect', 'exit', 'lock', 'charge']) {
+            for (const suffix of ['', '-b']) _makePool('phantom-' + cue + suffix, 'assets/audio/sfx/phantom-' + cue + '.mp3', 2);
+        }
         _makePool('goliath-transform',      'assets/audio/sfx/goliath-transform.mp3',      1, true); // bypass duck so it stays clear
         _makePool('goliath-fracture-step',  'assets/audio/sfx/goliath-fracture-step.mp3',  2);
         _makePool('goliath-verdict-impact', 'assets/audio/sfx/goliath-verdict-impact.mp3', 2);
@@ -1186,8 +1333,7 @@
         _makePool('dau-star-strike', 'assets/audio/sfx/dau-star-strike.mp3', 4);
         _makePool('dau-reflect',     'assets/audio/sfx/dau-reflect.mp3',     3);
 
-        state.ambientEl  = _makeBufferLoop();
-        state.ambientEl.setSrc('assets/audio/sfx/ingame.mp3');
+        state.ambientEl = _makeAmbientStream();
         // Bypass-routed, same as the ten one-shots above it. On the duck chain
         // it inherited whatever duck happened to be live when she stopped time
         // (low-hp alone cuts to 0.16 and muffles down to 260Hz, and pauseAll
@@ -1256,6 +1402,7 @@
     _boot();
 
     window.AudioMgr = {
+        prepareEnemy, prepareGameplay, prepareSigil,
         // BGM
         playMenuBgm, playRandomInGameBgm, playBgmById, stopBgm,
         pauseBgm, resumeBgm,

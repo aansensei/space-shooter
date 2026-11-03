@@ -6,8 +6,101 @@ const _egTentPts = new Float32Array(17 * 3);
 const _egNullPts = new Float32Array(39 * 3);
 const _egBodyColors = ['#62d9d1', '#a493d8', '#c784d6', '#dd719f', '#ec637c', '#fa665d'];
 let _egBodyArt = null;
+let _egNullChargeArt = null;
+
+function _bakeEgregorNullCharge() {
+    try { return _buildEgregorNullCharge(); }
+    catch (_) {
+        _applyGfxLevel(2);
+        const c = document.createElement('canvas'); c.width = c.height = 1;
+        const path = new Path2D(); path.moveTo(.24, 0); path.lineTo(.96, 0);
+        return { field: c, flow: c, core: c, veins: [path, path, path] };
+    }
+}
+
+function _buildEgregorNullCharge() {
+    const field = document.createElement('canvas'), flow = document.createElement('canvas'), core = document.createElement('canvas');
+    field.width = field.height = 256; flow.width = flow.height = 256; core.width = core.height = 96;
+    let g = field.getContext('2d');
+    const haze = g.createRadialGradient(128, 128, 12, 128, 128, 128);
+    haze.addColorStop(0, 'rgba(12,8,30,0)'); haze.addColorStop(0.5, 'rgba(40,20,80,0.1)');
+    haze.addColorStop(0.86, 'rgba(133,84,208,0.25)'); haze.addColorStop(1, 'rgba(193,169,247,0)');
+    g.fillStyle = haze; g.fillRect(0, 0, 256, 256);
+    g = flow.getContext('2d'); g.translate(128, 128); g.strokeStyle = '#ac8bd5'; g.lineWidth = 1.2;
+    for (let arm = 0; arm < 6; arm++) {
+        g.beginPath();
+        for (let j = 0; j <= 40; j++) {
+            const t = j / 40, r = 120 * (1 - t * 0.9), a = arm * Math.PI / 3 + t * 2.4;
+            if (!j) g.moveTo(Math.cos(a) * r, Math.sin(a) * r); else g.lineTo(Math.cos(a) * r, Math.sin(a) * r);
+        }
+        g.stroke();
+    }
+    g.fillStyle = '#c7d9ef';
+    for (let i = 0; i < 30; i++) {
+        const a = i * 2.399963, r = 24 + i % 9 * 11;
+        g.globalAlpha = 0.25 + i % 4 * 0.16; g.fillRect(Math.cos(a) * r, Math.sin(a) * r, i % 5 ? 1 : 2, i % 5 ? 1 : 2);
+    }
+    g = core.getContext('2d');
+    const glow = g.createRadialGradient(48, 48, 0, 48, 48, 48);
+    glow.addColorStop(0, '#ebf4ff'); glow.addColorStop(0.12, '#a7b7f7'); glow.addColorStop(0.38, 'rgba(135,91,213,0.5)'); glow.addColorStop(1, 'rgba(56,19,106,0)');
+    g.fillStyle = glow; g.fillRect(0, 0, 96, 96);
+    const veins = [];
+    for (let tier = 0; tier < 3; tier++) {
+        const path = new Path2D(), count = tier === 0 ? 12 : tier === 1 ? 8 : 5;
+        for (let i = 0; i < count; i++) {
+            const a = -Math.PI / 2 + (i + 0.5) * Math.PI / count;
+            path.moveTo(Math.cos(a) * 0.24, Math.sin(a) * 0.24);
+            path.lineTo(Math.cos(a + 0.04) * 0.52, Math.sin(a + 0.04) * 0.52);
+            path.lineTo(Math.cos(a - 0.025) * 0.77, Math.sin(a - 0.025) * 0.77);
+            path.lineTo(Math.cos(a) * 0.96, Math.sin(a) * 0.96);
+        }
+        veins.push(path);
+    }
+    return { field, flow, core, veins };
+}
+
+function _drawEgregorNullCharge(enemy, now, progress, radius, angle) {
+    if (!_egNullChargeArt) _egNullChargeArt = _bakeEgregorNullCharge();
+    const art = _egNullChargeArt, opts = window._fxOpts, low = _mobPerf || _gfxLevel >= 2;
+    const tier = low ? 2 : _gfxLevel === 1 ? 1 : 0, pulse = 0.6 + 0.4 * Math.sin(now * (0.006 + progress * 0.01));
+    ctx.save(); ctx.translate(enemy.x, enemy.y); ctx.rotate(angle);
+    if (!low) { ctx.beginPath(); ctx.moveTo(0, 0); ctx.arc(0, 0, radius, -Math.PI / 2, Math.PI / 2); ctx.closePath(); ctx.clip(); }
+    if (!low && (!opts || opts.glow !== false)) {
+        ctx.globalAlpha = 0.3 + progress * 0.55;
+        ctx.drawImage(art.field, -radius, -radius, radius * 2, radius * 2);
+        ctx.save(); ctx.rotate(-now * 0.00018); ctx.globalAlpha = 0.12 + progress * 0.28;
+        ctx.drawImage(art.flow, -radius, -radius, radius * 2, radius * 2); ctx.restore();
+    }
+    ctx.save(); ctx.scale(radius, radius); ctx.lineWidth = (0.8 + progress * 0.8) / radius;
+    ctx.strokeStyle = '#b89be0'; ctx.globalAlpha = (0.1 + progress * 0.45) * pulse; ctx.stroke(art.veins[tier]); ctx.restore();
+    ctx.strokeStyle = '#a68ad0'; ctx.lineWidth = 1.1; ctx.globalAlpha = 0.25 + progress * 0.4;
+    ctx.beginPath(); ctx.arc(0, 0, radius * (0.3 + progress * 0.7), -Math.PI / 2, Math.PI / 2); ctx.stroke();
+    if (!opts || opts.particles !== false) {
+        const count = low ? 5 : 10; ctx.fillStyle = '#d4e8ff'; ctx.globalAlpha = 0.4 + progress * 0.4; ctx.beginPath();
+        for (let i = 0; i < count; i++) {
+            const t = (now * (0.00035 + progress * 0.0004) + i * 0.618034) % 1;
+            const a = -Math.PI / 2 + (i + 0.5) * Math.PI / count + Math.sin(t * 4) * 0.06, r = radius * (0.95 - t * 0.85);
+            ctx.rect(Math.cos(a) * r, Math.sin(a) * r, 1.4 + progress, 1.4 + progress);
+        }
+        ctx.fill();
+    }
+    const size = 20 + progress * 35 + pulse * 5;
+    if (!low) { ctx.globalAlpha = 0.55 + progress * 0.4; ctx.drawImage(art.core, -size / 2, -size / 2, size, size); }
+    ctx.restore();
+}
 
 function _bakeEgregorBodyArt() {
+    try { return _buildEgregorBodyArt(); }
+    catch (_) {
+        _applyGfxLevel(2);
+        const c = document.createElement('canvas'), a = document.createElement('canvas');
+        c.width = c.height = a.width = a.height = 1;
+        const g = c.getContext('2d'); g.fillStyle = '#30666c'; g.fillRect(0, 0, 1, 1);
+        return { body: Array(6).fill(c), aura: Array(6).fill(a), iris: Array(6).fill(c) };
+    }
+}
+
+function _buildEgregorBodyArt() {
     const art = { body: [], aura: [], iris: [] };
     for (let rage = 0; rage <= 5; rage++) {
         const body = document.createElement('canvas'); body.width = body.height = 256;
@@ -264,70 +357,7 @@ function _drawEgregorPortalLimb(x, y, reach, bend, rage, fade, now, widthMult = 
 // The Tempest warning is loud on purpose: a pulsing zone that turns hot, cracks racing over the ground, a ring closing in,
 // a clock of ticks that lights up and a pillar of light that rises as the strike gets close.
 function _drawEgregorTempestWarning(t, now, progress, low, glow) {
-    const x = t.tx, y = t.ty, hot = Math.max(0, (progress - 0.45) / 0.55);
-    const pulse = 0.5 + 0.5 * Math.sin(now * (0.007 + progress * 0.022));
-    const fo = window._fxOpts, parts = !fo || fo.particles !== false;
-    ctx.save(); ctx.shadowBlur = 0;
-    ctx.globalAlpha = 0.2 + progress * 0.26 + pulse * (0.06 + hot * 0.12);
-    ctx.fillStyle = 'rgb(' + Math.round(200 + 55 * hot) + ',' + Math.round(34 + 22 * hot) + ',' + Math.round(52 + 18 * hot) + ')';
-    ctx.beginPath(); ctx.arc(x, y, 100, 0, Math.PI * 2); ctx.fill();
-    if (!low) {
-        ctx.globalAlpha = 0.25 + progress * 0.45; ctx.strokeStyle = '#ff9d8a'; ctx.lineWidth = 1.4; ctx.beginPath();
-        for (let i = 0; i < 12; i++) {
-            const a = i * 0.5236 + (t.tx % 7) * 0.05; let px = x, py = y;
-            ctx.moveTo(px, py);
-            for (let s = 1; s <= 5; s++) {
-                const reach = 100 * progress * s / 5, jit = Math.sin(i * 3.1 + s * 1.7) * 0.16;
-                px = x + Math.cos(a + jit) * reach; py = y + Math.sin(a + jit) * reach * 0.8; ctx.lineTo(px, py);
-            }
-        }
-        ctx.stroke();
-    }
-    ctx.globalAlpha = 0.3 + progress * 0.5; ctx.strokeStyle = '#ff8f80'; ctx.lineWidth = 2 + hot * 3;
-    ctx.beginPath(); ctx.arc(x, y, 100 + (1 - progress) * 95, 0, Math.PI * 2); ctx.stroke();
-    const lit = Math.floor(progress * 24);
-    for (let pass = 0; pass < 2; pass++) {
-        ctx.globalAlpha = pass ? 1 : 0.45; ctx.strokeStyle = pass ? '#ffb0a0' : '#7a3a46'; ctx.lineWidth = pass ? 3 : 2; ctx.beginPath();
-        for (let i = 0; i < 24; i++) {
-            if ((i < lit) !== !!pass) continue;
-            const a = -Math.PI / 2 + i * Math.PI / 12;
-            ctx.moveTo(x + Math.cos(a) * 108, y + Math.sin(a) * 108); ctx.lineTo(x + Math.cos(a) * 120, y + Math.sin(a) * 120);
-        }
-        ctx.stroke();
-    }
-    if (parts) {
-        ctx.globalAlpha = 0.55 + progress * 0.3; ctx.fillStyle = '#ffb8a8'; ctx.beginPath();
-        const n = low ? 8 : 22;
-        for (let i = 0; i < n; i++) {
-            const ph = (now * 0.0007 * (1 + progress * 2) + i * 0.618034) % 1, r = 12 + 125 * (1 - ph), a = i * 2.39996 + ph * 5, s = 1.4 + (i % 3) * 0.7;
-            ctx.rect(x + Math.cos(a) * r, y + Math.sin(a) * r * 0.62, s, s);
-        }
-        ctx.fill();
-    }
-    if (progress > 0.5) {
-        const k = Math.min(1, (progress - 0.5) / 0.5);
-        if (glow && !low && _riftArt) {
-            ctx.globalCompositeOperation = 'lighter'; ctx.globalAlpha = k * 0.7;
-            ctx.drawImage(_riftArt.glow, x - 40, y - 150 * k - 20, 80, 170 * k + 20);
-            ctx.globalAlpha = k * 0.5; ctx.fillStyle = '#ffe9d6';
-            ctx.fillRect(x - 2, y - 170 * k, 4, 170 * k);
-            ctx.globalCompositeOperation = 'source-over';
-        } else {
-            ctx.globalAlpha = k * 0.5; ctx.fillStyle = '#ffb0a8'; ctx.fillRect(x - 6, y - 100 * k, 12, 100 * k);
-        }
-    }
-    if (progress > 0.88) {
-        ctx.globalCompositeOperation = 'lighter'; ctx.globalAlpha = (progress - 0.88) * 3.2; ctx.fillStyle = '#fff3e8';
-        ctx.beginPath(); ctx.arc(x, y, 100, 0, Math.PI * 2); ctx.fill(); ctx.globalCompositeOperation = 'source-over';
-    }
-    // When the ship is the one being hunted, the edges of the screen throb red as well.
-    if (t.target === player && progress > 0.6 && !low && _gfxLevel === 0 && (!fo || fo.screenFlash !== false)) {
-        const W = canvas.width, H = canvas.height, k = (progress - 0.6) / 0.4;
-        const g = ctx.createRadialGradient(W / 2, H / 2, H * 0.4, W / 2, H / 2, H * 0.95);
-        g.addColorStop(0, 'rgba(210,50,100,0)'); g.addColorStop(1, 'rgba(210,50,100,' + (k * 0.26 * (0.6 + 0.4 * pulse)) + ')');
-        ctx.globalAlpha = 1; ctx.fillStyle = g; ctx.fillRect(0, 0, W, H);
-    }
-    ctx.restore();
+    _drawDangerZone('tempest', t.tx, t.ty, 100, progress, 1, now, 0, 0, Math.PI, t.target === player);
 }
 
 // Shows Tempest landing on the ship: a shock ring, a flash and a burst of cracks.
@@ -437,20 +467,7 @@ function _drawEgregorTempestTarget(t, now, life) {
         ctx.beginPath(); ctx.ellipse(t.tx, t.ty, radius * 1.15, radius * 0.7, -0.1, 0, Math.PI * 2); ctx.stroke();
     }
     // The danger boundary is always the last warning layer.
-    if (warning) {
-        ctx.globalAlpha = 0.85; ctx.strokeStyle = '#100c1c'; ctx.lineWidth = 8;
-        ctx.beginPath(); ctx.arc(t.tx, t.ty, 100, 0, Math.PI * 2); ctx.stroke();
-        ctx.globalAlpha = 1; ctx.strokeStyle = progress > 0.75 ? '#ff7a6a' : '#ff5a6a'; ctx.lineWidth = 2.5; ctx.stroke();
-        ctx.strokeStyle = '#ff9a80'; ctx.lineWidth = 3.5; ctx.beginPath(); ctx.arc(t.tx, t.ty, 100, -Math.PI / 2, -Math.PI / 2 + Math.PI * 2 * progress); ctx.stroke();
-        ctx.globalAlpha = 0.6; ctx.strokeStyle = '#ff8a8a'; ctx.lineWidth = 1.3;
-        ctx.beginPath(); ctx.arc(t.tx, t.ty, 16 + (1 - progress) * 76, 0, Math.PI * 2); ctx.stroke();
-        ctx.globalAlpha = 1; ctx.fillStyle = '#ff9a80';
-        for (let i = 0; i < 4; i++) {
-            const a = i * Math.PI / 2;
-            ctx.save(); ctx.translate(t.tx + Math.cos(a) * 100, t.ty + Math.sin(a) * 100); ctx.rotate(a);
-            ctx.beginPath(); ctx.moveTo(-5, 0); ctx.lineTo(4, -3); ctx.lineTo(4, 3); ctx.closePath(); ctx.fill(); ctx.restore();
-        }
-    }
+    if (warning) _drawDangerZone('tempest', t.tx, t.ty, 100, progress, 1, now, 0, 0, Math.PI, t.target === player, true);
     if (!warning && t.hits) _drawEgregorTempestHits(t, now);
     ctx.restore();
 }
@@ -589,108 +606,10 @@ function _drawEgregorEffects() {
         // NULL SLASH, CHARGING (semicircle telegraph + charge glow)
         if (enemy._nullSlashPhase === 'charging') {
             const progress = Math.min(1, (enemy._nullSlashWindupTimer || 0) / (enemy._nullSlashWindupDur || 3000));
-            const rageStacks = enemy._rageStacks || 0;
-            const R = canvas.width * 0.5 + rageStacks * 5;
-            const ang = enemy._nullSlashAngle || (Math.PI / 2);
-            ctx.save();
-
-            // Semicircle: opens toward player (arc spans ±90° around the angle to player)
-            const arcStart = ang - Math.PI / 2;
-            const arcEnd   = ang + Math.PI / 2;
-            const curR = R * (0.3 + 0.7 * progress);
-
-            // Outer glow fill
-            if (egGlow) {
-                const sfg = ctx.createRadialGradient(enemy.x, enemy.y, 0, enemy.x, enemy.y, curR);
-                sfg.addColorStop(0, `rgba(80,0,180,${0.08 * progress})`);
-                sfg.addColorStop(0.7, `rgba(120,0,220,${0.06 * progress})`);
-                sfg.addColorStop(1, 'rgba(60,0,150,0)');
-                ctx.fillStyle = sfg;
-                ctx.beginPath();
-                ctx.moveTo(enemy.x, enemy.y);
-                ctx.arc(enemy.x, enemy.y, curR, arcStart, arcEnd);
-                ctx.closePath();
-                ctx.fill();
-            }
-
-            // Pulsing arc border
-            const pulseAlpha = 0.6 + 0.35 * Math.sin(now / 60);
-            if (egGlow) { ctx.shadowColor = '#9900ff'; ctx.shadowBlur = egGlow ? (20 + progress * 15) : 0; }
-            ctx.strokeStyle = `rgba(160,50,255,${pulseAlpha * progress})`;
-            ctx.lineWidth = 3 + progress * 4;
-            ctx.beginPath();
-            ctx.arc(enemy.x, enemy.y, curR, arcStart, arcEnd);
-            ctx.stroke();
-
-            // Flat diameter line (the chord closing the semicircle)
-            const p1x = enemy.x + Math.cos(arcStart) * curR;
-            const p1y = enemy.y + Math.sin(arcStart) * curR;
-            const p2x = enemy.x + Math.cos(arcEnd) * curR;
-            const p2y = enemy.y + Math.sin(arcEnd) * curR;
-            ctx.strokeStyle = `rgba(200,100,255,${0.5 * progress})`;
-            ctx.lineWidth = 2;
-            ctx.setLineDash([10, 7]);
-            ctx.lineDashOffset = -(now / 60) % 17;
-            ctx.beginPath(); ctx.moveTo(p1x, p1y); ctx.lineTo(p2x, p2y); ctx.stroke();
-            ctx.setLineDash([]); ctx.lineDashOffset = 0;
-            ctx.shadowBlur = 0;
-
-            // Rage: crackling void energy lines inside the charging arc (stack 1+, MED+)
-            if (!_mobPerf && rageStacks >= 1 && progress > 0.20) {
-                const rcCount = rageStacks * 3; // 3-15 bolts
-                const rcCol   = rageStacks >= 4 ? 'rgba(180,240,255,' : rageStacks >= 2 ? 'rgba(170,90,255,' : 'rgba(140,40,220,';
-                const rcGlow  = rageStacks >= 4 ? '#88ddff' : '#8800cc';
-                ctx.save();
-                ctx.shadowColor = rcGlow; ctx.shadowBlur = egGlow ? (rageStacks >= 3 ? 10 : 6) : 0;
-                ctx.lineWidth = rageStacks >= 3 ? 1.8 : 1.2;
-                for (let rc = 0; rc < rcCount; rc++) {
-                    const rcBaseAng = arcStart + (rc / rcCount) * Math.PI;
-                    const rcDist = curR * (0.15 + 0.55 * Math.abs(Math.sin(rc * 2.618)));
-                    let bx = enemy.x + Math.cos(rcBaseAng) * rcDist;
-                    let by = enemy.y + Math.sin(rcBaseAng) * rcDist;
-                    const rcAlpha = progress * (0.4 + 0.35 * Math.sin(now / 90 + rc * 1.3));
-                    ctx.strokeStyle = rcCol + rcAlpha + ')';
-                    ctx.globalAlpha = 1;
-                    ctx.beginPath(); ctx.moveTo(bx, by);
-                    for (let s = 0; s < 4; s++) {
-                        const sAng = rcBaseAng + Math.sin(rc * 4.37 + s * 2.09) * 0.7;
-                        const sLen = curR * (0.06 - s * 0.01);
-                        bx += Math.cos(sAng) * sLen;
-                        by += Math.sin(sAng) * sLen;
-                        ctx.lineTo(bx, by);
-                    }
-                    ctx.stroke();
-                }
-                ctx.shadowBlur = 0; ctx.restore();
-            }
-
-            // Converging charge particles (MED+)
-            if (_gfxLevel < 2 && progress > 0.15) {
-                for (let cp = 0; cp < 8; cp++) {
-                    const cpAngle = arcStart + (cp / 8) * Math.PI + (now / 500);
-                    const cpDist = curR * (0.3 + 0.7 * ((now / 300 + cp * 0.7) % 1));
-                    const cpX = enemy.x + Math.cos(cpAngle) * cpDist;
-                    const cpY = enemy.y + Math.sin(cpAngle) * cpDist;
-                    ctx.globalAlpha = progress * 0.7;
-                    ctx.fillStyle = '#cc66ff';
-                    ctx.beginPath(); ctx.arc(cpX, cpY, 3 + progress * 2, 0, Math.PI * 2); ctx.fill();
-                }
-            }
-
-            // Warning fill flash at >85% progress
-            if (progress > 0.85) {
-                const flashA = ((progress - 0.85) / 0.15) * 0.25;
-                ctx.globalAlpha = flashA;
-                ctx.fillStyle = 'rgba(120,0,220,1)';
-                ctx.beginPath();
-                ctx.moveTo(enemy.x, enemy.y);
-                ctx.arc(enemy.x, enemy.y, curR, arcStart, arcEnd);
-                ctx.closePath();
-                ctx.fill();
-            }
-
-            ctx.globalAlpha = 1;
-            ctx.restore();
+            const angle = enemy._nullSlashAngle ?? Math.PI / 2;
+            const radius = Math.hypot(enemy._nullSlashTargetX - enemy.x, enemy._nullSlashTargetY - enemy.y) + (enemy._rageStacks || 0) * 5 + 100;
+            _drawEgregorNullCharge(enemy, now, progress, radius, angle);
+            _drawDangerZone('sector', enemy.x, enemy.y, radius, progress, 0.6, now, angle, 0, Math.PI, false, true);
         }
 
         // NULL SLASH, STRIKING (arc slash, tentacle sweeps 180° through target)
@@ -902,6 +821,16 @@ if (typeof requestIdleCallback === 'function') requestIdleCallback(_warmEgregorR
 else setTimeout(_warmEgregorRiftArt, 0);
 
 function _bakeRiftArt() {
+    try { return _buildRiftArt(); }
+    catch (_) {
+        _applyGfxLevel(2);
+        const c = document.createElement('canvas'); c.width = c.height = 1;
+        const g = c.getContext('2d'); g.fillStyle = '#a383cf'; g.fillRect(0, 0, 1, 1);
+        return { nebula: '#140b24', veil: '#241537', galaxy: c, planet: c, hole: c, glow: c, pillar: c, nova: c, portal: c };
+    }
+}
+
+function _buildRiftArt() {
     const mk = (w, h) => { const c = document.createElement('canvas'); c.width = w; c.height = h; return c; };
     const blob = (g, x, y, r, rgb, a) => {
         const gr = g.createRadialGradient(x, y, 0, x, y, r);
@@ -1005,8 +934,8 @@ function _bakeRiftArt() {
 (function _prewarmRiftArt() {
     const warm = (tries) => {
         try {
-            if (_riftArt) return;
-            if (typeof ctx !== 'undefined' && ctx) _riftArt = _bakeRiftArt();
+            if (_riftArt && _egNullChargeArt) return;
+            if (typeof ctx !== 'undefined' && ctx) { if (!_riftArt) _riftArt = _bakeRiftArt(); if (!_egNullChargeArt) _egNullChargeArt = _bakeEgregorNullCharge(); }
             else if (tries < 5) setTimeout(() => warm(tries + 1), 1500);
         } catch (err) { /* the first draw will bake it instead */ }
     };

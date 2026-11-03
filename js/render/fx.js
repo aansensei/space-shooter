@@ -1,3 +1,214 @@
+const _dangerCircle = new Float32Array(48);
+for (let i = 0; i < 24; i++) {
+    const angle = -Math.PI / 2 + i * Math.PI / 12;
+    _dangerCircle[i * 2] = Math.cos(angle); _dangerCircle[i * 2 + 1] = Math.sin(angle);
+}
+const _dangerOrbitDash = [0.1, 0.065], _dangerLaneDash = [12, 22], _dangerEmptyDash = [];
+function _dangerSigilSegment(path, front, x1, y1, x2, y2) {
+    if (front) {
+        if (x1 < 0 && x2 < 0) return;
+        if (x1 < 0) { y1 += (y2 - y1) * (-x1 / (x2 - x1)); x1 = 0; }
+        if (x2 < 0) { y2 = y1 + (y2 - y1) * (-x1 / (x2 - x1)); x2 = 0; }
+    }
+    path.moveTo(x1, y1); path.lineTo(x2, y2);
+}
+function _makeDangerSigil(front, reduced) {
+    const path = new Path2D();
+    for (let ring = 0; ring < (reduced ? 2 : 3); ring++) {
+        const r = 0.87 - ring * 0.18;
+        if (front) { path.moveTo(0, -r); path.arc(0, 0, r, -Math.PI / 2, Math.PI / 2); }
+        else { path.moveTo(r, 0); path.arc(0, 0, r, 0, Math.PI * 2); }
+    }
+    for (let triangle = 0; triangle < 2; triangle++) for (let i = 0; i < 3; i++) {
+        const a = -Math.PI / 2 + triangle * Math.PI + i * Math.PI * 2 / 3, b = a + Math.PI * 2 / 3;
+        _dangerSigilSegment(path, front, Math.cos(a) * 0.69, Math.sin(a) * 0.69, Math.cos(b) * 0.69, Math.sin(b) * 0.69);
+    }
+    const count = reduced ? 6 : 12;
+    for (let i = 0; i < count; i++) {
+        const a = i * Math.PI * 2 / count, c = Math.cos(a), s = Math.sin(a), r = 0.79;
+        const x1 = c * (r - 0.035), y1 = s * (r - 0.035), x2 = c * r - s * 0.025, y2 = s * r + c * 0.025;
+        const x3 = c * (r + 0.035), y3 = s * (r + 0.035), x4 = c * r + s * 0.025, y4 = s * r - c * 0.025;
+        _dangerSigilSegment(path, front, x1, y1, x2, y2); _dangerSigilSegment(path, front, x2, y2, x3, y3);
+        _dangerSigilSegment(path, front, x3, y3, x4, y4); _dangerSigilSegment(path, front, x4, y4, x1, y1);
+        if (!reduced) _dangerSigilSegment(path, front, c * 0.4, s * 0.4, c * 0.51, s * 0.51);
+    }
+    return path;
+}
+const _dangerSigil = _makeDangerSigil(false, false), _dangerSigilLow = _makeDangerSigil(false, true);
+const _dangerSigilSector = _makeDangerSigil(true, false), _dangerSigilLowSector = _makeDangerSigil(true, true);
+
+function _drawDangerScripture(shape, radius, width, span, progress, low, now) {
+    ctx.save(); ctx.globalAlpha = 0.14 + progress * 0.2; ctx.strokeStyle = '#ff354e'; ctx.lineWidth = 0.8;
+    const orbit = !low && _gfxLevel < 2 && (!window._fxOpts || window._fxOpts.trails !== false);
+    if (shape === 'strip') {
+        ctx.beginPath();
+        ctx.moveTo(0, -width * 0.45); ctx.lineTo(radius, -width * 0.45);
+        ctx.moveTo(0, width * 0.45); ctx.lineTo(radius, width * 0.45);
+        const count = low ? 4 : 8, size = Math.min(9, width * 0.36);
+        for (let i = 0; i < count; i++) {
+            const x = radius * (i + 0.5) / count;
+            ctx.moveTo(x - size, 0); ctx.lineTo(x, -size); ctx.lineTo(x + size, 0); ctx.lineTo(x, size); ctx.closePath();
+            ctx.moveTo(x, -size * 1.8); ctx.lineTo(x, size * 1.8);
+        }
+        ctx.stroke();
+        if (orbit) {
+            ctx.globalAlpha = 0.35 + progress * 0.15; ctx.strokeStyle = '#ff7d89'; ctx.lineWidth = 1;
+            ctx.setLineDash(_dangerLaneDash); ctx.lineDashOffset = -now * 0.045;
+            ctx.beginPath(); ctx.rect(radius * 0.04, -width * 0.45, radius * 0.92, width * 0.9); ctx.stroke();
+        }
+    } else {
+        ctx.scale(radius, radius); ctx.lineWidth = 0.85 / radius;
+        ctx.stroke(shape === 'sector' ? (low ? _dangerSigilLowSector : _dangerSigilSector) : (low ? _dangerSigilLow : _dangerSigil));
+        if (orbit) {
+            ctx.globalAlpha = 0.32 + progress * 0.2; ctx.strokeStyle = '#ff7d89'; ctx.lineWidth = 1 / radius;
+            ctx.setLineDash(_dangerOrbitDash); ctx.lineDashOffset = -now * 0.00008;
+            ctx.beginPath(); ctx.arc(0, 0, 0.6, shape === 'sector' ? -Math.PI / 2 : 0, shape === 'sector' ? Math.PI / 2 : Math.PI * 2); ctx.stroke();
+        }
+    }
+    ctx.restore();
+}
+
+function _drawEnemyDangerWarnings() {
+    const now = performance.now(), length = Math.hypot(canvas.width, canvas.height);
+    for (let i = 0; i < enemies.length; i++) {
+        const e = enemies[i]; if (!(e.hp > 0)) continue;
+        if (e.type === 'dargruel' && e._chainWindupActive && e.chainTimer > 0) {
+            const p = 1 - e.chainTimer / 400;
+            for (let j = 0; j < 4; j++) _drawDangerZone('strip', e.x, e.y, length, p, 0.6, now, e._chainWindupAngle + (j - 1.5) * 0.28, 16);
+        }
+        if (e.type === 'marchosias' && e._ghostWindups) for (let j = 0; j < e._ghostWindups.length; j++) {
+            const g = e._ghostWindups[j]; if (g.freezeTimer <= 0) continue;
+            const dx = g.targetX - e.x, dy = g.targetY - e.y;
+            _drawThreatRing(g.targetX, g.targetY, 36 * 1.3, 1 - g.freezeTimer / 1000);
+            _drawDangerZone('strip', e.x, e.y, Math.hypot(dx, dy) + 80, 1 - g.freezeTimer / 1000, 0.3, now, Math.atan2(dy, dx), 36);
+        }
+        if (e.type !== 'goliath' || e.phase !== 'true_form' || e._deathPhase) continue;
+        const scale = e.size / 460, x = e.x + GOLIATH_EYE_POS.x * scale, y = e.y + GOLIATH_EYE_POS.y * scale;
+        const joker = e._jokerState;
+        if (joker) {
+            const veil = joker.Veilshroud;
+            if (veil && veil.lightningPending && veil.targets) for (let j = 0; j < veil.targets.length; j++) {
+                const target = veil.targets[j];
+                _drawDangerZone('circle', target.x, target.y, 100, veil.lightningCountdown / 1500, 0.6, now);
+            }
+            const raphael = joker.Raphael;
+            if (raphael && raphael.telegraphing && raphael.targets) for (let j = 0; j < raphael.targets.length; j++) {
+                const t = raphael.targets[j];
+                _drawDangerZone('strip', raphael.originX, raphael.originY, length, Math.max(0, 1 - (raphael.telegraphEnd - now) / 1000), 0.3, now, Math.atan2(t.y - raphael.originY, t.x - raphael.originX), 15);
+            }
+            const marchosias = joker.Marchosias;
+            if (marchosias && marchosias.windups) for (let j = 0; j < marchosias.windups.length; j++) {
+                const w = marchosias.windups[j]; _drawDangerZone('strip', x, y, length, w.timer / w.dur, 0.3, now, Math.atan2(w.targetY - y, w.targetX - x), 46);
+            }
+            const egregor = joker.Egregor;
+            if (egregor && egregor.phase === 'charging') _drawDangerZone('sector', e.x, e.y, Math.hypot(egregor.targetX - e.x, egregor.targetY - e.y) + 100, egregor.windupTimer / 3000, 0.6, now, egregor.angle, 0, Math.PI, false, true);
+            const leviathan = joker.Leviathan;
+            if (leviathan && leviathan.phase === 'warning') _drawDangerZone('strip', e.x, e.y, length, leviathan.warnTimer / 1500, 0.6, now, Math.atan2(player.y - e.y, player.x - e.x), 40, Math.PI, false, true);
+        }
+        if (e._verdictPhase === 'channeling') {
+            const dx = (e._verdictLocked ? e._verdictLockX : player.x) - x, dy = (e._verdictLocked ? e._verdictLockY : player.y) - y;
+            _drawDangerZone('strip', x, y, Math.hypot(dx, dy), e._verdictChannelTimer / GOLIATH_VERDICT_CHANNEL_MS, 1, now, Math.atan2(dy, dx), 123);
+        }
+        if (e._meteorPhase === 'charging') {
+            const count = e._meteorTargets && e._meteorTargets.length ? Math.min(5, e._meteorTargets.length + 2) : 2;
+            const angle = Math.atan2(player.y - y, player.x - x);
+            for (let j = 0; j < count; j++) _drawDangerZone('strip', x, y, length, e._meteorChargeTimer / 800, 0.9, now, angle + (j - (count - 1) / 2) * 0.18, 46);
+        }
+    }
+}
+
+// All area warnings share geometry, timing marks and a dark boundary underlay.
+function _dangerPath(shape, radius, width, span, scale) {
+    ctx.beginPath();
+    if (shape === 'strip') ctx.rect(0, -width * scale, radius, width * 2 * scale);
+    else if (shape === 'sector') { ctx.moveTo(0, 0); ctx.arc(0, 0, radius * scale, -span / 2, span / 2); ctx.closePath(); }
+    else ctx.arc(0, 0, radius * scale, 0, Math.PI * 2);
+}
+
+function _drawDangerZone(shape, x, y, radius, progress, intensity, now, angle = 0, width = 0, span = Math.PI, targeted = false, boundaryOnly = false) {
+    if (!(radius > 0)) return;
+    const p = Math.max(0, Math.min(1, progress)), fo = window._fxOpts, low = _mobPerf || _gfxLevel >= 2;
+    const red = window._dangerGuide === true || !fo || fo.dangerWarn !== false;
+    const boundary = red ? '#ff354e' : '#e4e0d9', tickLit = red ? '#ffb9ab' : '#ede9df', tickDim = red ? '#c74052' : '#727681';
+    const pulse = 0.5 + 0.5 * Math.sin(now * (0.006 + p * 0.012));
+    if (shape === 'tempest' && !boundaryOnly) {
+        if (!red) return;
+        ctx.save(); ctx.shadowBlur = 0; ctx.setLineDash(_dangerEmptyDash); ctx.lineDashOffset = 0;
+        ctx.globalAlpha = 0.1 + p * 0.1 + pulse * 0.035; ctx.fillStyle = '#e51f3e';
+        ctx.beginPath(); ctx.arc(x, y, radius, 0, Math.PI * 2); ctx.fill();
+        ctx.save(); ctx.translate(x, y); _drawDangerScripture('circle', radius, 0, span, p, low, now); ctx.restore();
+        if (!fo || fo.particles !== false) {
+            ctx.globalAlpha = 0.25 + p * 0.4; ctx.fillStyle = '#efd0cc'; ctx.beginPath();
+            const count = low ? 5 : 10;
+            for (let i = 0; i < count; i++) {
+                const ph = (now * 0.0005 * (1 + p) + i * 0.618034) % 1, a = i * 2.39996 + ph * 3, r = radius * (0.9 - ph * 0.7);
+                ctx.rect(x + Math.cos(a) * r, y + Math.sin(a) * r * 0.7, 1.2, 1.2);
+            }
+            ctx.fill();
+        }
+        if (p > 0.55 && !low && (!fo || fo.glow !== false) && _riftArt) {
+            const k = (p - 0.55) / 0.45;
+            ctx.globalAlpha = k * 0.45; ctx.drawImage(_riftArt.glow, x - 16, y - radius * 0.8 * k, 32, radius * 0.8 * k + 12);
+        }
+        if (p > 0.92 && (!fo || fo.screenFlash !== false)) {
+            ctx.globalAlpha = (p - 0.92) * 0.8; ctx.fillStyle = '#f8e5da';
+            ctx.beginPath(); ctx.arc(x, y, radius, 0, Math.PI * 2); ctx.fill();
+        }
+        if (targeted && p > 0.6 && !low && _gfxLevel === 0 && (!fo || fo.screenFlash !== false)) {
+            ctx.globalAlpha = (p - 0.6) * 0.2 * (0.5 + pulse * 0.5); ctx.fillStyle = '#ff2948';
+            ctx.fillRect(0, 0, canvas.width, 3); ctx.fillRect(0, canvas.height - 3, canvas.width, 3);
+            ctx.fillRect(0, 3, 3, canvas.height - 6); ctx.fillRect(canvas.width - 3, 3, 3, canvas.height - 6);
+        }
+        ctx.restore(); return;
+    }
+    const area = shape === 'strip' ? radius * width * 2 : radius * radius * (shape === 'sector' ? span / 2 : Math.PI);
+    const budget = intensity < 0.4 ? 0.1 : intensity < 0.8 ? 0.2 : 0.35;
+    ctx.save(); ctx.translate(x, y); ctx.rotate(angle); ctx.shadowBlur = 0; ctx.setLineDash(_dangerEmptyDash); ctx.lineDashOffset = 0;
+    if (red && shape !== 'wave' && shape !== 'tempest' && !boundaryOnly) {
+        ctx.globalAlpha = area > canvas.width * canvas.height * budget * 0.6 ? 0.035 : 0.035 + intensity * p * 0.075;
+        ctx.fillStyle = '#e51f3e'; _dangerPath(shape, radius, width, span, 1); ctx.fill();
+    }
+    if (red && shape !== 'tempest' && shape !== 'wave') _drawDangerScripture(shape, radius, width, span, p, low, now);
+    if (shape !== 'wave' && shape !== 'strip') {
+        ctx.globalAlpha = 0.22 + p * 0.16; ctx.strokeStyle = boundary; ctx.lineWidth = 1;
+        _dangerPath(shape, radius, width, span, 1 + (1 - p) * 0.1); ctx.stroke();
+    }
+    const count = radius < 60 && shape !== 'strip' ? 12 : 24, lit = Math.floor(p * count);
+    for (let pass = 0; pass < 2; pass++) {
+        ctx.globalAlpha = pass ? 0.9 : 0.35; ctx.strokeStyle = pass ? tickLit : tickDim; ctx.lineWidth = pass ? 1.5 : 1; ctx.beginPath();
+        for (let i = 0; i < count; i++) {
+            if ((i < lit) !== !!pass) continue;
+            if (shape === 'strip') {
+                const k = radius * (i + 0.5) / count;
+                ctx.moveTo(k, -width + 3); ctx.lineTo(k, -width + 6);
+                ctx.moveTo(k, width - 3); ctx.lineTo(k, width - 6);
+            } else {
+                const a = -span / 2 + (i + 0.5) * span / count;
+                const c = shape === 'sector' ? Math.cos(a) : _dangerCircle[i * 24 / count * 2];
+                const v = shape === 'sector' ? Math.sin(a) : _dangerCircle[i * 24 / count * 2 + 1];
+                const outer = Math.max(2, radius - 5), inner = Math.max(1, radius - 9);
+                ctx.moveTo(c * inner, v * inner); ctx.lineTo(c * outer, v * outer);
+            }
+        }
+        ctx.stroke();
+    }
+    if (shape === 'strip') {
+        ctx.globalAlpha = 0.35; ctx.strokeStyle = tickLit; ctx.lineWidth = 1;
+        ctx.beginPath(); ctx.moveTo(radius * (1 - p), -width + 7); ctx.lineTo(radius * (1 - p), width - 7); ctx.stroke();
+    }
+    _dangerPath(shape, radius, width, span, 1);
+    if (red && !low && (!fo || fo.glow !== false)) { ctx.globalAlpha = 0.18; ctx.strokeStyle = '#ff2545'; ctx.lineWidth = 7; ctx.stroke(); }
+    ctx.globalAlpha = 0.9; ctx.strokeStyle = '#100d18'; ctx.lineWidth = 4.5; ctx.stroke();
+    ctx.globalAlpha = 0.9; ctx.strokeStyle = boundary; ctx.lineWidth = 1.3; ctx.stroke();
+    if (shape !== 'strip' && shape !== 'wave' && p > 0) {
+        ctx.globalAlpha = 0.9; ctx.strokeStyle = red ? '#ff5e6a' : '#f4f0e7'; ctx.lineWidth = 1.8; ctx.beginPath();
+        const start = shape === 'sector' ? -span / 2 : -Math.PI / 2, sweep = shape === 'sector' ? span : Math.PI * 2;
+        ctx.arc(0, 0, radius, start, start + sweep * p); ctx.stroke();
+    }
+    ctx.restore();
+}
+
+
 // Pisces: Space Journey — © 2024 An Nguyen. Licensed under the MIT License.
 // render/fx.js — extracted from render.js (shared visual effects: raphael lasers,
 // persian tile, dimensional rifts, dim-break zones, boss shockwaves, chain
@@ -14,28 +225,7 @@ function drawRaphaelLasers() {
         ctx.save();
         _capClipEnemyDraw(ctx, laser.start.x, laser.start.y, laser);
         if (!laser.fired) {
-            // Wide warning zone
-            ctx.strokeStyle = "rgba(255,0,0,0.12)";
-            ctx.lineWidth = 22;
-            ctx.beginPath();
-            ctx.moveTo(laser.start.x, laser.start.y);
-            ctx.lineTo(endX, endY);
-            ctx.stroke();
-            // Dashed targeting line
-            ctx.strokeStyle = "rgba(255,100,100,0.9)";
-            ctx.lineWidth = 1.5;
-            ctx.setLineDash([12, 12]);
-            if (!_mobPerf) ctx.shadowColor = 'red'; if (!_mobPerf) ctx.shadowBlur = 8;
-            ctx.beginPath();
-            ctx.moveTo(laser.start.x, laser.start.y);
-            ctx.lineTo(endX, endY);
-            ctx.stroke();
-            ctx.setLineDash([]);
-            // tiny crosshair dot at end
-            ctx.fillStyle = 'rgba(255,80,80,0.9)';
-            ctx.beginPath();
-            ctx.arc(endX, endY, 5, 0, Math.PI * 2);
-            ctx.fill();
+            _drawDangerZone('strip', laser.start.x, laser.start.y, length, 1 - laser.delay / 1000, 0.3, performance.now(), angle, 15);
         } else {
             let prog = laser.duration / 200;
             // outer glow
@@ -1309,6 +1499,7 @@ function drawBossShockwaves() {
         }
 
         ctx.restore();
+
     });
 }
 

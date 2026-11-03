@@ -41,6 +41,23 @@ function spawnVeilshroud() {
     _enemySnapshotAtk(enemies[enemies.length - 1], 'veilshroud');
 }
 
+// Plays a Phantom cue for a Veilshroud or for Goliath's Veilshroud copy state. Each holder keeps one of two key slots
+// so two Phantoms changing state in the same frame are not dropped by the per-key repeat guard. Returns the voice handle.
+function _phantomCue(name, holder, x, y, slot) {
+    if (!window.AudioMgr) return null;
+    if (slot === undefined) {
+        if (holder._phSlot === undefined) holder._phSlot = window._phantomSlotCtr = ((window._phantomSlotCtr | 0) + 1) & 1;
+        slot = holder._phSlot;
+    }
+    return window.AudioMgr.playSfxAt(slot ? name + '-b' : name, x, y) || null;
+}
+
+// Cuts the hold and charge voices of a holder with a short fade. Safe to call when neither is playing.
+function _phantomStopVoices(holder) {
+    if (holder._phHoldVoice) { holder._phHoldVoice.cancel(0.08); holder._phHoldVoice = null; }
+    if (holder._phChargeVoice) { holder._phChargeVoice.cancel(0.08); holder._phChargeVoice = null; }
+}
+
 // VEILSHROUD UPDATE
 function updateVeilshroud(enemy, deltaTime) {
     const dt = deltaTime / 16.67;
@@ -81,11 +98,22 @@ function updateVeilshroud(enemy, deltaTime) {
             enemy.phantomFadeTimer = 400;
             // Energy Accumulation: convert absorbed damage into shield
             const _eaAbsorbed = enemy._phantomAbsorb || 0;
-            const _eaShield = Math.min(1200, Math.ceil((0.35 * _eaAbsorbed + 200) * 1.15));
+            const _eaShield = Math.min(1500, Math.ceil((0.45 * _eaAbsorbed + 240) * 1.15));
             _addEnemyShield(enemy, _eaShield);
             enemy._phantomAbsorb = 0;
             _veilshroudBeginLightning(enemy);
         }
+    }
+
+    // Cues follow the state, so both ways into Phantom (the timed roll above and the on-hit dodge in dealDamage) are covered
+    if (enemy.inPhantom && !enemy._phCued) {
+        enemy._phCued = true;
+        _phantomCue('phantom-enter', enemy, enemy.x, enemy.y);
+        enemy._phHoldVoice = _phantomCue('phantom-hold', enemy, enemy.x, enemy.y);
+    } else if (!enemy.inPhantom && enemy._phCued) {
+        enemy._phCued = false;
+        if (enemy._phHoldVoice) { enemy._phHoldVoice.cancel(0.08); enemy._phHoldVoice = null; }
+        _phantomCue('phantom-exit', enemy, enemy.x, enemy.y);
     }
 
     // Post-phantom color fade-out
@@ -99,6 +127,7 @@ function updateVeilshroud(enemy, deltaTime) {
         // Vị trí vòng mục tiêu cố định tại chỗ đặt, không dí theo player
         if (enemy.lightningCountdown >= enemy.lightningCountdownDuration) {
             _veilshroudStrike(enemy);
+            enemy._phChargeVoice = null;
             enemy.lightningPending = false;
             enemy.lightningCountdown = 0;
             enemy.lightningTargetRef = null;
@@ -125,6 +154,8 @@ function _veilshroudBeginLightning(enemy) {
     enemy.lightningTargetRef = target;
     enemy.lightningTargetX = target.x;
     enemy.lightningTargetY = target.y;
+    _phantomCue('phantom-lock', enemy, target.x, target.y);
+    enemy._phChargeVoice = _phantomCue('phantom-charge', enemy, target.x, target.y);
 }
 
 function _veilshroudStrike(enemy) {

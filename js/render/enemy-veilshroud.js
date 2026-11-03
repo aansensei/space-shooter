@@ -238,33 +238,7 @@ function _drawVeilshroud(enemy) {
     }
 
     // Lightning countdown telegraph, cùng style với post-strike ring để transition liền mạch
-    if (enemy.lightningPending) {
-        const prog = Math.min(1, enemy.lightningCountdown / enemy.lightningCountdownDuration);
-        const tx = enemy.lightningTargetX, ty = enemy.lightningTargetY;
-        const circR = 100;
-        ctx.save();
 
-        // Radial fill mờ báo hiệu vùng nguy hiểm (prog càng cao càng sáng)
-        if (prog > 0.01) {
-            const fillGrad = ctx.createRadialGradient(tx, ty, 0, tx, ty, circR);
-            fillGrad.addColorStop(0, `rgba(255,34,51,${0.28 * prog})`);
-            fillGrad.addColorStop(1, 'rgba(255,0,0,0)');
-            ctx.fillStyle = fillGrad;
-            ctx.beginPath(); ctx.arc(tx, ty, circR, 0, Math.PI * 2); ctx.fill();
-        }
-
-        // Vòng tròn nét đứt, giống post-strike (cùng màu, lineWidth, dash)
-        ctx.globalAlpha = 0.35 + prog * 0.65; // 0.35 lúc đầu → 1.0 lúc sắp đánh
-        ctx.strokeStyle = '#ff2233';
-        ctx.lineWidth = 2;
-        if (!_mobPerf) { ctx.shadowColor = '#ff0022'; ctx.shadowBlur = 10; }
-        ctx.setLineDash([8, 5]);
-        ctx.beginPath(); ctx.arc(tx, ty, circR, 0, Math.PI * 2); ctx.stroke();
-        ctx.setLineDash([]);
-        ctx.shadowBlur = 0;
-
-        ctx.restore();
-    }
 }
 
 // The Phantom Portal: a proper black hole (gravitational lens, swirling
@@ -398,21 +372,7 @@ function _drawVeilshroudEcho(enemy) {
     ctx.restore();
 
     // Vòng nét đứt cảnh báo vùng nổ (hiện trước khi nổ trong giai đoạn charging)
-    if (isCharging) {
-        const warnA = 0.18 + chargeProg * 0.55;
-        ctx.save();
-        ctx.globalAlpha = warnA;
-        ctx.strokeStyle = `rgba(255,${Math.round(80 - chargeProg * 80)},${Math.round(80 - chargeProg * 80)},1)`;
-        ctx.lineWidth = 1.8;
-        if (!_mobPerf) { ctx.shadowColor = '#ff0000'; ctx.shadowBlur = 8 + chargeProg * 12; }
-        ctx.setLineDash([12, 8]);
-        ctx.lineDashOffset = -(now / 70) % 20;
-        ctx.beginPath(); ctx.arc(enemy.x, enemy.y, VEIL_ECHO_BLAST_RADIUS, 0, Math.PI * 2); ctx.stroke();
-        ctx.setLineDash([]);
-        ctx.lineDashOffset = 0;
-        ctx.shadowBlur = 0;
-        ctx.restore();
-    }
+
 
     // Timer bar
     const bw = enemy.size, bh = 4;
@@ -433,29 +393,13 @@ function _drawVeilshroudEffects() {
     const now = performance.now();
 
     // Pending Void Strike rings (host đã chết nhưng sét chưa ra)
-    if (window._veilshroudPendingStrikes && window._veilshroudPendingStrikes.length > 0) {
-        for (const ps of window._veilshroudPendingStrikes) {
-            const prog = Math.min(1, ps.countdown / ps.duration); // 0→1
-            const tx = ps.targetX, ty = ps.targetY;
-            ctx.save();
-            // Radial fill
-            if (prog > 0.01) {
-                const fg = ctx.createRadialGradient(tx, ty, 0, tx, ty, 100);
-                fg.addColorStop(0, `rgba(255,34,51,${0.28 * prog})`);
-                fg.addColorStop(1, 'rgba(255,0,0,0)');
-                ctx.fillStyle = fg;
-                ctx.beginPath(); ctx.arc(tx, ty, 100, 0, Math.PI * 2); ctx.fill();
-            }
-            ctx.globalAlpha = 0.35 + prog * 0.65;
-            ctx.strokeStyle = '#ff2233';
-            ctx.lineWidth = 2;
-            if (!_mobPerf) { ctx.shadowColor = '#ff0022'; ctx.shadowBlur = 10; }
-            ctx.setLineDash([8, 5]);
-            ctx.beginPath(); ctx.arc(tx, ty, 100, 0, Math.PI * 2); ctx.stroke();
-            ctx.setLineDash([]);
-            ctx.shadowBlur = 0;
-            ctx.restore();
-        }
+    for (const e of enemies) {
+        if (e.hp <= 0) continue;
+        if (e.type === 'veilshroud' && e.lightningPending) _drawDangerZone('circle', e.lightningTargetX, e.lightningTargetY, 100, e.lightningCountdown / e.lightningCountdownDuration, 0.3, now);
+        if (e.type === 'veilshroud_echo' && e.echoTimer >= 3000) _drawDangerZone('circle', e.x, e.y, VEIL_ECHO_BLAST_RADIUS, (e.echoTimer - 3000) / 2000, 0.6, now);
+    }
+    if (window._veilshroudPendingStrikes) for (const ps of window._veilshroudPendingStrikes) {
+        _drawDangerZone('circle', ps.targetX, ps.targetY, 100, ps.countdown / ps.duration, 0.3, now);
     }
 
     // Apostle spawn telegraphs: a solid dark patch pooling at the exact

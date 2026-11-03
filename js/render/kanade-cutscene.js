@@ -5339,6 +5339,7 @@
   }
 
   function beginKanadeCutscene(effect, waveNum) {
+    if (window.AudioMgr && window.AudioMgr.prepareEnemy) window.AudioMgr.prepareEnemy('kanade');
     fxParticles.length = 0;
     sakuraPetals.length = 0;
     // Warm the banner's font and its shadowed-text path now. Doing it on the
