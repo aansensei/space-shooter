@@ -575,14 +575,14 @@ HP: **2,112–4,092**. Permanent **45% Damage Reduction** on its body at all tim
 
 **Sword & Barrier**
 
-Marchosias carries a rotating **Arc Barrier** — a glowing 90-degree arc that continuously tracks and faces the player. The barrier and Marchosias's body HP are **completely independent pools**, each equal to Marchosias's Max HP at spawn.
+Marchosias carries a rotating **Arc Barrier** — a glowing 90-degree arc that continuously tracks and faces the player. The barrier and Marchosias's body HP are **completely independent pools**, and the barrier's pool is about **1.86 times** Marchosias's Max HP at spawn.
 
 *Barrier properties:*
 
 - **60% Damage Reduction** on all incoming damage to the barrier. No single hit can exceed **35% of the barrier's current HP**.
 - **Completely buff-immune:** the barrier cannot receive heals, DR boosts, Raphael shields, or any other beneficial effect.
 - While the arc barrier is alive, Marchosias and the barrier gain **+10% evade** (applies to both body hits and barrier hits).
-- **Piercing attacks** (Spirit Arc Blade, Boomerang, Overload Laser) that connect with the barrier first: body damage is reduced **−30%**, the barrier takes **+15% extra damage**, and the attack continues through. **True damage** bypasses the Arc Barrier entirely and hits the body directly. All other attacks are fully absorbed by the barrier.
+- **Piercing attacks** (Spirit Arc Blade, Boomerang, Overload Laser) that connect with the barrier first: body damage is reduced **−30%**, the barrier takes **+15% extra damage**, and the attack continues through. **True damage** bypasses the Arc Barrier entirely and hits the body directly. All other attacks are fully absorbed by the barrier, **Chain Lightning** (Glory for Justice, Skill A and Tesla) included: an arc has no direction to check, so the barrier soaks it from wherever it comes. **Last Ward:** below **30% HP**, while the barrier still stands, it soaks **every** hit meant for the body, true damage and damage over time included, and a golden ring shows it around Marchosias. Breaking the barrier ends it.
 - **Lifesteal per hit:** each hit on the barrier heals the barrier for **5% of damage dealt** (max 1000 HP); Marchosias's body heals for **10% of damage dealt** (max 1000 HP, overflow → **50% converted to shield** on Marchosias's body).
 - **Barrier break:** when the barrier's HP reaches 0, Marchosias immediately gains a **5-hit Iron Body**, gains **+20% DR**, heals **40% Max HP** (overflow → 50% shield), and gains a **shield equal to 15% Max HP + 15% of HP lost**. The **+20% DR is removed** when the barrier revives. Revive time depends on sword cycle: if all 4 swords were used before the barrier breaks → burst explosion animation, fixed **3-second** revive; otherwise **4–5 seconds** (5s at start, scaling to 4s at 3 min).
 - **Tracking speed** scales from ×1.0 at match start up to **×1.67 at 3 minutes** of play.

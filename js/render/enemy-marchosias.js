@@ -295,6 +295,11 @@ function _drawMarchosias(enemy) {
         if (!_mobPerf) { ctx.shadowColor = '#00ff88'; ctx.shadowBlur = 22; }
         ctx.beginPath(); ctx.arc(enemy.x, enemy.y, shieldR, sa, ea); ctx.stroke();
         ctx.shadowBlur = 0;
+        // Last Ward: below 30% HP the barrier soaks hits from every direction, shown as a full golden ring
+        if (enemy.hp < enemy.maxHp * 0.30) {
+            ctx.strokeStyle = `rgba(255,214,110,${0.35 + 0.25 * Math.sin(performance.now() * 0.008)})`; ctx.lineWidth = 2.5;
+            ctx.beginPath(); ctx.arc(enemy.x, enemy.y, shieldR, 0, Math.PI * 2); ctx.stroke();
+        }
 
         // Plate cells: small trapezoid segments with a thin gap between
         // each, every plate lit by its own radial gradient so the band

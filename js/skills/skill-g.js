@@ -248,7 +248,8 @@ function updateEnergyOrbs(deltaTime, currentTime) {
                                 if (_d < 150 && _d < _closestDist) { _closest = _oe; _closestDist = _d; }
                             }
                             if (_closest) {
-                                dealDamage(_closest, { damage: 0.08 * player.atk * _teslaDmgMult, isTeslaDot: true, isChainLightning: true });
+                                const _teslaChain = { damage: 0.08 * player.atk * _teslaDmgMult, isTeslaDot: true, isChainLightning: true };
+                                if (!_soakIntoArcBarrier(_closest, _teslaChain)) dealDamage(_closest, _teslaChain);
                                 chainLightningEffects.push({ x1: enemy.x, y1: enemy.y, x2: _closest.x, y2: _closest.y, lifetime: 200, maxLifetime: 200 });
                             }
                         }

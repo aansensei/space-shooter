@@ -415,7 +415,8 @@ function updateDimensionalRifts(deltaTime) {
                         if (other.type === 'thaelis_cocoon' || other.type === 'thaelis_guard') continue; // immune to every DOT, chain lightning included
                         if (other.type === 'uriel' || other._stealthed) continue; // Covenant King: immune to every DOT/debuff source
                         if (Math.hypot(other.x - enemy.x, other.y - enemy.y) < 150) {
-                            dealDamage(other, { damage: chainDmg, isChainLightning: true, applySoulReaver: Math.random() < 0.60 });
+                            const _chainSrc = { damage: chainDmg, isChainLightning: true, applySoulReaver: Math.random() < 0.60 };
+                            if (!_soakIntoArcBarrier(other, _chainSrc)) dealDamage(other, _chainSrc);
                             chainLightningEffects.push({ x1: enemy.x, y1: enemy.y, x2: other.x, y2: other.y, lifetime: 250, maxLifetime: 250 });
                             chainCount++;
                         }

@@ -52,6 +52,14 @@ function checkMarchosiasArcBarrier(enemy, source, bx, by) {
     }
 
     // Normal attack: fully absorbed by barrier, nothing reaches the body
+    return _soakIntoArcBarrier(enemy, source, bx, by);
+}
+
+// Soaks a hit into the arc barrier with no facing check: the barrier takes 40% of it, at most 35% of its current HP, and nothing
+// reaches the body. Chain lightning and Last Ward use it too, since an arc or a damage tick has no direction to check.
+function _soakIntoArcBarrier(enemy, source, bx, by) {
+    if (enemy.type !== 'marchosias' || !enemy.arcBarrier || enemy.arcBarrier.hp <= 0) return false;
+    const effectiveHp = enemy.arcBarrier.maxHp;
     let dmg = Math.ceil((source.damage || 0) + (effectiveHp * (source.percentDamage || 0)));
     if (gloryForJusticeActive) dmg = Math.ceil(dmg * 1.55); // docs/combat-scaling-rebalance.md Part 3
     dmg = Math.ceil(dmg * 0.40);
@@ -64,7 +72,7 @@ function checkMarchosiasArcBarrier(enemy, source, bx, by) {
     _applyArcBarrierBodyHeal(enemy, dmg);
     if (Math.random() < 0.25) _tryTriggerMarchosiasCounter(enemy);
     if (barrierWasAlive && enemy.arcBarrier.hp <= 0) _triggerArcBarrierBreak(enemy);
-    createParticles(bx, by, 3, '#aaffaa', 1, 4);
+    createParticles(bx === undefined ? enemy.x : bx, by === undefined ? enemy.y : by, 3, '#aaffaa', 1, 4);
     return true;
 }
 
@@ -208,8 +216,8 @@ function spawnMarchosias() {
     let hp = Math.ceil(Math.min(4092, 2112 + hpFromTime * 55) * 1.15 * 1.15 * _walpurgisHpMult());
 
     // Arc Barrier carries 15% more HP than the body itself, plus a further
-    // +35% on top of that.
-    const shieldHp = Math.ceil(hp * 1.15 * 1.35);
+    // +35% on top of that, and another +20% on top of both.
+    const shieldHp = Math.ceil(hp * 1.15 * 1.35 * 1.2);
 
     enemies.push({
         x: Math.random() * (canvas.width - size * 2) + size, y: -size,

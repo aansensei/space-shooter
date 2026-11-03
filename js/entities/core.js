@@ -612,6 +612,9 @@ function dealDamage(enemy, source) {
         && _capBlocksSource(source, enemy)) return;
     if (enemy.type === 'abyssal_chain') return;
 
+    // Marchosias, Last Ward: below 30% HP with the barrier up, the barrier soaks every hit meant for the body, true damage and damage over time included
+    if (enemy.type === 'marchosias' && enemy.hp < enemy.maxHp * 0.30 && (source.damage > 0 || source.percentDamage > 0) && _soakIntoArcBarrier(enemy, source)) return;
+
     // GOLIATH Alpha/Transforming: bất khả xâm phạm tuyệt đối (Iron Body vĩnh
     // viễn) — không có ngoại lệ nào được xuyên thủng trong pha này.
     if (enemy.type === 'goliath' && enemy.phase !== 'true_form') return;
@@ -2068,7 +2071,8 @@ function dealDamage(enemy, source) {
             if (otherEnemy.type === 'thaelis_cocoon' || otherEnemy.type === 'thaelis_guard') continue; // immune to chain lightning, same as Skill A's
             if (otherEnemy !== enemy && !otherEnemy.type.startsWith('enemy_bullet') && Math.hypot(enemy.x - otherEnemy.x, enemy.y - otherEnemy.y) < 150) {
                 let debuff = Math.random() < 0.60;
-                dealDamage(otherEnemy, { damage: chainDamage, isChainLightning: true, applySoulReaver: debuff, _noHitSfx: true });
+                const _chainSrc = { damage: chainDamage, isChainLightning: true, applySoulReaver: debuff, _noHitSfx: true };
+                if (!_soakIntoArcBarrier(otherEnemy, _chainSrc)) dealDamage(otherEnemy, _chainSrc);
                 chainLightningEffects.push({
                     x1: enemy.x, y1: enemy.y, x2: otherEnemy.x, y2: otherEnemy.y, lifetime: 250, maxLifetime: 250
                 });
