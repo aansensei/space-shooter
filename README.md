@@ -28,11 +28,22 @@ A fast-paced arcade space shooter with deep combat mechanics, percentage-based d
 | F | Skill: Annihilation Sweep |
 | G | Skill: Life Domain / Tesla Matrix |
 
-- You start with **12 lives**. Earn **+1 life** every **500,000 points**.
+- You start with **10 lives**. Earn **+1 life** every **500,000 points**, up to a maximum of **12**.
 - Your ship fires automatically at all times.
 - A small **cyan hitbox dot** at the exact center of your ship shows the true collision point — only that dot touching a bullet costs a life.
 - Enemy bullets always render on top of all effects and are outlined with a **pulsing white glow** so they remain visible in dense situations.
 - The game automatically **pauses** if you switch tabs, and resumes cleanly with no time skips.
+
+---
+
+## Settings
+
+Settings opens from the pause screen and applies live. **Restore Defaults** puts everything back as on first launch (the language stays as it is).
+
+- **Graphics:** **Smart Quality** adjusts the graphics level by itself to keep the game smooth; turn it off to pick **LOW**, **MEDIUM**, **HIGH** or **PER** (performance) yourself. **High FPS** removes the roughly 45 fps cap on mobile, and **Show FPS** puts the frame rate next to the sound button.
+- **Advanced Graphics:** switches that only turn effects off on top of the graphics level: **Explosions**, **Debris and Sparks**, **Glow**, **Screen Flashes**, **Sigil Lighting**, **Sigil Backdrops**, **Moving Nebula**, **Trails** and **Jewel Twinkle**. **Effect Brightness** and **Flash Intensity** are sliders, and **Turn All Off** clears the switches. Enemy attack warnings always stay on.
+- **Audio:** **BGM**, **SFX** and **Global** volume, and a picker for which in-game music tracks may play.
+- **Gameplay:** **Screen Shake**, **Red danger warning** (removes the red fill and glow from area attack warnings while the neutral boundary, ring and ticks stay), **Tap Effect**, **Vibration** and **Skip Kanade Animation** (the boss wave still rolls and applies its Timeline Distortion either way).
 
 ---
 
@@ -127,10 +138,10 @@ Each enemy kill has a **30% chance** to grant an extra kill count — meaning a 
 | Count | Bonus | Glow |
 |---|---|---|
 | 1–4 | +30% Max HP → **389 HP total**, +10% bullet speed | Cyan |
-| 5–11 | +20% fire rate, +10% damage, +10% Damage Reduction | Magenta |
+| 5–11 | +20% fire rate, +10% damage, +8% Damage Reduction | Magenta |
 | 12 | **+12% Damage Reduction** (the +8% of the previous tier is kept and raised), spears pierce **4** enemies and heal **3%** Max HP, and every **12 seconds** all twelve throw a spear at once at the strongest enemy after a 0.5s lock on (the Volley) | Gold |
 
-All Sentinels have **5% base Damage Reduction** at all times (stacks with all other DR sources).
+All Sentinels have **8% base Damage Reduction** at all times (stacks with all other DR sources). Every enemy except Goliath deals **25% more damage** to Sentinels (Goliath has its own +20%); damage to the ship is not affected.
 
 **Sentinel Parry** — While Glory for Justice is active, every hit a Sentinel receives has a **20% chance** to be completely negated (the damage is fully ignored). On a successful parry:
 
@@ -349,7 +360,7 @@ Activates Glory for Justice immediately. Spawns Energy Orbs at enemy kill locati
 
 ## Sigils
 
-Every wave 5 and wave 10, a sigil-pick screen offers 4 random choices from the full pool; picking one grants **both** of its buffs permanently for the rest of the run, and that sigil cannot be offered again. Twelve entries in the pool are tied to the Western zodiac signs (Aries through Pisces). **Great Sage** is the first entry of a separate, planned "Vietnamese Zodiac" (12 con giáp) set, drawn from its own pool alongside the zodiac signs rather than replacing any of them. Element: Earth (its 72 Transformations map to the 72 Earthly Fiends of Chinese numerology, not to any metal).
+Every wave 5 and wave 10, a sigil-pick screen offers 4 random choices from the full pool; picking one grants **both** of its buffs permanently for the rest of the run, and that sigil cannot be offered again. Twelve entries in the pool are tied to the Western zodiac signs (Aries through Pisces). **Great Sage**, **Dawn Herald** and **Umbral Serpent** are the first entries of a separate, growing "Vietnamese Zodiac" (12 con giáp) set, drawn from their own pool alongside the zodiac signs rather than replacing any of them. Element: Earth (its 72 Transformations map to the 72 Earthly Fiends of Chinese numerology, not to any metal).
 
 ### Dawn Herald: Mão Nhật Tinh Quan
 
@@ -422,6 +433,16 @@ The Fate meter and its ATK bonus need both Leo skills. It does not charge while 
 
 **Mountainfall (SPEC):** Every stack fills 2.5% of the Ley meter (40 stacks fill it). When full, Space or the mobile CHARGE button drops a mountain on the densest enemy group at least 200px above the ship (an 80px grid search, ties broken by total HP). After 350ms it lands for **12x ATK + 4% Max HP** to every enemy within 170px and buries them for **1.5s** (Dominant, the same hold as Leo's petrify and the Pisces fish stun). Stacks are kept. The mountain splits into three rock screens in an arc along its foot that block from 600ms to 4900ms: enemy bullets are erased, launched skills (Marchosias blades, Uriel swords, Raphael orbs, Dargruel chains) are stopped, enemy bodies are held on the far side, and any hit whose attacker sits behind a screen (beams, shockwaves) is stopped by the line of sight check in playerTakesHit. Allied shots pass through. Goliath keeps his own rules: his meteors and Verdict orbs break a screen, while his body and ordinary shots pass through. With Cancer or Leo also ready, one press releases Cancer, then Leo, then Mountainfall.
 
+
+### Umbral Serpent (Tỵ)
+
+Element: Venomancy.
+
+**Umbral Devour (ATK):** Charges in 10s, and every kill hastens it by 0.3s. The next ship bullet that touches a targetable enemy triggers it, even when tentacles, armor, barriers or immunity would have blocked the bullet. It deals **4 bites (60% ATK + 0.4% Max HP each)**, then **4 piercing shards (45% ATK + 0.3% Max HP; repeat hits on the same target deal 25%)**. The ship gains 50% speed for 1s and refunds 1s on Skills D and S. A ready cue shows when the charge is full.
+
+**Serpent Array (SPEC):** Skill S opens a **190px array** (10s cooldown, usable even while the spirit is out). For 1.25s it pulls enemies to the centre with a Dominant hold, dealing 20% ATK + 0.1% Max HP every 0.25s, then it bursts for **300% ATK + 2% Max HP** and holds them 1.25s more. Array hits cannot be evaded, and Goliath is not pulled. It also summons **10 serpents for 8s**: each bites for 60% ATK + 0.2% Max HP every 0.45s, up to 3 on one target, with a 51% chance to latch on for 3 bites in a row. Kills extend the swarm by 2s up to 12s, and bites charge Skill S by 3%. The ship gains a one hit shield (restored after 12 bites) and slows nearby enemies 50% for 2s. Each swarm bite gives the player side +1% damage (up to 40%) and adds 0.5% ATK to serpent bites (up to 20%); the stacks fade after 2s without a bite. A serpent crossing an ordinary enemy bullet erases it and gains 5% movement speed and 5% bite damage for 3s (it does not stack and only affects that serpent).
+
+**Venom (Kịch Độc):** Every 5th bite in a row adds a Venom stack to the bitten enemy and applies Soul Reaver and Soul Devourer. Venom deals **35% ATK per second for 3s (65% on the third second)**, and each stack after the first adds 15% ATK, up to 5 stacks. Gaining a stack renews them all, and after 3s they fade out over 1s. At rest the venom reads as a violet radiation haze on the enemy with a row of pips that fills as stacks build.
 ---
 
 ## Enemies
@@ -600,17 +621,17 @@ Each minion scans within **170px** for a valid host (excluding other Marchosias)
 
 ### Egregor (Elite)
 
-**Available after:** Wave 2 | **Spawn rate:** 3% → 12% | **Cap:** 1 on screen | **Score on kill:** HP × 6 points | **Speed:** 1.5 u/s
+**Available after:** Wave 2 | **Spawn rate:** 3.5% → 12% | **Cap:** 1 on screen | **Score on kill:** HP × 6 points | **Speed:** 0.8 u/s
 
 HP: **2,530–5,980**. No single hit takes more than **15% of its Max HP** (its own Vessel backlash excepted). Permanent **40% Damage Reduction** on its body at all times. **Permanent CC Immunity** — immune to all crowd control including Tesla slow, Dimensional Rift slow, Orb Sacrifice slow, and Death Star pull. A massive psychic entity with 10 waving tentacles, an organic pulsing body, and 4 eyes that track the player at all times. Descends toward the player, then holds position in the upper screen while cycling between Null Slash and Psychic Tempest.
 
-**Passive: Collective Mind** — Egregor has **10 independent tentacles**, each with their own HP pool equal to **78% of Egregor's current MaxHP**. Every non-true-damage, non-piercing hit triggers a tentacle interception roll: the **deflect chance scales with alive tentacles** (alive/10 × 60% — 60% at full strength, declining as tentacles are destroyed); on a miss, the hit is absorbed by one tentacle at **35% × 75% DR** (net ~26% of the original hit). **When a tentacle dies:** Egregor's body **heals 6% MaxHP**, **MaxHP increases by 20% of that tentacle's HP**, and the body gains **+5% DR** (cumulative, max +20% at 4 losses). Once **≥1 tentacle is lost**, normal attacks (and all non-piercing, non-true sources) also **bleed through to the body** after tentacle interception at **15% of their damage**, hard-capped at **15% MaxHP** per hit. When all 10 tentacles are dead, normal attacks deal **50% damage, capped at 20% MaxHP**. Egregor's body can also be damaged by **true damage** (capped at **max(25%, 90% − 10% × n)% MaxHP** per hit) or **piercing attacks** (tentacle takes 26% of hit, body takes **30% of original damage**, capped at **20% MaxHP**). Egregor cannot coexist with Veilshroud on the field.
+**Passive: Collective Mind** — Egregor has **10 independent tentacles**, each with their own HP pool equal to **78% of Egregor's current MaxHP**. Every non-true-damage, non-piercing hit triggers a tentacle interception roll: the **deflect chance scales with alive tentacles** (alive/10 × 60% — 60% at full strength, declining as tentacles are destroyed); on a miss, the hit is absorbed by one tentacle at **35% × 75% DR** (net ~26% of the original hit). **When a tentacle dies:** Egregor's body **heals 4% MaxHP**, **MaxHP increases by 20% of that tentacle's HP**, and the body gains **+3% DR** per lost tentacle (max +15%). Once **4 or more tentacles are lost**, normal attacks (and all non-piercing, non-true sources) also **bleed through to the body** after tentacle interception at **12% of their damage**, hard-capped at **12% MaxHP** per hit. When all 10 tentacles are dead, normal attacks deal **50% damage, capped at 20% MaxHP**. Egregor's body can also be damaged by **true damage** (capped at **15% MaxHP** per hit) or **piercing attacks** (tentacle takes 26% of hit, body takes **30% of original damage**, capped at **20% MaxHP**). Egregor cannot coexist with Veilshroud on the field.
 
-**Passive: Mind Link** — Each time a non-Egregor enemy dies within **600px**, Egregor gains a **Rage Stack** (max 5 active at once, each lasting 8 seconds). A pulsing red dashed ring marks the 600px range. Per stack gained: **+18% movement speed**, **+15% Max HP**, **Heal 15% of current MaxHP**, all alive tentacles are **healed 15% of their max HP** and gain **+5% DR** (stacks additively, max +25% at 5 stacks). Gaining a Rage Stack immediately triggers a Psychic Tempest cast (if not already casting). Rage stacks are shown as red stars around Egregor's body. Null Slash charges visibly: the sector fills out to an advancing bright front under an aim line, with comet streaks and eight pointed stars; the swing carries beads of light along the tentacle, a white and violet blade trails it, and the landing bursts into an eight pointed star with spreading cracks.
+**Passive: Mind Link** — Each time a non-Egregor enemy dies within **600px**, Egregor gains a **Rage Stack** (max 5 active at once, each lasting 8 seconds). A pulsing red dashed ring marks the 600px range. Per stack gained: **+18% movement speed**, **+15% Max HP**, **heals 12% of the new MaxHP**, all alive tentacles are **healed 10% of their max HP**, and the tentacles gain **+5% DR** (stacks additively, max +25% at 5 stacks). Gaining a Rage Stack immediately triggers a Psychic Tempest cast (if not already casting). Rage stacks are shown as red stars around Egregor's body. Null Slash charges visibly: the sector fills out to an advancing bright front under an aim line, with comet streaks and eight pointed stars; the swing carries beads of light along the tentacle, a white and violet blade trails it, and the landing bursts into an eight pointed star with spreading cracks.
 
-**Skill: Psychic Tempest** (CD 4s, 15% faster with any rage) — Selects up to **3 random targets** from the player and active Sentinels. Target positions are **locked at the moment of cast** — the bolts do not track movement. After a **1.2-second telegraph** (shrinking impact ring + converging sparks + warning thread from Egregor), all selected targets are struck simultaneously by psychic lightning from Egregor's original position. The strike hits within **100px radius**: costs **1 player life** or deals **20% of Sentinel MaxHP** per hit. If Egregor dies during the telegraph phase, the bolts still fire.
+**Skill: Psychic Tempest** (CD 4s, 15% faster with any rage) — Selects up to **3 random targets** from the player and active Sentinels. Target positions are **locked at the moment of cast** — the bolts do not track movement. A giant tentacle plants and portals open over every target, each marked by a red danger zone with a closing ring. After a **1.2-second telegraph** (15% faster with rage), all selected targets are struck simultaneously by psychic lightning from Egregor's original position. The strike hits within **100px radius**: costs **1 player life** (protections apply) or deals **1.4 times Egregor's ATK** to a Sentinel as normal damage, scaled by its enrage (it rises as Egregor loses HP), and each Sentinel is hit at most once per cast. If Egregor dies during the telegraph phase, the bolts still fire.
 
-**Skill: Null Slash** (CD 3.5s between strikes) — Egregor locks onto the player and begins a windup of **1–3 seconds** (base 3s no rage / 2.5s with any rage, reduced by 0.25s per stack, minimum 1s). During the windup Egregor continues moving forward, tracks the player live, and gains **+35% DR**. At release, the target position is locked and a giant tentacle arc sweeps a **180° semicircle** toward that point. Anything inside the arc is hit: **Player** — movement slowed **50% for 1.5s** (visible purple ring + falling particles), and with **more than 3 Mind Link stacks** the slash also costs **1 life** after every protection has had its say (Yog-Sothoth dodges it entirely). **Sentinels** — **20% MaxHP true damage** (1 hit) / **30% MaxHP** (2 hits) / **40% MaxHP** (3+ hits), rage bonus **+6% per stack** up to **+30%**. After the sweep, a **Dimension Break** zone (glowing purple arc) lingers on the slash path for **1 second** — moving through it slows the player an additional **20%**.
+**Skill: Null Slash** (CD 3.5s between strikes) — Egregor locks onto the player and begins a windup of **1–3 seconds** (base 3s no rage / 2.5s with any rage, reduced by 0.35s per stack, minimum 1s). During the windup Egregor continues moving forward, tracks the player live, and gains **+25% DR**. At release, the target position is locked and a giant tentacle arc sweeps a **180° semicircle** toward that point. Anything inside the arc is hit: **Player** — movement slowed **50% for 1.5s** (visible purple ring + falling particles), and with **more than 3 Mind Link stacks** the slash also costs **1 life** after every protection has had its say (Yog-Sothoth dodges it entirely). **Sentinels** — **2.0 / 2.3 / 2.6 times Egregor's ATK** as true damage when **one / two / three or more** Sentinels are inside the arc, scaled by its enrage (it rises as Egregor loses HP). After the sweep, a **Dimension Break** zone (glowing purple arc) lingers on the slash path for **1 second** — moving through it slows the player an additional **20%**. The torn space itself stays visible for 1.8s and closes from both ends.
 
 **Passive: Boon and Bane** — Throughout the entire Null Slash windup (charging phase), every body hit Egregor receives grants it a **Barrier equal to 75% of that damage**. This barrier accumulates and absorbs subsequent non-true-damage hits before they reach Egregor's body HP. True damage pierces the Boon and Bane barrier. The total barrier accumulated is tracked throughout the full windup. **Immediately when the Null Slash fires**, Egregor deals **self-inflicted true damage equal to 50% of the total accumulated barrier**, bypassing its own Damage Reduction and per-hit caps, hard-capped at **40% of its Max HP**. This is a pure self-damage that cannot be influenced by the player. The barrier and accumulation counter reset to zero after each Null Slash cycle.
 
