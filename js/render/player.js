@@ -287,6 +287,11 @@ function drawBullet(b) {
         ctx.translate(b.x, b.y);
         ctx.rotate(b._heading !== undefined ? b._heading : -Math.PI / 2);
         ctx.drawImage(_ss, -_ss.width / 2, -_ss.height / 2);
+        if (b._volley) {
+            // volley spears carry a second, additive layer so they burn brighter than the single ones
+            ctx.globalCompositeOperation = 'lighter'; ctx.globalAlpha = 0.5;
+            ctx.drawImage(_ss, -_ss.width * 0.56, -_ss.height * 0.56, _ss.width * 1.12, _ss.height * 1.12);
+        }
         ctx.restore();
         return;
     }

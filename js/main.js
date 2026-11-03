@@ -2247,19 +2247,18 @@ function update(rawDeltaTime) {
     for (let i = bullets.length - 1; i >= 0; i--) {
         let b = bullets[i];
         if (b.type === 'sentinel_special') {
-            // A target that goes stealthed mid-flight (Uriel entering
-            // Camouflage) can't still be tracked - the bullet had already
-            // locked on before it vanished, so it's despawned outright
-            // instead of visibly beelining for an untargetable enemy.
-            if (b.target && b.target._stealthed) { bullets.splice(i, 1); continue; }
-            if (b.target && enemies.includes(b.target) && !b.target.inCoronation && b.target.hp > 0) {
-                const dx = b.target.x - b.x, dy = b.target.y - b.y, d = Math.hypot(dx, dy);
-                const speed = (9 * 0.65) * (b.speedMultiplier || 1);
-                if (d > 0) { b.x += (dx / d) * speed * dt; b.y += (dy / d) * speed * dt; b._heading = Math.atan2(dy, dx); }
-            } else {
-                if (!b.vxInitial) { b.vxInitial = 0; b.vyInitial = -(9 * 0.65) * (b.speedMultiplier || 1); b._heading = -Math.PI / 2; }
-                b.x += b.vxInitial * dt; b.y += b.vyInitial * dt;
+            // The spear homes in on its target. When that target dies or hides (Uriel in Camouflage) it turns to the nearest enemy it
+            // has not pierced yet, and with nothing in reach it keeps flying along its heading.
+            const speed = 11 * (b.speedMultiplier || 1);
+            if (!(b.target && enemies.includes(b.target) && !b.target.inCoronation && !b.target._stealthed && b.target.hp > 0)) {
+                b.target = _spearNextTarget(b);
             }
+            if (b.target) {
+                const dx = b.target.x - b.x, dy = b.target.y - b.y;
+                if (dx !== 0 || dy !== 0) b._heading = Math.atan2(dy, dx);
+            }
+            b.x += Math.cos(b._heading) * speed * dt; b.y += Math.sin(b._heading) * speed * dt;
+            if (!_mobPerf && ((b._trail = (b._trail || 0) + dt) > 1.1)) { b._trail = 0; createParticles(b.x - Math.cos(b._heading) * 22, b.y - Math.sin(b._heading) * 22, 1, '#ffd98a', 1, 4); }
         } else { b.x += b.vx * dt; b.y += b.vy * dt; }
 
         if (b.y < -b.size || b.y > canvas.height + b.size || b.x < -b.size || b.x > canvas.width + b.size) { bullets.splice(i, 1); continue; }
@@ -2311,13 +2310,18 @@ function update(rawDeltaTime) {
                     dealDamage(enemy, { damage: 0.08 * player.atk * b.damage, percentDamage: 0.006 * b.damage });
                     b.hitEnemies.push(enemy);
                 } else {
+                    if (b._spear && b._hitList.indexOf(enemy) !== -1) continue;
                     if (b.isPiercing && b.hitEnemies) {
                         if (b.hitEnemies.includes(enemy)) continue;
                         b.hitEnemies.push(enemy);
                     }
 
                     const _preHitHp = enemy.hp, _preHitShield = enemy.shield || 0;
+                    // spears do a quarter of their damage to Goliath
+                    const _spearFullDmg = b.damage, _spearGoliath = b._spear && enemy.type === 'goliath';
+                    if (_spearGoliath) b.damage = _spearFullDmg * 0.25;
                     dealDamage(enemy, b);
+                    if (_spearGoliath) b.damage = _spearFullDmg;
 
                     // docs/combat-scaling-rebalance.md Part 3: min(0.02A, 1%
                     // own T), and only when this hit actually landed (real
@@ -2325,9 +2329,18 @@ function update(rawDeltaTime) {
                     // even if the hit was fully blocked or evaded.
                     const _actualLoss = (_preHitHp - enemy.hp) + (_preHitShield - (enemy.shield || 0));
                     if (b.type === 'sentinel_special' && b.sourceSentinel && b.sourceSentinel.hp > 0 && _actualLoss > 0) {
-                        const _healAmt = Math.min(0.0023 * player.atk, 0.01 * b.sourceSentinel.maxHp);
+                        const _healAmt = b.sourceSentinel.maxHp * (b._healPct || 0.02);
                         b.sourceSentinel.hp = Math.min(b.sourceSentinel.maxHp, b.sourceSentinel.hp + _healAmt);
                         createParticles(b.sourceSentinel.x, b.sourceSentinel.y, 5, 'lime', 1, 3);
+                    }
+
+                    // a spear goes on through up to 3 enemies (4 with a full swarm of twelve), turning to the next one after each hit
+                    if (b._spear) {
+                        b._hitList.push(enemy);
+                        _spearImpact(b.x, b.y, b._volley);
+                        b._through--;
+                        if (b._through <= 0) bullets.splice(i, 1); else b.target = _spearNextTarget(b);
+                        break;
                     }
 
                     if ((b.type === 'player_auto' || b.type === 'sentinel_auto') && enemy.hp > 0) {

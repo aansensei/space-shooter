@@ -19,11 +19,12 @@ function _makeDangerSigil(front, reduced) {
         if (front) { path.moveTo(0, -r); path.arc(0, 0, r, -Math.PI / 2, Math.PI / 2); }
         else { path.moveTo(r, 0); path.arc(0, 0, r, 0, Math.PI * 2); }
     }
-    for (let triangle = 0; triangle < 2; triangle++) for (let i = 0; i < 3; i++) {
-        const a = -Math.PI / 2 + triangle * Math.PI + i * Math.PI * 2 / 3, b = a + Math.PI * 2 / 3;
-        _dangerSigilSegment(path, front, Math.cos(a) * 0.69, Math.sin(a) * 0.69, Math.cos(b) * 0.69, Math.sin(b) * 0.69);
+    // two squares turned 45 degrees to each other make an eight pointed star
+    for (let square = 0; square < 2; square++) for (let i = 0; i < 4; i++) {
+        const a = -Math.PI / 2 + square * Math.PI / 4 + i * Math.PI / 2, b = a + Math.PI / 2;
+        _dangerSigilSegment(path, front, Math.cos(a) * 0.72, Math.sin(a) * 0.72, Math.cos(b) * 0.72, Math.sin(b) * 0.72);
     }
-    const count = reduced ? 6 : 12;
+    const count = reduced ? 8 : 16;
     for (let i = 0; i < count; i++) {
         const a = i * Math.PI * 2 / count, c = Math.cos(a), s = Math.sin(a), r = 0.79;
         const x1 = c * (r - 0.035), y1 = s * (r - 0.035), x2 = c * r - s * 0.025, y2 = s * r + c * 0.025;
@@ -38,7 +39,7 @@ const _dangerSigil = _makeDangerSigil(false, false), _dangerSigilLow = _makeDang
 const _dangerSigilSector = _makeDangerSigil(true, false), _dangerSigilLowSector = _makeDangerSigil(true, true);
 
 function _drawDangerScripture(shape, radius, width, span, progress, low, now) {
-    ctx.save(); ctx.globalAlpha = 0.14 + progress * 0.2; ctx.strokeStyle = '#ff354e'; ctx.lineWidth = 0.8;
+    ctx.save(); ctx.globalAlpha = 0.2 + progress * 0.24; ctx.strokeStyle = '#ff6a45'; ctx.lineWidth = 0.8;
     const orbit = !low && _gfxLevel < 2 && (!window._fxOpts || window._fxOpts.trails !== false);
     if (shape === 'strip') {
         ctx.beginPath();
@@ -52,7 +53,7 @@ function _drawDangerScripture(shape, radius, width, span, progress, low, now) {
         }
         ctx.stroke();
         if (orbit) {
-            ctx.globalAlpha = 0.35 + progress * 0.15; ctx.strokeStyle = '#ff7d89'; ctx.lineWidth = 1;
+            ctx.globalAlpha = 0.4 + progress * 0.15; ctx.strokeStyle = '#ffa07a'; ctx.lineWidth = 1;
             ctx.setLineDash(_dangerLaneDash); ctx.lineDashOffset = -now * 0.045;
             ctx.beginPath(); ctx.rect(radius * 0.04, -width * 0.45, radius * 0.92, width * 0.9); ctx.stroke();
         }
@@ -60,7 +61,7 @@ function _drawDangerScripture(shape, radius, width, span, progress, low, now) {
         ctx.scale(radius, radius); ctx.lineWidth = 0.85 / radius;
         ctx.stroke(shape === 'sector' ? (low ? _dangerSigilLowSector : _dangerSigilSector) : (low ? _dangerSigilLow : _dangerSigil));
         if (orbit) {
-            ctx.globalAlpha = 0.32 + progress * 0.2; ctx.strokeStyle = '#ff7d89'; ctx.lineWidth = 1 / radius;
+            ctx.globalAlpha = 0.38 + progress * 0.2; ctx.strokeStyle = '#ffa07a'; ctx.lineWidth = 1 / radius;
             ctx.setLineDash(_dangerOrbitDash); ctx.lineDashOffset = -now * 0.00008;
             ctx.beginPath(); ctx.arc(0, 0, 0.6, shape === 'sector' ? -Math.PI / 2 : 0, shape === 'sector' ? Math.PI / 2 : Math.PI * 2); ctx.stroke();
         }
@@ -129,13 +130,15 @@ function _drawDangerZone(shape, x, y, radius, progress, intensity, now, angle = 
     if (!(radius > 0)) return;
     const p = Math.max(0, Math.min(1, progress)), fo = window._fxOpts, low = _mobPerf || _gfxLevel >= 2;
     const red = window._dangerGuide === true || !fo || fo.dangerWarn !== false;
-    const boundary = red ? '#ff354e' : '#e4e0d9', tickLit = red ? '#ffb9ab' : '#ede9df', tickDim = red ? '#c74052' : '#727681';
+    const boundary = red ? '#ff4631' : '#e4e0d9', tickLit = red ? '#ffd9c2' : '#ede9df', tickDim = red ? '#f2503a' : '#727681';
     const pulse = 0.5 + 0.5 * Math.sin(now * (0.006 + p * 0.012));
     if (shape === 'tempest' && !boundaryOnly) {
         if (!red) return;
         ctx.save(); ctx.shadowBlur = 0; ctx.setLineDash(_dangerEmptyDash); ctx.lineDashOffset = 0;
-        ctx.globalAlpha = 0.1 + p * 0.1 + pulse * 0.035; ctx.fillStyle = '#e51f3e';
+        ctx.globalAlpha = 0.16 + p * 0.1 + pulse * 0.04; ctx.fillStyle = '#ff3a24';
         ctx.beginPath(); ctx.arc(x, y, radius, 0, Math.PI * 2); ctx.fill();
+        // a band of light just inside the rim, so the zone has an edge even before the sigil lines are readable
+        ctx.save(); ctx.clip(); ctx.globalAlpha = 0.14 + pulse * 0.07; ctx.strokeStyle = '#ff4631'; ctx.lineWidth = low ? 14 : 24; ctx.stroke(); ctx.restore();
         ctx.save(); ctx.translate(x, y); _drawDangerScripture('circle', radius, 0, span, p, low, now); ctx.restore();
         if (!fo || fo.particles !== false) {
             ctx.globalAlpha = 0.25 + p * 0.4; ctx.fillStyle = '#efd0cc'; ctx.beginPath();
@@ -155,7 +158,7 @@ function _drawDangerZone(shape, x, y, radius, progress, intensity, now, angle = 
             ctx.beginPath(); ctx.arc(x, y, radius, 0, Math.PI * 2); ctx.fill();
         }
         if (targeted && p > 0.6 && !low && _gfxLevel === 0 && (!fo || fo.screenFlash !== false)) {
-            ctx.globalAlpha = (p - 0.6) * 0.2 * (0.5 + pulse * 0.5); ctx.fillStyle = '#ff2948';
+            ctx.globalAlpha = (p - 0.6) * 0.2 * (0.5 + pulse * 0.5); ctx.fillStyle = '#ff4631';
             ctx.fillRect(0, 0, canvas.width, 3); ctx.fillRect(0, canvas.height - 3, canvas.width, 3);
             ctx.fillRect(0, 3, 3, canvas.height - 6); ctx.fillRect(canvas.width - 3, 3, 3, canvas.height - 6);
         }
@@ -163,12 +166,25 @@ function _drawDangerZone(shape, x, y, radius, progress, intensity, now, angle = 
     }
     const area = shape === 'strip' ? radius * width * 2 : radius * radius * (shape === 'sector' ? span / 2 : Math.PI);
     const budget = intensity < 0.4 ? 0.1 : intensity < 0.8 ? 0.2 : 0.35;
+    const big = area > canvas.width * canvas.height * budget * 0.6;
     ctx.save(); ctx.translate(x, y); ctx.rotate(angle); ctx.shadowBlur = 0; ctx.setLineDash(_dangerEmptyDash); ctx.lineDashOffset = 0;
     if (red && shape !== 'wave' && shape !== 'tempest' && !boundaryOnly) {
-        ctx.globalAlpha = area > canvas.width * canvas.height * budget * 0.6 ? 0.035 : 0.035 + intensity * p * 0.075;
-        ctx.fillStyle = '#e51f3e'; _dangerPath(shape, radius, width, span, 1); ctx.fill();
+        ctx.globalAlpha = big ? 0.05 : 0.08 + intensity * p * 0.11;
+        ctx.fillStyle = '#ff3a24'; _dangerPath(shape, radius, width, span, 1); ctx.fill();
+        // the charge fills from the origin (or the centre) out to the rim, so the zone is never an empty outline
+        if (p > 0) {
+            ctx.globalAlpha = big ? 0.06 : 0.12 + p * 0.12; ctx.fillStyle = '#ff4a30';
+            if (shape === 'strip') { ctx.beginPath(); ctx.rect(0, -width, radius * p, width * 2); }
+            else _dangerPath(shape, radius, width, span, p);
+            ctx.fill();
+        }
+        // a band of light just inside the rim keeps big zones readable without filling them
+        ctx.save(); _dangerPath(shape, radius, width, span, 1); ctx.clip();
+        ctx.globalAlpha = 0.22 + pulse * 0.1; ctx.strokeStyle = '#ff4a30';
+        ctx.lineWidth = Math.min(low ? 12 : 22, (shape === 'strip' ? width : radius) * 0.9); ctx.stroke();
+        ctx.restore();
     }
-    if (red && shape !== 'tempest' && shape !== 'wave') _drawDangerScripture(shape, radius, width, span, p, low, now);
+    if (red && shape !== 'tempest' && shape !== 'wave' && !boundaryOnly) _drawDangerScripture(shape, radius, width, span, p, low, now);
     if (shape !== 'wave' && shape !== 'strip') {
         ctx.globalAlpha = 0.22 + p * 0.16; ctx.strokeStyle = boundary; ctx.lineWidth = 1;
         _dangerPath(shape, radius, width, span, 1 + (1 - p) * 0.1); ctx.stroke();
@@ -197,11 +213,17 @@ function _drawDangerZone(shape, x, y, radius, progress, intensity, now, angle = 
         ctx.beginPath(); ctx.moveTo(radius * (1 - p), -width + 7); ctx.lineTo(radius * (1 - p), width - 7); ctx.stroke();
     }
     _dangerPath(shape, radius, width, span, 1);
-    if (red && !low && (!fo || fo.glow !== false)) { ctx.globalAlpha = 0.18; ctx.strokeStyle = '#ff2545'; ctx.lineWidth = 7; ctx.stroke(); }
+    if (red && (!fo || fo.glow !== false)) {
+        // soft additive glow built from wide strokes, no shadowBlur; phones get the tight pass only
+        ctx.globalCompositeOperation = 'lighter'; ctx.strokeStyle = '#ff3820';
+        if (!low) { ctx.globalAlpha = 0.1 + pulse * 0.04; ctx.lineWidth = 13; ctx.stroke(); }
+        ctx.globalAlpha = low ? 0.18 : 0.22 + pulse * 0.06; ctx.lineWidth = 6; ctx.stroke();
+        ctx.globalCompositeOperation = 'source-over';
+    }
     ctx.globalAlpha = 0.9; ctx.strokeStyle = '#100d18'; ctx.lineWidth = 4.5; ctx.stroke();
     ctx.globalAlpha = 0.9; ctx.strokeStyle = boundary; ctx.lineWidth = 1.3; ctx.stroke();
     if (shape !== 'strip' && shape !== 'wave' && p > 0) {
-        ctx.globalAlpha = 0.9; ctx.strokeStyle = red ? '#ff5e6a' : '#f4f0e7'; ctx.lineWidth = 1.8; ctx.beginPath();
+        ctx.globalAlpha = 0.9; ctx.strokeStyle = red ? '#ff8057' : '#f4f0e7'; ctx.lineWidth = 1.8; ctx.beginPath();
         const start = shape === 'sector' ? -span / 2 : -Math.PI / 2, sweep = shape === 'sector' ? span : Math.PI * 2;
         ctx.arc(0, 0, radius, start, start + sweep * p); ctx.stroke();
     }
@@ -1632,6 +1654,249 @@ const _sentinelShellImg = new Image();
 _sentinelShellImg.src = 'assets/images/game/effects/sentinel-shell.png';
 _sentinelShellImg.decode().catch(() => {}); // force async decode now, not on first draw
 
+// Spear impacts live in a fixed ring buffer so a volley allocates nothing.
+const _spearImpacts = [];
+for (let i = 0; i < 24; i++) _spearImpacts.push({ on: false, x: 0, y: 0, t0: 0, big: false, col: '#ffe39a' });
+let _spearImpactNext = 0;
+function _spearImpact(x, y, big, col, quiet) {
+    const f = _spearImpacts[_spearImpactNext];
+    _spearImpactNext = (_spearImpactNext + 1) % _spearImpacts.length;
+    f.on = true; f.x = x; f.y = y; f.t0 = performance.now(); f.big = big; f.col = col || '#ffe39a';
+    createParticles(x, y, quiet ? 6 : big ? 14 : 8, col || '#ffd36a', 3, big ? 10 : 7);
+    createParticles(x, y, 4, '#ffffff', 2, 6);
+    if (big && !quiet) _setShake(2, 110);
+}
+
+// The Dragon God Marshal bow. The ornate body, with dragon wing limbs, scale barbs, horned tips, a jade gem and two dragon heads at
+// the grip, is baked once per draw amount; the string, aura and sparks are drawn live. Coordinates are in sprite space with the grip
+// at the origin, the limbs reaching up and down and the front toward +x.
+const _bowCache = {};
+function _bowBz(a, b, c, e, t) { const u = 1 - t; return u * u * u * a + 3 * u * u * t * b + 3 * u * t * t * c + t * t * t * e; }
+function _bowStarPath(g, x, y, r, rot) {
+    g.beginPath();
+    for (let i = 0; i < 16; i++) {
+        const a = rot + i * Math.PI / 8, rr = i & 1 ? r * 0.42 : r;
+        if (i) g.lineTo(x + Math.cos(a) * rr, y + Math.sin(a) * rr); else g.moveTo(x + Math.cos(a) * rr, y + Math.sin(a) * rr);
+    }
+    g.closePath();
+}
+
+function _bakeSentinelBow(g, cx, cy, d, high) {
+    const X = t => cx + _bowBz(2, 16 - 8 * d, 11 - 12 * d, -6 - 14 * d, t), Y = t => cy + _bowBz(-5, -15, -27, -36, t);
+    const N = 22, L = [], R = [], T = [];
+    for (let i = 0; i <= N; i++) {
+        const t = i / N, t1 = Math.max(0, t - 0.02), t2 = Math.min(1, t + 0.02);
+        const dx = X(t2) - X(t1), dy = Y(t2) - Y(t1), len = Math.hypot(dx, dy) || 1, nx = -dy / len, ny = dx / len;
+        const w = 3.8 * (1 - 0.8 * Math.pow(t, 0.8)) + 0.5;
+        L.push([X(t) + nx * w, Y(t) + ny * w]); R.push([X(t) - nx * w, Y(t) - ny * w]); T.push([dx / len, dy / len, nx, ny, w]);
+    }
+    g.lineJoin = 'round'; g.lineCap = 'round';
+    const limb = sg => {
+        g.save(); g.translate(0, cy * (1 - sg)); g.scale(1, sg);
+        const gr = g.createLinearGradient(cx, cy - 5, X(1), Y(1));
+        gr.addColorStop(0, '#8a5600'); gr.addColorStop(0.25, '#f2b72e'); gr.addColorStop(0.6, '#fff0b8'); gr.addColorStop(1, '#f7c23c');
+        if (high) { g.shadowColor = 'rgba(255,170,50,0.9)'; g.shadowBlur = 9; }
+        g.beginPath(); g.moveTo(L[0][0], L[0][1]); for (let i = 1; i <= N; i++) g.lineTo(L[i][0], L[i][1]); for (let i = N; i >= 0; i--) g.lineTo(R[i][0], R[i][1]); g.closePath();
+        g.fillStyle = gr; g.fill(); g.shadowBlur = 0;
+        g.strokeStyle = 'rgba(70,38,0,0.9)'; g.lineWidth = 1.1; g.stroke();
+        // vermilion enamel running down the middle, with a bright edge above it
+        g.strokeStyle = '#c4262e'; g.lineWidth = 1.7; g.beginPath(); for (let i = 2; i <= 19; i++) { if (i === 2) g.moveTo(X(i / N), Y(i / N)); else g.lineTo(X(i / N), Y(i / N)); } g.stroke();
+        g.strokeStyle = 'rgba(255,248,215,0.85)'; g.lineWidth = 0.7; g.beginPath(); for (let i = 1; i <= 20; i++) { const p = L[i]; if (i === 1) g.moveTo(p[0], p[1]); else g.lineTo(p[0], p[1]); } g.stroke();
+        if (high) {
+            // scale barbs along the forward edge, so each limb reads as a dragon wing
+            for (let k = 0; k < 7; k++) {
+                const i = Math.round((0.16 + k * 0.12) * N), tt = T[i];
+                const ox = tt[2] >= 0 ? tt[2] : -tt[2], oy = tt[2] >= 0 ? tt[3] : -tt[3], bxp = X(i / N) + ox * tt[4], byp = Y(i / N) + oy * tt[4], ln = 7 - 3 * (i / N);
+                g.beginPath(); g.moveTo(bxp - tt[0] * 3, byp - tt[1] * 3); g.lineTo(bxp + ox * ln + tt[0] * 6, byp + oy * ln + tt[1] * 6); g.lineTo(bxp + tt[0] * 2, byp + tt[1] * 2); g.closePath();
+                g.fillStyle = '#ffe08a'; g.fill(); g.strokeStyle = 'rgba(95,55,0,0.8)'; g.lineWidth = 0.7; g.stroke();
+            }
+        }
+        // horned tip carrying a glowing pearl
+        g.strokeStyle = '#f2b72e'; g.lineWidth = 2.2; g.beginPath(); g.moveTo(X(1), Y(1)); g.quadraticCurveTo(X(1) - 1, Y(1) - 8, X(1) - 8, Y(1) - 6); g.stroke();
+        g.strokeStyle = '#fff0b8'; g.lineWidth = 0.8; g.stroke();
+        if (high) { g.shadowColor = '#7ff4ff'; g.shadowBlur = 7; }
+        g.fillStyle = '#ffffff'; _bowStarPath(g, X(1), Y(1), 3.8, 0.4); g.fill(); g.shadowBlur = 0;
+        g.restore();
+    };
+    // flame plumes streaming back from the grip
+    for (let sg = -1; sg <= 1; sg += 2) {
+        for (let k = 0; k < 2; k++) {
+            g.strokeStyle = k ? 'rgba(255,255,255,0.7)' : 'rgba(127,244,255,0.55)'; g.lineWidth = k ? 0.9 : 2.6;
+            g.beginPath(); g.moveTo(cx - 2, cy + sg * 3); g.bezierCurveTo(cx - 12, cy + sg * 2, cx - 18, cy + sg * (9 + k * 2), cx - 25 - k * 3, cy + sg * (15 + k * 4)); g.stroke();
+        }
+    }
+    limb(1); limb(-1);
+    // grip: gold plate, jade gem with an eight pointed star, and two dragon heads facing out along the limbs
+    const plate = g.createLinearGradient(cx - 5, cy, cx + 7, cy);
+    plate.addColorStop(0, '#8a5600'); plate.addColorStop(0.5, '#f7c23c'); plate.addColorStop(1, '#fff0b8');
+    g.fillStyle = plate; g.beginPath(); g.ellipse(cx + 1, cy, 5.5, 10, 0, 0, Math.PI * 2); g.fill(); g.strokeStyle = 'rgba(70,38,0,0.95)'; g.lineWidth = 1.1; g.stroke();
+    for (let sg = -1; sg <= 1; sg += 2) {
+        g.save(); g.translate(cx + 5, cy + sg * 7); g.rotate(sg * 0.55);
+        const hd = g.createLinearGradient(-3, 0, 9, 0); hd.addColorStop(0, '#9a6400'); hd.addColorStop(1, '#ffe9a8');
+        g.fillStyle = hd; g.beginPath(); g.moveTo(-3, -2.2); g.lineTo(5, -2.6); g.lineTo(9.5, 0); g.lineTo(5, 2.6); g.lineTo(-3, 2.2); g.closePath(); g.fill();
+        g.strokeStyle = 'rgba(70,38,0,0.95)'; g.lineWidth = 0.8; g.stroke();
+        g.strokeStyle = '#ffd36a'; g.lineWidth = 1.3; g.beginPath(); g.moveTo(0, -2); g.lineTo(-6, -6); g.moveTo(0, 2); g.lineTo(-6, 6); g.stroke();
+        g.fillStyle = '#ff4a3a'; g.beginPath(); g.arc(4, -0.2, 1, 0, Math.PI * 2); g.fill();
+        g.restore();
+    }
+    const gem = g.createRadialGradient(cx + 1, cy - 1, 0.5, cx + 1, cy, 5);
+    gem.addColorStop(0, '#d9fff9'); gem.addColorStop(0.5, '#27d3c3'); gem.addColorStop(1, '#0a6761');
+    if (high) { g.shadowColor = '#7ff4ff'; g.shadowBlur = 8; }
+    g.fillStyle = gem; g.beginPath();
+    for (let i = 0; i < 8; i++) { const an = i * Math.PI / 4 + Math.PI / 8; if (i) g.lineTo(cx + 1 + Math.cos(an) * 4.6, cy + Math.sin(an) * 4.6); else g.moveTo(cx + 1 + Math.cos(an) * 4.6, cy + Math.sin(an) * 4.6); }
+    g.closePath(); g.fill(); g.shadowBlur = 0; g.strokeStyle = 'rgba(40,22,0,0.9)'; g.lineWidth = 0.8; g.stroke();
+    g.fillStyle = 'rgba(255,255,255,0.92)'; _bowStarPath(g, cx + 1, cy, 2.8, 0); g.fill();
+}
+
+function _sentinelBowSprite(draw, gfx) {
+    const q = Math.max(-5, Math.min(10, Math.round(draw * 10))), key = q + '_' + (gfx < 1 ? 1 : 0);
+    let c = _bowCache[key];
+    if (c) return c;
+    c = document.createElement('canvas'); c.width = c.height = 132;
+    _bakeSentinelBow(c.getContext('2d'), 66, 66, q / 10, gfx < 1);
+    return (_bowCache[key] = c);
+}
+
+// The bow bends back as the spear charges, its string drawn to the lance, with sparks running along the limbs and the grip aglow;
+// on the throw it snaps forward and the string rings. The swarm tier makes the bow grow.
+function _drawSentinelBow(s, ang, draw, snap, base, low) {
+    const sc = sentinels.length >= 12 ? 1 : sentinels.length >= 5 ? 0.9 : 0.8, bx = s.size + 9;
+    const d = snap ? -0.45 * snap : draw, dq = Math.max(-0.5, Math.min(1, d)), now = performance.now();
+    const tipX = -6 - 14 * dq, nockX = -17 * Math.max(0, dq) + (snap ? snap * 8 : 0), pulse = 0.5 + 0.5 * Math.sin(now * 0.02);
+    ctx.save(); ctx.translate(s.x, s.y); ctx.rotate(ang); ctx.translate(bx, 0); ctx.scale(sc, sc); ctx.lineCap = 'round';
+    const fadeIn = Math.min(1, (snap ? 1 : draw * 1.6 + 0.15));
+    if (!low) {
+        const glow = _getGlowSprite('#ffb83a', 40);
+        if (glow) { ctx.globalCompositeOperation = 'lighter'; ctx.globalAlpha = base * fadeIn * (0.12 + Math.max(0, draw) * 0.3 + (draw >= 0.98 ? pulse * 0.15 : 0)); ctx.drawImage(glow, -34, -34, 68, 68); ctx.globalCompositeOperation = 'source-over'; }
+    }
+    ctx.globalAlpha = base * fadeIn;
+    const sp = _sentinelBowSprite(dq, _gfxLevel);
+    ctx.drawImage(sp, -66, -66);
+    // the string: a soft glow under a bright thread, pulled back to the lance
+    ctx.globalCompositeOperation = 'lighter'; ctx.strokeStyle = '#ffe9a8'; ctx.globalAlpha = base * fadeIn * 0.3; ctx.lineWidth = 3.4;
+    ctx.beginPath(); ctx.moveTo(tipX, -36); ctx.lineTo(nockX, 0); ctx.lineTo(tipX, 36); ctx.stroke();
+    ctx.globalCompositeOperation = 'source-over'; ctx.strokeStyle = '#fffbe6'; ctx.globalAlpha = base * fadeIn * (0.7 + (draw >= 0.98 ? pulse * 0.3 : 0)); ctx.lineWidth = 1;
+    ctx.stroke();
+    if (!low && draw > 0.3) {
+        ctx.globalCompositeOperation = 'lighter'; ctx.fillStyle = '#fffbe6'; ctx.globalAlpha = base * (0.3 + draw * 0.5);
+        for (let i = 0; i < 6; i++) {
+            const t = (now * 0.0008 + i / 6) % 1, sg = i & 1 ? -1 : 1, px = _bowBz(2, 16 - 8 * dq, 11 - 12 * dq, -6 - 14 * dq, t), py = sg * _bowBz(-5, -15, -27, -36, t);
+            ctx.beginPath(); ctx.arc(px, py, 1.7 * (1 - t * 0.5), 0, Math.PI * 2); ctx.fill();
+        }
+    }
+    ctx.restore();
+}
+
+// Gathers over the last second of the spear cooldown: motes fall into the muzzle, an orb swells, and the lance fades in and grows
+// until the ring locks. Past that the Sentinel pulses until it throws, and a flare with sparks marks the throw. Swarm tiers add
+// sparkles that circle the Sentinel.
+function _drawSentinelCharge(s, now, base) {
+    const cd = s._spearCd, ready = cd <= 0, frac = ready ? 1 : Math.max(0, 1 - cd / 2500), low = _mobPerf || _gfxLevel >= 2;
+    const gather = ready ? 1 : Math.max(0, 1 - cd / 1100), ang = s.angle;
+    const since = now - (s._lastSpearAt || -1e9);
+    const pull = 15 * (1 - Math.pow(1 - gather, 3)) + (ready ? Math.sin(now * 0.05) * 0.8 : 0);
+    const mx = s.x + Math.cos(ang) * (s.size + 8), my = s.y + Math.sin(ang) * (s.size + 8), tier = sentinels.length >= 12 ? 3 : sentinels.length >= 5 ? 2 : 1;
+    ctx.save();
+    if (gather > 0) {
+        const sp = _getBulletSprite('sentinel_special', 30, _gfxLevel), grow = 0.3 + 0.7 * gather;
+        ctx.save(); ctx.translate(mx - Math.cos(ang) * pull, my - Math.sin(ang) * pull); ctx.rotate(ang); ctx.scale(grow, grow);
+        ctx.globalAlpha = base * (ready ? 0.7 + 0.2 * Math.sin(now * 0.014) : 0.12 + gather * 0.5);
+        ctx.drawImage(sp, -sp.width / 2 + 8, -sp.height / 2); ctx.restore();
+        ctx.globalCompositeOperation = 'lighter';
+        const orb = _getGlowSprite('#ffd36a', 24), os = 12 + gather * 38 + (ready ? Math.sin(now * 0.02) * 4 : 0);
+        if (orb) { ctx.globalAlpha = base * (0.25 + gather * 0.55); ctx.drawImage(orb, mx - os / 2, my - os / 2, os, os); }
+        const n = low ? 3 : 7; ctx.strokeStyle = '#ffd98a'; ctx.lineWidth = 1.2; ctx.globalAlpha = base * (0.3 + gather * 0.5); ctx.beginPath();
+        for (let i = 0; i < n; i++) {
+            const t = (now * 0.0009 + i / n) % 1, t0 = Math.max(0, t - 0.14), a = i * Math.PI * 2 / n + now * 0.0018, r1 = (1 - t) * 34, r0 = (1 - t0) * 34;
+            ctx.moveTo(mx + Math.cos(a) * r0, my + Math.sin(a) * r0); ctx.lineTo(mx + Math.cos(a) * r1, my + Math.sin(a) * r1);
+        }
+        ctx.stroke();
+        ctx.globalCompositeOperation = 'source-over';
+    }
+    if (gather > 0.02 || since < 320) _drawSentinelBow(s, ang, since < 320 ? 0 : pull / 15, since < 320 ? (1 - since / 320) * Math.cos(since / 320 * 16) : 0, base, low);
+    ctx.strokeStyle = ready ? '#ffe39a' : '#d9a93a'; ctx.lineWidth = ready ? 2 : 1.5;
+    ctx.globalAlpha = base * (ready ? 0.55 + 0.35 * Math.sin(now * 0.012) : 0.28 + frac * 0.3);
+    ctx.beginPath(); ctx.arc(s.x, s.y, s.size * 1.85, -Math.PI / 2, -Math.PI / 2 + frac * Math.PI * 2); ctx.stroke();
+    if (since < 280) {
+        const k = since / 280, fade = 1 - k;
+        ctx.globalCompositeOperation = 'lighter';
+        ctx.strokeStyle = '#fff1c4'; ctx.lineWidth = 2.5 * fade + 0.5; ctx.globalAlpha = base * fade * 0.9;
+        ctx.beginPath(); ctx.arc(mx, my, 8 + k * 30, 0, Math.PI * 2); ctx.stroke();
+        ctx.fillStyle = '#fff6d6'; ctx.globalAlpha = base * fade * fade;
+        _fxStar8Path(mx, my, 6 + k * 24, k * 0.8); ctx.fill();
+        ctx.strokeStyle = '#ffd98a'; ctx.lineWidth = 1.5; ctx.globalAlpha = base * fade * 0.8; ctx.beginPath();
+        for (let i = 0; i < 6; i++) { const a = ang + (i - 2.5) * 0.24, r0 = 6 + k * 40; ctx.moveTo(mx + Math.cos(a) * r0, my + Math.sin(a) * r0); ctx.lineTo(mx + Math.cos(a) * (r0 + 12), my + Math.sin(a) * (r0 + 12)); }
+        ctx.stroke();
+    }
+    if (tier > 1 && !low) {
+        const count = tier === 3 ? 6 : 4, rad = s.size * (tier === 3 ? 2.6 : 2.4);
+        ctx.globalCompositeOperation = 'lighter'; ctx.fillStyle = tier === 3 ? '#ffe39a' : '#ff9cf5'; ctx.globalAlpha = base * 0.6;
+        for (let i = 0; i < count; i++) {
+            const a = now * (tier === 3 ? 0.0012 : -0.001) + i * Math.PI * 2 / count;
+            _fxStar8Path(s.x + Math.cos(a) * rad, s.y + Math.sin(a) * rad, tier === 3 ? 4.4 : 3.2, a * 2); ctx.fill();
+        }
+    }
+    ctx.restore();
+    return 3.2 * gather - (since < 220 ? 4 * (1 - since / 220) : 0);
+}
+
+function _fxStar8Path(x, y, r, rot) {
+    ctx.beginPath();
+    for (let i = 0; i < 16; i++) {
+        const a = rot + i * Math.PI / 8, rr = i & 1 ? r * 0.42 : r;
+        if (i) ctx.lineTo(x + Math.cos(a) * rr, y + Math.sin(a) * rr); else ctx.moveTo(x + Math.cos(a) * rr, y + Math.sin(a) * rr);
+    }
+    ctx.closePath();
+}
+
+// Spear hits burst into a ring and an eight pointed star. Before the twelve Sentinel volley, lines run from every Sentinel to the
+// locked target, which wears a closing ring and a turning star; at launch a flare leaves each Sentinel.
+function _drawSentinelSpearFx() {
+    const now = performance.now(), vol = window._sentinelVolley, low = _mobPerf || _gfxLevel >= 2;
+    ctx.save(); ctx.globalCompositeOperation = 'lighter'; ctx.lineCap = 'round';
+    for (let i = 0; i < _spearImpacts.length; i++) {
+        const f = _spearImpacts[i];
+        if (!f.on) continue;
+        const k = (now - f.t0) / (f.big ? 460 : 340);
+        if (k >= 1) { f.on = false; continue; }
+        const fade = 1 - k;
+        ctx.strokeStyle = f.col; ctx.globalAlpha = fade * 0.9; ctx.lineWidth = 1 + fade * 3;
+        ctx.beginPath(); ctx.arc(f.x, f.y, 10 + k * (f.big ? 78 : 50), 0, Math.PI * 2); ctx.stroke();
+        ctx.fillStyle = '#fff6d6'; ctx.globalAlpha = fade * fade * 0.9;
+        _fxStar8Path(f.x, f.y, (f.big ? 28 : 19) * (0.5 + k * 0.8), k * 0.9); ctx.fill();
+    }
+    if (vol && vol.phase === 'lock' && vol.target) {
+        const p = 1 - Math.max(0, vol.lockLeft) / 500, t = vol.target, r = (t.size || 60) * 0.6 + 26;
+        ctx.strokeStyle = '#ffd36a'; ctx.lineWidth = 1.2; ctx.globalAlpha = 0.16 + p * 0.5; ctx.beginPath();
+        for (let i = 0; i < sentinels.length; i++) { ctx.moveTo(sentinels[i].x, sentinels[i].y); ctx.lineTo(t.x, t.y); }
+        ctx.stroke();
+        ctx.strokeStyle = '#ffe39a'; ctx.lineWidth = 2; ctx.globalAlpha = 0.35 + p * 0.55;
+        ctx.beginPath(); ctx.arc(t.x, t.y, r * (1.9 - p * 0.9), 0, Math.PI * 2); ctx.stroke();
+        ctx.strokeStyle = '#fff1c4'; ctx.lineWidth = 1.6; ctx.globalAlpha = 0.4 + p * 0.5;
+        _fxStar8Path(t.x, t.y, r * 0.95, now * 0.003); ctx.stroke();
+        if (!low) {
+            ctx.strokeStyle = '#ffd36a'; ctx.lineWidth = 1.5; ctx.globalAlpha = p * 0.8; ctx.beginPath();
+            for (let i = 0; i < sentinels.length; i++) { ctx.moveTo(sentinels[i].x + sentinels[i].size * 1.2 + p * 14, sentinels[i].y); ctx.arc(sentinels[i].x, sentinels[i].y, sentinels[i].size * 1.2 + p * 14, 0, Math.PI * 2); }
+            ctx.stroke();
+        }
+    }
+    if (vol) {
+        const since = now - vol.firedAt;
+        if (since >= 0 && since < 320) {
+            const k = since / 320, fade = 1 - k;
+            ctx.strokeStyle = '#fff1c4'; ctx.lineWidth = 2 + fade * 3; ctx.globalAlpha = fade * 0.85; ctx.beginPath();
+            for (let i = 0; i < sentinels.length; i++) { const s = sentinels[i], rr = s.size * (1.2 + k * 3); ctx.moveTo(s.x + rr, s.y); ctx.arc(s.x, s.y, rr, 0, Math.PI * 2); }
+            ctx.stroke();
+            if (vol.target) {
+                ctx.strokeStyle = '#ffe9b0'; ctx.lineWidth = 2 + fade * 8; ctx.globalAlpha = fade * 0.5; ctx.beginPath();
+                for (let i = 0; i < sentinels.length; i++) { ctx.moveTo(sentinels[i].x, sentinels[i].y); ctx.lineTo(vol.target.x, vol.target.y); }
+                ctx.stroke();
+            }
+        }
+    }
+    ctx.restore();
+}
+
 function drawSentinel(sentinel) {
     const { x, y, size, angle, hp, maxHp } = sentinel;
     const now = performance.now();
@@ -1651,6 +1916,10 @@ function drawSentinel(sentinel) {
     // with this outer alpha since canvas state nests as a stack.
     ctx.save();
     ctx.globalAlpha = _gsStealthActive ? 0.35 : 1;
+
+    const _lean = _drawSentinelCharge(sentinel, now, _gsStealthActive ? 0.35 : 1);
+    // the body leans back while it draws the bow and springs forward on the throw
+    if (_lean) ctx.translate(-Math.cos(angle) * _lean, -Math.sin(angle) * _lean);
 
     let activeCount = sentinels.length;
     let glowColor = '#00FFFF';

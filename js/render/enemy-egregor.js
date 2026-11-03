@@ -4,6 +4,19 @@
 
 const _egTentPts = new Float32Array(17 * 3);
 const _egNullPts = new Float32Array(39 * 3);
+const _egAimDash = [10, 14];
+// fixed zigzag offsets for the cracks that open where Null Slash lands
+const _egCrack = new Float32Array(8 * 5);
+(() => { let q = 11; for (let i = 0; i < _egCrack.length; i++) { q = q * 16807 % 2147483647; _egCrack[i] = q / 2147483647 * 2 - 1; } })();
+
+// Adds an eight pointed star to the current path
+function _egStar8(x, y, r, rot) {
+    for (let i = 0; i < 16; i++) {
+        const a = rot + i * Math.PI / 8, rr = i & 1 ? r * 0.42 : r;
+        if (i) ctx.lineTo(x + Math.cos(a) * rr, y + Math.sin(a) * rr); else ctx.moveTo(x + Math.cos(a) * rr, y + Math.sin(a) * rr);
+    }
+    ctx.closePath();
+}
 const _egBodyColors = ['#62d9d1', '#a493d8', '#c784d6', '#dd719f', '#ec637c', '#fa665d'];
 let _egBodyArt = null;
 let _egNullChargeArt = null;
@@ -27,10 +40,10 @@ function _buildEgregorNullCharge() {
     haze.addColorStop(0.86, 'rgba(133,84,208,0.25)'); haze.addColorStop(1, 'rgba(193,169,247,0)');
     g.fillStyle = haze; g.fillRect(0, 0, 256, 256);
     g = flow.getContext('2d'); g.translate(128, 128); g.strokeStyle = '#ac8bd5'; g.lineWidth = 1.2;
-    for (let arm = 0; arm < 6; arm++) {
+    for (let arm = 0; arm < 8; arm++) {
         g.beginPath();
         for (let j = 0; j <= 40; j++) {
-            const t = j / 40, r = 120 * (1 - t * 0.9), a = arm * Math.PI / 3 + t * 2.4;
+            const t = j / 40, r = 120 * (1 - t * 0.9), a = arm * Math.PI / 4 + t * 2.4;
             if (!j) g.moveTo(Math.cos(a) * r, Math.sin(a) * r); else g.lineTo(Math.cos(a) * r, Math.sin(a) * r);
         }
         g.stroke();
@@ -73,8 +86,21 @@ function _drawEgregorNullCharge(enemy, now, progress, radius, angle) {
     }
     ctx.save(); ctx.scale(radius, radius); ctx.lineWidth = (0.8 + progress * 0.8) / radius;
     ctx.strokeStyle = '#b89be0'; ctx.globalAlpha = (0.1 + progress * 0.45) * pulse; ctx.stroke(art.veins[tier]); ctx.restore();
+    // the gathered energy fills the sector out to a bright front that advances with the charge
+    const front = radius * (0.3 + progress * 0.7);
+    ctx.fillStyle = '#7d4bd8'; ctx.globalAlpha = 0.06 + progress * 0.1;
+    ctx.beginPath(); ctx.moveTo(0, 0); ctx.arc(0, 0, front, -Math.PI / 2, Math.PI / 2); ctx.closePath(); ctx.fill();
     ctx.strokeStyle = '#a68ad0'; ctx.lineWidth = 1.1; ctx.globalAlpha = 0.25 + progress * 0.4;
-    ctx.beginPath(); ctx.arc(0, 0, radius * (0.3 + progress * 0.7), -Math.PI / 2, Math.PI / 2); ctx.stroke();
+    ctx.beginPath(); ctx.arc(0, 0, front, -Math.PI / 2, Math.PI / 2); ctx.stroke();
+    if (!opts || opts.glow !== false) {
+        ctx.globalCompositeOperation = 'lighter'; ctx.strokeStyle = '#b99aff'; ctx.lineWidth = 4 + progress * 5; ctx.globalAlpha = 0.12 + progress * 0.28;
+        ctx.beginPath(); ctx.arc(0, 0, front, -Math.PI / 2, Math.PI / 2); ctx.stroke();
+        ctx.globalCompositeOperation = 'source-over';
+    }
+    if (progress > 0.85) {
+        ctx.strokeStyle = '#f3e8ff'; ctx.lineWidth = 2.5; ctx.globalAlpha = (progress - 0.85) / 0.15 * 0.8;
+        ctx.beginPath(); ctx.arc(0, 0, front, -Math.PI / 2, Math.PI / 2); ctx.stroke();
+    }
     if (!opts || opts.particles !== false) {
         const count = low ? 5 : 10; ctx.fillStyle = '#d4e8ff'; ctx.globalAlpha = 0.4 + progress * 0.4; ctx.beginPath();
         for (let i = 0; i < count; i++) {
@@ -84,8 +110,38 @@ function _drawEgregorNullCharge(enemy, now, progress, radius, angle) {
         }
         ctx.fill();
     }
-    const size = 20 + progress * 35 + pulse * 5;
-    if (!low) { ctx.globalAlpha = 0.55 + progress * 0.4; ctx.drawImage(art.core, -size / 2, -size / 2, size, size); }
+    // an aim line along the locked direction shows where the swing will pass
+    ctx.save(); ctx.setLineDash(_egAimDash); ctx.lineDashOffset = -now * 0.03;
+    ctx.strokeStyle = '#e1d2ff'; ctx.globalAlpha = 0.18 + progress * 0.4; ctx.lineWidth = 1.2;
+    ctx.beginPath(); ctx.moveTo(radius * 0.12, 0); ctx.lineTo(front, 0); ctx.stroke(); ctx.restore();
+    // comet streaks fall in toward the origin along curved paths
+    {
+        const count = low ? 4 : 9; ctx.strokeStyle = '#d9c6ff'; ctx.lineWidth = 1.2 + progress; ctx.globalAlpha = 0.35 + progress * 0.4; ctx.beginPath();
+        for (let i = 0; i < count; i++) {
+            const t = (now * (0.0004 + progress * 0.0004) + i * 0.381966) % 1, t0 = Math.max(0, t - 0.05);
+            const a = -Math.PI / 2 + (i + 0.5) * Math.PI / count + t * 0.9, a0 = -Math.PI / 2 + (i + 0.5) * Math.PI / count + t0 * 0.9;
+            const r = front * (0.96 - t * 0.8), r0 = front * (0.96 - t0 * 0.8);
+            ctx.moveTo(Math.cos(a0) * r0, Math.sin(a0) * r0); ctx.lineTo(Math.cos(a) * r, Math.sin(a) * r);
+        }
+        ctx.stroke();
+    }
+    // eight pointed stars ride the advancing front and brighten as the charge nears release
+    {
+        const count = low ? 3 : 5; ctx.globalCompositeOperation = 'lighter'; ctx.fillStyle = '#efe4ff'; ctx.globalAlpha = 0.45 + progress * 0.45;
+        for (let i = 0; i < count; i++) {
+            const a = -Math.PI / 2 + (i + 0.5) * Math.PI / count + Math.sin(now * 0.001 + i * 1.7) * 0.05;
+            ctx.beginPath(); _egStar8(Math.cos(a) * front, Math.sin(a) * front, 4 + progress * 7 + pulse * 1.5, now * 0.0008 + i); ctx.fill();
+        }
+        ctx.globalCompositeOperation = 'source-over';
+    }
+    // a pressure ring leaves the core on every beat
+    {
+        const k = (now % 700) / 700;
+        ctx.strokeStyle = '#c9b1ff'; ctx.globalAlpha = (1 - k) * (0.12 + progress * 0.35); ctx.lineWidth = 1.5 + (1 - k) * 2;
+        ctx.beginPath(); ctx.arc(0, 0, 18 + k * front * 0.5, -Math.PI / 2, Math.PI / 2); ctx.stroke();
+    }
+    const size = 34 + progress * 80 + pulse * 8;
+    if (!low) { ctx.globalAlpha = 0.5 + progress * 0.45; ctx.drawImage(art.core, -size / 2, -size / 2, size, size); }
     ctx.restore();
 }
 
@@ -623,7 +679,7 @@ function _drawEgregorEffects() {
             const EXTEND = 200, SWEEP = 520, RETRACT = 230;
             const nsAng      = enemy._nullSlashAngle || Math.atan2(ty2 - cy, tx2 - cx);
             const rageStacks = enemy._rageStacks || 0;
-            const rageSizeMult = 1 + rageStacks * 0.05;  // +5% tentacle size per stack
+            const rageSizeMult = 1.12 + rageStacks * 0.05;  // heavier base, +5% tentacle size per stack
             const R          = Math.hypot(tx2 - cx, ty2 - cy) + rageStacks * 5; // +5px arc radius per stack
             const arcStart = nsAng - Math.PI / 2;
             const arcSpan  = Math.PI; // 180° sweep through target at midpoint
@@ -646,6 +702,8 @@ function _drawEgregorEffects() {
             const tipAngle = arcStart + sweepT * arcSpan;
 
             const rST = sweepT, rE = ext;
+            // peaks mid swing, so the body flares hottest when the tentacle moves fastest
+            const sweepSpeed = st >= EXTEND && st < EXTEND + SWEEP ? Math.sin(Math.PI * (st - EXTEND) / SWEEP) : 0;
 
             // Build rubber tentacle: base at Egregor, tip traces the arc
             // Rubber lag: base lags behind tip in sweep angle
@@ -664,7 +722,7 @@ function _drawEgregorEffects() {
                            + Math.sin(tRaw*Math.PI*6.2 - sweepT*Math.PI*8) * Math.pow(tRaw,2.2) * 22 * ext;
                 tentPts[i * 3] = cx + radius * radX + radX * wOff;
                 tentPts[i * 3 + 1] = cy + radius * radY + radY * wOff;
-                tentPts[i * 3 + 2] = 1 - tRaw;
+                tentPts[i * 3 + 2] = 1 - Math.pow(tRaw, 1.3);
             }
 
             ctx.save(); ctx.lineCap = 'round'; ctx.lineJoin = 'round';
@@ -716,7 +774,7 @@ function _drawEgregorEffects() {
             if (egGlow) { ctx.shadowColor = '#aa44ff'; ctx.shadowBlur = egGlow ? (16) : 0; }
             for (let si = 0; si < steps; si++) {
                 const p0 = si * 3, p1 = p0 + 3;
-                ctx.strokeStyle = `rgba(155,25,255,${0.72 * ext})`;
+                ctx.strokeStyle = `rgba(165,40,255,${(0.74 + 0.2 * sweepSpeed) * ext})`;
                 ctx.lineWidth = Math.max(0.5, 46 * tentPts[p0 + 2] * rageSizeMult);
                 ctx.beginPath(); ctx.moveTo(tentPts[p0], tentPts[p0 + 1]); ctx.lineTo(tentPts[p1], tentPts[p1 + 1]); ctx.stroke();
             }
@@ -726,7 +784,7 @@ function _drawEgregorEffects() {
                 const p0 = si * 3, p1 = p0 + 3;
                 const sdx = tentPts[p1]-tentPts[p0], sdy = tentPts[p1 + 1]-tentPts[p0 + 1], sL = Math.hypot(sdx,sdy)||1;
                 const hpX = -sdy/sL, hpY = sdx/sL, ho = 5 * tentPts[p0 + 2] * rageSizeMult;
-                ctx.strokeStyle = `rgba(225,135,255,${0.42 * tentPts[p0 + 2] * ext})`;
+                ctx.strokeStyle = `rgba(235,160,255,${(0.42 + 0.3 * sweepSpeed) * tentPts[p0 + 2] * ext})`;
                 ctx.lineWidth = Math.max(0.5, 19 * tentPts[p0 + 2] * rageSizeMult);
                 ctx.beginPath();
                 ctx.moveTo(tentPts[p0]+hpX*ho, tentPts[p0 + 1]+hpY*ho); ctx.lineTo(tentPts[p1]+hpX*ho, tentPts[p1 + 1]+hpY*ho);
@@ -755,8 +813,56 @@ function _drawEgregorEffects() {
                 }
             }
 
+            // Beads of light run along the tentacle toward the tip, faster and brighter at full swing, with sparks thrown off the tip
+            {
+                const beads = _mobPerf ? 3 : 6;
+                ctx.save(); ctx.globalCompositeOperation = 'lighter'; ctx.fillStyle = '#f1dcff';
+                for (let i = 0; i < beads; i++) {
+                    const u = (now * (0.0012 + sweepSpeed * 0.0012) + i / beads) % 1, f = u * steps, si = Math.min(steps - 1, Math.floor(f)), fr = f - si, p0 = si * 3;
+                    const bx = tentPts[p0] + (tentPts[p0 + 3] - tentPts[p0]) * fr, by = tentPts[p0 + 1] + (tentPts[p0 + 4] - tentPts[p0 + 1]) * fr;
+                    ctx.globalAlpha = (0.4 + 0.5 * sweepSpeed) * ext * (0.35 + 0.65 * (1 - u));
+                    ctx.beginPath(); ctx.arc(bx, by, 2.5 + tentPts[p0 + 2] * 7 * rageSizeMult, 0, Math.PI * 2); ctx.fill();
+                }
+                if (sweepSpeed > 0.05) {
+                    const tipX = tentPts[steps * 3], tipY = tentPts[steps * 3 + 1], tx = Math.cos(tipAngle + Math.PI / 2), ty = Math.sin(tipAngle + Math.PI / 2);
+                    const frame = Math.floor(st / 45), sparks = _mobPerf ? 4 : 9;
+                    ctx.strokeStyle = '#e7d2ff'; ctx.lineWidth = 1.4; ctx.globalAlpha = 0.65 * sweepSpeed * ext; ctx.beginPath();
+                    for (let i = 0; i < sparks; i++) {
+                        const hs = ((i + 1) * 73856093 ^ frame * 19349663) >>> 0, r1 = (hs & 255) / 255, r2 = ((hs >> 8) & 255) / 255 - 0.5;
+                        const sx = tipX - tx * r1 * 70 * sweepSpeed + Math.cos(tipAngle) * r2 * 44, sy = tipY - ty * r1 * 70 * sweepSpeed + Math.sin(tipAngle) * r2 * 44;
+                        ctx.moveTo(sx, sy); ctx.lineTo(sx - tx * (6 + r1 * 10), sy - ty * (6 + r1 * 10));
+                    }
+                    ctx.stroke();
+                }
+                ctx.restore();
+            }
+
+            // Glow on the tip, brightest at full swing speed
+            if (_riftArt && _riftArt.glow.width > 8 && (!egFo || egFo.glow !== false)) {
+                const tipX = tentPts[steps * 3], tipY = tentPts[steps * 3 + 1], tipR = (40 + sweepSpeed * 26) * rageSizeMult;
+                ctx.save(); ctx.globalCompositeOperation = 'lighter'; ctx.globalAlpha = (0.35 + sweepSpeed * 0.4) * ext;
+                ctx.drawImage(_riftArt.glow, tipX - tipR, tipY - tipR, tipR * 2, tipR * 2); ctx.restore();
+            }
+
             // The torn space is drawn here while the tip sweeps; once the sweep ends _dimBreakZones keeps it open
             if (st < EXTEND + SWEEP && rST > 0.04 && rE > 0.01) _drawEgregorRift(cx, cy, R, arcStart, arcSpan, rageStacks, rST, rE, now, 0);
+
+            // Slash blade: a tapering white and violet crescent trails the swing along the true arc, then lingers briefly after the sweep
+            if (sweepT > 0.03) {
+                const after = st >= EXTEND + SWEEP ? (st - EXTEND - SWEEP) / RETRACT : 0;
+                const back = arcSpan * (sweepT < 1 ? Math.min(sweepT, 0.55) : 0.55 + 0.4 * after);
+                const bladeR = R * (after > 0 ? 1 : ext), bladeA = (1 - after * after) * Math.min(1, sweepT * 6);
+                const segs = _mobPerf ? 6 : 12;
+                ctx.save(); ctx.globalCompositeOperation = 'lighter'; ctx.lineCap = 'round';
+                for (let k = 0; k < segs; k++) {
+                    const t0 = k / segs, t1 = (k + 1) / segs, a0 = tipAngle - back * (1 - t0), a1 = tipAngle - back * (1 - t1);
+                    ctx.strokeStyle = '#8a3dff'; ctx.globalAlpha = t1 * t1 * 0.6 * bladeA; ctx.lineWidth = 7 + t1 * t1 * 24;
+                    ctx.beginPath(); ctx.arc(cx, cy, bladeR, a0, a1); ctx.stroke();
+                    ctx.strokeStyle = '#f2e6ff'; ctx.globalAlpha = t1 * t1 * bladeA; ctx.lineWidth = 1.5 + t1 * t1 * 5;
+                    ctx.beginPath(); ctx.arc(cx, cy, bladeR, a0, a1); ctx.stroke();
+                }
+                ctx.restore();
+            }
 
             // Impact flash when tip sweeps through target (at midpoint of sweep)
             const impactSt = EXTEND + SWEEP * 0.5;
@@ -794,6 +900,55 @@ function _drawEgregorEffects() {
                     ctx.beginPath(); ctx.arc(tx2, ty2, impR * 1.35, 0, Math.PI * 2); ctx.stroke();
                 }
                 ctx.shadowBlur = 0; ctx.globalAlpha = 1;
+            }
+
+            // Impact cut: an expanding ring and a bright slash line along the swing direction through the target, with sparks
+            const since = (st - impactSt) / 260;
+            if (since > -0.06 && since < 1) {
+                const k = Math.max(0, since), fade = 1 - k, tang = nsAng + Math.PI / 2, ir = 110 + rageStacks * 20;
+                const ux = Math.cos(tang), uy = Math.sin(tang), len = ir * (0.7 + k * 0.9);
+                ctx.save(); ctx.globalCompositeOperation = 'lighter'; ctx.lineCap = 'round';
+                ctx.strokeStyle = '#e9d8ff'; ctx.globalAlpha = fade * 0.85; ctx.lineWidth = 1.5 + fade * 3;
+                ctx.beginPath(); ctx.arc(tx2, ty2, ir * (0.3 + k * 1.05), 0, Math.PI * 2); ctx.stroke();
+                ctx.strokeStyle = '#8a3dff'; ctx.globalAlpha = fade * 0.6; ctx.lineWidth = 6 + fade * 12;
+                ctx.beginPath(); ctx.moveTo(tx2 - ux * len, ty2 - uy * len); ctx.lineTo(tx2 + ux * len, ty2 + uy * len); ctx.stroke();
+                ctx.strokeStyle = '#ffffff'; ctx.globalAlpha = fade; ctx.lineWidth = 1 + fade * 3;
+                ctx.beginPath(); ctx.moveTo(tx2 - ux * len, ty2 - uy * len); ctx.lineTo(tx2 + ux * len, ty2 + uy * len); ctx.stroke();
+                if (!_mobPerf) {
+                    ctx.strokeStyle = '#d8b8ff'; ctx.globalAlpha = fade * 0.8; ctx.lineWidth = 1.5; ctx.beginPath();
+                    for (let i = 0; i < 8; i++) {
+                        const sa = tang + i * 0.785 + 0.3, r0 = ir * (0.2 + k * 0.7), r1 = r0 + 14 + (i % 3) * 8;
+                        ctx.moveTo(tx2 + Math.cos(sa) * r0, ty2 + Math.sin(sa) * r0); ctx.lineTo(tx2 + Math.cos(sa) * r1, ty2 + Math.sin(sa) * r1);
+                    }
+                    ctx.stroke();
+                }
+                ctx.restore();
+            }
+
+            // Where the slash lands an eight pointed star bursts and cracks run out from the target, fading over half a second
+            const landed = st - impactSt;
+            if (landed > -20 && landed < 520) {
+                const ir = 110 + rageStacks * 20, kk = Math.max(0, landed);
+                ctx.save(); ctx.globalCompositeOperation = 'lighter'; ctx.lineCap = 'round'; ctx.lineJoin = 'round';
+                if (kk < 260) {
+                    const k = kk / 260, fade = (1 - k) * (1 - k);
+                    ctx.fillStyle = '#ffffff'; ctx.strokeStyle = '#b98cff'; ctx.lineWidth = 2; ctx.globalAlpha = fade * 0.9;
+                    ctx.beginPath(); _egStar8(tx2, ty2, ir * (0.3 + k * 0.85), nsAng + k * 0.7); ctx.fill(); ctx.stroke();
+                }
+                const grow = Math.min(1, kk / 120), cf = 1 - kk / 520, cracks = _mobPerf ? 5 : 8;
+                for (let pass = 0; pass < 2; pass++) {
+                    ctx.strokeStyle = pass ? '#ffffff' : '#8a3dff'; ctx.lineWidth = pass ? 1.2 : 5; ctx.globalAlpha = cf * (pass ? 0.9 : 0.4); ctx.beginPath();
+                    for (let ci = 0; ci < cracks; ci++) {
+                        const a = ci * Math.PI * 2 / cracks + 0.3, len = ir * (0.9 + (ci % 3) * 0.35) * grow;
+                        ctx.moveTo(tx2, ty2);
+                        for (let s = 1; s <= 4; s++) {
+                            const d = len * s / 4, off = _egCrack[ci * 5 + s] * 12;
+                            ctx.lineTo(tx2 + Math.cos(a) * d - Math.sin(a) * off, ty2 + Math.sin(a) * d + Math.cos(a) * off);
+                        }
+                    }
+                    ctx.stroke();
+                }
+                ctx.restore();
             }
 
             ctx.globalAlpha = 1; ctx.restore();

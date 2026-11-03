@@ -1145,13 +1145,13 @@ function dealDamage(enemy, source) {
                 return;
             }
 
-            // Piercing: graze tentacle, then body takes 30% (capped 30% MaxHP)
+            // Piercing: graze tentacle, then body takes 30% (capped 20% MaxHP)
             _applyTentacleDmg();
             if (enemy.hp <= 0) return;
             if (Math.random() < 0.05) return;
             let _pierceDmg = Math.min(
                 Math.ceil(totalDamage * 0.30),
-                Math.ceil(enemy.maxHp * 0.30)
+                Math.ceil(enemy.maxHp * 0.20)
             );
             if (enemy._nullSlashPhase === 'charging') _pierceDmg = Math.ceil(_pierceDmg * 0.70);
             _pierceDmg = _capPierceBurstDamage(enemy, _pierceDmg);
@@ -1159,9 +1159,9 @@ function dealDamage(enemy, source) {
             enemy._egBodyHitAt = performance.now();
             return;
         }
-        // All tentacles dead: normal attacks — 50% DR, hard cap 30% MaxHP, applied directly
+        // All tentacles dead: normal attacks — 50% DR, hard cap 20% MaxHP, applied directly
         if (!source.isPiercing) {
-            const _bodyDmg = Math.min(Math.ceil(totalDamage * 0.50), Math.ceil(enemy.maxHp * 0.30));
+            const _bodyDmg = Math.min(Math.ceil(totalDamage * 0.50), Math.ceil(enemy.maxHp * 0.20));
             enemy.hp = Math.max(0, enemy.hp - _bodyDmg);
             enemy._egBodyHitAt = performance.now();
             return;
@@ -1392,7 +1392,8 @@ function dealDamage(enemy, source) {
             // Glory DR unified to 25% on both routes.
             let _vDR = 0.08; // base sentinel DR
             if (gloryForJusticeActive) _vDR += 0.25;
-            if (sentinels.length >= 5 && sentinels.length < 12) _vDR += 0.08;
+            if (sentinels.length >= 12) _vDR += 0.12;
+            else if (sentinels.length >= 5) _vDR += 0.08;
             if (enemy.sentinelParryBuff && performance.now() < enemy.sentinelParryBuffEnd) _vDR += 0.10;
             if (enemy._blessingDR) _vDR += enemy._blessingDR; // docs/combat-scaling-rebalance.md Part 3
             rawDmg = Math.ceil(rawDmg * (1 - _vDR));
@@ -1407,9 +1408,9 @@ function dealDamage(enemy, source) {
         combinedDR += 0.25; // Glory for Justice sentinel DR (docs/combat-scaling-rebalance.md Part 3)
     }
     // Tier 2 Herd Mentality: +8% DR thêm khi có 5-11 sentinels (docs/combat-scaling-rebalance.md Part 3)
-    if (isSentinel && sentinels.length >= 5 && sentinels.length < 12) {
-        combinedDR += 0.08;
-    }
+    // A full swarm of twelve keeps that and adds more, +12% in total.
+    if (isSentinel && sentinels.length >= 12) combinedDR += 0.12;
+    else if (isSentinel && sentinels.length >= 5) combinedDR += 0.08;
     // Sentinel Parry buff: +10% DR (có thể cộng dồn)
     if (isSentinel && enemy.sentinelParryBuff && performance.now() < enemy.sentinelParryBuffEnd) {
         combinedDR += 0.10;
@@ -1573,6 +1574,11 @@ function dealDamage(enemy, source) {
             enemy._phDeflectAt = currentTime;
             _phantomCue('phantom-deflect', enemy, enemy.x, enemy.y);
         }
+    }
+
+    // Egregor: no single hit takes more than 15% of its Max HP. Its own Vessel backlash is never capped.
+    if (enemy.type === 'egregor' && !source._boonBaneBacklash) {
+        totalDamage = Math.min(totalDamage, Math.ceil(enemy.maxHp * 0.15));
     }
 
     // Per-hit cap 30% MaxHP, always on (Covenant King never lets a single

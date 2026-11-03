@@ -36,25 +36,25 @@ function _drawNormalSpirit(spirit) {
                 ctx.beginPath(); ctx.arc(0, 0, hexR * 1.3, 0, Math.PI * 2); ctx.stroke();
                 ctx.setLineDash([]);
 
-                // 2 tam giác ngược chiều
+                // two counter-rotating squares form an eight pointed star
                 for (let tri = 0; tri < 2; tri++) {
                     const rot = tri === 0 ? rot1 : rot2;
                     ctx.strokeStyle = tri === 0 ? 'rgba(255,80,255,0.85)' : 'rgba(200,0,255,0.7)';
                     ctx.lineWidth = 1.6;
                     if (!_mobPerf) ctx.shadowColor = '#ff00ff'; if (!_mobPerf) ctx.shadowBlur = 10;
                     ctx.beginPath();
-                    for (let i = 0; i < 3; i++) {
-                        const a = rot + (i / 3) * Math.PI * 2 + (tri === 1 ? Math.PI : 0);
+                    for (let i = 0; i < 4; i++) {
+                        const a = rot + (i / 4) * Math.PI * 2 + (tri === 1 ? Math.PI / 4 : 0);
                         i === 0 ? ctx.moveTo(Math.cos(a) * hexR, Math.sin(a) * hexR)
                             : ctx.lineTo(Math.cos(a) * hexR, Math.sin(a) * hexR);
                     }
                     ctx.closePath(); ctx.stroke();
                 }
 
-                // 6 điểm sáng đỉnh
+                // eight glowing points at the tips
                 if (!_mobPerf) ctx.shadowBlur = 6;
-                for (let i = 0; i < 6; i++) {
-                    const a = rot1 + (i / 6) * Math.PI * 2;
+                for (let i = 0; i < 8; i++) {
+                    const a = rot1 + (i / 8) * Math.PI * 2;
                     ctx.fillStyle = `rgba(255,180,255,${0.8 + 0.2 * Math.sin(now / 250 + i)})`;
                     ctx.beginPath(); ctx.arc(Math.cos(a) * hexR, Math.sin(a) * hexR, 3, 0, Math.PI * 2); ctx.fill();
                 }

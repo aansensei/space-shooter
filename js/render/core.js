@@ -287,6 +287,118 @@ function _bakeOrbBullet(cx, ctr, sz, highQ, p) {
     cx.beginPath(); cx.ellipse(ctr - sz * 0.32, ctr - sz * 0.32, sz * 0.24, sz * 0.13, -0.8, 0, TAU); cx.fill();
 }
 
+// Golden spear pointing +x, drawBullet rotates it to the flight heading. The origin sits a little behind the tip so the hit box
+// lines up with the blade.
+function _bakeSentinelSpear(cx, ctr, sz, highQ) {
+    const u = sz / 23, TAUS = Math.PI * 2;
+    const P = (x, y) => [ctr + (x - 12) * u, ctr + y * u];
+    const poly = (pts) => { cx.beginPath(); cx.moveTo(...P(...pts[0])); for (let k = 1; k < pts.length; k++) cx.lineTo(...P(...pts[k])); cx.closePath(); };
+    const edge = Math.max(1.9, 1.1 * u);
+    cx.lineJoin = 'round'; cx.lineCap = 'round';
+    if (highQ) {
+        const halo = cx.createRadialGradient(...P(17, 0), 3 * u, ...P(17, 0), 26 * u);
+        halo.addColorStop(0, 'rgba(255,211,106,0.38)'); halo.addColorStop(0.4, 'rgba(242,183,46,0.16)'); halo.addColorStop(1, 'rgba(242,183,46,0)');
+        cx.fillStyle = halo; cx.beginPath(); cx.arc(...P(17, 0), 26 * u, 0, TAUS); cx.fill();
+    }
+    // Curved ribbons fade into a transparent comet wake.
+    const tail = cx.createLinearGradient(...P(-58, 0), ...P(-8, 0));
+    tail.addColorStop(0, 'rgba(255,211,106,0)'); tail.addColorStop(0.4, 'rgba(242,183,46,0.12)'); tail.addColorStop(1, 'rgba(255,211,106,0.65)');
+    cx.fillStyle = tail; cx.beginPath(); cx.moveTo(...P(-8, -3));
+    cx.bezierCurveTo(...P(-28, -11), ...P(-43, -1), ...P(-58, 0));
+    cx.bezierCurveTo(...P(-43, 2), ...P(-29, 11), ...P(-8, 3)); cx.closePath(); cx.fill();
+    const wake = cx.createLinearGradient(...P(-56, 0), ...P(-12, 0));
+    wake.addColorStop(0, 'rgba(255,240,184,0)'); wake.addColorStop(0.35, 'rgba(255,211,106,0.3)'); wake.addColorStop(1, 'rgba(255,251,230,0.88)');
+    cx.strokeStyle = wake; cx.lineWidth = edge;
+    for (const sg of [-1, 1]) {
+        cx.beginPath(); cx.moveTo(...P(-55, sg * 0.8));
+        cx.bezierCurveTo(...P(-41, sg * 1.5), ...P(-30, sg * 10), ...P(-14, sg * 3.5)); cx.stroke();
+    }
+    if (highQ) {
+        cx.beginPath(); cx.moveTo(...P(-57, 0)); cx.bezierCurveTo(...P(-43, -3), ...P(-27, -2), ...P(-12, 0)); cx.stroke();
+    }
+    // A cylindrical shaft carries raised gold bindings.
+    const shaft = cx.createLinearGradient(...P(0, -3), ...P(0, 3));
+    shaft.addColorStop(0, '#8a5600'); shaft.addColorStop(0.22, '#f2b72e'); shaft.addColorStop(0.38, '#fffbe6');
+    shaft.addColorStop(0.55, '#ffd36a'); shaft.addColorStop(0.73, '#8a5600'); shaft.addColorStop(1, '#6b3f00');
+    cx.fillStyle = shaft; poly([[-40, -2.6], [6, -2.6], [6, 2.6], [-40, 2.6]]); cx.fill();
+    cx.strokeStyle = '#6b3f00'; cx.lineWidth = edge; cx.stroke();
+    cx.strokeStyle = '#fff0b8'; cx.lineWidth = edge;
+    cx.beginPath(); cx.moveTo(...P(-39, -1)); cx.lineTo(...P(5, -1)); cx.stroke();
+    const binding = cx.createLinearGradient(...P(0, -4), ...P(0, 4));
+    binding.addColorStop(0, '#fffbe6'); binding.addColorStop(0.3, '#ffd36a'); binding.addColorStop(0.65, '#f2b72e'); binding.addColorStop(1, '#6b3f00');
+    for (const x of [-32, -22, -12]) {
+        cx.fillStyle = binding; poly([[x - 1.8, -3.6], [x + 1.8, -3.6], [x + 1.8, 3.6], [x - 1.8, 3.6]]); cx.fill();
+        cx.strokeStyle = '#6b3f00'; cx.lineWidth = edge; cx.stroke();
+        cx.strokeStyle = '#fff0b8'; cx.beginPath(); cx.moveTo(...P(x - 0.4, -2.7)); cx.lineTo(...P(x - 0.4, 1.8)); cx.stroke();
+    }
+    const gold = cx.createLinearGradient(...P(0, -14), ...P(0, 14));
+    gold.addColorStop(0, '#fffbe6'); gold.addColorStop(0.28, '#ffd36a'); gold.addColorStop(0.48, '#f2b72e');
+    gold.addColorStop(0.6, '#6b3f00'); gold.addColorStop(0.82, '#f2b72e'); gold.addColorStop(1, '#8a5600');
+    cx.fillStyle = gold; poly([[-47, 0], [-41, -4.8], [-35, 0], [-41, 4.8]]); cx.fill();
+    cx.strokeStyle = '#6b3f00'; cx.lineWidth = edge; cx.stroke();
+    cx.fillStyle = '#fff0b8'; poly([[-46, 0], [-41, -3.4], [-38, -1], [-41, 0.5]]); cx.fill();
+    // Swept wings expose bright bevels above recessed gold faces.
+    for (const sg of [-1, 1]) {
+        cx.fillStyle = gold; poly([[7, sg * 2.6], [-6, sg * 13.5], [-1.5, sg * 14], [12, sg * 6.5], [11, sg * 2.6]]); cx.fill();
+        cx.strokeStyle = '#6b3f00'; cx.lineWidth = edge; cx.stroke();
+        cx.fillStyle = sg < 0 ? '#fff0b8' : '#ffd36a';
+        poly([[7, sg * 3.2], [-5, sg * 13.1], [-1.4, sg * 11.9], [10, sg * 4.2]]); cx.fill();
+        cx.strokeStyle = '#8a5600'; cx.beginPath(); cx.moveTo(...P(7, sg * 6.3)); cx.lineTo(...P(-0.5, sg * 11.4)); cx.stroke();
+    }
+    // The leaf blade has a raised spine and a polished metal perimeter.
+    const bladePath = () => {
+        cx.beginPath(); cx.moveTo(...P(40, 0));
+        cx.bezierCurveTo(...P(29, -6.5), ...P(17, -10), ...P(7, -5.2));
+        cx.quadraticCurveTo(...P(5, -3), ...P(4, 0));
+        cx.quadraticCurveTo(...P(5, 3), ...P(7, 5.2));
+        cx.bezierCurveTo(...P(17, 10), ...P(29, 6.5), ...P(40, 0)); cx.closePath();
+    };
+    const blade = cx.createLinearGradient(...P(14, -8), ...P(23, 8));
+    blade.addColorStop(0, '#fffbe6'); blade.addColorStop(0.18, '#fff0b8'); blade.addColorStop(0.35, '#f2b72e');
+    blade.addColorStop(0.49, '#fff0b8'); blade.addColorStop(0.54, '#8a5600'); blade.addColorStop(0.76, '#6b3f00');
+    blade.addColorStop(0.9, '#f2b72e'); blade.addColorStop(1, '#ffd36a');
+    cx.fillStyle = blade; bladePath(); cx.fill();
+    cx.strokeStyle = '#6b3f00'; cx.lineWidth = edge * 1.8; cx.stroke();
+    cx.strokeStyle = gold; cx.lineWidth = edge; cx.stroke();
+    cx.save(); bladePath(); cx.clip();
+    const reflection = cx.createLinearGradient(...P(12, 0), ...P(32, 0));
+    reflection.addColorStop(0, 'rgba(255,251,230,0)'); reflection.addColorStop(0.45, 'rgba(255,251,230,0.7)'); reflection.addColorStop(0.6, 'rgba(255,211,106,0.1)'); reflection.addColorStop(1, 'rgba(255,251,230,0)');
+    cx.fillStyle = reflection; poly([[9, -10], [16, -10], [29, 10], [22, 10]]); cx.fill();
+    cx.strokeStyle = '#fffbe6'; cx.lineWidth = edge;
+    cx.beginPath(); cx.moveTo(...P(7, -4.4)); cx.bezierCurveTo(...P(18, -8.4), ...P(29, -4.8), ...P(39, 0)); cx.stroke();
+    if (highQ) {
+        // Open branch marks are engraved along the upper blade face.
+        cx.strokeStyle = '#8a5600'; cx.lineWidth = edge;
+        for (const x of [13, 22, 30]) {
+            const y = x === 30 ? -3.1 : -4;
+            cx.beginPath(); cx.moveTo(...P(x - 2.2, y + 1)); cx.lineTo(...P(x, y - 1)); cx.lineTo(...P(x + 2.2, y + 0.3));
+            cx.moveTo(...P(x, y - 1)); cx.lineTo(...P(x + 0.7, y - 2.4)); cx.stroke();
+        }
+    }
+    // A warm inset channel surrounds the white energy spine.
+    cx.fillStyle = '#6b3f00'; poly([[6, 0], [13, -2], [25, -1.8], [38, 0], [25, 1.8], [13, 2]]); cx.fill();
+    const energy = cx.createLinearGradient(...P(7, 0), ...P(38, 0));
+    energy.addColorStop(0, '#f2b72e'); energy.addColorStop(0.25, '#ffd36a'); energy.addColorStop(0.6, '#fffbe6'); energy.addColorStop(1, '#fff0b8');
+    cx.fillStyle = energy; poly([[7, 0], [14, -0.9], [25, -0.9], [38, 0], [25, 0.9], [14, 0.9]]); cx.fill();
+    cx.restore();
+    cx.fillStyle = binding; poly([[2, -4], [6, -4.8], [8, 0], [6, 4.8], [2, 4]]); cx.fill();
+    cx.strokeStyle = '#6b3f00'; cx.lineWidth = edge; cx.stroke();
+    cx.strokeStyle = '#fff0b8'; cx.beginPath(); cx.moveTo(...P(4, -2.6)); cx.lineTo(...P(5, 1.8)); cx.stroke();
+    if (highQ) {
+        // Sixteen alternating vertices form exactly eight star points.
+        const [tx, ty] = P(40, 0), r = 5.5 * u;
+        const flare = cx.createRadialGradient(tx, ty, 0, tx, ty, 10 * u);
+        flare.addColorStop(0, 'rgba(255,251,230,0.7)'); flare.addColorStop(0.35, 'rgba(255,211,106,0.25)'); flare.addColorStop(1, 'rgba(255,211,106,0)');
+        cx.fillStyle = flare; cx.beginPath(); cx.arc(tx, ty, 10 * u, 0, TAUS); cx.fill();
+        cx.fillStyle = '#fffbe6'; cx.beginPath();
+        for (let i = 0; i < 16; i++) {
+            const a = i * Math.PI / 8, rr = i & 1 ? r * 0.28 : r * (i % 4 === 0 ? 1 : 0.75);
+            if (i) cx.lineTo(tx + Math.cos(a) * rr, ty + Math.sin(a) * rr); else cx.moveTo(tx + Math.cos(a) * rr, ty + Math.sin(a) * rr);
+        }
+        cx.closePath(); cx.fill();
+    }
+}
+
 // Bullet sprite cache: full bullet appearance pre-rendered once per (type, size, quality)
 const _bulletSpriteCache = {};
 function _getBulletSprite(type, size, gfxLvl) {
@@ -294,7 +406,7 @@ function _getBulletSprite(type, size, gfxLvl) {
     const key = type + '_' + sz + '_' + gfxLvl;
     if (_bulletSpriteCache[key]) return _bulletSpriteCache[key];
     const highQ = gfxLvl < 1;
-    const pad = Math.ceil(sz * 1.6);
+    const pad = Math.ceil(sz * (type === 'sentinel_special' ? 2.2 : 1.6));
     const dim = sz * 2 + pad * 2;
     const c = document.createElement('canvas');
     c.width = c.height = dim;
@@ -303,51 +415,7 @@ function _getBulletSprite(type, size, gfxLvl) {
     let grad;
     switch (type) {
         case 'sentinel_special': {
-            // gold arrowhead pointing +x, drawBullet rotates it to the flight heading
-            const u = sz / 23;
-            const P = (x, y) => [ctr + x * u, ctr + y * u];
-            const poly = (pts) => { cx.beginPath(); cx.moveTo(...P(...pts[0])); for (let k = 1; k < pts.length; k++) cx.lineTo(...P(...pts[k])); cx.closePath(); };
-            const glow = cx.createRadialGradient(...P(8, 0), 0, ...P(8, 0), 15 * u);
-            glow.addColorStop(0, 'rgba(255,205,90,0.3)'); glow.addColorStop(1, 'rgba(255,190,60,0)');
-            cx.fillStyle = glow;
-            cx.beginPath(); cx.arc(...P(8, 0), 15 * u, 0, Math.PI * 2); cx.fill();
-            const tail = cx.createLinearGradient(...P(-36, 0), ...P(-6, 0));
-            tail.addColorStop(0, 'rgba(255,190,70,0)'); tail.addColorStop(1, 'rgba(255,215,120,0.55)');
-            cx.fillStyle = tail;
-            poly([[-6, -3.5], [-36, 0], [-6, 3.5]]); cx.fill();
-            const shape = [[21, 0], [0, -9.5], [5, -3], [-11, -2.5], [-11, 2.5], [5, 3], [0, 9.5]];
-            grad = cx.createLinearGradient(...P(-11, 0), ...P(21, 0));
-            grad.addColorStop(0, '#9a6400'); grad.addColorStop(0.5, '#f7c23c'); grad.addColorStop(1, '#fff6d6');
-            cx.fillStyle = grad;
-            poly(shape); cx.fill();
-            cx.strokeStyle = 'rgba(85,48,0,0.85)';
-            cx.lineWidth = 1.3 * u;
-            cx.lineJoin = 'round';
-            cx.stroke();
-            // lit upper facet and a bright spine so it reads as polished metal
-            cx.fillStyle = 'rgba(255,250,228,0.4)';
-            poly([[21, 0], [0, -9.5], [5, -3], [-11, -2.5], [-11, 0]]); cx.fill();
-            cx.strokeStyle = 'rgba(255,252,235,0.85)';
-            cx.lineWidth = 1.1 * u;
-            cx.beginPath(); cx.moveTo(...P(19, 0)); cx.lineTo(...P(-9, 0)); cx.stroke();
-            // light catching the upper leading edge, and a hot core running down the tail
-            cx.strokeStyle = 'rgba(255,253,240,0.9)';
-            cx.lineWidth = 0.9 * u;
-            cx.beginPath(); cx.moveTo(...P(20, -0.4)); cx.lineTo(...P(0.6, -9)); cx.stroke();
-            const tailCore = cx.createLinearGradient(...P(-30, 0), ...P(-7, 0));
-            tailCore.addColorStop(0, 'rgba(255,240,190,0)'); tailCore.addColorStop(1, 'rgba(255,248,220,0.75)');
-            cx.strokeStyle = tailCore;
-            cx.lineWidth = 1.2 * u;
-            cx.beginPath(); cx.moveTo(...P(-7, 0)); cx.lineTo(...P(-30, 0)); cx.stroke();
-            if (highQ) {
-                // small four point glint on the tip
-                cx.strokeStyle = 'rgba(255,255,240,0.85)';
-                cx.lineWidth = 0.8 * u;
-                cx.beginPath();
-                cx.moveTo(...P(17, 0)); cx.lineTo(...P(25, 0));
-                cx.moveTo(...P(21, -4)); cx.lineTo(...P(21, 4));
-                cx.stroke();
-            }
+            _bakeSentinelSpear(cx, ctr, sz, highQ);
             break;
         }
         case 'player_charged': {
@@ -2452,6 +2520,7 @@ function draw(deltaTime) {
         // sau cùng (sau cả Sigil HUD) vì Goliath giờ hay lượn gần viền trên
         // màn hình, dễ bị icon Sigil HUD đè lên nếu vẽ chung ở đây.
         enemies.forEach(e => { if (!e.type.startsWith('enemy_bullet') && e.type !== 'abyssal_chain' && e.type !== 'goliath') drawEnemy(e); });
+        _drawSentinelSpearFx();  // spear impacts and the twelve Sentinel volley lock on, above the enemies they hit
         // Blood Arrow's impact bloom draws AFTER enemies so it sits layered
         // on top of whatever it just hit, instead of hiding underneath it.
         drawSolArrowLilies();

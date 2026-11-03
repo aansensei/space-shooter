@@ -5,7 +5,7 @@
 //
 // One cache, versioned by CACHE_NAME. Bump the version string whenever the
 // CORE_FILES list changes so old clients pick up the new set on next visit.
-const CACHE_VERSION = 'v574';
+const CACHE_VERSION = 'v582';
 const CACHE_NAME = 'pisces-cache-' + CACHE_VERSION;
 
 // App shell — everything needed for the game to boot and run at all.
@@ -185,7 +185,13 @@ self.addEventListener('install', (event) => {
             // Small batches bound update traffic while a match is running.
             return (async () => {
                 for (let i = 0; i < PRECACHE_FILES.length; i += 4) {
-                    await Promise.all(PRECACHE_FILES.slice(i, i + 4).map(url => cache.add(url).catch(() => {})));
+                    // Files stored by an earlier attempt are skipped, and each file gets one retry before the install is judged incomplete.
+                    await Promise.all(PRECACHE_FILES.slice(i, i + 4).map(async (url) => {
+                        if (await cache.match(url)) return;
+                        for (let attempt = 0; attempt < 2; attempt++) {
+                            try { await cache.add(url); return; } catch (_) {}
+                        }
+                    }));
                 }
                 const present = await Promise.all(PRECACHE_FILES.map(url => cache.match(url)));
                 if (!present.every(Boolean)) throw Error('Offline update incomplete');

@@ -552,7 +552,7 @@ function _recordKill(label) {
 // checks existing flags first, falls back to source._statSrc, else "Other"
 const _BULLET_TYPE_LABELS = {
     player_auto: 'Player Auto-Fire', player_charged: 'Player Charged Shot',
-    sentinel_auto: 'Sentinel Auto-Fire', sentinel_special: 'Sentinel Special Shot',
+    sentinel_auto: 'Sentinel Auto-Fire', sentinel_special: 'Sentinel Spear',
 };
 function _classifyDamageSource(source, isAllyDealt) {
     if (!source) return 'Other';

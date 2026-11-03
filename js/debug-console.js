@@ -647,7 +647,7 @@ window.debugSetYuukiBonus = function () {
         <button class="dbg-btn" onclick="debugSpawn('spawnVeilshroud')" onmouseover="_dbgHint(this)" onmouseout="_dbgHint()" data-hp="1320–3300" data-size="100–150">Veilshroud</button>
         <button class="dbg-btn" onclick="debugSpawn('spawnUriel')" onmouseover="_dbgHint(this)" onmouseout="_dbgHint()" data-hp="1725–4140" data-size="100–150">Uriel</button>
         <button class="dbg-btn" onclick="debugSpawn('spawnLeviathan')" onmouseover="_dbgHint(this)" onmouseout="_dbgHint()" data-hp="8820–15435" data-size="250–300">Leviathan</button>
-        <button class="dbg-btn" onclick="debugSpawn('spawnEgregor')" onmouseover="_dbgHint(this)" onmouseout="_dbgHint()" data-hp="2200–4750" data-size="160">Egregor</button>
+        <button class="dbg-btn" onclick="debugSpawn('spawnEgregor')" onmouseover="_dbgHint(this)" onmouseout="_dbgHint()" data-hp="2200–5200" data-size="160">Egregor</button>
         <button class="dbg-btn" onclick="debugSpawn('spawnGoliath')" onmouseover="_dbgHint(this)" onmouseout="_dbgHint()" data-hp="1 (Alpha, invuln)" data-size="380/460">Goliath (WIP)</button>
         <button class="dbg-btn" onclick="debugSpawnSentinel()" onmouseover="_dbgHint(this)" onmouseout="_dbgHint()" data-hp="100–800" data-size="18–28">Sentinel</button>
       </div>

@@ -11,6 +11,7 @@ function spawnSentinel(x, y, forceNormal = false) {
         particles.push(_sr);
     }
     createParticles(x, y, 30, '#00FFFF', 2, 8);
+    if (typeof _spearImpact === 'function') _spearImpact(x, y, true, '#7ff4ff', true);
 
     if (sentinels.length >= MAX_SENTINELS) {
         // BUG I fix: silent eviction, no explosion when at capacity
@@ -34,7 +35,8 @@ function spawnSentinel(x, y, forceNormal = false) {
 
     sentinels.push({
         x, y, hp: initialMaxHp, maxHp: initialMaxHp, angle: -Math.PI / 2, shootTimer: 0,
-        target: null, size: 15, shotsFiredSinceSpecial: 0,
+        // shotsFiredSinceSpecial is only a marker the damage code uses to recognise a Sentinel
+        target: null, size: 15, shotsFiredSinceSpecial: 0, _spearCd: 900 + Math.random() * 1600,
         absoluteShield: false,
         synergyTier: currentTier,
         isFortified
@@ -53,6 +55,7 @@ function spawnSentinel(x, y, forceNormal = false) {
 
 function destroySentinel(sentinel) {
     addExplosion(sentinel.x, sentinel.y, 80, '#00FFFF');
+    if (typeof _spearImpact === 'function') _spearImpact(sentinel.x, sentinel.y, true, sentinels.length >= 12 ? '#ffe39a' : '#7ff4ff', true);
     _setShake(5, 200);
     if (window.AudioMgr) window.AudioMgr.playSfxAt('sentinel-explode', sentinel.x, sentinel.y);
     for (let i = 0; i < 10; i++) {
@@ -65,9 +68,70 @@ function destroySentinel(sentinel) {
     }
 }
 
+// Each Sentinel charges a golden spear every 2.5s. With a full swarm of twelve, every 12s all of them throw a spear at the
+// strongest enemy at once after a short lock on.
+const SENTINEL_SPEAR_CD = 2500;
+const SENTINEL_SPEAR_DMG = 0.15;
+const SENTINEL_VOLLEY_INTERVAL = 12000;
+const SENTINEL_VOLLEY_LOCK = 500;
+window._sentinelVolley = { timer: 0, phase: 'idle', lockLeft: 0, target: null, firedAt: -1e9 };
+
+// Nearest enemy that no other spear has claimed in the last 1.4s, so a swarm spreads out instead of piling onto one target.
+function _pickSpearTarget(s, now) {
+    let best = null, bestD = Infinity, fallback = null, fallbackD = Infinity;
+    for (let i = 0; i < enemies.length; i++) {
+        const e = enemies[i];
+        if (!_isEnemyTargetable(e)) continue;
+        const d = Math.hypot(e.x - s.x, e.y - s.y);
+        if (d < fallbackD) { fallback = e; fallbackD = d; }
+        if ((e._spearClaimUntil || 0) <= now && d < bestD) { best = e; bestD = d; }
+    }
+    const t = best || fallback;
+    if (t) t._spearClaimUntil = now + 1400;
+    return t;
+}
+
+function _pickVolleyTarget() {
+    let best = null, bestHp = -1;
+    for (let i = 0; i < enemies.length; i++) {
+        const e = enemies[i];
+        if (!_isEnemyTargetable(e) || !(e.hp > 0)) continue;
+        // Goliath only counts as a last resort, since spears barely hurt it
+        const v = (e.hp + (e.shield || 0)) * (e.type === 'goliath' ? 0.001 : 1);
+        if (v > bestHp) { best = e; bestHp = v; }
+    }
+    return best;
+}
+
+// Nearest enemy within reach that this spear has not pierced yet
+function _spearNextTarget(b) {
+    let best = null, bestD = 520;
+    for (let i = 0; i < enemies.length; i++) {
+        const e = enemies[i];
+        if (!_isEnemyTargetable(e) || !(e.hp > 0) || b._hitList.indexOf(e) !== -1) continue;
+        const d = Math.hypot(e.x - b.x, e.y - b.y);
+        if (d < bestD) { best = e; bestD = d; }
+    }
+    return best;
+}
+
+function _launchSentinelSpear(sentinel, target, volley, dmgMult, speedMul) {
+    const full = sentinels.length >= 12;
+    const angle = Math.atan2(target.y - sentinel.y, target.x - sentinel.x);
+    bullets.push({
+        x: sentinel.x + Math.cos(angle) * sentinel.size, y: sentinel.y + Math.sin(angle) * sentinel.size,
+        damage: SENTINEL_SPEAR_DMG * player.atk * dmgMult * (1 + (sentinel._blessingDmg || 0)), size: 30, type: 'sentinel_special',
+        target, speedMultiplier: speedMul, sourceSentinel: sentinel, _isSentinelBullet: true, _heading: angle,
+        _spear: true, _volley: volley, _through: full ? 4 : 3, _hitList: [], _healPct: full ? 0.03 : 0.02
+    });
+    sentinel._lastSpearAt = performance.now();
+    createParticles(sentinel.x + Math.cos(angle) * (sentinel.size + 6), sentinel.y + Math.sin(angle) * (sentinel.size + 6), volley ? 10 : 6, '#ffd36a', 2, volley ? 9 : 6);
+}
+
 function updateSentinels(deltaTime) {
     let activeCount = sentinels.length;
-    let sentinelFireRate = 62.5; // 75 / 1.2 (+20% fire rate)
+    // one shot every 83.3ms: the spear is its own cooldown attack, so the plain shots no longer cover its slot
+    let sentinelFireRate = 83.3;
     let damageMultiplier = 1.0;
 
     if (_hasBuff('lai_kep') && (window._laiKepFireRateBonus || 0) > 0) {
@@ -88,7 +152,6 @@ function updateSentinels(deltaTime) {
     let isTier1 = activeCount < 5;
     let isTier2 = activeCount >= 5 && activeCount < 12;
     let isTier3 = activeCount >= 12;
-    let swarmSpecialForced = activeCount >= 12;
 
     // Tier 1: +10% bullet speed (added below via herdSpeedBonus)
     const herdSpeedBonus = isTier1 ? 1.10 : 1.0;
@@ -101,6 +164,39 @@ function updateSentinels(deltaTime) {
     if (gloryForJusticeActive) {
         sentinelFireRate /= 1.20;
     }
+
+    let spearRate = 1;
+    if (_hasBuff('lai_kep') && (window._laiKepFireRateBonus || 0) > 0) spearRate *= 1 + window._laiKepFireRateBonus;
+    if (gloryForJusticeActive) spearRate *= 1.2;
+    const nowMs = performance.now(), spearSpeed = (gloryForJusticeActive ? 1.25 : 1) * herdSpeedBonus;
+
+    // the twelve Sentinel volley: lock on to the strongest enemy, then every Sentinel throws a spear at it together
+    const vol = window._sentinelVolley;
+    if (activeCount >= 12) {
+        if (vol.phase === 'idle') {
+            vol.timer += deltaTime;
+            if (vol.timer >= SENTINEL_VOLLEY_INTERVAL - SENTINEL_VOLLEY_LOCK) {
+                const t = _pickVolleyTarget();
+                if (t) { vol.phase = 'lock'; vol.lockLeft = SENTINEL_VOLLEY_LOCK; vol.target = t; }
+                else vol.timer = SENTINEL_VOLLEY_INTERVAL - SENTINEL_VOLLEY_LOCK - 700;
+            }
+        } else {
+            vol.lockLeft -= deltaTime;
+            if (!(vol.target && vol.target.hp > 0 && _isEnemyTargetable(vol.target) && enemies.includes(vol.target))) {
+                const t = _pickVolleyTarget();
+                if (t) vol.target = t; else { vol.phase = 'idle'; vol.timer = 0; vol.target = null; }
+            }
+            if (vol.phase === 'lock' && vol.lockLeft <= 0) {
+                for (let i = 0; i < sentinels.length; i++) {
+                    _launchSentinelSpear(sentinels[i], vol.target, true, damageMultiplier, 1.05 * spearSpeed);
+                    sentinels[i]._spearCd = Math.max(sentinels[i]._spearCd, 1200);
+                }
+                _setShake(5, 260);
+                if (window.AudioMgr) window.AudioMgr.playSfxAt('charged-shot', vol.target.x, vol.target.y);
+                vol.firedAt = nowMs; vol.phase = 'idle'; vol.timer = 0;
+            }
+        }
+    } else { vol.timer = 0; vol.phase = 'idle'; vol.target = null; }
 
     for (let i = 0; i < sentinels.length; i++) {
         let s = sentinels[i];
@@ -136,31 +232,27 @@ function updateSentinels(deltaTime) {
             const angle = sentinel.angle;
             const speedMultiplier = (gloryForJusticeActive ? 1.25 : 1) * herdSpeedBonus;
 
-            sentinel.shotsFiredSinceSpecial++;
+            const _bDmg2 = 1 + (sentinel._blessingDmg || 0);
+            bullets.push({
+                x: sentinel.x + Math.cos(angle) * sentinel.size,
+                y: sentinel.y + Math.sin(angle) * sentinel.size,
+                vx: Math.cos(angle) * 10.8 * speedMultiplier, vy: Math.sin(angle) * 10.8 * speedMultiplier,
+                damage: 0.0345 * player.atk * damageMultiplier * _bDmg2,
+                size: 7.8, type: 'sentinel_auto',
+                _isSentinelBullet: true,
+            });
+            const _mz = _acquireParticle(); _mz.x = sentinel.x + Math.cos(angle) * (sentinel.size + 5); _mz.y = sentinel.y + Math.sin(angle) * (sentinel.size + 5); _mz.lifetime = 100; _mz.maxLifetime = 100; _mz.size = 5; _mz.color = 'orange'; particles.push(_mz);
+        }
 
-            if (sentinel.shotsFiredSinceSpecial >= 4 || swarmSpecialForced) {
-                sentinel.shotsFiredSinceSpecial = 0;
-
-                const _bDmg = 1 + (sentinel._blessingDmg || 0);
-                bullets.push({
-                    x: sentinel.x + Math.cos(angle) * sentinel.size,
-                    y: sentinel.y + Math.sin(angle) * sentinel.size,
-                    damage: 0.0575 * player.atk * damageMultiplier * _bDmg, size: 30, type: 'sentinel_special',
-                    target: sentinel.target, speedMultiplier: 1.12 * speedMultiplier,
-                    sourceSentinel: sentinel, _isSentinelBullet: true, _heading: angle
-                });
-            } else {
-                const _bDmg2 = 1 + (sentinel._blessingDmg || 0);
-                bullets.push({
-                    x: sentinel.x + Math.cos(angle) * sentinel.size,
-                    y: sentinel.y + Math.sin(angle) * sentinel.size,
-                    vx: Math.cos(angle) * 10.8 * speedMultiplier, vy: Math.sin(angle) * 10.8 * speedMultiplier,
-                    damage: 0.0345 * player.atk * damageMultiplier * _bDmg2,
-                    size: 7.8, type: 'sentinel_auto',
-                    _isSentinelBullet: true,
-                });
-                const _mz = _acquireParticle(); _mz.x = sentinel.x + Math.cos(angle) * (sentinel.size + 5); _mz.y = sentinel.y + Math.sin(angle) * (sentinel.size + 5); _mz.lifetime = 100; _mz.maxLifetime = 100; _mz.size = 5; _mz.color = 'orange'; particles.push(_mz);
-            }
+        // the spear charges on its own clock and goes out as soon as there is a target, unless a volley is locking on
+        if (sentinel._spearCd === undefined) sentinel._spearCd = 900;
+        sentinel._spearCd -= deltaTime * spearRate;
+        if (sentinel._spearCd <= 0) {
+            if (sentinel.target && vol.phase !== 'lock') {
+                const t = _pickSpearTarget(sentinel, nowMs);
+                if (t) { _launchSentinelSpear(sentinel, t, false, damageMultiplier, spearSpeed); sentinel._spearCd = SENTINEL_SPEAR_CD; }
+                else sentinel._spearCd = 200;
+            } else sentinel._spearCd = 0;
         }
 
         if (sentinel.hp <= 0) {

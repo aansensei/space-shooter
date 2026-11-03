@@ -25,7 +25,7 @@ function _egregorTempestScar(t) {
 function spawnEgregor() {
     const size = 160;
     const hpFromTime = Math.floor(gameElapsedTime / 10000);
-    const hp = Math.ceil(Math.min(4750, 2200 + hpFromTime * 72) * 1.15 * _walpurgisHpMult()); // +15% global HP buff
+    const hp = Math.ceil(Math.min(5200, 2200 + hpFromTime * 79) * 1.15 * _walpurgisHpMult()); // +15% global HP buff
     enemies.push({
         x: Math.random() * (canvas.width - size * 2) + size,
         y: -size,
@@ -378,6 +378,8 @@ function _updateEgregorNullSlash(enemy, deltaTime, now) {
                     createParticles(player.x, player.y, 25, '#aa44ff', 3, 10);
                     _setShake(12, 350);
                     _nsHitLanded = true;
+                    // above 3 Mind Link stacks the slash also costs a life, and every protection still gets its say
+                    if ((enemy._rageStacks || 0) > 3 && !_yuushaPierceRedirect(enemy.atk || 0, false, enemy)) playerTakesHit(enemy);
                 }
             }
 
