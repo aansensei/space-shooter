@@ -4490,7 +4490,7 @@
                     const m = cards[i].dataset.mode, on = m === mode;
                     cards[i].classList.toggle('gm-selected', on);
                     cards[i].setAttribute('aria-checked', on ? 'true' : 'false');
-                    if (m === 'custom') cards[i].hidden = !customAvailable();
+                    if (m === 'custom') cards[i].hidden = !(customAvailable() || window._loadDebugConsole);
                 }
                 const grid = $('modeGrid');
                 if (grid) grid.style.setProperty('--gm-n', String(visibleCards().length || 1));
@@ -4500,7 +4500,11 @@
 
             window.selectGameMode = function (m) {
                 if (!GAME_MODES[m]) m = 'endless';
-                if (m === 'custom' && !customAvailable()) m = 'endless';
+                if (m === 'custom' && !customAvailable()) {
+                    // on the live site the debug console is fetched on first use, then Custom is chosen
+                    if (window._loadDebugConsole) { window._loadDebugConsole().then(function () { if (customAvailable()) window.selectGameMode('custom'); }).catch(function () { }); return; }
+                    m = 'endless';
+                }
                 mode = m;
                 window._gameMode = m;
                 if (GAME_MODES[m].persist) { try { localStorage.setItem('pisces_mode', m); } catch (_) { } }
@@ -4878,13 +4882,27 @@
     <script src="js/tutorial.js?v=20261104t7"></script>
     <script src="js/tutorial-license.js?v=20261104t9"></script>
     <script>
-        // Debug/cheat console is a local-dev-only tool (spawn/kill any
-        // enemy, force skills, edit HP, etc.) — never fetch/load it on the
-        // real deployed site, only when actually running locally.
+        // The debug console (spawn or kill any enemy, force skills, edit HP) loads at once on a local host.
+        // On the live site it is fetched only when a player picks Custom Voyage, and its keys then answer
+        // only while that mode is the chosen one.
         if (location.hostname === 'localhost' || location.hostname === '127.0.0.1' || location.protocol === 'file:') {
             const _dbgScript = document.createElement('script');
-            _dbgScript.src = 'js/debug-console.js?v=20261104t6';
+            _dbgScript.src = 'js/debug-console.js?v=20261104g';
             document.head.appendChild(_dbgScript);
+        } else {
+            window._loadDebugConsole = function () {
+                if (window._debugConsoleLoading) return window._debugConsoleLoading;
+                window._debugConsoleLoading = new Promise(function (resolve, reject) {
+                    const s = document.createElement('script');
+                    s.src = 'js/debug-console.js?v=20261104g';
+                    s.onload = resolve;
+                    s.onerror = function () { window._debugConsoleLoading = null; reject(new Error('debug console')); };
+                    document.head.appendChild(s);
+                });
+                return window._debugConsoleLoading;
+            };
+            // the picker was built before this loader existed, so it shows the Custom card now
+            if (typeof window._refreshGameModeUI === 'function') window._refreshGameModeUI();
         }
     </script>
 

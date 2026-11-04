@@ -33,7 +33,7 @@ A fast-paced arcade space shooter with deep combat mechanics, percentage-based d
 - A small **cyan hitbox dot** at the exact center of your ship shows the true collision point — only that dot touching a bullet costs a life.
 - Enemy bullets always render on top of all effects and are outlined with a **pulsing white glow** so they remain visible in dense situations.
 - The game automatically **pauses** if you switch tabs, and resumes cleanly with no time skips.
-- The bar above **Initiate Hyperjump** picks the voyage: **Endless Voyage** is the standard run, **Tutorial** is a short guided lesson with Kanade that teaches movement, every skill and how to read attack warnings, and **Custom Voyage** is the debug sandbox (only on a local host).
+- The bar above **Initiate Hyperjump** picks the voyage: **Endless Voyage** is the standard run, **Tutorial** is a short guided lesson with Kanade that teaches movement, every skill and how to read attack warnings, and **Custom Voyage** is the debug sandbox (it opens the debug console, and on the live site the backquote key answers only while Custom Voyage is chosen).
 
 ---
 

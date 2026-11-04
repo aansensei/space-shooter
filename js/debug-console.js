@@ -1041,6 +1041,10 @@ window.debugSetYuukiBonus = function () {
     }
     ensureFab();
 
+    // on the live site the console answers only while Custom Voyage is the chosen mode or its sandbox run is active
+    const _dbgDevHost = ['localhost', '127.0.0.1', '::1', ''].includes(location.hostname) || location.protocol === 'file:';
+    function _dbgKeysAllowed() { return _dbgDevHost || window._gameMode === 'custom' || !!window._debugSessionActive; }
+
     window._debugToggleConsole = function () {
         if (panelOpen) window.closeDebugConsole(); else window.openDebugConsole();
     };
@@ -1050,6 +1054,7 @@ window.debugSetYuukiBonus = function () {
         // "1" trên bàn phím US) — nếu bàn phím thật không có phím đúng chỗ
         // đó (layout khác chuẩn US), code sẽ khác dù gõ ra đúng ký tự `.
         // Thêm e.key === '`' làm dự phòng theo ký tự thực tế đã gõ ra.
+        if (!_dbgKeysAllowed()) return;
         if (e.code === 'Backquote' || e.key === '`') {
             e.preventDefault();
             // Giữ phím lâu hơn 1 chút -> OS/browser tự bắn lại nhiều keydown
