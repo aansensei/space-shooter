@@ -126,7 +126,6 @@ function handleEnemyKill(enemy) {
     // skips update() until _hitStopUntil).
     if (enemy.type === 'goliath') window._hitStopUntil = performance.now() + 120;
     _recordKill(_enemyTypeLabel(enemy.type));
-    if (enemy.type === 'ammit') _ammitOnDeath(enemy); else _ammitHoard(enemy.x, enemy.y, enemy);
     _leoOnEnemyKill(enemy);
     _dauOnEnemyKill(enemy);
     _tyOnEnemyKill(enemy);
@@ -497,7 +496,7 @@ function addExplosion(x, y, size, color = 'orange') {
 // js/entities-sentinel.js (loaded right after this file).
 
 function _isEnemyTargetable(enemy) {
-    return !!enemy && !!enemy.type && (!enemy.type.startsWith('enemy_bullet') || !!enemy._amScarab)
+    return !!enemy && !!enemy.type && !enemy.type.startsWith('enemy_bullet')
         && enemy.type !== 'abyssal_chain' && enemy.type !== 'veilshroud_echo'
         && !enemy.inCoronation && !enemy._stealthed;
 }
@@ -612,7 +611,6 @@ function dealDamage(enemy, source) {
     if (window._capMountain && (enemy.hasOwnProperty('shotsFiredSinceSpecial') || enemy.role || window.skillDSpaceships.includes(enemy))
         && _capBlocksSource(source, enemy)) return;
     if (enemy.type === 'abyssal_chain') return;
-    if (enemy.type === 'ammit' && _ammitAbsorbHit(enemy)) return;
 
     // Marchosias, Last Ward: below 30% HP with the barrier up, the barrier soaks every hit meant for the body, true damage and damage over time included
     if (enemy.type === 'marchosias' && enemy.hp < enemy.maxHp * 0.30 && (source.damage > 0 || source.percentDamage > 0) && _soakIntoArcBarrier(enemy, source)) return;
@@ -852,7 +850,7 @@ function dealDamage(enemy, source) {
         let _evade = ({
             'apostle': _evadeLesser,
             'veilshroud': _evadeAbnormal, 'thaelis': _evadeAbnormal, 'thaelis_guard': _evadeAbnormal, 'uriel': _evadeAbnormal,
-            'raphael': _evadeElite, 'marchosias': _evadeElite, 'egregor': _evadeElite, 'ammit': _evadeElite,
+            'raphael': _evadeElite, 'marchosias': _evadeElite, 'egregor': _evadeElite,
             'dargruel': _evadeDom, 'leviathan': _evadeDom
         })[enemy.type] || 0;
         // Marchosias: +10% extra body evade while arc barrier is alive
@@ -1235,8 +1233,6 @@ function dealDamage(enemy, source) {
         combinedDR += 0.40;
     }
 
-    if (enemy.type === 'ammit') combinedDR += _ammitDR(enemy);
-
     if (enemy.type === 'marchosias_minion' && enemy.DR) {
         combinedDR += enemy.DR;
     }
@@ -1470,8 +1466,6 @@ function dealDamage(enemy, source) {
         let _flatArmor = _walpurgisFlatDR();
         // Inevitable (Leviathan): flat armor on top of its 55% DR above.
         if (enemy.type === 'leviathan') _flatArmor += 150;
-        // Ammit: heavy hide, thinned while it is Exposed or staggered.
-        if (enemy.type === 'ammit') _flatArmor += (enemy._amExposedUntil > performance.now() || performance.now() < (enemy._amStaggerUntil || 0)) ? 40 : 140;
         // Uriel, right after a Camouflage reappear: +100 flat DR for 2s.
         if (enemy.type === 'uriel' && enemy._camoFlatDREnd && currentTime < enemy._camoFlatDREnd) _flatArmor += 100;
         // Administrator's Blessing, same shield-gated window as its % DR above.
@@ -1583,13 +1577,6 @@ function dealDamage(enemy, source) {
             enemy._phDeflectAt = currentTime;
             _phantomCue('phantom-deflect', enemy, enemy.x, enemy.y);
         }
-    }
-
-    // Ammit: no single hit takes more than 18% of its Max HP, and the linen wrap soaks what is left before it reaches the body.
-    if (enemy.type === 'ammit') {
-        totalDamage = Math.min(totalDamage, Math.ceil(enemy.maxHp * 0.18));
-        totalDamage = _ammitWrapSoak(enemy, source, totalDamage);
-        if (totalDamage <= 0) return;
     }
 
     // Egregor: no single hit takes more than 15% of its Max HP. Its own Vessel backlash is never capped.
@@ -1821,7 +1808,7 @@ function dealDamage(enemy, source) {
         if (isSentinel && typeof _yuushaTankAbsorbFromSentinelDamage === 'function') {
             totalDamage -= _yuushaTankAbsorbFromSentinelDamage(totalDamage);
         }
-        totalDamage = _ammitClampHpLoss(enemy, _goliathClampHpLoss(enemy, totalDamage));
+        totalDamage = _goliathClampHpLoss(enemy, totalDamage);
         if (!_goliathTryUnbrokenWill(enemy, totalDamage)) {
             _hpDamageDealt = totalDamage;
             enemy.hp -= totalDamage;
@@ -1852,7 +1839,7 @@ function dealDamage(enemy, source) {
         if (isSentinel && typeof _yuushaTankAbsorbFromSentinelDamage === 'function') {
             totalDamage -= _yuushaTankAbsorbFromSentinelDamage(totalDamage);
         }
-        totalDamage = _ammitClampHpLoss(enemy, _goliathClampHpLoss(enemy, totalDamage));
+        totalDamage = _goliathClampHpLoss(enemy, totalDamage);
         if (!_goliathTryUnbrokenWill(enemy, totalDamage)) {
             _hpDamageDealt = totalDamage;
             enemy.hp -= totalDamage;

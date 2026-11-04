@@ -5,7 +5,7 @@
 //
 // One cache, versioned by CACHE_NAME. Bump the version string whenever the
 // CORE_FILES list changes so old clients pick up the new set on next visit.
-const CACHE_VERSION = 'v597';
+const CACHE_VERSION = 'v598';
 const CACHE_NAME = 'pisces-cache-' + CACHE_VERSION;
 
 // App shell — everything needed for the game to boot and run at all.
@@ -96,7 +96,6 @@ const CORE_FILES = [
     'js/entities/veilshroud.js',
     'js/entities/uriel.js',
     'js/entities/egregor.js',
-    'js/entities/ammit.js',
     'js/entities/leviathan.js',
     'js/entities/marchosias.js',
     'js/entities/misc-enemies.js',
@@ -148,7 +147,6 @@ const CORE_FILES = [
     'js/render/enemy-dargruel.js',
     'js/render/enemy-common.js',
     'js/render/enemy-egregor.js',
-    'js/render/enemy-ammit.js',
     'js/render/enemy-goliath.js',
     'js/render/enemy-leviathan.js',
     'js/render/enemy-marchosias.js',

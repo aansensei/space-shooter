@@ -648,7 +648,6 @@ window.debugSetYuukiBonus = function () {
         <button class="dbg-btn" onclick="debugSpawn('spawnUriel')" onmouseover="_dbgHint(this)" onmouseout="_dbgHint()" data-hp="1725–4140" data-size="100–150">Uriel</button>
         <button class="dbg-btn" onclick="debugSpawn('spawnLeviathan')" onmouseover="_dbgHint(this)" onmouseout="_dbgHint()" data-hp="8820–15435" data-size="250–300">Leviathan</button>
         <button class="dbg-btn" onclick="debugSpawn('spawnEgregor')" onmouseover="_dbgHint(this)" onmouseout="_dbgHint()" data-hp="2200–5200" data-size="160">Egregor</button>
-        <button class="dbg-btn" onclick="window._ammitDemo = false; debugSpawn('spawnAmmit')" onmouseover="_dbgHint(this)" onmouseout="_dbgHint()" data-hp="3680-7590" data-size="150">Ammit</button>
         <button class="dbg-btn" onclick="debugSpawn('spawnGoliath')" onmouseover="_dbgHint(this)" onmouseout="_dbgHint()" data-hp="1 (Alpha, invuln)" data-size="380/460">Goliath (WIP)</button>
         <button class="dbg-btn" onclick="debugSpawnSentinel()" onmouseover="_dbgHint(this)" onmouseout="_dbgHint()" data-hp="100–800" data-size="18–28">Sentinel</button>
       </div>
@@ -1775,15 +1774,6 @@ window.debugSetYuukiBonus = function () {
         if (!e) return;
         if (which === 'ns') e._nullSlashCooldownEnd = 0;
         if (which === 'tempest') e._tempestCooldownEnd = 0;
-        if (which.startsWith('am_') && e.type === 'ammit' && e._amReal) {
-            // the chosen skill is made ready and the others wait 1.5s, so it is the next one Ammit casts
-            const t = performance.now();
-            e._amJawsCdEnd = e._amWeighCdEnd = e._amClawCdEnd = e._amStompCdEnd = t + 1500;
-            if (which === 'am_jaws') e._amJawsCdEnd = 0;
-            if (which === 'am_weigh') e._amWeighCdEnd = 0;
-            if (which === 'am_claw') { e._amClawCdEnd = 0; e._amForceClaw = true; }
-            if (which === 'am_stomp') e._amStompCdEnd = 0;
-        }
         if (which === 'rage') {
             // a debug stack lasts 60s so Null Slash can be tested at each rage level, and the five stack cap still applies
             if (!e._rageEndTimes) e._rageEndTimes = [];
@@ -1853,7 +1843,6 @@ window.debugSetYuukiBonus = function () {
     function enemySkillButtons(e) {
         const i = enemies.indexOf(e);
         if (e.type === 'egregor') return `<button class="dbg-btn" onclick="debugForceEnemySkill(${i},'ns')">Null Slash</button><button class="dbg-btn" onclick="debugForceEnemySkill(${i},'tempest')">Tempest</button><button class="dbg-btn" onclick="debugForceEnemySkill(${i},'rage')">+Rage Stack (${e._rageStacks || 0}/5)</button>`;
-        if (e.type === 'ammit') return `<button class="dbg-btn" onclick="debugForceEnemySkill(${i},'am_jaws')">Jaws</button><button class="dbg-btn" onclick="debugForceEnemySkill(${i},'am_weigh')">Weighing</button><button class="dbg-btn" onclick="debugForceEnemySkill(${i},'am_claw')">Lion Claw</button><button class="dbg-btn" onclick="debugForceEnemySkill(${i},'am_stomp')">Hippo Stomp</button>`;
         if (e.type === 'marchosias') return `<button class="dbg-btn" onclick="debugForceEnemySkill(${i},'sword')">Sword</button>`;
         if (e.type === 'dargruel') return `<button class="dbg-btn" onclick="debugForceEnemySkill(${i},'haki')">Maou Haki</button><button class="dbg-btn" onclick="debugForceEnemySkill(${i},'chains')">Chains</button>`;
         if (e.type === 'raphael') return `<button class="dbg-btn" onclick="debugForceEnemySkill(${i},'laser')">Laser</button><button class="dbg-btn" onclick="debugForceEnemySkill(${i},'wisdom_orb')">Wisdom Orb</button>`;
@@ -1872,7 +1861,7 @@ window.debugSetYuukiBonus = function () {
         return '';
     }
 
-    const BOSS_TYPES = ['apostle', 'thaelis', 'raphael', 'marchosias', 'dargruel', 'veilshroud', 'uriel', 'leviathan', 'egregor', 'ammit', 'goliath'];
+    const BOSS_TYPES = ['apostle', 'thaelis', 'raphael', 'marchosias', 'dargruel', 'veilshroud', 'uriel', 'leviathan', 'egregor', 'goliath'];
 
     function refreshEnemyList() {
         const el = document.getElementById('dbgEnemyList');

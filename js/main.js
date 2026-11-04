@@ -825,14 +825,6 @@ function update(rawDeltaTime) {
         }
     }
 
-    // Duat sand pits drag at the ship while they last
-    if (window._ammitSandPits) {
-        for (let i = 0; i < window._ammitSandPits.length; i++) {
-            const pit = window._ammitSandPits[i];
-            if (currentTime - pit.born < pit.life && Math.hypot(player.x - pit.x, player.y - pit.y) < 110) _dimBreakMult = Math.min(_dimBreakMult, 0.65);
-        }
-    }
-
     const _xBeforeMove = player.x;
     // A phone's play area is narrow enough that full speed crosses most of
     // the screen in one sweep - trimmed a bit so lateral movement feels
@@ -1729,9 +1721,6 @@ function update(rawDeltaTime) {
 
         } else if (enemy.type === 'egregor') {
             updateEgregor(enemy, deltaTime);
-
-        } else if (enemy.type === 'ammit') {
-            updateAmmit(enemy, deltaTime);
 
         } else if (enemy.type === 'leviathan') {
             // Leviathan update handled by updateLeviathan()
