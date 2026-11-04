@@ -103,7 +103,8 @@ const AMMIT_CLAW_CD = AMMIT_TUNE_CLAW_CD;
 const AMMIT_CLAW_R = 290;
 const AMMIT_CLAW_SPAN = 0.66;
 const AMMIT_CLAW_REACH_PAD = 80;
-const AMMIT_CLAW_WIND = 750;
+const AMMIT_CLAW_WIND = 1100;
+const AMMIT_CLAW_TRACK = 500;
 const AMMIT_CLAW_COEFF = AMMIT_TUNE_CLAW_COEFF;
 const AMMIT_CLAW_TRIGGER = 340;
 const AMMIT_ENRAGE_FRAC = 0.30;
@@ -454,7 +455,7 @@ function _updateAmmitFight(enemy, deltaTime) {
             } else if (now >= enemy._amClawCdEnd && (enemy._amForceClaw || Math.abs(player.x - enemy.x) < AMMIT_CLAW_TRIGGER)) {
                 const c = enemy._amClaw;
                 enemy._amForceClaw = false;
-                _ammitSound('ammit-claw-wind', enemy.x, enemy.y);
+                c._windSfx = false;
                 enemy._amSkill = 'claw'; enemy._amSkillT = 0; enemy._amSkillDone = false;
                 c.r = AMMIT_CLAW_R; c.span = AMMIT_CLAW_SPAN; c.ox = enemy.x; c.oy = enemy.y + enemy.size * 0.15;
                 c.ang = Math.max(0.35, Math.min(Math.PI - 0.35, Math.atan2(player.y - c.oy, player.x - c.ox)));
@@ -541,11 +542,13 @@ function _updateAmmitFight(enemy, deltaTime) {
 
     if (enemy._amSkill === 'claw') {
         const c = enemy._amClaw;
-        if (T < 300) { c.ox = enemy.x; c.oy = enemy.y + enemy.size * 0.15; }
+        if (T < AMMIT_CLAW_TRACK) { c.ox = enemy.x; c.oy = enemy.y + enemy.size * 0.15; }
         if (T < AMMIT_CLAW_WIND) {
             c.phase = 'wind'; c.t = T;
-            // the swing keeps tracking the ship until the last 450ms, then the arc is fixed
-            if (T < 300) { c.ang = Math.max(0.35, Math.min(Math.PI - 0.35, Math.atan2(player.y - c.oy, player.x - c.ox))); c.r = _ammitClawReach(c); }
+            // the growl is timed to end right as the rakes land
+            if (!c._windSfx && T >= AMMIT_CLAW_WIND - 750) { c._windSfx = true; _ammitSound('ammit-claw-wind', enemy.x, enemy.y); }
+            // the swing keeps tracking the ship until the last 600ms, then the arc is fixed
+            if (T < AMMIT_CLAW_TRACK) { c.ang = Math.max(0.35, Math.min(Math.PI - 0.35, Math.atan2(player.y - c.oy, player.x - c.ox))); c.r = _ammitClawReach(c); }
         } else if (T < AMMIT_CLAW_WIND + 250) {
             c.phase = 'strike'; c.t = T - AMMIT_CLAW_WIND;
             if (!enemy._amSkillDone) {
@@ -555,11 +558,11 @@ function _updateAmmitFight(enemy, deltaTime) {
                     const s = sentinels[i];
                     if (_ammitInClaw(c, s.x, s.y, (s.size || 20) * 0.5) && !_capBlocksSource(enemy, s)) _ammitHitSentinel(enemy, s, AMMIT_CLAW_COEFF, dmgMult);
                 }
-                _setShake(7, 260);
-                createParticles(c.ox + Math.cos(c.ang) * c.r * 0.6, c.oy + Math.sin(c.ang) * c.r * 0.6, 16, '#f2d27a', 3, 9);
+                _setShake(10, 340);
+                for (let k = -1; k <= 1; k++) createParticles(c.ox + Math.cos(c.ang + k * 0.2) * c.r * 0.75, c.oy + Math.sin(c.ang + k * 0.2) * c.r * 0.75, 9, k ? '#f2d27a' : '#fff0b8', 3, 10);
                 if (window.AudioMgr) window.AudioMgr.playSfxAt('ammit-claw-strike', c.ox, c.oy);
             }
-        } else if (T < AMMIT_CLAW_WIND + 550) { c.phase = 'after'; c.t = T - AMMIT_CLAW_WIND - 250; }
+        } else if (T < AMMIT_CLAW_WIND + 700) { c.phase = 'after'; c.t = T - AMMIT_CLAW_WIND - 250; }
         else { c.phase = 'idle'; c.t = 0; enemy._amSkill = 'none'; enemy._amClawCdEnd = now + AMMIT_CLAW_CD / cdRate; }
         return;
     }

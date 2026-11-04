@@ -891,9 +891,9 @@ function _drawAmmitBody(enemy) {
         for (let side = -1; side <= 1; side += 2) {
             ctx.save();
             // the forepaws rise while the claw winds up and lunge down on the strike
-            const cl = enemy._amClaw, clawP = cl && cl.phase === 'wind' ? Math.min(1, cl.t / 750) : 0;
+            const cl = enemy._amClaw, clawP = cl && cl.phase === 'wind' ? Math.min(1, cl.t / (typeof AMMIT_CLAW_WIND === 'number' ? AMMIT_CLAW_WIND : 1100)) : 0;
             const clawHit = cl && cl.phase === 'strike' ? 1 - Math.min(1, cl.t / 250) : 0;
-            const px = side * 92 * sc, py = (45 + Math.sin(now * 0.003 + side) * 3 - 22 * clawP + 34 * clawHit) * sc;
+            const px = (side * 92 + (clawP > .6 ? Math.sin(now * .07 + side) * 2.4 * (clawP - .6) : 0)) * sc, py = (45 + Math.sin(now * 0.003 + side) * 3 - 30 * clawP + 34 * clawHit) * sc;
             ctx.translate(px, py);
             ctx.scale(side * sc * 1.06, sc * 1.06);
             ctx.rotate(0.12 + breath * 0.05 - 0.5 * clawP + 0.35 * clawHit);
@@ -1529,25 +1529,76 @@ function _drawAmmitScarab(enemy) {
     ctx.restore();
 }
 
-// The lion claw: a red sector tells where the swing will land, then three gold rakes cut across it.
+// A warm gold light sprite baked once for the claw, brighter in the middle than the shared glow sprite.
+let _amClawGlow = null;
+function _ammitClawGlowArt() {
+    if (_amClawGlow) return _amClawGlow;
+    const c = document.createElement('canvas'); c.width = c.height = 128;
+    const g = c.getContext('2d'), gr = g.createRadialGradient(64, 64, 0, 64, 64, 64);
+    gr.addColorStop(0, 'rgba(255,248,214,1)'); gr.addColorStop(.25, 'rgba(255,214,110,.7)'); gr.addColorStop(.6, 'rgba(242,183,46,.22)'); gr.addColorStop(1, 'rgba(242,183,46,0)');
+    g.fillStyle = gr; g.fillRect(0, 0, 128, 128);
+    return (_amClawGlow = c);
+}
+
+// An eight pointed flash used by the claw charge and its impact.
+function _ammitClawStar(x, y, r) {
+    ctx.beginPath();
+    for (let i = 0; i < 16; i++) {
+        const a = i * Math.PI / 8 - Math.PI / 2, d = i % 2 ? r * .32 : r;
+        if (i) ctx.lineTo(x + Math.cos(a) * d, y + Math.sin(a) * d); else ctx.moveTo(x + Math.cos(a) * d, y + Math.sin(a) * d);
+    }
+    ctx.closePath(); ctx.fill();
+}
+
+// The lion claw: both paws lift and gather gold light while the three rakes are previewed inside a red sector, then the rakes cut across it.
 function _drawAmmitClawEffect(enemy, now) {
     const c = enemy._amClaw;
     if (!c || c.phase === 'idle') return;
+    const WIND = typeof AMMIT_CLAW_WIND === 'number' ? AMMIT_CLAW_WIND : 1100;
+    const fo = window._fxOpts, low = _mobPerf || _gfxLevel >= 2, glow = !fo || fo.glow !== false, rich = glow && !low;
+    const cg = rich ? _ammitClawGlowArt() : null;
     if (c.phase === 'wind') {
-        const p = Math.max(0, Math.min(1, c.t / 750));
+        const p = Math.max(0, Math.min(1, c.t / WIND)), e = p * p;
         const targeted = typeof player !== 'undefined' && player && Math.hypot(player.x - c.ox, player.y - c.oy) < c.r;
-        ctx.save(); ctx.shadowBlur = 0; ctx.globalAlpha = .15 + p * .3;
-        const lift = 40 * _ammitEase(p);
-        ctx.drawImage(_amArt.paw, c.ox - 100, c.oy - 100 - lift, 80, 100);
-        ctx.drawImage(_amArt.paw, c.ox + 20, c.oy - 100 - lift, 80, 100);
-        ctx.strokeStyle = '#f2b72e'; ctx.lineWidth = 2;
-        for (let i = -1; i <= 1; i++) { const a = c.ang + i * .25; ctx.beginPath(); ctx.moveTo(c.ox + Math.cos(a) * c.r * .4, c.oy + Math.sin(a) * c.r * .4); ctx.lineTo(c.ox + Math.cos(a) * c.r * (.4 + p * .5), c.oy + Math.sin(a) * c.r * (.4 + p * .5)); ctx.stroke(); }
+        const lift = 70 * _ammitEase(p), lx = c.ox - 88, rx = c.ox + 88, py = c.oy + 18 - lift * .5;
+        ctx.save(); ctx.shadowBlur = 0; ctx.globalAlpha = .15 + p * .35;
+        // the three rakes are drawn ahead of time as thin gold arcs that grow and brighten
+        ctx.strokeStyle = '#f2b72e'; ctx.lineCap = 'round';
+        for (let k = -1; k <= 1; k++) {
+            const r = c.r * (0.62 + 0.14 * (k + 1)), a0 = c.ang + k * 0.16 - c.span * 0.42, a1 = a0 + c.span * 0.84 * Math.min(1, p * 1.25);
+            ctx.globalAlpha = .12 + e * .5; ctx.lineWidth = 2 + e * 2;
+            ctx.beginPath(); ctx.arc(c.ox, c.oy, r, a0, a1); ctx.stroke();
+        }
+        if (rich) {
+            // gold light swells at each paw and motes spiral into it
+            ctx.globalCompositeOperation = 'lighter';
+            const gs = 60 + e * 150;
+            ctx.globalAlpha = .25 + e * .7;
+            ctx.drawImage(cg, lx - gs / 2, py - gs / 2, gs, gs); ctx.drawImage(cg, rx - gs / 2, py - gs / 2, gs, gs);
+            if (p > .5) { ctx.globalAlpha = (p - .5) * 1.4; ctx.drawImage(cg, lx - gs / 3, py - gs / 3, gs * .66, gs * .66); ctx.drawImage(cg, rx - gs / 3, py - gs / 3, gs * .66, gs * .66); }
+            ctx.fillStyle = '#ffe9a0';
+            for (let i = 0; i < 12; i++) {
+                const u = (p * 1.7 + i / 12) % 1, rad = 120 * (1 - u), a = i * 0.524 + u * 2.6 + now * 0.0006;
+                const mx = Math.cos(a) * rad, my = Math.sin(a) * rad * .8;
+                ctx.globalAlpha = Math.sin(u * Math.PI) * (.35 + p * .5);
+                ctx.fillRect(lx + mx - 2, py + my - 2, 4, 4); ctx.fillRect(rx - mx - 2, py + my - 2, 4, 4);
+            }
+            ctx.globalCompositeOperation = 'source-over';
+        }
+        if (p > .82) {
+            // just before the strike a ring closes on each paw and an eight pointed flash opens
+            const k = (p - .82) / .18;
+            ctx.strokeStyle = '#fff0b8'; ctx.lineWidth = 2.5; ctx.globalAlpha = k * .9;
+            for (let s = -1; s <= 1; s += 2) { ctx.beginPath(); ctx.arc(c.ox + s * 88, py, 80 * (1 - k * .6), 0, Math.PI * 2); ctx.stroke(); }
+            ctx.fillStyle = '#fff6d0'; ctx.globalAlpha = k;
+            _ammitClawStar(lx, py, 12 + 26 * k); _ammitClawStar(rx, py, 12 + 26 * k);
+        }
         ctx.restore();
         _drawDangerZone('sector', c.ox, c.oy, c.r, p, 0.6, now, c.ang, 0, c.span, targeted, false);
         return;
     }
     if (c.phase !== 'strike' && c.phase !== 'after') return;
-    const age = c.phase === 'strike' ? c.t : 250 + c.t, fade = Math.max(0, 1 - age / 520);
+    const age = c.phase === 'strike' ? c.t : 250 + c.t, fade = Math.max(0, 1 - age / 760);
     if (fade <= 0) return;
     const sweep = Math.min(1, age / 140);
     ctx.save();
@@ -1557,12 +1608,25 @@ function _drawAmmitClawEffect(enemy, now) {
     for (let k = -1; k <= 1; k++) {
         const r = c.r * (0.62 + 0.14 * (k + 1)), mid = c.ang + k * 0.16;
         const a0 = mid - c.span * 0.42, a1 = a0 + c.span * 0.84 * sweep;
+        if (rich) {
+            ctx.globalCompositeOperation = 'lighter'; ctx.globalAlpha = fade * .22; ctx.strokeStyle = '#f2b72e'; ctx.lineWidth = 22;
+            ctx.beginPath(); ctx.arc(0, 0, r, a0, a1); ctx.stroke();
+            if (sweep < 1) { ctx.globalAlpha = fade; ctx.drawImage(cg, Math.cos(a1) * r - 20, Math.sin(a1) * r - 20, 40, 40); }
+            ctx.globalCompositeOperation = 'source-over';
+        }
         ctx.globalAlpha = fade * 0.55; ctx.strokeStyle = '#fff0b8'; ctx.lineWidth = 9;
         ctx.beginPath(); ctx.arc(0, 0, r, a0, a1); ctx.stroke();
         ctx.globalAlpha = fade; ctx.strokeStyle = '#f2b72e'; ctx.lineWidth = 4;
         ctx.beginPath(); ctx.arc(0, 0, r, a0, a1); ctx.stroke();
     }
     ctx.restore();
+    if (age < 220) {
+        // an eight pointed flash bursts where each rake lands
+        const k = 1 - age / 220;
+        ctx.save(); ctx.globalCompositeOperation = glow ? 'lighter' : 'source-over'; ctx.fillStyle = '#fff0b8'; ctx.globalAlpha = k * .9;
+        for (let i = -1; i <= 1; i++) { const a = c.ang + i * 0.16; _ammitClawStar(c.ox + Math.cos(a) * c.r * .8, c.oy + Math.sin(a) * c.r * .8, 18 + 34 * k); }
+        ctx.restore();
+    }
 }
 
 // The hippo stomp: red lanes either side of a safe gap fill during the wind up, then a bright front sweeps down them.
