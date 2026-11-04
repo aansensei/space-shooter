@@ -498,7 +498,7 @@ function _drawEgregorTempestTarget(t, now, life) {
             if (t.impact && glow) {
                 ctx.globalAlpha = Math.max(0, 1 - age / 110) * (0.72 + (t._vfxGleam || 0.5) * 0.16); ctx.globalCompositeOperation = 'lighter';
                 ctx.drawImage(_riftArt.nova, t.tx - 105, t.ty - 100, 210, 200);
-                if (!low && _gfxLevel === 0 && (!fo || fo.screenFlash !== false)) {
+                if (!low && _gfxLevel === 0 && window._dangerGuide !== true && (!fo || fo.screenFlash !== false)) {
                     ctx.globalAlpha = Math.max(0, 1 - age / 55) * 0.022; ctx.fillStyle = '#e2c9f2'; ctx.fillRect(0, 0, canvas.width, canvas.height);
                 }
                 ctx.globalCompositeOperation = 'source-over';
@@ -1139,7 +1139,7 @@ function _drawEgregorRift(cx, cy, R, arcStart, arcSpan, rage, rST, rE, now, flar
         ctx.globalCompositeOperation = 'lighter'; ctx.globalAlpha = opacity * (0.045 + rage * 0.012);
         ctx.strokeStyle = '#9b39ed'; ctx.lineWidth = maxHalf * 2 + 52 + rage * 7; ctx.beginPath(); _riftTrace(_riftMid, n); ctx.stroke();
         ctx.globalAlpha = opacity * (0.08 + rage * 0.015); ctx.lineWidth = maxHalf * 2 + 22; ctx.stroke();
-        if (rage === 5 && flare > 0 && gl === 0 && (!fo || fo.screenFlash !== false)) {
+        if (rage === 5 && flare > 0 && gl === 0 && window._dangerGuide !== true && (!fo || fo.screenFlash !== false)) {
             ctx.globalAlpha = flare * 0.045; ctx.fillStyle = '#a145da'; ctx.fillRect(0, 0, canvas.width, canvas.height);
         }
     }

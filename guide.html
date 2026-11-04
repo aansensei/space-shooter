@@ -759,7 +759,7 @@
   <script src="js/render/enemy-goliath.js?v=20261102c"></script>
   <script src="js/render/enemy-thaelis.js"></script>
   <script src="js/render/enemy-dargruel.js"></script>
-  <script src="js/render/enemy-egregor.js?v=20261102f"></script>
+  <script src="js/render/enemy-egregor.js?v=20261104a"></script>
   <script src="js/render/ammit-portal.js?v=20261104d"></script>
   <script src="js/render/enemy-ammit.js?v=20261104d"></script>
   <script src="js/render/enemy-uriel.js?v=20261102c"></script>
@@ -1362,6 +1362,7 @@
 <li><span class="ul-tag tag-fix">FIX</span> <b>Tutorial hit detection:</b> training hits count through the default shield and defensive orbs. Each attack records one hit, failed dodge lessons never grant a free pass, and leaving training clears its effects and sounds.</li>
 <li><span class="ul-tag tag-fix">FIX</span> <b>Debug sandbox and sigils:</b> leaving a debug sandbox no longer leaves the sigil picker switched off for the next normal run.</li>
 <li><span class="ul-tag tag-fix">FIX</span> <b>Tutorial, Vietnamese text:</b> Kanade's Vietnamese lines now use the same names as the rest of the game: Sigil, Bắn Sạc, hồi chiêu and Lãnh Địa Yog-Sothoth. The attack, red lane and sweep lessons read more clearly.</li>
+<li><span class="ul-tag tag-fix">FIX</span> <b>Guide, Egregor Null Slash and Tempest:</b> the demo draws its charge glow, tentacle sweep and Tempest telegraphs again. Other cards on the page were replacing the shared enemy list between frames, so the Egregor card now sets its own before every draw. The rift opening no longer flashes a faint rectangle over the card.</li>
 <li><span class="ul-tag tag-global">GLOBAL</span> <b>Debug console, Tutorial:</b> preview the licence, pick Kanade's expression and gesture, and restart Tutorial from a stopped state.</li>
 <li><span class="ul-tag tag-global">GLOBAL</span> <b>Main menu copyright:</b> the bottom left corner of the main menu now shows the copyright line, mirroring the cache tag on the right.</li>
 </ul></div>
@@ -4659,11 +4660,12 @@
               _nullSlashAngle: Math.PI / 2, _nullSlashTargetX: 600, _nullSlashTargetY: 530
             };
           }
-          let egPlaying = false;
+          let egPlaying = false, egSent = [];
           const idleEnemy = makeEnemy();
           function renderFrame(enemy, alive, title) {
             ctx = c; canvas = { width: 1200, height: 1040 };
             player.x = 600; player.y = 530; // the other demos on this page move the shared player between frames
+            enemies = alive ? [enemy] : []; sentinels = egSent; // the other cards share these lists too, so they are set again before every draw
             c.save(); c.setTransform(dpr, 0, 0, dpr, 0, 0);
             c.clearRect(0, 0, w, h); c.fillStyle = '#050713'; c.fillRect(0, 0, w, h);
             c.save(); c.beginPath(); c.rect(0, 0, sceneW, h); c.clip();
@@ -4705,7 +4707,7 @@
             _egregorTempestEchoes.fill(null); _egregorTempestScars.fill(0);
             const enemy = makeEnemy(); enemies = [enemy];
             player.x = 600; player.y = 530;
-            sentinels = [{ x: 415, y: 510 }, { x: 785, y: 510 }];
+            egSent = [{ x: 415, y: 510 }, { x: 785, y: 510 }]; sentinels = egSent;
             if (window.AudioMgr) window.AudioMgr.startEgregorCrawl();
             let elapsed = 0, lastT = performance.now();
             let slashStarted = false, slashHit = false, zoneSpawned = false, tempestStarted = false, echoStarted = false, deathDone = false;
@@ -4791,7 +4793,7 @@
               if (elapsed < 9600) activeAnimations.push(requestAnimationFrame(tick));
               else {
                 window._egregorDeathBursts = []; window._dimBreakZones = []; _egregorTempestEchoes.fill(null); _egregorTempestScars.fill(0);
-                particles.length = 0; explosions.length = 0; enemies = []; sentinels = []; egPlaying = false;
+                particles.length = 0; explosions.length = 0; enemies = []; egSent = []; sentinels = []; egPlaying = false;
                 btn.dataset.running = 'false'; btn.dataset.paused = 'false'; delete btn.dataset._pauseAnchorAt; _setBtnIcon(btn, 'play', 'Play');
                 renderFrame(idleEnemy, true, vi ? 'EGREGOR: TÂM TRÍ TẬP THỂ' : 'EGREGOR: COLLECTIVE MIND');
               }
