@@ -118,8 +118,8 @@ function _completeSigilPicker(sigilId) {
         }
     }
     // First sigil confirm swaps menu → random in-game BGM. Wave 5/10 re-picks
-    // keep whatever in-game track is already playing.
-    if (window.AudioMgr) {
+    // keep whatever in-game track is already playing. The tutorial stays silent so Kanade's voice lines and the cue sounds carry.
+    if (window.AudioMgr && !window._tutorialActive) {
         const cur = window.AudioMgr.currentBgmId();
         const curTrack = window.AudioMgr.list().find(t => t.id === cur);
         if (!curTrack || curTrack.menuOnly) window.AudioMgr.playRandomInGameBgm();
