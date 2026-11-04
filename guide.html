@@ -752,14 +752,15 @@
     }
   </script>
   <script src="js/canvas-guard.js"></script>
-  <script src="js/render/core.js?v=20261103b"></script>
+  <script src="js/render/core.js?v=20261103f"></script>
   <script src="js/render/fx.js?v=20261103e"></script>
   <script src="js/render/player.js"></script>
-  <script src="js/render/enemy-common.js?v=20261102c"></script>
+  <script src="js/render/enemy-common.js?v=20261103n"></script>
   <script src="js/render/enemy-goliath.js?v=20261102c"></script>
   <script src="js/render/enemy-thaelis.js"></script>
   <script src="js/render/enemy-dargruel.js"></script>
   <script src="js/render/enemy-egregor.js?v=20261102f"></script>
+  <script src="js/render/enemy-ammit.js?v=20261103q"></script>
   <script src="js/render/enemy-uriel.js?v=20261102c"></script>
   <script src="js/render/skill-s-spirit.js"></script>
   <script src="js/render/skill-a.js"></script>
@@ -1206,6 +1207,16 @@
 <li><span style="color:var(--cyan);font-size:10px">SKILL</span> <b>Psychic Tempest</b> <span class="cd">CD 4s, or 3.4s with rage</span>: <span class="det-full">Locks the positions of up to <span class="hi">3 random targets</span> from the player and Sentinels. Egregor visibly plants a tentacle and sends roots toward violet portals. Each target keeps a sharp <span class="hi">100px danger circle</span> and countdown. Warning lasts <span class="hi">1200ms</span>, or <span class="hi">1020ms with any rage</span>. Giant tentacles erupt at the damage event and retract during a <span class="hi">700ms strike</span>. Secondary limbs are visual only. A player hit costs <span class="hr">1 life</span>, subject to defenses. Each Sentinel hit deals <span class="hr">1.5% × min(Egregor MaxHP, 8000)</span> before its defenses, at most once per cast. Walls can block the strike without a hit flash. If Egregor dies during warning, the portals strike immediately and finish independently of the body.</span><span class="det-short">Up to 3 locked portals erupt after 1200ms, or 1020ms with rage. Hit radius 100px. Player: 1 life. Sentinel: 1.5% of Egregor's bounded MaxHP basis. Strike 700ms; cooldown 4s or 3.4s with rage.</span></li>
 <li><span style="color:var(--cyan);font-size:10px">SKILL</span> <b>Null Slash</b> <span class="cd">CD 3.5s</span>: <span class="det-full">Windup is <span class="hi">max(1s, base less 0.35s per rage stack)</span>, with a <span class="hi">3s base</span> at zero rage and <span class="hi">2.5s base</span> with any rage. Egregor tracks the player, moves at <span class="hi">10% speed</span> and gains <span class="hg">25% body DR</span> during windup. Release locks the target and starts a <span class="hi">180° sweep</span>. The animation lasts <span class="hi">950ms</span>, with the hit at <span class="hi">460ms</span>. The player is <span class="hr">50% slower for 1.5s</span>, and with more than <span class="hi">3 rage stacks</span> also loses <span class="hr">1 life</span>, after every protection has had its say. Sentinels in the sweep take true damage equal to <span class="hr">1.50 / 1.75 / 2.00 × Egregor ATK</span> for <span class="hi">one / two / at least three Sentinel targets</span>, multiplied by <span class="hi">0.80 plus 0.40 times Egregor's lost HP fraction</span>. ATK is snapshotted at spawn from a base of <span class="hi">60</span> and the wave multiplier. There is no direct per stack rage damage bonus. At <span class="hi">720ms</span>, a cosmic rift remains over the arc: the slowing zone lasts <span class="hi">1000ms</span>, covers <span class="hi">45px on each side</span>, and slows the player by <span class="hr">20%</span>. The layered violet tear remains visible for <span class="hi">1800ms</span>, gains galaxies and deeper objects with rage, then closes from both ends.</span><span class="det-short">A 180° sweep after a 1s to 3s windup. Player: 50% slow for 1.5s, no life loss. Sentinels: 1.50 / 1.75 / 2.00 ATK times the lost HP multiplier. The slow zone lasts 1s and the cosmic tear stays visible for 1.8s.</span></li>
 </ul></div>
+<div class="card" id="cardAmmit"><h2 class="dsname" style="color:#f2b72e">AMMIT <span class="dsclass" style="font-size:10px;color:#ff8844">ELITE BETA</span></h2><div class="sub">Preview, not in the game yet • HP 3,680 to 7,590 • Size 150 • Slow drift (1.1 u/s) • Duat Devourer of Hearts</div>
+<div class="ab" style="height:320px"><canvas id="cvAmmit" style="width:100%;height:100%"></canvas><button class="play-btn" id="btnPlayAmmit" onclick="playWidget('ammit', this)"><i class="ico ico-play"></i>Play</button></div>
+<ul>
+<li><span style="color:#a855f7;font-size:10px">PASSIVE</span> <b>Heart Hoard:</b> <span class="det-full">Whenever a nearby Sentinel or enemy dies, Ammit swallows its heart into a ring of up to <span class="hg">5 golden ib heart vessels</span> orbiting on an <span class="hi">8 point ring</span> for <span class="hi">10s</span> each. A luminous stream carries each swallowed heart into the crocodile maw. At <span class="hg">5 hearts</span>, both eyes blaze with golden crimson light. Every heart adds <span class="hi">+6% damage</span>, <span class="hi">+5% cooldown speed</span> and <span class="hi">+2% DR</span>. On death, the entire ring of hearts erupts and dissolves into bright dust.</span><span class="det-short">Swallows nearby fallen hearts up to 5 stacks (10s each) on an 8 point ring. At 5 hearts, Ammit's eyes blaze with golden crimson radiance.</span></li>
+<li><span style="color:#a855f7;font-size:10px">PASSIVE</span> <b>Linen Wrap:</b> <span class="det-full"><span class="hg">3 layers</span> of ceremonial mummy linen wrap around the hippo hindquarters. Each layer soaks damage worth 8% of Ammit's Max HP, then bursts into golden dust and regrows after <span class="hi">6s</span>. Remaining layers are shown directly by the thickness and count of the cloth bands.</span><span class="det-short">3 layers of ceremonial linen around the rear body. Each layer soaks 8% Max HP of damage, uncoils into dust, and regrows after 6s.</span></li>
+<li><span style="color:#a855f7;font-size:10px">PASSIVE</span> <b>Feather of Truth:</b> <span class="det-full">The white gold Feather of Maat floats above Ammit's brow. Taking more than <span class="hi">12% MaxHP</span> within <span class="hi">4s</span> causes the feather to drift down like a leaf, putting Ammit into the <span class="hr">Exposed</span> state for <span class="hi">3s</span> (golden fractures open across the body, the mane and aura dim, and all linen wraps strip away). The feather returns after <span class="hi">12s</span>.</span><span class="det-short">Losing 12% MaxHP in 4s drops the Feather of Maat, exposing Ammit for 3s (all wraps stripped, cracked body, dimmed aura). Feather returns after 12s.</span></li><li><span style="color:#a855f7;font-size:10px">PASSIVE</span> <b>Measure of Maat:</b> <span class="det-full">Ammit cannot lose more than <span class="hi">22% of its Max HP</span> at once, and regains room for another <span class="hi">22%</span> every <span class="hi">2.5s</span>, so no burst of true damage empties it before it acts. While it is casting, Ammit also gains <span class="hg">+10% DR</span>.</span><span class="det-short">Loses at most 22% Max HP at once, then 22% more per 2.5s. +10% DR while casting.</span></li><li><span style="color:#a855f7;font-size:10px">PASSIVE</span> <b>Last Judgment:</b> <span class="det-full">Below <span class="hi">30% HP</span> Ammit enrages: cooldowns run <span class="hi">35% faster</span>, its attacks hit <span class="hi">15% harder</span>, it gains <span class="hg">+8% DR</span>, and Jaws of Ammit bites a second time where the ship is standing, with a fresh set of scarabs.</span><span class="det-short">Below 30% HP: cooldowns 35% faster, +15% damage, +8% DR, Jaws bites twice.</span></li>
+<li><span style="color:var(--cyan);font-size:10px">SKILL</span> <b>Jaws of Ammit</b> <span class="cd">CD 5s</span>: <span class="det-full">Locks onto the position of the player or a Sentinel. Over a <span class="hi">1.3s warning</span> (<span class="hi">110px</span> red danger circle, medium intensity <span class="hi">0.6</span>), colossal upper and lower crocodile jaws of sand and light close toward the locked point until their fangs interlock at completion. The bite unleashes a golden flash and circular shockwave while the teeth fracture into sand, leaving a <span class="hr">Duat Sand Pit</span> for <span class="hi">3s</span> with swirling hieroglyph fragments. Three <span class="hr">Sand Scarabs</span> hatch on the rim of the pit and crawl after the ship. A hit destroys one, and they vanish after <span class="hi">7s</span>.</span><span class="det-short">1.3s warning (110px radius) as giant sand jaws close on the locked point, biting with a shockwave and leaving a 3s Duat Sand Pit and hatching 3 Sand Scarabs.</span></li>
+<li><span style="color:var(--cyan);font-size:10px">SKILL</span> <b>Weighing of the Heart</b> <span class="cd">CD 12s</span>: <span class="det-full">Summons a giant golden balance scale across the upper arena with two weighing pans at <span class="hi">25%</span> and <span class="hi">75%</span> width, hung at the ship's height (<span class="hi">170px</span> danger circles, heavy intensity <span class="hi">0.9</span> and light intensity <span class="hi">0.4</span>). Over <span class="hi">2s</span>, the beam tilts toward whichever side holds more player units (ship and Sentinels), while the Feather of Maat hovers over the lighter pan. On Verdict, the heavy pan slams down with a shockwave and hieroglyphic ground cracks. If both sides are equal, the beam stands level, the feather shatters into light, and Ammit is <span class="hg">staggered for 2s</span> with eight pointed stars orbiting its head.</span><span class="det-short">Summons two 170px scale pans at 25% and 75% width for 2s. Heavy side slams down on verdict; if both sides have equal units, Ammit is staggered for 2s.</span></li>
+<li><span style="color:var(--cyan);font-size:10px">SKILL</span> <b>Lion Claw</b> <span class="cd">CD 5s</span>: <span class="det-full">Used when the ship comes within <span class="hi">340px</span>. Both lion forepaws rise for a <span class="hi">0.75s</span> warning shown as a red fan (<span class="hi">290px</span> reach, about <span class="hi">100 degrees</span>) that follows the ship at first and then locks. The paws rake down in three gold slashes that hit everything inside the fan.</span><span class="det-short">Used at close range: a 290px red fan locks after 0.3s, then three gold rakes hit everything inside.</span></li><li><span style="color:var(--cyan);font-size:10px">SKILL</span> <b>Hippo Stomp</b> <span class="cd">CD 9s</span>: <span class="det-full">The hippo hindquarters rear up for <span class="hi">1s</span> while red lanes fill the arena either side of one <span class="hi">260px</span> safe gap, set to the side of the ship so it has to move. The stomp sends a shockwave sweeping down the arena that hits every unit outside the gap once.</span><span class="det-short">1s warning, then a shockwave sweeps down the arena. Only a 260px safe gap, set beside the ship, is spared.</span></li>
+</ul></div>
 <div class="card"><h2 class="dsname" style="color:#cc55ff">DARGRUEL <span class="dsclass" style="font-size:10px;color:#cc55ff">DOMINATOR</span></h2><div class="sub">Wave 3 • HP 6,200–16,000 • Evade 10→15% • CAP 1 • Speed ~1.6 u/s • CC Immune</div>
 <div class="ab" style="height:130px"><canvas id="cvDargruel" style="width:100%;height:100%"></canvas></div>
 <ul>
@@ -1360,6 +1371,7 @@
 <li><span class="ul-tag tag-feat">FEAT</span> <b>Eight pointed stars:</b> the star figures in warning zones, the Null Slash charge and Skill S now have eight points instead of six.</li>
 <li><span class="ul-tag tag-feat">FEAT</span> <b>Sentinel spear and a livelier swarm:</b> the new golden lance has a comet tail, bound shaft, swept wings and an eight pointed star on its tip. Over its last second of charge a Sentinel raises the Dragon God Marshal bow, a golden dragon wing bow with scale barbs, vermilion enamel, a jade star gem, two dragon heads at the grip and horned tips with glowing pearls. It bends back as the string is drawn to the lance, with sparks running along the limbs and the body leaning with it while motes fall into the muzzle. The bow grows with the swarm tier, then snaps forward on the throw as a flare with sparks marks the release. Spears leave a trail and burst into a ring and an eight pointed star on every hit. Before a volley, lines run from every Sentinel to a locked target wearing a closing ring and a turning star. Swarm tiers add sparkles that circle each Sentinel, and spawns and deaths get their own flare.</li>
 <li><span class="ul-tag tag-feat">FEAT</span> <b>Sentinel, sacred gold spear:</b> layered metallic reflections, polished bevels, blade engravings, a bright energy spine and curved comet strands give the lance depth. High graphics adds a soft halo and an eight pointed tip star; lower settings retain the gilded blade, swept wings and bound shaft.</li>
+<li><span class="ul-tag tag-feat">FEAT</span> <b>Ammit, Guide beta:</b> a preview card in the Enemies tab for a new Elite with a crocodile head, lion forepaws and hippo hindquarters, with an animated demo in both languages. It is not in the game yet and does not appear in any wave.</li>
 <li><span class="ul-tag tag-perf">PERF</span> <b>Danger warning switch:</b> disabling decoration skips its drawing commands, including magic inscriptions and moving inner rings.</li>
 <li><span class="ul-tag tag-perf">PERF</span> <b>Audio memory:</b> space ambience decodes short windows of the original MP3, with the next section prepared ahead. Combat sounds prepare for the enemies and blessings in use, and at most three decodes run together.</li>
 <li><span class="ul-tag tag-perf">PERF</span> <b>Offline updates:</b> four files download at a time. Guide artwork and the frozen realm video cache when viewed. An incomplete update keeps the previous playable version.</li>
@@ -4761,6 +4773,175 @@
               }
             }
             tick();
+          };
+        }
+        // Ammit (injects or localizes card when viewing in Vietnamese)
+        if (!document.getElementById('cvAmmit') && document.getElementById('cvEgregor')) {
+          const egCard = document.getElementById('cvEgregor').closest('.card');
+          if (egCard) {
+            const wrap = document.createElement('div');
+            wrap.className = 'card';
+            wrap.id = 'cardAmmit';
+            wrap.innerHTML = `<h2 class="dsname" style="color:#f2b72e">AMMIT <span class="dsclass" style="font-size:10px;color:#ff8844">ELITE BETA</span></h2><div class="sub">Bản xem trước, chưa có trong game • Máu 3.680 đến 7.590 • Cỡ 150 • Trôi chậm (1,1 u/s) • Kẻ Nuốt Trái Tim Duat</div><div class="ab" style="height:320px"><canvas id="cvAmmit" style="width:100%;height:100%"></canvas><button class="play-btn" id="btnPlayAmmit" onclick="playWidget('ammit', this)"><i class="ico ico-play"></i>Play</button></div><ul><li><span style="color:#a855f7;font-size:10px">NỘI TẠI</span> <b>Kho Trái Tim (Heart Hoard):</b> <span class="det-full">Mỗi khi một Sentinel hoặc kẻ địch gần đó chết, Ammit nuốt trái tim của nó vào vòng <span class="hg">tối đa 5 Trái Tim vàng kiểu chữ tượng hình ib</span> bay quanh thân trên vòng <span class="hi">8 điểm</span>, mỗi cái tồn tại <span class="hi">10s</span>. Lúc nuốt có một dòng sáng hình trái tim bay vào miệng Ammit. Khi đủ <span class="hg">5 trái tim</span>, đôi mắt rực sáng. Mỗi trái tim cộng <span class="hi">6% sát thương</span>, <span class="hi">5% tốc độ hồi chiêu</span> và <span class="hi">2% DR</span>. Khi chết cả vòng tim nổ tung và tan thành bụi sáng.</span><span class="det-short">Nuốt tối đa 5 Trái Tim vàng (10s mỗi cái) bay quanh vòng 8 điểm. Đủ 5 trái tim thì đôi mắt rực sáng.</span></li><li><span style="color:#a855f7;font-size:10px">NỘI TẠI</span> <b>Băng Vải Trường Sinh (Linen Wrap):</b> <span class="det-full"><span class="hg">3 lớp băng vải</span> ướp xác quấn quanh thân sau hà mã. Mỗi lớp hút lượng sát thương bằng 8% máu tối đa rồi bung ra trong làn bụi vàng, mọc lại sau <span class="hi">6s</span>. Độ dày và số dải băng hiển thị trực tiếp số lớp còn lại.</span><span class="det-short">3 lớp băng vải ướp xác quanh thân sau hà mã, mỗi lớp hút 8% máu tối đa rồi bung ra và mọc lại sau 6s.</span></li><li><span style="color:#a855f7;font-size:10px">NỘI TẠI</span> <b>Lông Vũ Chân Lý (Feather of Truth):</b> <span class="det-full">Chiếc lông vũ trắng vàng của Maat lơ lửng trên đầu Ammit. Nếu nhận quá <span class="hi">12% máu tối đa trong 4s</span>, lông vũ rơi lắc lư như chiếc lá và mờ đi, Ammit rơi vào trạng thái <span class="hr">Phơi Bày 3s</span> (vết nứt vàng lan trên thân, bờm và quầng sáng mờ đi, các lớp băng vải rơi sạch). Lông vũ trở lại sau <span class="hi">12s</span>.</span><span class="det-short">Nhận quá 12% máu tối đa trong 4s làm lông vũ rơi xuống, Ammit bị Phơi Bày 3s (mất sạch băng vải, nứt thân). Hồi lại sau 12s.</span></li><li><span style="color:#a855f7;font-size:10px">NỘI TẠI</span> <b>Thước Đo Của Maat (Measure of Maat):</b> <span class="det-full">Ammit không thể mất quá <span class="hi">22% máu tối đa</span> trong một lần, và cứ mỗi <span class="hi">2.5s</span> lại có thêm chỗ cho <span class="hi">22%</span> nữa, nên không đợt sát thương chuẩn nào rút cạn nó trước khi nó kịp ra đòn. Khi đang ra chiêu, Ammit còn được <span class="hg">+10% DR</span>.</span><span class="det-short">Mất tối đa 22% máu tối đa mỗi lần, rồi thêm 22% sau mỗi 2.5s. +10% DR khi đang ra chiêu.</span></li><li><span style="color:#a855f7;font-size:10px">NỘI TẠI</span> <b>Phán Quyết Cuối (Last Judgment):</b> <span class="det-full">Dưới <span class="hi">30% máu</span> Ammit nổi giận: hồi chiêu nhanh hơn <span class="hi">35%</span>, đòn đánh mạnh hơn <span class="hi">15%</span>, thêm <span class="hg">+8% DR</span>, và Hàm Ammit cắn lần thứ hai ngay chỗ con tàu đang đứng, kèm một đợt bọ hung mới.</span><span class="det-short">Dưới 30% máu: hồi chiêu nhanh hơn 35%, +15% sát thương, +8% DR, Hàm Ammit cắn hai lần.</span></li><li><span style="color:var(--cyan);font-size:10px">KỸ NĂNG</span> <b>Hàm Ammit (Jaws of Ammit)</b> <span class="cd">Hồi 5s</span>: <span class="det-full">Khóa vị trí người chơi hoặc một Sentinel. Báo trước <span class="hi">1.3s</span> bằng vùng đỏ bán kính <span class="hi">110px</span> (cường độ vừa <span class="hi">0.6</span>) cùng hàm cá sấu khổng lồ bằng cát và ánh sáng khép dần từ trên và dưới điểm khóa, cài răng vào nhau đúng lúc tiến độ đạt 100%. Đòn cắn tạo chớp sáng, sóng xung kích tròn, răng nứt rồi tan thành cát vàng và để lại <span class="hr">Hố Cát Duat</span> tồn tại <span class="hi">3s</span> với mảnh chữ tượng hình chìm nổi. Ba <span class="hr">Bọ Hung Cát</span> nở ra ở rìa hố và bò đuổi theo tàu. Trúng một đòn là vỡ, và chúng biến mất sau <span class="hi">7s</span>.</span><span class="det-short">Báo trước 1.3s (bán kính 110px), hàm cá sấu bằng cát và ánh sáng cắn sập tại điểm khóa và để lại Hố Cát Duat trong 3s và nở ra 3 Bọ Hung Cát.</span></li><li><span style="color:var(--cyan);font-size:10px">KỸ NĂNG</span> <b>Cân Trái Tim (Weighing of the Heart)</b> <span class="cd">Hồi 12s</span>: <span class="det-full">Mở chiếc cân vàng khổng lồ ngang phía trên đấu trường với hai đĩa cân ở <span class="hi">25%</span> và <span class="hi">75%</span> chiều ngang, treo ngang tầm tàu (mỗi đĩa là vùng đỏ bán kính <span class="hi">170px</span>, cường độ <span class="hi">0.9</span> bên nặng và <span class="hi">0.4</span> bên nhẹ). Trong <span class="hi">2s</span> đòn cân nghiêng dần về bên có nhiều đơn vị của người chơi hơn (đếm tàu và Sentinel), lông vũ Maat lơ lửng trên đĩa nhẹ. Khi Phán Quyết, đĩa nặng đập xuống tạo sóng xung kích và vết nứt chữ tượng hình. Nếu hai bên bằng nhau, đòn cân đứng thẳng, lông vũ vỡ thành ánh sáng và Ammit <span class="hg">choáng 2s</span> với sao 8 cánh quay quanh đầu.</span><span class="det-short">Hai đĩa cân bán kính 170px ở 25% và 75% chiều ngang trong 2s. Bên nặng đập xuống khi phán quyết; nếu hai bên bằng nhau thì Ammit bị choáng 2s.</span></li><li><span style="color:var(--cyan);font-size:10px">KỸ NĂNG</span> <b>Vuốt Sư Tử (Lion Claw)</b> <span class="cd">Hồi 5s</span>: <span class="det-full">Dùng khi con tàu đến gần trong <span class="hi">340px</span>. Hai chi trước sư tử giơ lên trong <span class="hi">0.75s</span> báo trước bằng một hình quạt đỏ (tầm <span class="hi">290px</span>, rộng khoảng <span class="hi">100 độ</span>), lúc đầu bám theo tàu rồi khóa lại. Hai vuốt cào xuống thành ba vệt vàng, trúng mọi thứ trong hình quạt.</span><span class="det-short">Dùng ở cự ly gần: hình quạt đỏ 290px khóa sau 0.3s, rồi ba vệt cào vàng đánh trúng mọi thứ bên trong.</span></li><li><span style="color:var(--cyan);font-size:10px">KỸ NĂNG</span> <b>Giậm Hà Mã (Hippo Stomp)</b> <span class="cd">Hồi 9s</span>: <span class="det-full">Thân sau hà mã chồm lên trong <span class="hi">1s</span> trong khi các làn đỏ phủ kín đấu trường ở hai bên một <span class="hi">khoảng an toàn 260px</span>, đặt lệch sang cạnh con tàu để buộc nó phải di chuyển. Cú giậm tạo sóng xung kích quét từ trên xuống, trúng một lần mọi đơn vị nằm ngoài khoảng an toàn.</span><span class="det-short">Báo trước 1s, rồi sóng xung kích quét xuống đấu trường. Chỉ khoảng an toàn 260px, đặt cạnh tàu, là thoát.</span></li></ul>`;
+            egCard.insertAdjacentElement('afterend', wrap);
+          }
+        }
+        const sAm = setup('cvAmmit');
+        if (sAm) {
+          const { c, w, h } = sAm;
+          const vi = document.body.classList.contains('lang-vi');
+          const showNotes = w >= 560;
+          const sceneW = showNotes ? Math.round(w * 0.58) : w, noteX = sceneW + 10, noteW = w - noteX - 12;
+          const world = { left: 100, top: 0, width: 1000, height: 800 };
+          const scale = Math.min((sceneW - 12) / world.width, (h - 34) / world.height);
+          const sceneX = (sceneW - world.width * scale) / 2, sceneY = 28;
+          const notes = vi ? [
+            ['KHO TIM · BĂNG VẢI · LÔNG VŨ', ['Tối đa 5 Trái Tim ib (10s), đủ 5 mắt rực sáng', '3 lớp Băng Vải, mỗi lớp hút 8% máu tối đa, quấn lại sau 6s', 'Mất 12% máu trong 4s: rơi lông vũ, Phơi Bày 3s']],
+            ['HÀM AMMIT · CÂN TRÁI TIM', ['Hàm Ammit: báo 1.3s (r=110), để lại Hố Cát 3s', 'Cân Trái Tim: 2 đĩa (r=170) ở 25% và 75% ngang', 'Đĩa nặng đập xuống; cân bằng thì Ammit choáng 2s']],
+            ['VUỐT SƯ TỬ · GIẬM HÀ MÃ', ['Vuốt: quạt đỏ r=290 khi tàu gần, hồi 5s', 'Giậm: sóng quét xuống, chỉ khoảng 260px an toàn', 'Hàm Ammit nở 3 bọ hung, bắn trúng là vỡ']]
+          ] : [
+            ['HEARTS · WRAPS · FEATHER', ['Up to 5 ib Hearts (10s), blazing eyes at 5 stacks', '3 Linen Wrap layers, 8% Max HP each, regrow after 6s', '12% MaxHP in 4s drops Feather, Exposed for 3s']],
+            ['JAWS OF AMMIT · WEIGHING', ['Jaws: 1.3s warning (r=110), leaves 3s Sand Pit', 'Weighing: two pans (r=170) at 25% and 75% width', 'Heavy pan slams down; equal units stagger 2s']],
+            ['LION CLAW · HIPPO STOMP', ['Claw: red fan (r=290) when the ship is close, CD 5s', 'Stomp: wave sweeps down, only a 260px gap is safe', 'Jaws hatch 3 scarabs, any hit destroys one']]
+          ];
+          function wrapAmText(c2, text, maxW) {
+            const words = text.split(' '), lines = []; let line = '';
+            for (const word of words) {
+              const test = line ? line + ' ' + word : word;
+              if (line && c2.measureText(test).width > maxW) { lines.push(line); line = word; } else line = test;
+            }
+            if (line) lines.push(line);
+            return lines;
+          }
+          function makeAmmit() {
+            const nowT = performance.now();
+            return {
+              type: 'ammit', x: 600, y: 235, size: 150, hp: 4000, maxHp: 4000,
+              _amHearts: 3, _amHeartAt: -9999,
+              _amWraps: 3, _amWrapLostAt: -9999,
+              _amFeather: 'up', _amExposedUntil: -9999,
+              _amJaws: { phase: 'idle', t: 0, tx: 600, ty: 540 },
+              _amWeigh: { phase: 'idle', t: 0, tilt: 0, leftCount: 0, rightCount: 0, balanced: false },
+              _amClaw: { phase: 'idle', t: 0, ang: Math.PI / 2, r: 290, span: 1.75, ox: 600, oy: 258 },
+              _amStomp: { phase: 'idle', t: 0, gx: 900, gw: 260, y0: 318, front: 0 },
+              _amHitAt: -9999, _spawnTime: nowT - 5000,
+              _eyeBlinkTimers: new Float32Array(2), _eyeNextBlinks: new Float32Array([2200, 3100])
+            };
+          }
+          let amPlaying = false;
+          const idleAmmit = makeAmmit();
+          function renderAmFrame(enemy, alive, title) {
+            ctx = c; canvas = { width: 1200, height: 1040 };
+            player.x = 600; player.y = 540;
+            c.save(); c.setTransform(dpr, 0, 0, dpr, 0, 0);
+            c.clearRect(0, 0, w, h); c.fillStyle = '#050713'; c.fillRect(0, 0, w, h);
+            c.save(); c.beginPath(); c.rect(0, 0, sceneW, h); c.clip();
+            _miniStars(c, sceneW, h, performance.now(), 30);
+            c.fillStyle = '#fff0b8'; c.font = 'bold 11px Arial, sans-serif'; c.textAlign = 'center'; c.fillText(title, sceneW / 2, 17);
+            c.save(); c.translate(sceneX - world.left * scale, sceneY - world.top * scale); c.scale(scale, scale);
+            enemies = alive ? [enemy] : [];
+            _drawAmmitEffects();
+            if (alive) _drawAmmit(enemy);
+            particles.forEach(drawParticle); explosions.forEach(drawExplosion);
+            c.restore();
+            c.restore();
+            if (showNotes) {
+              c.textAlign = 'left';
+              let y = 26;
+              for (const [head, lines] of notes) {
+                c.fillStyle = '#f2b72e'; c.font = 'bold 10px Arial, sans-serif'; c.fillText(head, noteX, y); y += 14;
+                c.fillStyle = '#9fb0c8'; c.font = '9.5px Consolas, "Courier New", monospace';
+                for (const line of lines) for (const part of wrapAmText(c, line, noteW)) { c.fillText(part, noteX, y); y += 12; }
+                y += 16;
+              }
+            }
+            c.restore();
+          }
+          function idleAm() {
+            if (!amPlaying) {
+              enemies = [idleAmmit]; sentinels = []; player.x = 600; player.y = 540;
+              renderAmFrame(idleAmmit, true, vi ? 'AMMIT: KẺ NUỐT TRÁI TIM' : 'AMMIT: DEVOURER OF HEARTS');
+            }
+            activeAnimations.push(requestAnimationFrame(idleAm));
+          }
+          idleAm();
+          _widgetPlayers.ammit = function () {
+            const btn = document.getElementById('btnPlayAmmit');
+            btn.dataset.running = 'true'; btn.dataset.paused = 'false'; delete btn.dataset._pauseAnchorAt; _setBtnIcon(btn, 'pause', 'Pause');
+            amPlaying = true;
+            particles.length = 0; explosions.length = 0;
+            if (window._ammitSandPits) for (let i = 0; i < window._ammitSandPits.length; i++) window._ammitSandPits[i].born = -999999;
+            if (window._ammitDeathBursts) for (let i = 0; i < window._ammitDeathBursts.length; i++) window._ammitDeathBursts[i].spawnAt = -999999;
+            const enemy = makeAmmit();
+            const startNow = performance.now();
+            enemy._spawnTime = startNow;
+            enemy._amHearts = 3;
+            enemies = [enemy];
+            player.x = 600; player.y = 540;
+            sentinels = [{ x: 380, y: 520 }, { x: 820, y: 520 }];
+            let elapsed = 0, lastT = startNow, step = 0;
+            function tickAm() {
+              const nowT = performance.now(), dt = Math.min(nowT - lastT, 50); lastT = nowT;
+              player.x = 600; player.y = 540;
+              if (_widgetPauseGuard(btn, nowT)) { activeAnimations.push(requestAnimationFrame(tickAm)); return; }
+              elapsed += dt;
+              if (elapsed >= 1200 && step < 1) { step = 1; enemy._amHearts = 5; enemy._amHeartAt = nowT; }
+              if (elapsed >= 2000 && elapsed < 3300) {
+                enemy._amJaws.phase = elapsed < 2260 ? 'lock' : 'close';
+                enemy._amJaws.t = elapsed - 2000;
+                enemy._amJaws.tx = 600; enemy._amJaws.ty = 540;
+              } else if (elapsed >= 3300 && elapsed < 3950) {
+                if (step < 2) { step = 2; _spawnAmmitSandPit(600, 540, nowT, 2600); }
+                enemy._amJaws.phase = 'bite'; enemy._amJaws.t = elapsed - 3300;
+              } else {
+                enemy._amJaws.phase = 'idle'; enemy._amJaws.t = 0;
+              }
+              if (elapsed >= 4200 && step < 3) { step = 3; enemy._amWraps = 1; enemy._amWrapLostAt = nowT; enemy._amHitAt = nowT; }
+              if (elapsed >= 4800 && elapsed < 5300) {
+                enemy._amWeigh.phase = 'summon'; enemy._amWeigh.t = elapsed - 4800; enemy._amWeigh.tilt = -0.5; enemy._amWeigh.leftCount = 3; enemy._amWeigh.rightCount = 1; enemy._amWeigh.balanced = false;
+              } else if (elapsed >= 5300 && elapsed < 6800) {
+                enemy._amWeigh.phase = 'weigh'; enemy._amWeigh.t = (elapsed - 5300) * (2000 / 1500); enemy._amWeigh.tilt = -0.9; enemy._amWeigh.balanced = false;
+              } else if (elapsed >= 6800 && elapsed < 7400) {
+                enemy._amWeigh.phase = 'verdict'; enemy._amWeigh.t = elapsed - 6800; enemy._amWeigh.tilt = -0.95; enemy._amWeigh.balanced = false;
+              } else if (elapsed >= 7400 && elapsed < 8600) {
+                if (step < 4) { step = 4; enemy._amFeather = 'fallen'; enemy._amExposedUntil = nowT + 1300; enemy._amWraps = 0; enemy.hp = 960; }
+                enemy._amWeigh.phase = 'stagger'; enemy._amWeigh.t = elapsed - 7400; enemy._amWeigh.tilt = 0; enemy._amWeigh.balanced = true;
+              } else {
+                enemy._amWeigh.phase = 'idle';
+              }
+              const cl = enemy._amClaw, sp = enemy._amStomp;
+              if (elapsed >= 8800 && elapsed < 10100) {
+                const ct = elapsed - 8800; cl.ox = enemy.x; cl.oy = enemy.y + enemy.size * 0.15;
+                if (ct < 750) { cl.phase = 'wind'; cl.t = ct; } else if (ct < 1000) { cl.phase = 'strike'; cl.t = ct - 750; } else { cl.phase = 'after'; cl.t = ct - 1000; }
+              } else { cl.phase = 'idle'; }
+              if (elapsed >= 10300 && elapsed < 12400) {
+                const stt = elapsed - 10300; sp.y0 = enemy.y + enemy.size * 0.55;
+                if (stt < 1000) { sp.phase = 'wind'; sp.t = stt; sp.front = sp.y0; } else { sp.t = stt - 1000; sp.front = sp.y0 + 0.75 * sp.t; sp.phase = sp.front > canvas.height + 50 ? 'idle' : 'wave'; }
+              } else { sp.phase = 'idle'; }
+              if (elapsed >= 12600 && step < 5) {
+                step = 5;
+                _spawnAmmitDeathBurst(enemy.x, enemy.y, enemy.size, nowT, 5);
+                enemies = [];
+              }
+              _tickParticlesAndExplosions(dt);
+              const title = elapsed < 1200 ? (vi ? 'TRỒI LÊN TỪ CỒN CÁT DUAT' : 'EMERGING FROM DUAT DUNES')
+                : elapsed < 4100 ? (vi ? 'HÀM AMMIT VÀ HỐ CÁT DUAT' : 'JAWS OF AMMIT AND SAND PIT')
+                : elapsed < 7400 ? (vi ? 'CÂN TRÁI TIM VÀ PHÁN QUYẾT' : 'WEIGHING OF THE HEART AND VERDICT')
+                : elapsed < 8800 ? (vi ? 'CHOÁNG VÀ TRẠNG THÁI PHƠI BÀY' : 'STAGGER AND EXPOSED STATE')
+                : elapsed < 10200 ? (vi ? 'VUỐT SƯ TỬ' : 'LION CLAW')
+                : elapsed < 12600 ? (vi ? 'GIẬM HÀ MÃ' : 'HIPPO STOMP')
+                : (vi ? 'SỤP THÀNH CÁT VÀ BỌ HUNG TẢN RA' : 'SAND COLLAPSE AND SCARAB SWARM');
+              renderAmFrame(enemy, elapsed < 12600, title);
+              if (elapsed < 13600) activeAnimations.push(requestAnimationFrame(tickAm));
+              else {
+                if (window._ammitSandPits) for (let i = 0; i < window._ammitSandPits.length; i++) window._ammitSandPits[i].born = -999999;
+                if (window._ammitDeathBursts) for (let i = 0; i < window._ammitDeathBursts.length; i++) window._ammitDeathBursts[i].spawnAt = -999999;
+                particles.length = 0; explosions.length = 0; enemies = []; sentinels = []; amPlaying = false;
+                btn.dataset.running = 'false'; btn.dataset.paused = 'false'; delete btn.dataset._pauseAnchorAt; _setBtnIcon(btn, 'play', 'Play');
+                renderAmFrame(idleAmmit, true, vi ? 'AMMIT: KẺ NUỐT TRÁI TIM' : 'AMMIT: DEVOURER OF HEARTS');
+              }
+            }
+            tickAm();
           };
         }
         // Dargruel
