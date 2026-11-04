@@ -1031,7 +1031,7 @@ window.debugSetYuukiBonus = function () {
     function ensureFab() {
         if (document.getElementById('dbgFab') || !document.body) return;
         const b = document.createElement('button'); b.id = 'dbgFab'; b.type = 'button'; b.textContent = 'DBG'; b.setAttribute('aria-label', 'Debug console');
-        b.style.cssText = 'position:fixed; top:68px; left:16px; z-index:999999998; display:none; min-width:44px; min-height:34px; padding:0 10px; font:700 11px "Courier New",monospace; letter-spacing:1px; color:#00e5ff; background:rgba(0,12,28,0.85); border:1px solid rgba(0,229,255,0.5); border-radius:17px; cursor:pointer; touch-action:manipulation;';
+        b.style.cssText = 'position:fixed; top:calc(8px + env(safe-area-inset-top, 0px)); left:50%; margin-left:-22px; z-index:999999998; display:none; min-width:44px; min-height:34px; padding:0 10px; font:700 11px "Courier New",monospace; letter-spacing:1px; color:#00e5ff; background:rgba(0,12,28,0.85); border:1px solid rgba(0,229,255,0.5); border-radius:17px; cursor:pointer; touch-action:manipulation;';
         b.addEventListener('click', function () { window._debugToggleConsole(); });
         document.body.appendChild(b);
         setInterval(function () {
