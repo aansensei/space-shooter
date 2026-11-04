@@ -960,8 +960,10 @@ function drawEnemy(enemy) {
         _drawVulnerabilityIcon(enemy);
     }
 
+    // Ammit uses the cached domain ring while its gateway stays untargetable.
+    if (skillShiftActive && enemy.type === 'ammit' && typeof _ammitAbsorbHit === 'function' && !_ammitAbsorbHit(enemy)) _drawThreatRing(enemy.x, enemy.y, enemy.size * .65, 1);
     // Yog-Sothoth domain TARGET LOCK effect
-    if (skillShiftActive) {
+    if (skillShiftActive && enemy.type !== 'ammit' && !enemy._amScarab) {
         const now = performance.now();
         let elapsed = now - skillShiftChargeStart;
         let maxRadius = Math.hypot(canvas.width, canvas.height);
@@ -1041,7 +1043,7 @@ function drawEnemy(enemy) {
     }
 
     // Boss aura (HIGH + MED)
-    if (_gfxLevel < 2) {
+    if (_gfxLevel < 2 && enemy.type !== 'ammit' && !enemy._amScarab) {
         const _bossTypes = { boss:[255,80,0], thaelis:[255,200,0], marchosias:[0,255,120], leviathan:[0,180,255], veilshroud:[160,0,255], raphael:[0,220,255] };
         const _bossCol = _bossTypes[enemy.type];
         if (_bossCol) {
@@ -1136,6 +1138,10 @@ function drawEnemy(enemy) {
         _drawVeilshroudEcho(enemy);
     } else if (enemy.type === 'egregor') {
         _drawEgregor(enemy);
+    } else if (enemy.type === 'ammit') {
+        _drawAmmit(enemy);
+    } else if (enemy._amScarab) {
+        _drawAmmitScarab(enemy);
     } else if (enemy.type.startsWith('enemy_bullet')) {
         _drawEnemyBullet(enemy);
     } else {
@@ -1243,7 +1249,7 @@ function drawEnemy(enemy) {
     // hp text: goliath alpha/transforming is invuln so hp=1 always, show
     // damagePull instead. hidden during death sequence (hp pinned=1, "1"
     // is misleading) and during true_form (has its own boss bar readout)
-    if (!(enemy.type === 'goliath' && (enemy._deathPhase || enemy.phase === 'true_form'))) {
+    if (!enemy._amScarab && !(enemy.type === 'ammit' && typeof _ammitAbsorbHit === 'function' && _ammitAbsorbHit(enemy)) && !(enemy.type === 'goliath' && (enemy._deathPhase || enemy.phase === 'true_form'))) {
         ctx.save();
         ctx.fillStyle = "white"; ctx.font = "14px Arial";
         if (enemy.type === 'enemy_bullet_small') ctx.font = "10px Arial";

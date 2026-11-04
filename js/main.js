@@ -22,6 +22,7 @@ if (typeof PerformanceObserver !== 'undefined') {
 }
 
 function loseLife(cause) {
+    if (window._tutorialActive) { if (typeof window._tutorialOnHit === 'function') window._tutorialOnHit(cause); return; }
     // Debug invuln guard here too (not just playerTakesHit()): an enemy
     // reaching the bottom boundary calls loseLife() directly, bypassing
     // playerTakesHit() entirely.
@@ -371,6 +372,12 @@ function _activateOverloadLaser(currentTime) {
 // passes quit = false; the pause screen's Main Menu passes true, which marks
 // the recap as a quit.
 function _endRun(quit) {
+    if (quit && window._tutorialActive) {
+        if (typeof window._tutorialAbort === 'function') window._tutorialAbort();
+        if (typeof window._goToMenuImmediate === 'function') window._goToMenuImmediate();
+        return;
+    }
+    _ammitReset();
     gameState = "gameover";
     if (window._timelineDistortion && window._timelineDistortion.id !== 'stack_overflow') _clearTimelineDistortion();
     _gameOverPlayTime = performance.now() - gameStartTime;
@@ -487,6 +494,7 @@ function update(rawDeltaTime) {
 
     // Tích lũy thời gian game thực tế (dùng cho HUD timer và spawn rate)
     gameElapsedTime += deltaTime;
+    _ammitTickWorld(deltaTime);
 
     // Bẻ cong (kéo dài) các Timer hồi chiêu của phe người chơi và Enemy Spawn
     if (skillShiftActive) {
@@ -515,7 +523,7 @@ function update(rawDeltaTime) {
     let _gfjBodies = 0, _gfjBoss = false;
     for (let _gi = 0; _gi < enemies.length; _gi++) {
         const t = enemies[_gi].type;
-        if (t === 'dargruel' || t === 'thaelis' || t === 'raphael' || t === 'marchosias' || t === 'veilshroud' || t === 'egregor' || t === 'leviathan' || t === 'goliath') { _gfjBoss = true; break; }
+        if (t === 'dargruel' || t === 'thaelis' || t === 'raphael' || t === 'marchosias' || t === 'veilshroud' || t === 'egregor' || t === 'ammit' || t === 'leviathan' || t === 'goliath') { _gfjBoss = true; break; }
         if (!t.startsWith('enemy_bullet') && t !== 'abyssal_chain') _gfjBodies++;
     }
     gloryForJusticeActive = _gfjBodies > 4 || _gfjBoss || skillGActive ||
@@ -599,6 +607,8 @@ function update(rawDeltaTime) {
                         const _isGoliathTF = e.type === 'goliath' && e.phase === 'true_form';
                         if (_isGoliathTF && typeof _goliathApplyTrueFormDamage === 'function') {
                             _goliathApplyTrueFormDamage(e, rawDmg);
+                        } else if (e.type === 'ammit') {
+                            dealDamage(e, { damage: rawDmg, isTrueDamage: true, _noBase60: true, _statSrc: 'Skill S: Back to Motherland' });
                         } else {
                             e.hp = Math.max(0, e.hp - rawDmg);
                         }
@@ -822,6 +832,14 @@ function update(rawDeltaTime) {
                 while (_dbAng < -Math.PI) _dbAng += 2 * Math.PI;
                 if (Math.abs(_dbAng) <= Math.PI / 2 + 0.15 && !_capBlocksSource(dbz, player, 'debuff')) { _dimBreakMult = 0.80; }
             }
+        }
+    }
+
+    // Duat sand pits drag at the ship while they last
+    if (window._ammitSandPits) {
+        for (let i = 0; i < window._ammitSandPits.length; i++) {
+            const pit = window._ammitSandPits[i];
+            if (_ammitTime - pit.born < pit.life && Math.hypot(player.x - pit.x, player.y - pit.y) < 110) _dimBreakMult = Math.min(_dimBreakMult, AMMIT_TUNE_SAND_SLOW);
         }
     }
 
@@ -1722,6 +1740,9 @@ function update(rawDeltaTime) {
         } else if (enemy.type === 'egregor') {
             updateEgregor(enemy, deltaTime);
 
+        } else if (enemy.type === 'ammit') {
+            updateAmmit(enemy, deltaTime, teslaSpeedMultiplier * raphaelSpeedMultiplier);
+
         } else if (enemy.type === 'leviathan') {
             // Leviathan update handled by updateLeviathan()
             updateLeviathan(enemy, deltaTime);
@@ -2223,7 +2244,8 @@ function update(rawDeltaTime) {
     // A debug session normally freezes the wave system, but the "Spawn
     // Wave's Full Roster" button flips _debugWaveRosterActive to drive one
     // real wave through it (countdown, banner, trickle) then flips it back.
-    if (!window._debugSessionActive || window._debugWaveRosterActive) _updateWaveSystem(deltaTime, currentTime);
+    if ((!window._debugSessionActive || window._debugWaveRosterActive) && !window._tutorialActive) _updateWaveSystem(deltaTime, currentTime);
+    if (window._tutorialActive && typeof updateTutorial === 'function') updateTutorial(deltaTime, currentTime);
     _profChk3.push(performance.now());
     _updateSigilPassives(currentTime, deltaTime);
     _profChk3.push(performance.now());
@@ -2307,7 +2329,7 @@ function update(rawDeltaTime) {
                     // fireChargedBullet). Small target-Max-HP term kept
                     // deliberately (per AanSensei): a deliberate hold-and-release
                     // burst is exactly the kind of anti-tank tool meant to keep some.
-                    dealDamage(enemy, { damage: 0.08 * player.atk * b.damage, percentDamage: 0.006 * b.damage });
+                    dealDamage(enemy, { damage: 0.08 * player.atk * b.damage, percentDamage: 0.006 * b.damage, type: 'player_charged' });
                     b.hitEnemies.push(enemy);
                 } else {
                     if (b._spear && b._hitList.indexOf(enemy) !== -1) continue;
@@ -3138,10 +3160,14 @@ function _spawnWaveTier(tier) {
         const vc = enemies.filter(e => e.type === 'veilshroud').length;
         const egrOk = !window._lastEgregorKillTime || (_now - window._lastEgregorKillTime) >= 6000;
         if (ec < 1 && vc === 0 && egrOk) pool.push('egregor');
+        // Ammit: never on a Goliath wave, 15s spawn cooldown, only 1 on screen.
+        if (_waveNumber % 5 !== 0 && (!window._lastAmmitSpawn || _now - window._lastAmmitSpawn >= 15000)
+            && enemies.filter(e => e.type === 'ammit').length < 1) pool.push('ammit');
         if (!pool.length) { spawnApostle(); return; }
         const pick = pool[Math.floor(Math.random() * pool.length)];
         if (pick === 'thaelis') spawnThaelis();
         else if (pick === 'raphael') spawnRaphael();
+        else if (pick === 'ammit') spawnAmmit();
         else spawnEgregor();
     } else if (tier === 'dominator') {
         const pool = [];
@@ -3636,6 +3662,7 @@ function gameLoop(timeStamp) {
 }
 
 function startGame() {
+    if (typeof window._prepareGameMode === 'function') window._prepareGameMode(window._debugSessionActive ? 'custom' : window._tutorialActive ? 'tutorial' : window._inGame ? (window._runGameMode || window._gameMode || 'endless') : (window._gameMode || window._runGameMode || 'endless'));
     if (window.AudioMgr && window.AudioMgr.prepareGameplay) window.AudioMgr.prepareGameplay();
     _updateAllyScratch.length = 0;
     if (window._timelineDistortion && window._timelineDistortion.id !== 'stack_overflow') _clearTimelineDistortion();
@@ -3643,6 +3670,7 @@ function startGame() {
     score = 0;
     window._matchStats = _newMatchStats();
     nextLifeMilestone = 500000;
+    _ammitReset();
     bullets = []; enemies = []; explosions = []; particles = []; marchoDeathBursts = []; marchoBarrierBursts = []; raphaelDeathBursts = []; raphaelWisdomOrbs = []; raphaelWisdomZones = [];
     skillAOrbs = []; scatteredProjectiles = [];
     skillADefensiveCharges = 0;
@@ -3714,6 +3742,7 @@ function startGame() {
     window._lastLeviathanKillTime = null;
     window._lastEgregorKillTime = null;
     window._lastUrielSpawn = 0;
+    window._lastAmmitSpawn = 0;
     window._urielIBConsumed = 0;
     window._urielHolySwords = [];
     window._urielBarriers = [];
@@ -3773,7 +3802,7 @@ function startGame() {
     window._playerSigils = [];
     window._sigilPicker = null;
     window._sigilRerollsLeft = 2;
-    if (typeof _triggerSigilPicker === 'function' && (window._sigilPool || []).length > 0 && !window._debugSkipSigilPick) {
+    if (typeof _triggerSigilPicker === 'function' && (window._sigilPool || []).length > 0 && !window._debugSkipSigilPick && !window._tutorialActive) {
         _wavePhase = 'sigil_pick';
         _triggerSigilPicker(true);
     }
@@ -3825,6 +3854,7 @@ function startGame() {
     hideMainMenuButton();
     if (typeof window._closeVoyageRecap === 'function') window._closeVoyageRecap();
     lastTimeStamp = performance.now();
+    if (window._tutorialActive && typeof beginTutorial === 'function') beginTutorial();
     // gameLoop đang chạy liên tục từ draw(16.67) ở cuối file, không cần khởi động lại
 }
 

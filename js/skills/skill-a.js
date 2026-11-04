@@ -137,7 +137,7 @@ function updateSkillA(deltaTime) {
 
     // The Thaelis cocoon is untargetable; only its Guards can be locked. An enemy already
     // dying is skipped, an orb sent after it would be removed without ever firing.
-    let availableEnemy = enemies.find(enemy => !enemy.isTargetedByA && !enemy.inCoronation && !enemy._stealthed && enemy.hp > 0 && !enemy._markedForDeath && !enemy._deathPhase && !enemy.dyingLaserPhase && !enemy.type.startsWith('enemy_bullet') && enemy.type !== 'abyssal_chain' && enemy.type !== 'veilshroud_echo' && enemy.type !== 'thaelis_cocoon' && Math.hypot(enemy.x - player.x, enemy.y - player.y) <= skillASensorRadius);
+    let availableEnemy = enemies.find(enemy => !enemy.isTargetedByA && !enemy.inCoronation && !enemy._stealthed && enemy.hp > 0 && !enemy._markedForDeath && !enemy._deathPhase && !enemy.dyingLaserPhase && !enemy.type.startsWith('enemy_bullet') && !(enemy.type === 'ammit' && _ammitAbsorbHit(enemy)) && enemy.type !== 'abyssal_chain' && enemy.type !== 'veilshroud_echo' && enemy.type !== 'thaelis_cocoon' && Math.hypot(enemy.x - player.x, enemy.y - player.y) <= skillASensorRadius);
 
     if (availableEnemy) {
         let availableOrb = skillAOrbs.find(orb => !orb.target && !orb.isDefensive && !orb._pierced);

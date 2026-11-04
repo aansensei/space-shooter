@@ -234,7 +234,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
         // Skill Shift: Yog-Sothoth
         if (e.code === "ShiftLeft" || e.code === "ShiftRight") {
-            if (!skillShiftActive && performance.now() - lastSkillShift >= skillShiftCooldown
+            if (!skillShiftActive && performance.now() - lastSkillShift >= skillShiftCooldown && !(window._tutorialLocked && window._tutorialLocked('SH'))
                 && !(typeof player !== 'undefined' && player._silenced)) {
                 skillShiftActive = true;
                 window._shiftActive = true;
@@ -300,7 +300,7 @@ document.addEventListener('DOMContentLoaded', () => {
             && !(typeof player !== 'undefined' && player._silenced)) {
             if (!e.repeat) _releaseReadySpaceSigil();
             e.preventDefault();
-        } else if (e.code === "Space" && !charging && !laserActive && !skillShiftActive
+        } else if (e.code === "Space" && !charging && !laserActive && !skillShiftActive && !(window._tutorialLocked && window._tutorialLocked('SPC'))
             && !(typeof player !== 'undefined' && player._silenced)) {
             const _now = performance.now();
             if (_hasBuff('dong_chay_luan_hoi')) {

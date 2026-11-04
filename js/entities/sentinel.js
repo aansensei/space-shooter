@@ -54,6 +54,7 @@ function spawnSentinel(x, y, forceNormal = false) {
 }
 
 function destroySentinel(sentinel) {
+    if (typeof _ammitHoard === 'function') _ammitHoard(sentinel.x, sentinel.y, null);
     addExplosion(sentinel.x, sentinel.y, 80, '#00FFFF');
     if (typeof _spearImpact === 'function') _spearImpact(sentinel.x, sentinel.y, true, sentinels.length >= 12 ? '#ffe39a' : '#7ff4ff', true);
     _setShake(5, 200);

@@ -185,6 +185,8 @@ const LABEL_VI = {
   "Great Sage: Arc Barrier": "Đấu Chiến Thắng Phật: Arc Barrier",
   "Great Sage: Absolute Verdict": "Đấu Chiến Thắng Phật: Absolute Verdict",
   "Enemy Bullet": "Đạn Địch",
+  "Ammit": "Ammit",
+  "Ammit Bullet": "Bọ Hung Cát",
   "Enemy Chain Lightning": "Xích Sét Địch",
   "Boss Attack": "Đòn Boss",
   "Normal Enemy": "Địch Thường",

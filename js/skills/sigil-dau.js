@@ -118,7 +118,7 @@ function _dauStarNeedles() {
 }
 
 function _dauPinAllowed(e) {
-    return e.type !== 'egregor' && e.type !== 'dargruel' && e.type !== 'leviathan'
+    return e.type !== 'egregor' && e.type !== 'dargruel' && e.type !== 'leviathan' && e.type !== 'ammit'
         && !(e.type === 'goliath' && e.phase === 'true_form')
         && !(e.type === 'marchosias' && e.arcBarrier && e.arcBarrier.hp > 0)
         && !(e.type === 'raphael' && e.raphaelInvulnerable) && !e._urielCCImmune

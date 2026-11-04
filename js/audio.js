@@ -482,6 +482,55 @@
     // a hook for future per-clip tweaks rather than a real attenuation table.
     // Values 0..1, multiplied by sfx * global.
     const SFX_BASE = {
+        'tut-type-a': 0.45,
+        'tut-type-b': 0.45,
+        'tut-type-c': 0.45,
+        'tut-line': 0.6,
+        'tut-speech-open': 0.6,
+        'tut-reveal': 0.8,
+        'tut-toast': 0.7,
+        'tut-circle-charge': 0.9,
+        'tut-warn': 0.7,
+        'tut-bullet-volley': 0.8,
+        'tut-beam': 1,
+        'tut-burst': 1,
+        'tut-sweep': 1,
+        'tut-domain-charge': 0.9,
+        'tut-domain-blast': 1,
+        'tut-pass': 0.9,
+        'tut-fail': 0.9,
+        'tut-complete': 0.9,
+        'tut-license-open': 0.9,
+        'tut-license-print': 0.7,
+        'tut-stamp': 1,
+        'tut-seal': 0.9,
+
+        'ammit-rift-crack': 1.0,
+        'ammit-rift-open': 1.0,
+        'ammit-emerge': 1.0,
+        'ammit-rift-close': 1.0,
+        'ammit-idle': 0.16,
+        'ammit-jaws-lock': 1.0,
+        'ammit-jaws-close': 1.0,
+        'ammit-jaws-bite': 1.0,
+        'ammit-scarab-hatch': 1.0,
+        'ammit-scarab-pop': 1.0,
+        'ammit-sandpit': 1.0,
+        'ammit-weigh-open': 1.0,
+        'ammit-weigh-tilt': 1.0,
+        'ammit-weigh-slam': 1.0,
+        'ammit-weigh-balanced': 1.0,
+        'ammit-claw-wind': 1.0,
+        'ammit-claw-strike': 1.0,
+        'ammit-stomp-wind': 1.0,
+        'ammit-stomp-slam': 1.0,
+        'ammit-feather-fall': 1.0,
+        'ammit-feather-return': 1.0,
+        'ammit-wrap-tear': 1.0,
+        'ammit-heart-devour': 1.0,
+        'ammit-enrage': 1.0,
+        'ammit-death-roar': 1.0,
+
         autoshot: 1.0, charging: 1.0, 'skill-d-charge': 1.0, laser: 1.0,
         'enemy-hit': 0.25, 'enemy-death': 1.0, 'shield-hit': 1.0, 'life-lost': 1.0,
         // Same clip as enemy-death but boosted, for the Phantom Portal's
@@ -577,6 +626,7 @@
     // falloff would leave these at the floor. They play at full level and are
     // never dropped at the voice cap. Each fires a few times per match.
     const BOSS_CUE_SFX = new Set([
+        'ammit-death-roar', 'ammit-enrage', 'ammit-emerge', 'ammit-rift-open', 'ammit-rift-crack',
         'leviathan-death-roar', 'goliath-death-roar', 'egregor-death-roar', 'uriel-death-roar',
         'goliath-death', 'goliath-spawn', 'goliath-transform', 'goliath-unbroken-wave',
     ]);
@@ -644,6 +694,7 @@
         photokrystosIdleEl: null, // Phōtokrystos flight/movement texture, same native gapless loop
         goliathIdleEl: null, // Goliath True Form ambient breathing/hum, same native gapless loop
         leviathanIdleEl: null, // Leviathan flight ambience (wingbeat whoosh + scrap rattle), same native gapless loop
+        ammitIdleEl: null,
         urielIdleEl: null,    // Uriel ambient presence (wind hum + wing flap + breath), same native gapless loop
         urielSwordHoverEl: null, // Holy Sword's wind-rush texture while any blade is in flight
         raphaelIdleEl: null,  // Raphael ambient presence (gear-hum + choral drone + platform-rise + breath), same native gapless loop
@@ -713,15 +764,15 @@
     }
 
     function prepareEnemy(type) {
-        const prefixes = { egregor: /^(egregor|dimension)/, veilshroud: /^(veilshroud|phantom)/, goliath: /^(goliath|phantom|egregor-null|leviathan-perseverance)/, dargruel: /^dargruel/, leviathan: /^leviathan/, uriel: /^uriel/, raphael: /^raphael/, marchosias: /^metal-hit/, kanade: /^(kanade|goliath-descend|stack-overflow|timeline-distortion)/ };
+        const prefixes = { ammit: /^ammit/, egregor: /^(egregor|dimension)/, veilshroud: /^(veilshroud|phantom)/, goliath: /^(goliath|phantom|egregor-null|leviathan-perseverance)/, dargruel: /^dargruel/, leviathan: /^leviathan/, uriel: /^uriel/, raphael: /^raphael/, marchosias: /^metal-hit/, kanade: /^(tut-|kanade|goliath-descend|stack-overflow|timeline-distortion)/ };
         const match = prefixes[type];
         if (!match) return;
         for (const key of Object.keys(state.pool)) if (match.test(key)) _decodeBuffer(state.pool[key].src);
-        const refs = { egregor: ['crawlEl', 'nullSlashWindupEl'], goliath: ['goliathIdleEl', 'goliathVerdictChargeEl'], leviathan: ['leviathanIdleEl'], uriel: ['urielIdleEl', 'urielSwordHoverEl'], raphael: ['raphaelIdleEl'], kanade: ['kanadeAmbienceEl', 'kanadeCollapseEl', 'kanadeMusicEl'] };
+        const refs = { ammit: ['ammitIdleEl'], egregor: ['crawlEl', 'nullSlashWindupEl'], goliath: ['goliathIdleEl', 'goliathVerdictChargeEl'], leviathan: ['leviathanIdleEl'], uriel: ['urielIdleEl', 'urielSwordHoverEl'], raphael: ['raphaelIdleEl'], kanade: ['kanadeAmbienceEl', 'kanadeCollapseEl', 'kanadeMusicEl'] };
         for (const ref of refs[type] || []) if (state[ref]) state[ref].prepare();
     }
     function prepareGameplay() {
-        const enemy = /^(egregor|dimension|goliath|dargruel|leviathan|uriel|raphael|phantom|veilshroud|kanade|stack-overflow|timeline-distortion|dau-|ty-)/;
+        const enemy = /^(tut-|ammit|egregor|dimension|goliath|dargruel|leviathan|uriel|raphael|phantom|veilshroud|kanade|stack-overflow|timeline-distortion|dau-|ty-)/;
         for (const key of Object.keys(state.pool)) if (!enemy.test(key)) _decodeBuffer(state.pool[key].src);
     }
     function prepareSigil(id) {
@@ -751,6 +802,8 @@
         if (!p) return;
         const g = sfxGain(key);
         if (g <= 0) return;
+        if (key.startsWith('tut-')) return _playAmmitCue(p.src, g, true, false, true);
+        if (key.startsWith('ammit-')) return _playAmmitCue(p.src, g, p.bypass, true);
         return _playVoice(p.src, g, p.bypass);
     }
 
@@ -833,6 +886,53 @@
         return false;
     }
 
+    const _ammitCues = new Array(24);
+    for (let i = 0; i < _ammitCues.length; i++) _ammitCues[i] = { active: false, paused: false, node: null, gain: null, buffer: null, offset: 0, started: 0, counted: false, serial: 0 };
+    let _ammitCueSerial = 0;
+    function _ammitStopCue(slot) {
+        slot.active = false; slot.paused = false;
+        const node = slot.node; slot.node = null;
+        if (slot.counted) { _liveVoices = Math.max(0, _liveVoices - 1); slot.counted = false; }
+        if (node) { node.onended = null; try { node.stop(); node.disconnect(); } catch (_) {} }
+        slot.buffer = null;
+    }
+    function _ammitStartCue(slot) {
+        if (!slot.active || slot.paused || !slot.buffer || !actx) return;
+        if (slot.capped && _liveVoices >= MAX_SFX_VOICES) { _ammitStopCue(slot); return; }
+        if (!slot.gain) slot.gain = actx.createGain();
+        slot.gain.disconnect(); slot.gain.connect(slot.bypass ? _bypassGain : _duckGain); slot.gain.gain.value = slot.volume;
+        const node = actx.createBufferSource(); node.buffer = slot.buffer; node.connect(slot.gain);
+        slot.node = node; slot.started = actx.currentTime;
+        if (slot.capped) { _liveVoices++; slot.counted = true; }
+        node.onended = function () { if (slot.node === node && !slot.paused) _ammitStopCue(slot); };
+        node.start(0, Math.min(slot.offset, Math.max(0, slot.buffer.duration - .001)));
+    }
+    function _playAmmitCue(src, volume, bypass, capped, tutorial = false) {
+        if (!actx) return;
+        let slot = null;
+        for (let i = 0; i < _ammitCues.length; i++) if (!_ammitCues[i].active) { slot = _ammitCues[i]; break; }
+        if (!slot && bypass) { slot = _ammitCues[0]; _ammitStopCue(slot); }
+        if (!slot) return;
+        slot.active = true; slot.paused = false; slot.offset = 0; slot.volume = volume; slot.bypass = bypass; slot.capped = capped; slot.tutorial = tutorial;
+        const serial = slot.serial = ++_ammitCueSerial;
+        const ready = _decodedBuffers[src];
+        if (ready) { slot.buffer = ready; _ammitStartCue(slot); }
+        else _decodeBuffer(src).then(function (buffer) { if (slot.active && slot.serial === serial) { slot.buffer = buffer; _ammitStartCue(slot); } });
+        return { cancel() { if (slot.serial === serial) _ammitStopCue(slot); } };
+    }
+    function _pauseAmmitCues() {
+        for (let i = 0; i < _ammitCues.length; i++) {
+            const slot = _ammitCues[i]; if (!slot.active || slot.paused) continue;
+            slot.paused = true;
+            if (slot.node) { slot.offset += Math.max(0, actx.currentTime - slot.started); const node = slot.node; slot.node = null; try { node.stop(); } catch (_) {} }
+            if (slot.counted) { _liveVoices = Math.max(0, _liveVoices - 1); slot.counted = false; }
+        }
+    }
+    function _resumeAmmitCues() {
+        for (let i = 0; i < _ammitCues.length; i++) { const slot = _ammitCues[i]; if (slot.active && slot.paused) { slot.paused = false; _ammitStartCue(slot); } }
+    }
+    function stopAmmitCues() { for (let i = 0; i < _ammitCues.length; i++) _ammitStopCue(_ammitCues[i]); }
+
     function playSfx(key) {
         if (_timeFrozen) return;
         const p = state.pool[key];
@@ -840,12 +940,24 @@
         if (_sfxTooSoon(key)) return;
         const g = sfxGain(key);
         if (g <= 0) return;
+        if (key.startsWith('tut-')) return _playAmmitCue(p.src, g, true, false, true);
+        if (key.startsWith('ammit-')) return _playAmmitCue(p.src, g, p.bypass, true);
         return _playVoice(p.src, g, p.bypass);
     }
 
     // Positional variant: scales the base gain by distance from the player
     // ship (x, y in world/canvas coordinates), so explosions and events near
     // the player read louder than ones happening far up the screen.
+    function playTutorialSfx(key) {
+        const p = state.pool[key];
+        if (!p || _timeFrozen || _sfxTooSoon(key)) return;
+        const gain = sfxGain(key);
+        if (gain > 0) return _playAmmitCue(p.src, gain, true, false, true);
+    }
+    function stopTutorialSfx() {
+        for (let i = 0; i < _ammitCues.length; i++) if (_ammitCues[i].tutorial) _ammitStopCue(_ammitCues[i]);
+    }
+
     function playSfxAt(key, x, y) {
         if (_timeFrozen) return;
         const p = state.pool[key];
@@ -854,6 +966,7 @@
         const g = sfxGain(key) * (cue ? 1 : _distanceGain(x, y));
         if (g <= 0.005) return;
         if (_sfxTooSoon(key)) return;
+        if (key.startsWith('ammit-')) return _playAmmitCue(p.src, g, p.bypass, !cue);
         return _playVoice(p.src, g, p.bypass, !cue);
     }
 
@@ -904,6 +1017,7 @@
     // overlay shows so the game goes silent while paused.
     let _pauseSnapshot = null;
     function pauseAll() {
+        _pauseAmmitCues();
         _pauseSnapshot = {
             bgm:      !!(state.bgmEl      && !state.bgmEl.paused),
             ambient:  !!(state.ambientEl  && !state.ambientEl.paused),
@@ -928,15 +1042,17 @@
             goliathVerdictCharge: !!(state.goliathVerdictChargeEl && !state.goliathVerdictChargeEl.paused),
             cancerWhirlpool: !!(state.cancerWhirlpoolEl && !state.cancerWhirlpoolEl.paused),
             leviathanIdle: !!(state.leviathanIdleEl && !state.leviathanIdleEl.paused),
+            ammitIdle: !!(state.ammitIdleEl && !state.ammitIdleEl.paused),
             urielIdle: !!(state.urielIdleEl && !state.urielIdleEl.paused),
             urielSwordHover: !!(state.urielSwordHoverEl && !state.urielSwordHoverEl.paused),
             raphaelIdle: !!(state.raphaelIdleEl && !state.raphaelIdleEl.paused),
         };
-        [state.bgmEl, state.ambientEl, state.kanadeAmbienceEl, state.kanadeCollapseEl, state.kanadeMusicEl, state.menuSpaceEl, state.engineEl, state.laserEl, state.chargingEl, state.skillGLoopEl, state.skillDChargeEl, state.skillFChargeEl, state.skillFFireEl, state.blackholeEl, state.maouHakiEl, state.lowHpEl, state.nullSlashWindupEl, state.crawlEl, state.photokrystosIdleEl, state.goliathIdleEl, state.goliathVerdictChargeEl, state.cancerWhirlpoolEl, state.leviathanIdleEl, state.urielIdleEl, state.urielSwordHoverEl, state.raphaelIdleEl]
+        [state.bgmEl, state.ambientEl, state.kanadeAmbienceEl, state.kanadeCollapseEl, state.kanadeMusicEl, state.menuSpaceEl, state.engineEl, state.laserEl, state.chargingEl, state.skillGLoopEl, state.skillDChargeEl, state.skillFChargeEl, state.skillFFireEl, state.blackholeEl, state.maouHakiEl, state.lowHpEl, state.nullSlashWindupEl, state.crawlEl, state.photokrystosIdleEl, state.goliathIdleEl, state.goliathVerdictChargeEl, state.cancerWhirlpoolEl, state.leviathanIdleEl, state.ammitIdleEl, state.urielIdleEl, state.urielSwordHoverEl, state.raphaelIdleEl]
             .forEach(el => { if (el) { try { el.pause(); } catch (_) {} } });
     }
     function resumeAll() {
         if (!_pauseSnapshot || state.muted) { _pauseSnapshot = null; return; }
+        _resumeAmmitCues();
         const s = _pauseSnapshot;
         _pauseSnapshot = null;
         if (s.bgm      && state.bgmEl)      try { state.bgmEl.play().catch(() => {}); } catch (_) {}
@@ -960,6 +1076,7 @@
         if (s.photokrystosIdle && state.photokrystosIdleEl) try { state.photokrystosIdleEl.play().catch(() => {}); } catch (_) {}
         if (s.cancerWhirlpool && state.cancerWhirlpoolEl) try { state.cancerWhirlpoolEl.play().catch(() => {}); } catch (_) {}
         if (s.leviathanIdle && state.leviathanIdleEl) try { state.leviathanIdleEl.play().catch(() => {}); } catch (_) {}
+        if (s.ammitIdle && state.ammitIdleEl) try { state.ammitIdleEl.play().catch(() => {}); } catch (_) {}
         if (s.urielIdle && state.urielIdleEl) try { state.urielIdleEl.play().catch(() => {}); } catch (_) {}
         if (s.urielSwordHover && state.urielSwordHoverEl) try { state.urielSwordHoverEl.play().catch(() => {}); } catch (_) {}
         if (s.raphaelIdle && state.raphaelIdleEl) try { state.raphaelIdleEl.play().catch(() => {}); } catch (_) {}
@@ -1170,6 +1287,9 @@
     function stopGoliathIdle()  { stopLoop('goliathIdleEl'); }
     function startLeviathanIdle() { startLoop('leviathanIdleEl', 'leviathan-idle'); }
     function stopLeviathanIdle()  { stopLoop('leviathanIdleEl'); }
+    // The normalized breathing bed stays below combat impacts.
+    function startAmmitIdle() { startLoop('ammitIdleEl', 'ammit-idle'); }
+    function stopAmmitIdle() { stopLoop('ammitIdleEl'); }
     function startUrielIdle() { startLoop('urielIdleEl', 'uriel-idle'); }
     function stopUrielIdle()  { stopLoop('urielIdleEl'); }
     function startRaphaelIdle() { startLoop('raphaelIdleEl', 'raphael-idle'); }
@@ -1254,6 +1374,30 @@
         _makePool('dimension-break',  'assets/audio/sfx/dimension-break.mp3',  2);
         _makePool('egregor-nullslash-slash', 'assets/audio/sfx/egregor-nullslash-slash.mp3', 2);
         _makePool('egregor-nullslash-hit',   'assets/audio/sfx/egregor-nullslash-hit.mp3',   2);
+        _makePool('ammit-rift-crack', 'assets/audio/sfx/ammit-rift-crack.mp3', 2, true);
+        _makePool('ammit-rift-open', 'assets/audio/sfx/ammit-rift-open.mp3', 2, true);
+        _makePool('ammit-emerge', 'assets/audio/sfx/ammit-emerge.mp3', 2, true);
+        _makePool('ammit-rift-close', 'assets/audio/sfx/ammit-rift-close.mp3', 2);
+        _makePool('ammit-jaws-lock', 'assets/audio/sfx/ammit-jaws-lock.mp3', 2);
+        _makePool('ammit-jaws-close', 'assets/audio/sfx/ammit-jaws-close.mp3', 2);
+        _makePool('ammit-jaws-bite', 'assets/audio/sfx/ammit-jaws-bite.mp3', 2);
+        _makePool('ammit-scarab-hatch', 'assets/audio/sfx/ammit-scarab-hatch.mp3', 2);
+        _makePool('ammit-scarab-pop', 'assets/audio/sfx/ammit-scarab-pop.mp3', 2);
+        _makePool('ammit-sandpit', 'assets/audio/sfx/ammit-sandpit.mp3', 2);
+        _makePool('ammit-weigh-open', 'assets/audio/sfx/ammit-weigh-open.mp3', 2);
+        _makePool('ammit-weigh-tilt', 'assets/audio/sfx/ammit-weigh-tilt.mp3', 2);
+        _makePool('ammit-weigh-slam', 'assets/audio/sfx/ammit-weigh-slam.mp3', 2);
+        _makePool('ammit-weigh-balanced', 'assets/audio/sfx/ammit-weigh-balanced.mp3', 2);
+        _makePool('ammit-claw-wind', 'assets/audio/sfx/ammit-claw-wind.mp3', 2);
+        _makePool('ammit-claw-strike', 'assets/audio/sfx/ammit-claw-strike.mp3', 2);
+        _makePool('ammit-stomp-wind', 'assets/audio/sfx/ammit-stomp-wind.mp3', 2);
+        _makePool('ammit-stomp-slam', 'assets/audio/sfx/ammit-stomp-slam.mp3', 2);
+        _makePool('ammit-feather-fall', 'assets/audio/sfx/ammit-feather-fall.mp3', 2);
+        _makePool('ammit-feather-return', 'assets/audio/sfx/ammit-feather-return.mp3', 2);
+        _makePool('ammit-wrap-tear', 'assets/audio/sfx/ammit-wrap-tear.mp3', 2);
+        _makePool('ammit-heart-devour', 'assets/audio/sfx/ammit-heart-devour.mp3', 2);
+        _makePool('ammit-enrage', 'assets/audio/sfx/ammit-enrage.mp3', 2, true);
+        _makePool('ammit-death-roar', 'assets/audio/sfx/ammit-death-roar.mp3', 2, true);
         _makePool('egregor-death-roar',      'assets/audio/sfx/egregor-death-roar.mp3',      1, true); // bypass duck so it stays clear
         _makePool('egregor-tempest-strike',  'assets/audio/sfx/egregor-tempest-strike.mp3',  2);
         // Tempest cues. The -b and -c keys play the same file so three portals firing in one frame are not dropped by the per-key repeat guard.
@@ -1314,6 +1458,28 @@
         // sequence stops the rest of the mix outright, so there is nothing to
         // duck against and the clips should read exactly as authored.
         _makePool('kanade-time-freeze',   'assets/audio/sfx/kanade-time-freeze.mp3',   1, true);
+        _makePool('tut-type-a', 'assets/audio/sfx/tut-type-a.mp3', 3, true);
+        _makePool('tut-type-b', 'assets/audio/sfx/tut-type-b.mp3', 3, true);
+        _makePool('tut-type-c', 'assets/audio/sfx/tut-type-c.mp3', 3, true);
+        _makePool('tut-line', 'assets/audio/sfx/tut-line.mp3', 3, true);
+        _makePool('tut-speech-open', 'assets/audio/sfx/tut-speech-open.mp3', 3, true);
+        _makePool('tut-reveal', 'assets/audio/sfx/tut-reveal.mp3', 3, true);
+        _makePool('tut-toast', 'assets/audio/sfx/tut-toast.mp3', 3, true);
+        _makePool('tut-circle-charge', 'assets/audio/sfx/tut-circle-charge.mp3', 3, true);
+        _makePool('tut-warn', 'assets/audio/sfx/tut-warn.mp3', 3, true);
+        _makePool('tut-bullet-volley', 'assets/audio/sfx/tut-bullet-volley.mp3', 3, true);
+        _makePool('tut-beam', 'assets/audio/sfx/tut-beam.mp3', 3, true);
+        _makePool('tut-burst', 'assets/audio/sfx/tut-burst.mp3', 3, true);
+        _makePool('tut-sweep', 'assets/audio/sfx/tut-sweep.mp3', 3, true);
+        _makePool('tut-domain-charge', 'assets/audio/sfx/tut-domain-charge.mp3', 3, true);
+        _makePool('tut-domain-blast', 'assets/audio/sfx/tut-domain-blast.mp3', 3, true);
+        _makePool('tut-pass', 'assets/audio/sfx/tut-pass.mp3', 3, true);
+        _makePool('tut-fail', 'assets/audio/sfx/tut-fail.mp3', 3, true);
+        _makePool('tut-complete', 'assets/audio/sfx/tut-complete.mp3', 3, true);
+        _makePool('tut-license-open', 'assets/audio/sfx/tut-license-open.mp3', 3, true);
+        _makePool('tut-license-print', 'assets/audio/sfx/tut-license-print.mp3', 3, true);
+        _makePool('tut-stamp', 'assets/audio/sfx/tut-stamp.mp3', 3, true);
+        _makePool('tut-seal', 'assets/audio/sfx/tut-seal.mp3', 3, true);
         _makePool('kanade-gate-open',     'assets/audio/sfx/kanade-gate-open.mp3',     1, true);
         _makePool('kanade-emerge',        'assets/audio/sfx/kanade-emerge.mp3',        1, true);
         _makePool('kanade-think',         'assets/audio/sfx/kanade-think.mp3',         1, true);
@@ -1368,6 +1534,8 @@
         state.cancerWhirlpoolEl.setSrc('assets/audio/sfx/cancer-whirlpool-spin.mp3');
         state.leviathanIdleEl = _makeBufferLoop();
         state.leviathanIdleEl.setSrc('assets/audio/sfx/leviathan-idle.mp3');
+        state.ammitIdleEl = _makeBufferLoop();
+        state.ammitIdleEl.setSrc('assets/audio/sfx/ammit-idle.mp3');
         state.urielIdleEl = _makeBufferLoop();
         state.urielIdleEl.setSrc('assets/audio/sfx/uriel-idle.mp3');
         state.urielSwordHoverEl = _makeBufferLoop();
@@ -1414,7 +1582,7 @@
         getSelectedBgmIds, isBgmSelected, toggleBgmSelection,
 
         // SFX
-        playSfx, playSfxAt,
+        playSfx, playSfxAt, playTutorialSfx, stopTutorialSfx,
         startAmbient, stopAmbient,
         startEngine,  stopEngine,
         startCharging, stopCharging,
@@ -1431,6 +1599,7 @@
         startPhotokrystosIdle, stopPhotokrystosIdle, tickPhotokrystosIdle,
         startGoliathIdle, stopGoliathIdle,
         startLeviathanIdle, stopLeviathanIdle,
+        startAmmitIdle, stopAmmitIdle, stopAmmitCues,
         startUrielIdle, stopUrielIdle,
         startUrielSwordHover, stopUrielSwordHover,
         startRaphaelIdle, stopRaphaelIdle,

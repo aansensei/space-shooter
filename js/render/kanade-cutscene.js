@@ -38,15 +38,16 @@
   let clothesParent = null, clothesMask = 0;
   function makeClothesLayer() {
     const canvas = document.createElement('canvas');
-    return { canvas, ctx: canvas.getContext('2d'), valid: false, pose: new Float64Array(6), points: new Float32Array(32), mask: 0 };
+    return { canvas, ctx: canvas.getContext('2d'), valid: false, pose: new Float64Array(7), points: new Float32Array(32), mask: 0 };
   }
   function beginClothesLayer(layer, opts) {
     const pose = layer.pose;
     if (layer.valid && pose[0] === RES_MULT && pose[1] === (opts.trail || 0) && pose[2] === (opts.whip || 0) &&
-      pose[3] === (opts.droop || 0) && pose[4] === (opts.walkStep || 0) && pose[5] === (opts.castExt || 0)) return false;
+      pose[3] === (opts.droop || 0) && pose[4] === (opts.walkStep || 0) && pose[5] === (opts.castExt || 0) && pose[6] === (opts.gestureFrom || opts.gesture ? 1 : 0)) return false;
     layer.valid = true;
     pose[0] = RES_MULT; pose[1] = opts.trail || 0; pose[2] = opts.whip || 0;
     pose[3] = opts.droop || 0; pose[4] = opts.walkStep || 0; pose[5] = opts.castExt || 0;
+    pose[6] = opts.gestureFrom || opts.gesture ? 1 : 0;
     if (layer.canvas.width !== px.width || layer.canvas.height !== px.height) {
       layer.canvas.width = px.width; layer.canvas.height = px.height;
       layer.ctx.setTransform(RES_MULT, 0, 0, RES_MULT, 0, 0);
@@ -1093,15 +1094,38 @@
     return { wrist, elbowX, elbowY, upperC, foreC, hand };
   }
 
+  // Gesture joints share the resting arm and leave the casting rig unchanged by default.
+  const GESTURE_JOINTS = [null,
+    [97, 63, 121, 77, 1.15, 0.25],
+    [132, 64, 122, 76, -0.8, 0.8],
+    [134, 82, 123, 69, -1.45, 0.8],
+    [141, 55, 123, 59, -1.6, 0.35],
+    [127, 62, 121, 73, -0.3, 0.65]
+  ];
+  function gestureArm(opts, fabricTrail) {
+    const from = Math.max(0, Math.min(5, opts.gestureFrom | 0)), to = Math.max(0, Math.min(5, opts.gesture | 0));
+    if (!from && !to) return null;
+    const base = castArm(0, fabricTrail), t = Math.max(0, Math.min(1, opts.gestureT || 0));
+    const rest = [base.wrist[0], base.wrist[1], base.elbowX, base.elbowY, base.hand.rot, 0];
+    const a = GESTURE_JOINTS[from] || rest, b = GESTURE_JOINTS[to] || rest;
+    const mix = (i) => a[i] + (b[i] - a[i]) * t;
+    const wx = mix(0), wy = mix(1), ex = mix(2), ey = mix(3);
+    const targetControls = (j) => [106 + (j[2] - 106) * .34, 54 + (j[3] - 54) * .28, 106 + (j[2] - 106) * .8, 54 + (j[3] - 54) * .75, j[2] + (j[0] - j[2]) * .35, j[3] + (j[1] - j[3]) * .35, j[2] + (j[0] - j[2]) * .8, j[3] + (j[1] - j[3]) * .8];
+    const restControls = base.upperC.concat(base.foreC), ca = from ? targetControls(a) : restControls, cb = to ? targetControls(b) : restControls;
+    const upperC = ca.slice(0, 4), foreC = ca.slice(4);
+    for (let i = 0; i < 4; i++) { upperC[i] += (cb[i] - upperC[i]) * t; foreC[i] += (cb[i + 4] - foreC[i]) * t; }
+    return { wrist: [wx, wy], elbowX: ex, elbowY: ey, upperC, foreC, hand: { x: wx, y: wy, rot: mix(4), size: .95 }, open: mix(5), sleeveTurn: (Math.atan2(ey - 54, ex - 106) - Math.atan2(base.elbowY - 54, base.elbowX - 106)) * .35 };
+  }
+
   // The shared sprite buffer redraws only when its quantised pose changes.
   // Higher graphics tiers sample more phases while mobile keeps its budget.
   let _spriteKey = '';
   function invalidateSprite() { _spriteKey = ''; }
-  const spriteState = new Float64Array(21);
-  const spriteNext = new Float64Array(21);
+  const spriteState = new Float64Array(25);
+  const spriteNext = new Float64Array(25);
   let spriteRevision = 0, spriteExpression = '', spriteTag = '';
   function spriteKey(tag, t, o) {
-    const tier = freezeTier(), steps = tier < 2 ? 36 : 24;
+    const tier = freezeTier(), steps = o.tutorialMotion ? (tier < 2 ? 72 : 48) : (tier < 2 ? 36 : 24);
     const v = spriteNext;
     v[0] = Math.round(t * steps);
     v[1] = Math.round((o.lean || 0) * 8);
@@ -1123,8 +1147,9 @@
     v[17] = Math.round((o.hairImpact || 0) * 10);
     v[18] = Math.round((o.hairBoost || 1) * 20);
     v[19] = tier; v[20] = RES_MULT;
+    v[21] = Math.round(o.gestureFrom || 0); v[22] = Math.round(o.gesture || 0); v[23] = Math.round((o.gestureT || 0) * 24); v[24] = o.tutorialMotion ? 1 : 0;
     let dirty = tag !== spriteTag || (o.expression || '') !== spriteExpression;
-    for (let i = 0; i <= 20; i++) if (v[i] !== spriteState[i]) { dirty = true; break; }
+    for (let i = 0; i <= 24; i++) if (v[i] !== spriteState[i]) { dirty = true; break; }
     if (dirty) {
       spriteState.set(v); spriteTag = tag; spriteExpression = o.expression || '';
       spriteRevision++;
@@ -1298,8 +1323,8 @@
     for (const [a, b] of [[0, 0], [1.8, 2.7], [0.5, 5], [3.2, 6.5]]) { pctx.moveTo(a + 0.32, b); pctx.arc(a, b, 0.32, 0, Math.PI * 2); }
     pctx.fill(); pctx.restore();
   }
-  function chestChain(castExt, fabricTrail, shoulderDrop) {
-    const arm = castArm(castExt, fabricTrail), t = 0.12, v = 1 - t;
+  function chestChain(castExt, fabricTrail, shoulderDrop, gesture) {
+    const arm = gesture || castArm(castExt, fabricTrail), t = 0.12, v = 1 - t;
     const point = (a, b) => [v * v * v * a[0] + 3 * v * v * t * b[0] + 3 * v * t * t * b[2] + t * t * t * b[4], v * v * v * a[1] + 3 * v * v * t * b[1] + 3 * v * t * t * b[3] + t * t * t * b[5]];
     const l = point([74, 53], [69, 58, 64, 64, 62 + fabricTrail * 0.15, 70]);
     const r = point([106, 54], [...arm.upperC, arm.elbowX, arm.elbowY]); r[1] += shoulderDrop;
@@ -1582,6 +1607,7 @@
     const headTilt = -0.012 * relaxed + Math.max(-0.012, Math.min(0.012, opts.headTurn || 0));
     const hipTilt = 0.6 * relaxed;
     const fabricTrail = trail * 0.75 + whip;
+    const gesture = gestureArm(opts, fabricTrail);
     // The hair behind her follows droop only halfway. Taken all the way, its
     // ends pushed out below the hem as one grey spike under the gown.
     const hairDrop = Math.min(droop, 0.5);
@@ -1811,7 +1837,7 @@
       // jumped from her hip to her chest.
       pctx.save();
       pctx.translate(0, shoulderDrop);
-      lowerSleeve(1, fabricTrail, castExt, false);
+      if (!gesture) lowerSleeve(1, fabricTrail, castExt, false);
       pctx.restore();
 
       // Fine embroidery follows the fitted seams from chest to waist.
@@ -1873,8 +1899,9 @@
       bezierLine([78, 64.5], [[84, 68.7, 100, 68.7, 106, 64.5]], PAL.indigoDeep, STROKE.seam);
     }
     finishClothesLayer(clothesLayers[0], freshClothes);
+    if (gesture) { pctx.save(); pctx.translate(104, 59 + shoulderDrop); pctx.rotate(gesture.sleeveTurn); pctx.translate(-104, -59); lowerSleeve(1, fabricTrail, 0, false); pctx.restore(); }
     waistJewelry(sway);
-    chestChain(castExt, fabricTrail, shoulderDrop);
+    chestChain(castExt, fabricTrail, shoulderDrop, gesture);
     // Skin is drawn in front of the sleeve with a tapered elbow and wrist.
     const leftHandFrame = {x:48.6 + fabricTrail * 0.5,y:88.8,rot:Math.atan2(-((49 + fabricTrail * 0.5) - (53 + fabricTrail * 0.42)),90 - 85),size:0.9,side:1};
     shapedArm([74, 53], [69, 58, 64, 64, 62 + fabricTrail * 0.15, 70], [58 + fabricTrail * 0.3, 78, 53 + fabricTrail * 0.42, 85, 49 + fabricTrail * 0.5, 90], leftHandFrame);
@@ -1900,7 +1927,7 @@
     // no fold, star or cuff band from the sleeve behind it lands on top.
     pctx.save();
     pctx.translate(0, shoulderDrop);
-    const { wrist, elbowX, elbowY, upperC, foreC, hand } = castArm(castExt, fabricTrail);
+    const { wrist, elbowX, elbowY, upperC, foreC, hand } = gesture || castArm(castExt, fabricTrail);
     const upperSeg = [upperC[0], upperC[1], upperC[2], upperC[3], elbowX, elbowY];
     const foreSeg = [foreC[0], foreC[1], foreC[2], foreC[3], wrist[0] - 1, wrist[1] + 1.2];
     const castArmOutline = shapedArm([106, 54], upperSeg, foreSeg, {...hand, side:1});
@@ -1910,7 +1937,7 @@
     // opens once the arm is well on its way up. Open from the first frame of
     // the raise it read as a splayed hand sprouting near her shoulder.
     const openT = Math.max(0, Math.min(1, (castExt - 0.25) / 0.5));
-    const handOpen = openT * openT * (3 - 2 * openT) * 0.8;
+    const handOpen = gesture ? gesture.open : openT * openT * (3 - 2 * openT) * 0.8;
     pctx.save();
     pctx.translate(hand.x, hand.y);
     pctx.rotate(hand.rot);
@@ -1930,7 +1957,7 @@
     // charge in her hand, so it grows with the spell instead of switching on
     // at full strength the moment the arm starts to move. Tenths, the same
     // step the sprite cache keys it by.
-    const magicLight = Math.round((opts.magicLight || 0) * 10) / 10;
+    const magicLight = gesture ? 0 : Math.round((opts.magicLight || 0) * 10) / 10;
     if (magicLight > 0.01) {
       pctx.save();
       pctx.globalAlpha = magicLight;
@@ -3066,7 +3093,7 @@
   // never end up pointing at different places.
   const PALM = [0, 3.1];
   function handPos(L, pose, t) {
-    if (!pose || !pose.opts) return null;
+    if (!pose || !pose.opts || pose.opts.gesture || pose.opts.gestureFrom) return null;
     const castExt = pose.opts.castExt || 0;
     if (castExt <= 0.02) return null;
     // The arm drawKanade draws, with the same fabric trail, then the lean/bob
@@ -5956,6 +5983,12 @@
     return echoPalmResult;
   }
 
+  // the tutorial drives her as a puppet through these; each one is the cutscene's own function, forwarded untouched
+  window._kanadeStage = {
+    layout, poseFor, fitSpriteBuffer, drawKanade, drawKanadeBack, blitSprite, invalidateSprite, tintBuffer,
+    drawGate, gateOpenness, gateSpin, gateDust, gateDustSpread, drawGateDust,
+    drawHaloAt, drawJewelryGlints, jewelryTime, handPos, energyGlow, updateDrawParticles
+  };
   window._kanadeDebugModelDraw = drawKanadeDebugModel;
   window._drawKanadeEchoCast = drawEchoCast;
   window.drawKanadeCutscene = drawKanadeCutscene;

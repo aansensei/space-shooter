@@ -33,7 +33,7 @@ function _skillDCanTarget(enemy) {
     return true;
 }
 function _skillDIsCCImmune(enemy) {
-    return enemy.type === 'egregor' || enemy.type === 'dargruel' || enemy.type === 'leviathan' || enemy.type === 'goliath'
+    return enemy.type === 'egregor' || enemy.type === 'dargruel' || enemy.type === 'leviathan' || enemy.type === 'goliath' || enemy.type === 'ammit'
         || enemy.type === 'uriel' || enemy.type === 'thaelis_cocoon' || enemy.type === 'thaelis_guard'
         || (enemy.type === 'marchosias' && enemy.arcBarrier && enemy.arcBarrier.hp > 0)
         || (enemy.type === 'raphael' && enemy.raphaelInvulnerable)

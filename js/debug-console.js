@@ -267,6 +267,7 @@ const VERIFY_NON_GOLIATH_BUDGET_MS = 90000; // waves 1-10 force-end well under t
 const VERIFY_GOLIATH_BUDGET_MS = 300000; // Goliath waves (multiples of 5) never force-end on their own
 
 function _verifyResetWaveState(waveNum) {
+    _ammitReset();
     enemies.length = 0;
     window._matchStats = _newMatchStats();
     lives = START_LIVES;
@@ -400,6 +401,11 @@ window.debugCloseRecap = function () {
 // can be tested without grinding real waves. Clamped to the same range the
 // real game allows (_yuukiBonus caps at 3.00 in main.js) so debug testing
 // still reflects an actually-reachable state.
+window.debugTutorial = function (action) {
+    const r = typeof window._tutorialDebug === 'function' ? window._tutorialDebug(action) : 'n/a';
+    const el = document.getElementById('dbgTutorialState');
+    if (el) el.textContent = r;
+};
 window.debugSetWaveNumber = function () {
     const el = document.getElementById('dbgWaveNumber');
     const v = el && el.value !== '' ? Math.max(0, Math.floor(Number(el.value))) : null;
@@ -648,6 +654,7 @@ window.debugSetYuukiBonus = function () {
         <button class="dbg-btn" onclick="debugSpawn('spawnUriel')" onmouseover="_dbgHint(this)" onmouseout="_dbgHint()" data-hp="1725–4140" data-size="100–150">Uriel</button>
         <button class="dbg-btn" onclick="debugSpawn('spawnLeviathan')" onmouseover="_dbgHint(this)" onmouseout="_dbgHint()" data-hp="8820–15435" data-size="250–300">Leviathan</button>
         <button class="dbg-btn" onclick="debugSpawn('spawnEgregor')" onmouseover="_dbgHint(this)" onmouseout="_dbgHint()" data-hp="2200–5200" data-size="160">Egregor</button>
+        <button class="dbg-btn" onclick="debugSpawn('spawnAmmit')" onmouseover="_dbgHint(this)" onmouseout="_dbgHint()" data-hp="3680 to 7590" data-size="150">Ammit</button>
         <button class="dbg-btn" onclick="debugSpawn('spawnGoliath')" onmouseover="_dbgHint(this)" onmouseout="_dbgHint()" data-hp="1 (Alpha, invuln)" data-size="380/460">Goliath (WIP)</button>
         <button class="dbg-btn" onclick="debugSpawnSentinel()" onmouseover="_dbgHint(this)" onmouseout="_dbgHint()" data-hp="100–800" data-size="18–28">Sentinel</button>
       </div>
@@ -716,6 +723,18 @@ window.debugSetYuukiBonus = function () {
       </div>
       <div style="opacity:0.55; font-size:10px;">Holds the body sprite still, blown up, with the 180-unit grid and the landmark lines the drawing code is written against (eyes y=38, shoulders y=62, hem y=125). Opens over anything, including a running cutscene.</div>
       <div style="opacity:0.55; font-size:10px;">Resetting the flag makes the next boss wave play the cutscene forced again and hides the Skip toggle in Settings until it has been watched once more.</div>
+      <div class="dbg-h" style="margin-top:12px;">TUTORIAL (Kanade)</div>
+      <div style="opacity:0.55; font-size:10px; margin-bottom:4px;">These work while the Tutorial mode is running (pick Tutorial in the Voyage bar on the menu).</div>
+      <div class="dbg-row" style="flex-wrap:wrap;">
+        <button class="dbg-btn" onclick="debugTutorial('next')">Next step</button>
+        <button class="dbg-btn" onclick="debugTutorial('restart')">Restart</button>
+        <button class="dbg-btn danger" onclick="debugTutorial('end')">End now</button>
+        <button class="dbg-btn" onclick="closeDebugConsole(); if(window._tutorialEnd) window._tutorialEnd({timeMs:180000,attempts:{bullets:1,strip:1,circle:2,sector:1,shift:1},firstTry:4,hits:1,skills:['SH','A','S','D','F','G','SPC']})">Pilot licence</button>
+        <select id="dbgTutFace" class="dbg-input" aria-label="Kanade expression"><option value="auto">Automatic</option><option>neutral</option><option>serene</option><option>smug</option><option>determined</option><option>happy</option><option>surprised</option><option>sad</option><option>thinking</option><option>angry</option><option>pain</option></select>
+        <select id="dbgTutGesture" class="dbg-input" aria-label="Kanade gesture"><option>rest</option><option>chest</option><option>palm</option><option>present</option><option>point</option><option>beckon</option></select>
+        <button class="dbg-btn" onclick="if(window._tutorialDebugPose) window._tutorialDebugPose(document.getElementById('dbgTutFace').value,document.getElementById('dbgTutGesture').value)">Preview pose</button>
+        <span id="dbgTutorialState" style="font-size:10px; color:#7fd8ff; align-self:center;"></span>
+      </div>
     </div>
 
     <div class="dbg-section">
@@ -769,14 +788,83 @@ window.debugSetYuukiBonus = function () {
   #dbgPauseBtn.active { background:rgba(255,204,102,0.22); border-color:#ffcc66; color:#ffcc66; }
   .dbg-enemy-row { background:rgba(0,229,255,0.05); border:1px solid rgba(0,229,255,0.15); border-radius:8px; padding:8px; }
   .dbg-enemy-hp { width:70px; background:rgba(0,0,0,0.4); border:1px solid rgba(0,229,255,0.3); color:#c8e8ff; border-radius:4px; padding:2px 4px; font-family:inherit; }
+  .dbg-row { flex-wrap:wrap; }
+  .dbg-sticky { position:sticky; top:-16px; z-index:3; margin:-16px -16px 12px; padding:14px 16px 8px; background:rgba(0,12,28,0.98); border-bottom:1px solid rgba(0,229,255,0.2); }
+  .dbg-tabs { display:flex; gap:4px; margin-top:8px; }
+  .dbg-tab { flex:1; min-height:30px; padding:4px 2px; font-family:inherit; font-size:11px; letter-spacing:1px; text-transform:uppercase; color:#8fb4d4; background:rgba(0,229,255,0.05); border:1px solid rgba(0,229,255,0.2); border-radius:6px; cursor:pointer; }
+  .dbg-tab:hover { color:#c8e8ff; background:rgba(0,229,255,0.14); }
+  .dbg-tab.active { color:#fff; background:rgba(0,229,255,0.3); border-color:#00e5ff; }
+  .dbg-section[hidden] { display:none; }
+  #dbgClickSpawnType { width:100% !important; max-width:220px; }
+  #dbgFab:active { background:rgba(0,229,255,0.25); }
+  @media (max-width: 700px) { #debug-console-panel { width:100vw !important; border-left:0 !important; } }
+  @media (max-height: 520px) and (orientation: landscape) { #debug-console-panel { width:min(62vw,460px) !important; } }
+  @media (pointer: coarse) {
+    #debug-console-panel { padding-top:max(16px, env(safe-area-inset-top)) !important; padding-right:max(16px, env(safe-area-inset-right)) !important; padding-bottom:calc(40px + env(safe-area-inset-bottom)) !important; }
+    .dbg-btn { min-height:36px; padding:6px 10px; font-size:12px; }
+    .dbg-tab { min-height:40px; font-size:12px; }
+    #debug-console-panel input, #debug-console-panel select { font-size:16px; min-height:34px; }
+    #debug-console-panel input[type="checkbox"] { width:20px; height:20px; }
+  }
 </style>`;
 
     let panelOpen = false;
     let refreshTimer = null;
 
+        // the long single column is grouped into tabs, one place per job; a section the table does not know lands in Test
+    const DBG_TABS = [
+        ['run', 'Run', /SPEED|PLAYER|WAVE|SESSION/],
+        ['spawn', 'Spawn', /SPAWN|ENEMIES|SENTINELS|DUMMY/],
+        ['skills', 'Skills', /SKILL|SIGIL/],
+        ['boss', 'Boss', /GOLIATH|KANADE|TIMELINE|AMMIT|TUTORIAL|ECHO/],
+        ['test', 'Test', /./]
+    ];
+    function organizePanel() {
+        const panel = document.getElementById('debug-console-panel');
+        if (!panel || panel.dataset.organized) return;
+        panel.dataset.organized = '1';
+        const head = panel.firstElementChild, hint = head ? head.nextElementSibling : null;
+        const status = document.getElementById('dbgSessionStatus'), pauseBtn = document.getElementById('dbgPauseBtn');
+        const pauseRow = pauseBtn ? pauseBtn.closest('.dbg-row') : null;
+        const recapBtn = panel.querySelector('button[onclick^="debugOpenRecap(false"]'), recapRow = recapBtn ? recapBtn.closest('.dbg-row') : null;
+        const sticky = document.createElement('div'); sticky.className = 'dbg-sticky';
+        [head, hint, status, pauseRow].forEach(function (el) { if (el) sticky.appendChild(el); });
+        const bar = document.createElement('div'); bar.className = 'dbg-tabs'; bar.setAttribute('role', 'tablist');
+        sticky.appendChild(bar);
+        if (recapRow) {
+            const wrap = document.createElement('div'); wrap.className = 'dbg-section';
+            wrap.innerHTML = '<div class="dbg-h">VOYAGE RECAP</div>';
+            wrap.appendChild(recapRow);
+            panel.appendChild(wrap);
+        }
+        const sections = Array.prototype.slice.call(panel.querySelectorAll(':scope > .dbg-section'));
+        sections.forEach(function (sec) {
+            const h = sec.querySelector('.dbg-h'), name = h ? h.textContent.toUpperCase() : '';
+            for (let i = 0; i < DBG_TABS.length; i++) if (DBG_TABS[i][2].test(name)) { sec.dataset.tab = DBG_TABS[i][0]; break; }
+        });
+        panel.insertBefore(sticky, panel.firstChild);
+        let saved = 'run';
+        try { saved = localStorage.getItem('pisces_dbg_tab') || 'run'; } catch (_) { }
+        function show(id) {
+            if (!DBG_TABS.some(function (t) { return t[0] === id; })) id = DBG_TABS[0][0];
+            Array.prototype.forEach.call(bar.children, function (b) { const on = b.dataset.tab === id; b.classList.toggle('active', on); b.setAttribute('aria-selected', on ? 'true' : 'false'); });
+            sections.forEach(function (sec) { sec.hidden = sec.dataset.tab !== id; });
+            try { localStorage.setItem('pisces_dbg_tab', id); } catch (_) { }
+            panel.scrollTop = 0;
+        }
+        DBG_TABS.forEach(function (t) {
+            const b = document.createElement('button'); b.type = 'button'; b.className = 'dbg-tab'; b.dataset.tab = t[0]; b.textContent = t[1]; b.setAttribute('role', 'tab');
+            b.addEventListener('click', function () { show(t[0]); });
+            bar.appendChild(b);
+        });
+        window._debugShowTab = show;
+        show(saved);
+    }
+
     function ensurePanel() {
         if (document.getElementById('debugConsoleOverlay')) return;
         document.body.insertAdjacentHTML('beforeend', PANEL_HTML);
+        organizePanel();
         buildSigilList();
     }
 
@@ -834,10 +922,16 @@ window.debugSetYuukiBonus = function () {
     // debug match should be an empty, hands-off sandbox until you spawn
     // something yourself. window._debugSessionActive is the one new flag
     // that gates the wave-spawner call in main.js's update() loop.
-    window.debugStartSession = function () {
+    // sets the flags that make the next startGame() an empty hands-off sandbox; the panel button and Custom Voyage both use it
+    window._debugPrepareSession = function () {
         window._debugSessionActive = true;
         window._debugWaveRosterActive = false;
         window._debugAutoshotOff = true;
+        window._debugSkipSigilPick = true;
+    };
+
+    window.debugStartSession = function () {
+        window._debugPrepareSession();
         // Chỉ skip sigil picker khi CHỦ ĐỘNG bấm nút bắt đầu sandbox này —
         // không set ở nơi mở panel nữa, để 1 lượt Initiate Hyperjump bình
         // thường (mở panel trước, rồi bấm nút thật ngoài menu) vẫn đi qua
@@ -907,6 +1001,7 @@ window.debugSetYuukiBonus = function () {
     // flags are reset separately since that logic knows nothing about them.
     window.debugExitSession = function () {
         window._debugSessionActive = false;
+        window._debugSkipSigilPick = false;
         window._debugWaveRosterActive = false;
         window._debugAutoshotOff = false;
         window._debugNoCooldown = false;
@@ -932,6 +1027,20 @@ window.debugSetYuukiBonus = function () {
     // đang chạy; bấm "Initiate Hyperjump" ngoài menu như thường để vào game
     // thật (đủ sigil picker), hoặc dùng nút sandbox trong panel nếu muốn 1
     // trận rỗng, hands-off riêng.
+        // a small button that reopens the console during a sandbox run, so phones without the backquote key can reach it
+    function ensureFab() {
+        if (document.getElementById('dbgFab') || !document.body) return;
+        const b = document.createElement('button'); b.id = 'dbgFab'; b.type = 'button'; b.textContent = 'DBG'; b.setAttribute('aria-label', 'Debug console');
+        b.style.cssText = 'position:fixed; top:68px; left:16px; z-index:999999998; display:none; min-width:44px; min-height:34px; padding:0 10px; font:700 11px "Courier New",monospace; letter-spacing:1px; color:#00e5ff; background:rgba(0,12,28,0.85); border:1px solid rgba(0,229,255,0.5); border-radius:17px; cursor:pointer; touch-action:manipulation;';
+        b.addEventListener('click', function () { window._debugToggleConsole(); });
+        document.body.appendChild(b);
+        setInterval(function () {
+            const on = !!window._debugSessionActive && typeof gameState !== 'undefined' && gameState === 'playing' && !panelOpen;
+            b.style.display = on ? 'block' : 'none';
+        }, 700);
+    }
+    ensureFab();
+
     window._debugToggleConsole = function () {
         if (panelOpen) window.closeDebugConsole(); else window.openDebugConsole();
     };
@@ -1769,11 +1878,52 @@ window.debugSetYuukiBonus = function () {
         if (e.type === 'egregor' && e._tentacleHps) e._tentacleHps = e._tentacleHps.map(() => 0);
     };
 
+    window.debugAmmitTTK = function () {
+        const rows = [], hp = 5635;
+        const attacks = [PLAYER_BASE_ATK * _playerAtkWaveMult(5), PLAYER_BASE_ATK * _playerAtkWaveMult(10) * 1.34, PLAYER_BASE_ATK * _playerAtkWaveMult(30) * 1.36 * 1.15];
+        const hits = attacks.map(atk => .16 * atk), intervals = [autoFireInterval, autoFireInterval, autoFireInterval];
+        for (let tier = 0; tier < 3; tier++) {
+            let health = hp, pool = Math.ceil(hp * AMMIT_TUNE_WRAP_FRAC) * 3;
+            let tokens = Math.ceil(hp * AMMIT_TUNE_LOSS_FRAC), now = 0, next = 0, exposed = 0, feather = 0, lost = 0;
+            while (health > 0 && now < 180000) {
+                const dt = 1000 / 120; now += dt;
+                tokens = Math.min(Math.ceil(hp * AMMIT_TUNE_LOSS_FRAC), tokens + hp * AMMIT_TUNE_LOSS_FRAC * dt / AMMIT_TUNE_LOSS_WINDOW);
+                if (now < next) continue;
+                next += intervals[tier];
+                const open = now < exposed, dr = open ? AMMIT_TUNE_EXPOSED_DR : AMMIT_TUNE_DR;
+                const post = Math.ceil((hits[tier] + .069 * attacks[tier]) * (1 - dr));
+                let damage = Math.min(hp * AMMIT_TUNE_HIT_CAP, post - Math.min(open ? AMMIT_TUNE_EXPOSED_ARMOR : AMMIT_TUNE_ARMOR, post * .6));
+                const soaked = Math.min(pool, damage); pool -= soaked; damage -= soaked;
+                damage = Math.min(tokens, damage); tokens -= damage; health -= damage; lost += damage;
+                if (now >= feather && lost >= hp * AMMIT_FEATHER_FRAC) { exposed = now + AMMIT_EXPOSED; feather = now + AMMIT_FEATHER_BACK; pool = 0; lost = 0; }
+            }
+            rows.push({ tier: tier === 0 ? 'low' : tier === 1 ? 'middle' : 'high', hit: hits[tier], intervalMs: intervals[tier], estimatedSeconds: +(now / 1000).toFixed(2) });
+        }
+        console.table(rows);
+        const target = document.getElementById('dbgEnemyList');
+        if (target) { let result = document.getElementById('ammitTrialResult'); if (!result) { result = document.createElement('div'); result.id = 'ammitTrialResult'; target.before(result); } result.textContent = 'Ammit: mô hình phòng thủ cô lập (không né, Tim, vận chiêu hay hiệu ứng build): ' + rows.map(r => r.tier + ' ' + r.estimatedSeconds + 's').join(', '); }
+    };
+
     window.debugForceEnemySkill = function (idx, which) {
         const e = enemies[idx];
         if (!e) return;
         if (which === 'ns') e._nullSlashCooldownEnd = 0;
         if (which === 'tempest') e._tempestCooldownEnd = 0;
+        if (which.startsWith('am_') && e.type === 'ammit' && e._amReal) {
+            // the chosen skill is made ready and the others wait 1.5s, so it is the next one Ammit casts
+            const t = _ammitNow(e);
+            if (which === 'am_exposed') { _ammitExpose(e); return; }
+            if (which === 'am_enrage') { e.hp = e.maxHp * 0.29; return; }
+            if (which === 'am_entrance') { spawnAmmit(); return; }
+            e._amSkill = 'none'; e._amSkillT = 0; e._amStomp.hits.length = 0;
+            e._amJaws.phase = e._amWeigh.phase = e._amClaw.phase = e._amStomp.phase = 'idle';
+            e._amJawsChained = false;
+            e._amJawsCdEnd = e._amWeighCdEnd = e._amClawCdEnd = e._amStompCdEnd = Math.max(t, e._spawnTime + AMMIT_RISE) + 1500;
+            if (which === 'am_jaws') e._amJawsCdEnd = 0;
+            if (which === 'am_weigh') e._amWeighCdEnd = 0;
+            if (which === 'am_claw') { e._amClawCdEnd = 0; e._amForceClaw = true; }
+            if (which === 'am_stomp') e._amStompCdEnd = 0;
+        }
         if (which === 'rage') {
             // a debug stack lasts 60s so Null Slash can be tested at each rage level, and the five stack cap still applies
             if (!e._rageEndTimes) e._rageEndTimes = [];
@@ -1843,6 +1993,7 @@ window.debugSetYuukiBonus = function () {
     function enemySkillButtons(e) {
         const i = enemies.indexOf(e);
         if (e.type === 'egregor') return `<button class="dbg-btn" onclick="debugForceEnemySkill(${i},'ns')">Null Slash</button><button class="dbg-btn" onclick="debugForceEnemySkill(${i},'tempest')">Tempest</button><button class="dbg-btn" onclick="debugForceEnemySkill(${i},'rage')">+Rage Stack (${e._rageStacks || 0}/5)</button>`;
+        if (e.type === 'ammit') return `<button class="dbg-btn" onclick="debugForceEnemySkill(${i},'am_jaws')">Jaws</button><button class="dbg-btn" onclick="debugForceEnemySkill(${i},'am_weigh')">Weighing</button><button class="dbg-btn" onclick="debugForceEnemySkill(${i},'am_claw')">Lion Claw</button><button class="dbg-btn" onclick="debugForceEnemySkill(${i},'am_stomp')">Hippo Stomp</button><button class="dbg-btn" onclick="debugForceEnemySkill(${i},'am_entrance')">Ammit: màn xuất hiện</button><button class="dbg-btn" onclick="debugForceEnemySkill(${i},'am_enrage')">Ammit: nổi điên</button><button class="dbg-btn" onclick="debugForceEnemySkill(${i},'am_exposed')">Ammit: Lộ Diện</button><button class="dbg-btn" onclick="debugAmmitTTK()">Ammit: thử TTK</button>`;
         if (e.type === 'marchosias') return `<button class="dbg-btn" onclick="debugForceEnemySkill(${i},'sword')">Sword</button>`;
         if (e.type === 'dargruel') return `<button class="dbg-btn" onclick="debugForceEnemySkill(${i},'haki')">Maou Haki</button><button class="dbg-btn" onclick="debugForceEnemySkill(${i},'chains')">Chains</button>`;
         if (e.type === 'raphael') return `<button class="dbg-btn" onclick="debugForceEnemySkill(${i},'laser')">Laser</button><button class="dbg-btn" onclick="debugForceEnemySkill(${i},'wisdom_orb')">Wisdom Orb</button>`;
@@ -1861,7 +2012,7 @@ window.debugSetYuukiBonus = function () {
         return '';
     }
 
-    const BOSS_TYPES = ['apostle', 'thaelis', 'raphael', 'marchosias', 'dargruel', 'veilshroud', 'uriel', 'leviathan', 'egregor', 'goliath'];
+    const BOSS_TYPES = ['apostle', 'thaelis', 'raphael', 'marchosias', 'dargruel', 'veilshroud', 'uriel', 'leviathan', 'egregor', 'ammit', 'goliath'];
 
     function refreshEnemyList() {
         const el = document.getElementById('dbgEnemyList');
@@ -1893,8 +2044,17 @@ window.debugSetYuukiBonus = function () {
           <button class="dbg-btn" onclick="debugApplyVuln(${i})" title="Vulnerability stacks: ${e.vulnStacks || 0}/4">+Vuln (${e.vulnStacks || 0}/4)</button>
         </div>
         <div class="dbg-row" style="flex-wrap:wrap;">${enemySkillButtons(e)}${enemyDefenseNote(e)}</div>
+        ${e.type === 'ammit' ? `<div id="ammitMetrics_${e._amId}" style="font:12px monospace"></div>` : ''}
       </div>`;
         }).join('');
+        for (let i = 0; i < enemies.length; i++) {
+            const e = enemies[i]; if (e.type !== 'ammit') continue;
+            const node = document.getElementById('ammitMetrics_' + e._amId); if (!node) continue;
+            const bucket = Math.floor(_ammitPassiveNow(e) / AMMIT_DAMAGE_BUCKET); let sum = 0;
+            for (let j = 0; j < AMMIT_DAMAGE_SLOTS; j++) if (bucket - e._amDmgT[j] < 100) sum += e._amDmgL[j];
+            const dps = sum / 5;
+            node.textContent = 'Ammit: số đo cân bằng. DR ' + Math.round(_ammitDR(e) * 100) + '%, giáp ' + _ammitArmor(e) + ', vải ' + e._amWraps + ' (' + Math.ceil(e._amWrapPool) + '), Lông Vũ ' + e._amFeather + ', Tim ' + e._amHearts + ', chiêu ' + e._amSkill + ', nổi điên ' + e._amEnraged + ', mất máu 5s ' + Math.round(sum) + ', DPS ' + Math.round(dps) + ', TTK ' + (dps > 0 ? (e.hp / dps).toFixed(1) + 's' : 'chưa đủ số đo') + ', Lộ Diện ' + e._amExposedCount;
+        }
     }
 
     // Sentinels

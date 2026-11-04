@@ -77,6 +77,7 @@ function drawSkillButton(x, y, key, color, cooldown, lastActivation, activeCondi
 
 const _skillButtonRgb = Object.create(null);
 function drawSkillButtons() {
+    if (window._tutHudAllHidden && window._tutHudAllHidden()) return;
     const now = performance.now();
     const skillAReady = (now - lastSkillA >= _skillACooldown()) && skillAOrbs.length < maxSkillAOrbs;
 
@@ -116,6 +117,7 @@ function drawSkillButtons() {
     function rowY(idx) { return panelY + padY + idx * (pH + rowGap); }
 
     function _pill(py, keyLabel, color, opts) {
+        if (window._tutHudHidden && window._tutHudHidden(keyLabel)) return;
         const { cd = -1, lastAct = 0, active = false, charge = -1, activeLabel = 'ACTIVE' } = opts;
         let isReady = false, remaining = 0;
         if (charge !== -1) {

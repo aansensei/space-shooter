@@ -223,6 +223,238 @@
         }
         #guideBtn:focus-visible, #settingsBtn:focus-visible { outline: 2px solid #00e5ff; outline-offset: 3px; }
 
+        /* Game mode bar: as wide as the hyperjump button, opens the voyage picker. */
+        #modeBtn {
+            width: 340px;
+            box-sizing: border-box;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 6px 16px 6px 7px;
+            margin-bottom: 16px;
+            font-family: 'Orbitron', sans-serif;
+            text-align: left;
+            color: #00e5ff;
+            background: rgba(0, 20, 40, 0.7);
+            border: 1.5px solid rgba(0, 229, 255, 0.4);
+            border-radius: 30px;
+            cursor: pointer;
+            backdrop-filter: blur(8px);
+            box-shadow: 0 0 20px rgba(0, 229, 255, 0.15);
+            transition: all 0.25s;
+        }
+        #modeBtn .gm-thumb {
+            width: 52px;
+            height: 32px;
+            flex-shrink: 0;
+            border-radius: 16px;
+            border: 1px solid rgba(0, 229, 255, 0.45);
+            background: #050a1c;
+            image-rendering: pixelated;
+        }
+        #modeBtn .gm-text { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 3px; }
+        #modeBtn .gm-kicker { font-size: 8px; font-weight: 700; letter-spacing: 3px; text-transform: uppercase; color: rgba(140, 166, 198, 0.9); }
+        #modeBtn .gm-name { font-size: 12px; font-weight: 700; letter-spacing: 2px; text-transform: uppercase; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        #modeBtn .gm-soon {
+            flex-shrink: 0;
+            padding: 3px 7px;
+            font-size: 8px;
+            font-weight: 700;
+            letter-spacing: 2px;
+            text-transform: uppercase;
+            color: #1a1204;
+            background: #E8C46A;
+            border-radius: 2px;
+        }
+        #modeBtn .gm-soon[hidden] { display: none; }
+        #modeBtn .gm-chev { width: 14px; height: 14px; flex-shrink: 0; transition: transform 0.25s; }
+        #modeBtn[aria-expanded="true"] .gm-chev { transform: rotate(180deg); }
+        #modeBtn.gm-vi, #mode-panel.gm-vi { --gm-font: 'Segoe UI', system-ui, -apple-system, 'Helvetica Neue', sans-serif; }
+        #modeBtn.gm-vi { font-family: 'Segoe UI', system-ui, -apple-system, sans-serif; }
+        #modeBtn.gm-vi .gm-name { letter-spacing: 1px; }
+        @media (hover: hover) and (pointer: fine) {
+            #modeBtn:hover {
+                color: #e6fdff;
+                background: rgba(0, 60, 90, 0.85);
+                border-color: #00e5ff;
+                box-shadow: 0 0 26px rgba(0, 229, 255, 0.45), inset 0 0 12px rgba(0, 229, 255, 0.18);
+                transform: translateY(-2px);
+            }
+            #modeBtn:active { transform: translateY(0) scale(0.98); }
+        }
+        #modeBtn:focus-visible { outline: 2px solid #00e5ff; outline-offset: 3px; }
+        #start-hyperjump-btn.gm-locked {
+            background: linear-gradient(45deg, #2b4a56, #1c2f4d);
+            box-shadow: none;
+            color: rgba(255, 255, 255, 0.55);
+            cursor: not-allowed;
+        }
+        #start-hyperjump-btn.gm-locked:hover { transform: none; box-shadow: none; }
+
+        /* Voyage picker: a notification card with one tall art card per mode. Colours and fonts follow the Settings panel. */
+        #modeOverlay {
+            position: fixed;
+            inset: 0;
+            z-index: 999999999;
+            display: none;
+            justify-content: center;
+            align-items: center;
+            padding: 12px;
+            background: rgba(1, 3, 10, 0.72);
+            opacity: 0;
+            transition: opacity 0.18s ease;
+        }
+        #modeOverlay.gm-open { opacity: 1; }
+        #mode-panel {
+            --rc-electric: #00E5FF;
+            --rc-turquoise: #3FA9F5;
+            --rc-silver: #DCE8F5;
+            --rc-silver-dim: #8CA6C6;
+            --rc-gold: #E8C46A;
+            --gm-font: 'Segoe UI', system-ui, -apple-system, 'Helvetica Neue', sans-serif;
+            --gm-title: 'Cinzel', 'Palatino Linotype', Georgia, serif;
+            position: relative;
+            isolation: isolate;
+            width: min(94vw, 720px);
+            max-height: 92vh;
+            max-height: 92dvh;
+            display: flex;
+            flex-direction: column;
+            font-family: var(--gm-font);
+            color: var(--rc-silver);
+            background: linear-gradient(160deg, rgba(0, 229, 255, 0.6) 0%, rgba(63, 169, 245, 0.18) 30%, rgba(63, 169, 245, 0.14) 72%, rgba(232, 196, 106, 0.55) 100%);
+            clip-path: polygon(18px 0, 100% 0, 100% calc(100% - 18px), calc(100% - 18px) 100%, 0 100%, 0 18px);
+            user-select: none;
+            -webkit-user-select: none;
+            text-align: left;
+            letter-spacing: normal;
+            line-height: 1.3;
+            transform: translateY(10px) scale(0.98);
+            transition: transform 0.22s ease;
+        }
+        #modeOverlay.gm-open #mode-panel { transform: none; }
+        #mode-panel.gm-vi { --gm-title: 'Playfair Display', Georgia, serif; }
+        #mode-panel::before {
+            content: "";
+            position: absolute;
+            inset: 1px;
+            z-index: -1;
+            background: linear-gradient(180deg, #081430 0%, #040a1c 55%, #030714 100%);
+            clip-path: polygon(17.5px 0, 100% 0, 100% calc(100% - 17.5px), calc(100% - 17.5px) 100%, 0 100%, 0 17.5px);
+        }
+        .gm-head { position: relative; display: flex; align-items: center; justify-content: center; padding: 16px 56px 12px; }
+        .gm-head::after {
+            content: "";
+            position: absolute;
+            left: 18px;
+            right: 18px;
+            bottom: 0;
+            height: 1px;
+            background: linear-gradient(90deg, rgba(63, 169, 245, 0) 0%, rgba(63, 169, 245, 0.45) 30%, rgba(232, 196, 106, 0.65) 50%, rgba(63, 169, 245, 0.45) 70%, rgba(63, 169, 245, 0) 100%);
+        }
+        .gm-title-row { display: inline-flex; align-items: center; gap: 10px; font-family: var(--gm-title); font-size: 19px; font-weight: 700; letter-spacing: 0.2em; text-transform: uppercase; color: #F4FBFF; }
+        .gm-mark { display: inline-block; width: 7px; height: 7px; flex-shrink: 0; transform: rotate(45deg); border: 1px solid var(--rc-gold); background: var(--rc-gold); box-shadow: inset 0 0 0 1.5px #071026; }
+        .gm-close {
+            position: absolute;
+            top: 8px;
+            right: 14px;
+            width: 44px;
+            height: 44px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 0;
+            color: var(--rc-silver-dim);
+            background: none;
+            border: 0;
+            cursor: pointer;
+        }
+        .gm-close svg { width: 18px; height: 18px; }
+        .gm-close:hover { color: #fff; }
+        .gm-close:focus-visible { outline: 2px solid var(--rc-gold); outline-offset: -4px; }
+        .gm-grid { display: grid; grid-template-columns: repeat(var(--gm-n, 3), 1fr); gap: 10px; padding: 14px 16px 18px; overflow-y: auto; }
+        .gm-card {
+            position: relative;
+            display: block;
+            padding: 0;
+            height: min(300px, calc(92dvh - 126px));
+            overflow: hidden;
+            color: var(--rc-silver);
+            text-align: left;
+            background: #050a1c;
+            border: 1.5px solid rgba(140, 166, 198, 0.35);
+            border-radius: 4px;
+            cursor: pointer;
+            transition: transform 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease;
+            animation: gm-card-in 0.3s ease both;
+            animation-delay: calc(var(--i, 0) * 60ms + 60ms);
+        }
+        .gm-card[hidden] { display: none; }
+        @keyframes gm-card-in { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: none; } }
+        .gm-art {
+            position: absolute;
+            left: 50%;
+            top: 50%;
+            transform: translate(-50%, -50%);
+            image-rendering: pixelated;
+            filter: saturate(0.85) brightness(0.8);
+            transition: filter 0.2s ease;
+        }
+        .gm-scrim { position: absolute; inset: 0; background: linear-gradient(to top, rgba(2, 6, 18, 0.96) 0%, rgba(2, 6, 18, 0.6) 32%, rgba(2, 6, 18, 0) 60%); }
+        .gm-info { position: absolute; left: 12px; right: 12px; bottom: 12px; display: flex; flex-direction: column; gap: 5px; }
+        .gm-card .gm-title {
+            font-family: 'Orbitron', sans-serif;
+            font-size: 14px;
+            font-weight: 700;
+            line-height: 1.25;
+            letter-spacing: 2px;
+            text-transform: uppercase;
+            color: #fff;
+            text-shadow: 0 0 10px rgba(0, 229, 255, 0.55), 0 2px 3px rgba(0, 0, 0, 0.9);
+        }
+        #mode-panel.gm-vi .gm-card .gm-title { font-family: var(--gm-font); letter-spacing: 1px; font-size: 15px; }
+        .gm-desc { min-height: 2.8em; font-size: 11px; line-height: 1.4; color: #B9CBE0; text-shadow: 0 1px 2px #000; }
+        .gm-tag { position: absolute; top: 10px; left: 10px; padding: 3px 7px; font-family: 'Orbitron', sans-serif; font-size: 9px; font-weight: 700; letter-spacing: 2px; text-transform: uppercase; border-radius: 2px; }
+        #mode-panel.gm-vi .gm-tag { font-family: var(--gm-font); letter-spacing: 1px; }
+        .gm-tag-soon { color: #1a1204; background: #E8C46A; }
+        .gm-tag-dev { color: #04140a; background: #4ade80; }
+        .gm-check {
+            position: absolute;
+            top: 9px;
+            right: 9px;
+            width: 24px;
+            height: 24px;
+            display: none;
+            align-items: center;
+            justify-content: center;
+            color: #e6fdff;
+            background: rgba(0, 229, 255, 0.25);
+            border: 1.5px solid #00e5ff;
+            border-radius: 50%;
+        }
+        .gm-check svg { width: 14px; height: 14px; }
+        .gm-card.gm-selected { border-color: #00E5FF; box-shadow: 0 0 22px rgba(0, 229, 255, 0.45), inset 0 0 0 1px rgba(0, 229, 255, 0.5); }
+        .gm-card.gm-selected .gm-art { filter: none; }
+        .gm-card.gm-selected .gm-check { display: flex; }
+        @media (hover: hover) and (pointer: fine) {
+            .gm-card:hover { transform: translateY(-3px); border-color: rgba(0, 229, 255, 0.8); }
+            .gm-card:hover .gm-art { filter: none; }
+        }
+        .gm-card:focus-visible { outline: 2px solid var(--rc-gold); outline-offset: 3px; }
+        @media (max-width: 600px) and (orientation: portrait) {
+            .gm-grid { grid-template-columns: 1fr; gap: 8px; padding: 12px 12px 14px; }
+            .gm-card { height: 104px; }
+            .gm-scrim { background: linear-gradient(to right, rgba(2, 6, 18, 0.95) 0%, rgba(2, 6, 18, 0.62) 46%, rgba(2, 6, 18, 0) 82%); }
+            .gm-info { top: 0; bottom: 0; right: 36%; justify-content: center; gap: 4px; }
+            .gm-card .gm-title { font-size: 13px; }
+            .gm-desc { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; min-height: 0; }
+            .gm-tag { top: 8px; }
+            .gm-title-row { font-size: 16px; letter-spacing: 0.16em; }
+        }
+        @media (prefers-reduced-motion: reduce) {
+            #modeOverlay, #mode-panel, .gm-card, .gm-art, #modeBtn .gm-chev { transition: none; animation: none; }
+        }
+
         /* On touch screens the in-game Mute and ESC buttons sit over a canvas
            that redraws every frame, so a backdrop blur would be recomputed
            each frame by the compositor. A slightly denser plain fill reads
@@ -928,6 +1160,11 @@
             bottom:calc(10px + env(safe-area-inset-bottom, 0px)); z-index:5;
             font-family:'Orbitron',sans-serif; font-size:10px; letter-spacing:1px;
             color:rgba(0,229,255,0.45); pointer-events:none; user-select:none;"></div>
+        <!-- Copyright line, bottom-left of the main menu, mirroring the cache tag on the right. -->
+        <div id="copyrightTag" style="position:fixed; left:calc(22px + env(safe-area-inset-left, 0px));
+            bottom:calc(10px + env(safe-area-inset-bottom, 0px)); z-index:5;
+            font-family:'Orbitron',sans-serif; font-size:10px; letter-spacing:1px;
+            color:rgba(0,229,255,0.45); pointer-events:none; user-select:none;">© 2024 Cao Thien An Nguyen</div>
         <canvas id="star-canvas"></canvas>
         <div id="ui-wrapper">
             <div id="lock-screen">
@@ -981,7 +1218,43 @@
                     "><span class="menu-btn-ico"><svg class="ui-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2.2" fill="currentColor" stroke="none"/><path d="M12 2.6v2.6M12 18.8v2.6M2.6 12h2.6M18.8 12h2.6M5.4 5.4l1.8 1.8M16.8 16.8l1.8 1.8M5.4 18.6l1.8-1.8M16.8 7.2l1.8-1.8"/></svg></span> Settings</button>
                 </div>
 
+                <button id="modeBtn" type="button" aria-haspopup="dialog" aria-expanded="false" onclick="openModePicker()">
+                    <canvas class="gm-thumb" id="modeThumb" width="52" height="32" aria-hidden="true"></canvas>
+                    <span class="gm-text"><span class="gm-kicker" data-i18n="mode.label">Voyage</span><span class="gm-name" id="modeName" data-i18n="mode.endless">Endless Voyage</span></span>
+                    <span class="gm-soon" id="modeSoon" data-i18n="mode.soon" hidden>Soon</span>
+                    <svg class="gm-chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg>
+                </button>
+
                 <button id="start-hyperjump-btn">Initiate Hyperjump</button>
+            </div>
+
+            <!-- Voyage picker overlay -->
+            <div id="modeOverlay" role="dialog" aria-modal="true" aria-labelledby="modeTitle">
+                <div id="mode-panel">
+                    <header class="gm-head">
+                        <div class="gm-title-row"><i class="gm-mark"></i><span id="modeTitle" data-i18n="mode.pick">Select Voyage</span></div>
+                        <button type="button" class="gm-close" id="modeClose" aria-label="Close" onclick="closeModePicker()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
+                    </header>
+                    <div class="gm-grid" id="modeGrid" role="radiogroup" aria-labelledby="modeTitle">
+                        <button type="button" class="gm-card" data-mode="endless" role="radio" aria-checked="false" style="--i:0">
+                            <canvas class="gm-art" aria-hidden="true"></canvas><span class="gm-scrim"></span>
+                            <span class="gm-check" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg></span>
+                            <span class="gm-info"><b class="gm-title" data-i18n="mode.endless">Endless Voyage</b><span class="gm-desc" data-i18n="mode.endless.desc">Survive endless waves. The standard run.</span></span>
+                        </button>
+                        <button type="button" class="gm-card" data-mode="tutorial" role="radio" aria-checked="false" style="--i:1">
+                            <canvas class="gm-art" aria-hidden="true"></canvas><span class="gm-scrim"></span>
+                            <span class="gm-tag gm-tag-soon" data-i18n="mode.soon">Soon</span>
+                            <span class="gm-check" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg></span>
+                            <span class="gm-info"><b class="gm-title" data-i18n="mode.tutorial">Tutorial</b><span class="gm-desc" data-i18n="mode.tutorial.desc">Learn to dodge and use your skills.</span></span>
+                        </button>
+                        <button type="button" class="gm-card" data-mode="custom" role="radio" aria-checked="false" style="--i:2">
+                            <canvas class="gm-art" aria-hidden="true"></canvas><span class="gm-scrim"></span>
+                            <span class="gm-tag gm-tag-dev" data-i18n="mode.dev">Dev</span>
+                            <span class="gm-check" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg></span>
+                            <span class="gm-info"><b class="gm-title" data-i18n="mode.custom">Custom Voyage</b><span class="gm-desc" data-i18n="mode.custom.desc">Debug sandbox with an empty field and the console.</span></span>
+                        </button>
+                    </div>
+                </div>
             </div>
 
             <!-- Guide iframe overlay -->
@@ -2288,16 +2561,26 @@
                         'pause.peekHint': 'Click/Tap anywhere or press Esc to return',
                         'confirmMenu.message': 'Abort the voyage? Your flight log will be sealed here.',
                         'whatsNew.title': "What's New",
-                        'whatsNew.release': 'v6.9.6 · Sentinel Spear',
-                        'whatsNew.i1': "<b>Sentinel Spear:</b> every Sentinel throws a golden spear every 2.5s that pierces and spreads across targets.",
-                        'whatsNew.i2': "<b>Dragon God Marshal bow:</b> a dragon bow bends back as the spear charges.",
-                        'whatsNew.i3': "<b>Twelve Sentinels:</b> +12% damage reduction, spears pierce 4, and every 12s the whole swarm throws together.",
-                        'whatsNew.i4': "<b>Egregor:</b> harder to burst down, and Null Slash costs a life above 3 rage with a grander charge and landing.",
-                        'whatsNew.i5': "<b>Phantom:</b> Veilshroud's Phantom has its own sounds and is harder to burst down.",
-                        'whatsNew.i6': "<b>Warnings:</b> area attacks share a brighter red warning, with a Red danger warning switch in Settings.",
+                        'whatsNew.release': 'v7.0.0 · Kanade\u0027s Calibration',
+                        'whatsNew.i1': "<b>Kanade's Tutorial:</b> pick Tutorial on the Voyage bar. She teaches every skill, then you dodge her real attacks.",
+                        'whatsNew.i2': "<b>Dodge lessons:</b> a lesson passes only on a clean dodge. Failed lessons repeat with longer warnings, and Kanade hints after three failures.",
+                        'whatsNew.i3': "<b>Pilot Licence:</b> the Tutorial ends with a licence you can rename and save as an image.",
+                        'whatsNew.i4': "<b>Kanade:</b> new expressions and hand gestures, plus 22 new sounds.",
+                        'whatsNew.i5': "<b>Voyage picker:</b> choose Endless Voyage or Tutorial from the Voyage bar on the main menu.",
                         'whatsNew.log': 'Full Update Log',
                         'whatsNew.ok': 'Got It',
                         'confirmMenu.yes': 'YES',
+                        'mode.label': 'Voyage',
+                        'mode.pick': 'Select Voyage',
+                        'mode.endless': 'Endless Voyage',
+                        'mode.endless.desc': 'Survive endless waves. The standard run.',
+                        'mode.tutorial': 'Tutorial',
+                        'mode.tutorial.desc': 'Learn to dodge and use your skills.',
+                        'mode.custom': 'Custom Voyage',
+                        'mode.custom.desc': 'Debug sandbox with an empty field and the console.',
+                        'mode.soon': 'Soon',
+                        'mode.dev': 'Dev',
+                        'mode.comingSoon': 'Coming soon',
                         'confirmMenu.no': 'NO',
                     },
                     vi: {
@@ -2373,16 +2656,26 @@
                         'pause.peekHint': 'Click/Chạm vào bất kỳ đâu hoặc nhấn Esc để quay lại',
                         'confirmMenu.message': 'Dừng chuyến bay tại đây? Nhật ký chuyến bay sẽ khép lại.',
                         'whatsNew.title': 'Có Gì Mới',
-                        'whatsNew.release': 'v6.9.6 · Sentinel Spear',
-                        'whatsNew.i1': "<b>Mũi Giáo Sentinel:</b> mỗi Sentinel phóng một mũi giáo vàng mỗi 2,5s, xuyên nhiều kẻ địch và chia mục tiêu.",
-                        'whatsNew.i2': "<b>Cung Long Thần Soái:</b> cây cung rồng giương dần khi giáo tụ lực.",
-                        'whatsNew.i3': "<b>Đủ 12 Sentinel:</b> +12% giảm sát thương, giáo xuyên 4 và cứ 12s cả bầy phóng giáo cùng lúc.",
-                        'whatsNew.i4': "<b>Egregor:</b> khó bị đánh bùng hơn, Hư Không Trảm trên 3 tầng rage mất 1 mạng, nạp và trúng hoành tráng hơn.",
-                        'whatsNew.i5': "<b>Phantom:</b> Phantom của Veilshroud có âm thanh riêng và khó bị đánh vỡ hơn.",
-                        'whatsNew.i6': "<b>Cảnh báo:</b> đòn khu vực dùng chung vùng cảnh báo đỏ sáng hơn, có nút Red danger warning trong Cài Đặt.",
+                        'whatsNew.release': 'v7.0.0 · Kanade\u0027s Calibration',
+                        'whatsNew.i1': "<b>Hướng Dẫn của Kanade:</b> chọn Hướng Dẫn ở thanh Hành Trình. Cô chỉ từng kỹ năng, rồi bạn né những đòn tấn công thật.",
+                        'whatsNew.i2': "<b>Bài né:</b> chỉ né sạch mới qua bài. Bài thất bại sẽ lặp lại với thời gian cảnh báo dài hơn, và sau ba lần Kanade sẽ gợi ý.",
+                        'whatsNew.i3': "<b>Giấy Phép Phi Công:</b> Hướng Dẫn kết thúc bằng một giấy phép, bạn có thể đổi tên và lưu thành ảnh.",
+                        'whatsNew.i4': "<b>Kanade:</b> có thêm biểu cảm và cử chỉ tay, cùng 22 âm thanh mới.",
+                        'whatsNew.i5': "<b>Chọn Hành Trình:</b> thanh Hành Trình ở menu chính cho bạn chọn Hành Trình Vô Tận hoặc Hướng Dẫn.",
                         'whatsNew.log': 'Xem Chi Tiết',
                         'whatsNew.ok': 'Đã Hiểu',
                         'confirmMenu.yes': 'CÓ',
+                        'mode.label': 'Hành Trình',
+                        'mode.pick': 'Chọn Hành Trình',
+                        'mode.endless': 'Hành Trình Vô Tận',
+                        'mode.endless.desc': 'Sống sót qua các đợt tấn công bất tận. Lượt chơi chuẩn.',
+                        'mode.tutorial': 'Hướng Dẫn',
+                        'mode.tutorial.desc': 'Học cách né đòn và dùng kỹ năng.',
+                        'mode.custom': 'Hành Trình Tùy Chỉnh',
+                        'mode.custom.desc': 'Sân thử rỗng cùng bảng debug.',
+                        'mode.soon': 'Sắp Có',
+                        'mode.dev': 'Dev',
+                        'mode.comingSoon': 'Sắp ra mắt',
                         'confirmMenu.no': 'KHÔNG',
                     },
                 };
@@ -2413,6 +2706,7 @@
                     if (typeof refreshOfflineUI === 'function') refreshOfflineUI();
                     // Re-render guide.html content if the guide panel is open.
                     if (typeof window._refreshGuideLanguage === 'function') window._refreshGuideLanguage();
+                    if (typeof window._refreshGameModeUI === 'function') window._refreshGameModeUI();
                 }
                 window.applyLanguage = applyLanguage;
 
@@ -3826,6 +4120,7 @@
                 whiteFlash.style.transition = 'opacity 0.9s ease-out 0.15s';
                 whiteFlash.style.opacity = '0';
                 if (realStartBtn) { realStartBtn.style.display = 'none'; realStartBtn.click(); }
+                if (window._gameMode === 'custom' && typeof window.openDebugConsole === 'function') window.openDebugConsole();
                 if (typeof _initMobileControls === 'function') _initMobileControls();
 
                 // Ambient (space) + engine now; in-game BGM waits for sigil confirm
@@ -3858,6 +4153,7 @@
 
             // Return to main menu from in-game
             window._returnToMainMenu = function () {
+                if (typeof _ammitReset === 'function') _ammitReset();
                 if (typeof _leoReset === 'function') _leoReset();
                 if (typeof _dauReset === 'function') _dauReset();
                 _tyReset();
@@ -3897,6 +4193,7 @@
                 const _sb = document.getElementById('settingsBtn'); if (_sb) _sb.style.display = '';
                 // the field restarts away from the constellation and drifts back into it
                 jumpStart = -1; jumpSkipShift = 0; handedOff = false;
+                if (typeof window._gameModeAfterMenuReturn === 'function') window._gameModeAfterMenuReturn();
                 speed = 0.8;
                 beginAlign();
                 startLoop();
@@ -3928,6 +4225,8 @@
             };
 
             document.getElementById('start-hyperjump-btn').addEventListener('click', () => {
+                if (typeof window._gameModeLocked === 'function' && window._gameModeLocked()) return;
+                if (jumpStart < 0 && typeof window._prepareGameMode === 'function') window._prepareGameMode(window._gameMode);
                 if (jumpStart >= 0) return;
                 lockScreen.style.display = 'none';
                 const _gb = document.getElementById('guideBtn'); if (_gb) _gb.style.display = 'none';
@@ -3957,6 +4256,327 @@
             });
         })();
     </script>
+
+        <!-- GAME MODE PICKER -->
+    <script>
+        (function () {
+            // every mode the menu can start; ready false locks the hyperjump button, img takes a PNG path once painted art exists
+            const GAME_MODES = {
+                endless: { ready: true, persist: true, img: '' },
+                tutorial: { ready: true, persist: true, img: '' },
+                custom: { ready: true, persist: false, img: '' }
+            };
+            const KEY = { endless: 'mode.endless', tutorial: 'mode.tutorial', custom: 'mode.custom' };
+            const $ = (id) => document.getElementById(id);
+            const tr = (k) => (typeof window._t === 'function' ? window._t(k) : k);
+            // the sandbox needs the debug console, which only loads on a local host
+            const customAvailable = () => typeof window._debugPrepareSession === 'function';
+            const reduced = !!(window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches);
+            let mode = 'endless';
+            let open = false;
+            window._gameMode = mode;
+
+            function rng(seed) { let s = seed >>> 0; return function () { s = (Math.imul(s, 1664525) + 1013904223) >>> 0; return s / 4294967296; }; }
+            function px(g, x, y, w, h, c) { g.fillStyle = c; g.fillRect(Math.round(x), Math.round(y), Math.max(1, Math.round(w)), Math.max(1, Math.round(h))); }
+            function disc(g, cx, cy, r, c) {
+                const R = Math.round(r);
+                for (let dy = -R; dy <= R; dy++) { const half = Math.round(Math.sqrt(Math.max(0, R * R - dy * dy))); px(g, cx - half, cy + dy, half * 2 + 1, 1, c); }
+            }
+            // a one pixel ring, optionally limited to an arc
+            function ring(g, cx, cy, r, c, a0, a1) {
+                const R = Math.round(r), x0 = Math.round(cx), y0 = Math.round(cy);
+                for (let y = -R - 1; y <= R + 1; y++) for (let x = -R - 1; x <= R + 1; x++) {
+                    const d = Math.sqrt(x * x + y * y);
+                    if (d > R + 0.5 || d <= R - 0.5) continue;
+                    if (a0 !== undefined) { let a = Math.atan2(y, x); if (a < 0) a += Math.PI * 2; if (a < a0 || a > a1) continue; }
+                    px(g, x0 + x, y0 + y, 1, 1, c);
+                }
+            }
+            // eight pointed twinkle: centre, four arms of two pixels and four diagonals
+            function star8(g, x, y, c, core) {
+                const P = [[1, 0], [2, 0], [-1, 0], [-2, 0], [0, 1], [0, 2], [0, -1], [0, -2], [1, 1], [1, -1], [-1, 1], [-1, -1]];
+                for (let i = 0; i < P.length; i++) px(g, x + P[i][0], y + P[i][1], 1, 1, c);
+                px(g, x, y, 1, 1, core || '#ffffff');
+            }
+            function blob(g, cx, cy, rx, ry, c) {
+                rx = Math.max(1, Math.round(rx)); ry = Math.max(1, Math.round(ry));
+                for (let y = -ry; y <= ry; y++) for (let x = -rx; x <= rx; x++) {
+                    const d = (x * x) / (rx * rx) + (y * y) / (ry * ry);
+                    if (d < 0.45 || (d < 1 && ((x + y) & 1) === 0)) px(g, cx + x, cy + y, 1, 1, c);
+                }
+            }
+            // banded vertical gradient with a checker dither on every band edge, plus scattered stars
+            function sky(g, w, h, stops, seed, count) {
+                const n = stops.length, bh = h / n;
+                for (let i = 0; i < n; i++) px(g, 0, Math.floor(i * bh), w, Math.ceil(bh) + 1, stops[i]);
+                for (let i = 1; i < n; i++) {
+                    const y = Math.floor(i * bh);
+                    for (let x = 0; x < w; x += 2) { px(g, x + (i & 1), y - 1, 1, 1, stops[i]); px(g, x + ((i + 1) & 1), y, 1, 1, stops[i - 1]); }
+                }
+                const r = rng(seed), cols = ['#ffffff', '#9fe8ff', '#c9b8ff', '#5b7fb8', '#5b7fb8'];
+                for (let i = 0; i < count; i++) px(g, Math.floor(r() * w), Math.floor(r() * h), 1, 1, cols[Math.floor(r() * cols.length)]);
+            }
+            function sprite(g, x, y, rows, pal) {
+                const ox = Math.round(x - rows[0].length / 2), oy = Math.round(y - rows.length / 2);
+                for (let j = 0; j < rows.length; j++) for (let i = 0; i < rows[j].length; i++) { const ch = rows[j][i]; if (ch !== '.') px(g, ox + i, oy + j, 1, 1, pal[ch]); }
+            }
+            function rotCW(rows) {
+                const n = rows.length, m = rows[0].length, out = [];
+                for (let j = 0; j < m; j++) { let s = ''; for (let i = n - 1; i >= 0; i--) s += rows[i][j]; out.push(s); }
+                return out;
+            }
+
+            const SHIP = rotCW(['...W...', '..WCW..', '..WCW..', '.WWCWW.', 'WBWCWBW', 'WB.B.BW', '..FfF..']);
+            const SHIP_PAL = { W: '#e8f6ff', C: '#00e5ff', B: '#3a7bd5', F: '#ffd27a', f: '#ff7a3a' };
+            // focus of each painting: the card keeps it in the clear upper part, the phone strip keeps it right of the text, the thumbnail centres it
+            function focus(w, h, kind) {
+                if (kind === 'strip') return { kind: kind, cx: w * 0.72, cy: h * 0.5, R: h * 0.38 };
+                if (kind === 'thumb') return { kind: kind, cx: w * 0.5, cy: h * 0.5, R: h * 0.4 };
+                return { kind: 'card', cx: w * 0.5, cy: h * 0.37, R: Math.min(w * 0.38, h * 0.3) };
+            }
+            // Endless Voyage: a ship riding an infinity loop above a lit planet
+            function artEndless(g, w, h, f) {
+                sky(g, w, h, ['#050b24', '#08133a', '#0d1d5a', '#13297a', '#1a3590'], 11, Math.round(w * h / 55));
+                blob(g, w * 0.22, h * 0.22, w * 0.26, h * 0.12, '#2a1b6e');
+                blob(g, w * 0.86, h * 0.5, w * 0.22, h * 0.12, '#0b4663');
+                const pr = f.kind === 'card' ? w * 0.82 : Math.max(w * 0.45, f.R * 2.4), pcx = f.cx, pcy = h * (f.kind === 'card' ? 0.64 : 0.72) + pr;
+                disc(g, pcx, pcy, pr + 1, '#69dcff');
+                disc(g, pcx, pcy, pr, '#0d4466');
+                disc(g, pcx, pcy + 3, pr - 2, '#09304f');
+                const rp = rng(5);
+                for (let i = 0; i < 10; i++) {
+                    const x = pcx + (rp() - 0.5) * pr * 1.2, y = pcy - pr + 4 + rp() * Math.max(3, h * 0.08);
+                    if (Math.hypot(x - pcx, y - pcy) < pr - 3) px(g, x, y, 1, 1, '#ffe9a8');
+                }
+                const cx = f.cx, cy = f.cy, a = f.R * 1.2, ky = 1.5;
+                const at = function (t) { const s = Math.sin(t), d = 1 + s * s; return [cx + a * Math.cos(t) / d, cy + ky * a * s * Math.cos(t) / d]; };
+                for (let i = 0; i < 260; i++) { const p = at(i / 260 * Math.PI * 2); px(g, p[0], p[1], 1, 1, '#2a78c8'); }
+                const t0 = 5.5, span = 2.6, TR = ['#ffffff', '#c8f8ff', '#00e5ff', '#12b4de', '#1585b8', '#17609a'];
+                for (let i = 0; i <= 120; i++) {
+                    const u = i / 120, p = at(t0 - u * span), k = Math.min(TR.length - 1, Math.floor(u * TR.length));
+                    px(g, p[0], p[1], 1, 1, TR[k]);
+                    if (u < 0.5) px(g, p[0], p[1] + 1, 1, 1, TR[Math.min(TR.length - 1, k + 1)]);
+                }
+                const sp = at(t0);
+                sprite(g, sp[0] + 1, sp[1], SHIP, SHIP_PAL);
+                star8(g, cx, cy, '#7df3ff', '#ffffff');
+                if (w >= 40) { star8(g, w * 0.13, h * 0.1, '#9fe8ff'); star8(g, w * 0.9, h * 0.14, '#c9b8ff'); }
+                const mr = Math.max(2, Math.round(Math.min(w, h) * 0.05));
+                disc(g, w * 0.1, h * 0.3, mr, '#c9d6ff'); disc(g, w * 0.1 + 1, h * 0.3 + 1, Math.max(1, mr - 1), '#8a97c9');
+            }
+
+            const KAN = ['...HHHHH...', '..HHHHHHH..', '..HHFFFHH..', '..HHFFFHH..', '..HHHFHHH..', '..HCCCCCH..', '.HCCCGCCCH.', '.HCCDDDCCH.', '.HCSDDDSCH.', '.HCSDGDSCH.', '.HCSDDDSCH.', 'HHCSDDDSCHH', 'HHCCDDDCCHH', '.HCCDDDCCH.', '..CCDDDCC..', '..CSDDDSC..', '...BB.BB...'];
+            const KAN_MINI = ['..HHH..', '.HFFFH.', '.HHFHH.', '.CCGCC.', 'CCDDDCC', 'CSDDDSC', 'CCDDDCC', '.CDDDC.', '.CDDDC.', '..B.B..'];
+            const KAN_PAL = { H: '#2b2f6b', F: '#f5ddd0', C: '#f4f1ff', S: '#c9c3ee', D: '#2c3b94', G: '#e8c46a', B: '#1a1a3a' };
+            function bubble(g, x, y, bw, bh) {
+                x = Math.round(x); y = Math.round(y);
+                px(g, x + 1, y, bw - 2, bh, '#b98cff'); px(g, x, y + 1, bw, bh - 2, '#b98cff');
+                px(g, x + 2, y + 1, bw - 4, bh - 2, '#f4f1ff'); px(g, x + 1, y + 2, bw - 2, bh - 4, '#f4f1ff');
+                px(g, x + 2, y + bh, 2, 1, '#b98cff'); px(g, x + 1, y + bh + 1, 2, 1, '#b98cff');
+                const cy = y + Math.floor(bh / 2) - 1, cx = x + Math.floor(bw / 2) - 3;
+                for (let i = 0; i < 3; i++) px(g, cx + i * 3, cy, 2, 2, '#2c3b94');
+            }
+            // Tutorial: the reality gate with a guide standing in it and a speech bubble
+            function artTutorial(g, w, h, f) {
+                sky(g, w, h, ['#0a051f', '#12093a', '#1c0f55', '#27146e'], 23, Math.round(w * h / 70));
+                const gx = f.cx, gy = f.cy, gr = Math.round(f.R);
+                disc(g, gx, gy, gr + 7, '#1d0e47');
+                const rg = Math.round(gr + 7);
+                for (let y = -rg; y <= rg; y++) for (let x = -rg; x <= rg; x++) { const d = Math.sqrt(x * x + y * y); if (d > gr + 3 && d <= gr + 7 && ((x + y) & 1) === 0) px(g, gx + x, gy + y, 1, 1, '#3a1c85'); }
+                disc(g, gx, gy, gr + 2, '#b98cff');
+                disc(g, gx, gy, gr, '#08031a');
+                const rs = rng(9);
+                for (let i = 0; i < 26; i++) { const an = rs() * Math.PI * 2, d = Math.sqrt(rs()) * (gr - 2); px(g, gx + Math.cos(an) * d, gy + Math.sin(an) * d, 1, 1, rs() < 0.3 ? '#ffffff' : '#7a5ad0'); }
+                ring(g, gx, gy, gr - 2, '#4b2a9a'); ring(g, gx, gy, Math.round(gr * 0.64), '#5a34b8');
+                ring(g, gx, gy, gr + 2, '#efe0ff', Math.PI * 0.95, Math.PI * 1.6);
+                if (gr >= 10) for (let i = 0; i < 12; i++) { const an = i * Math.PI / 6 + 0.26; px(g, gx + Math.cos(an) * (gr + 5), gy + Math.sin(an) * (gr + 5), 1, 1, '#e8c46a'); }
+                const fig = gr >= 16 ? KAN : KAN_MINI, foot = gy + gr * 0.78;
+                px(g, gx - gr * 0.5, foot + 1, gr, 1, '#4b2a9a');
+                sprite(g, gx, foot - fig.length / 2 + 1, fig, KAN_PAL);
+                const bw = Math.max(14, Math.min(24, Math.round(w * (f.kind === 'thumb' ? 0.3 : 0.42)))), bh = f.kind === 'card' ? 11 : Math.max(7, Math.round(h * 0.3));
+                if (f.kind === 'strip') bubble(g, Math.max(1, gx - gr - bw - 3), 2, bw, bh);
+                else bubble(g, w - bw - 2, f.kind === 'thumb' ? 1 : 3, bw, bh);
+                star8(g, f.kind === 'strip' ? gx + gr + 7 : w * 0.15, f.kind === 'strip' ? h * 0.72 : h * 0.6, '#e8c46a', '#fff4c9');
+                if (f.kind === 'card') star8(g, w * 0.86, h * 0.5, '#b98cff');
+            }
+
+            // Custom Voyage: a console window, a gear and tuning sliders
+            function artCustom(g, w, h, f) {
+                const r = rng(37);
+                px(g, 0, 0, w, h, '#07121c');
+                for (let x = 0; x < w; x += 8) px(g, x, 0, 1, h, '#0b1d2c');
+                for (let y = 0; y < h; y += 8) px(g, 0, y, w, 1, '#0b1d2c');
+                let tx, ty, tw, th, gx, gy, gr;
+                if (f.kind === 'strip') { tx = Math.round(w * 0.52); ty = Math.round(h * 0.1); tw = Math.round(w * 0.44); th = Math.round(h * 0.8); gx = w * 0.93; gy = h * 0.74; gr = Math.max(3, Math.round(h * 0.17)); }
+                else if (f.kind === 'thumb') { tx = Math.round(w * 0.08); ty = Math.round(h * 0.12); tw = Math.round(w * 0.62); th = Math.round(h * 0.76); gx = w * 0.8; gy = h * 0.64; gr = Math.max(3, Math.round(h * 0.22)); }
+                else { tx = Math.round(w * 0.1); ty = Math.round(h * 0.05); tw = Math.round(w * 0.8); th = Math.round(h * 0.34); gx = w * 0.76; gy = h * 0.4; gr = Math.max(4, Math.round(w * 0.11)); }
+                px(g, tx - 1, ty - 1, tw + 2, th + 2, '#1d4a6a'); px(g, tx, ty, tw, th, '#050d14'); px(g, tx, ty, tw, 5, '#10293d');
+                px(g, tx + 2, ty + 2, 1, 1, '#ff6b6b'); px(g, tx + 4, ty + 2, 1, 1, '#f5a524'); px(g, tx + 6, ty + 2, 1, 1, '#4ade80');
+                const cols = ['#4ade80', '#00e5ff', '#f5a524', '#7b8ba0'];
+                let ly = ty + 8, curX = tx + 3, curY = ty + 8;
+                while (ly + 2 < ty + th - 1) {
+                    let lx = tx + 3 + Math.floor(r() * 3) * 3;
+                    const end = tx + tw - 3, segs = 1 + Math.floor(r() * 3);
+                    for (let s = 0; s < segs; s++) { const len = 3 + Math.floor(r() * 9); if (lx + len > end) break; px(g, lx, ly, len, 1, cols[Math.floor(r() * 4)]); lx += len + 2; }
+                    curX = lx; curY = ly; ly += 4;
+                }
+                px(g, curX, curY - 1, 2, 3, '#4ade80');
+                for (let i = 0; i < 8; i++) { const an = i * Math.PI / 4; px(g, gx + Math.cos(an) * (gr + 1) - 1, gy + Math.sin(an) * (gr + 1) - 1, 3, 3, '#f5a524'); }
+                disc(g, gx, gy, gr, '#f5a524');
+                disc(g, gx, gy, Math.max(1, Math.round(gr * 0.42)), '#07121c');
+                ring(g, gx, gy, gr, '#ffd27a', Math.PI * 0.95, Math.PI * 1.6);
+                if (f.kind === 'card') {
+                    const x0 = Math.round(w * 0.1), x1 = Math.round(w * 0.5), K = [0.7, 0.35];
+                    for (let i = 0; i < 2; i++) {
+                        const y = Math.round(h * 0.47 + i * 6), kx = Math.round(x0 + (x1 - x0) * K[i]);
+                        px(g, x0, y, x1 - x0, 1, '#1b3a52'); px(g, x0, y, kx - x0, 1, '#00e5ff'); px(g, kx - 1, y - 1, 3, 3, '#e6fdff');
+                    }
+                }
+            }const PAINT = { endless: artEndless, tutorial: artTutorial, custom: artCustom };
+            const imgs = {};
+            function modeImage(m) {
+                const src = GAME_MODES[m].img;
+                if (!src) return null;
+                let im = imgs[m];
+                if (!im) { im = imgs[m] = new Image(); im.onload = function () { repaint(); }; im.src = src; }
+                return im.complete && im.naturalWidth > 0 ? im : null;
+            }
+            function paint(canvas, m, w, h, kind) {
+                canvas.width = w; canvas.height = h;
+                const g = canvas.getContext('2d');
+                g.imageSmoothingEnabled = false;
+                const im = modeImage(m);
+                if (im) {
+                    const k = Math.max(w / im.naturalWidth, h / im.naturalHeight), sw = w / k, sh = h / k;
+                    g.drawImage(im, (im.naturalWidth - sw) / 2, (im.naturalHeight - sh) / 2, sw, sh, 0, 0, w, h);
+                } else PAINT[m](g, w, h, focus(w, h, kind));
+            }
+            function visibleCards() {
+                return Array.prototype.filter.call(document.querySelectorAll('#modeGrid .gm-card'), function (c) { return !c.hidden; });
+            }
+            // each card canvas is an integer multiple of its pixel art, centred and cropped by the card, so pixels stay square
+            function paintCards() {
+                const cards = visibleCards();
+                for (let i = 0; i < cards.length; i++) {
+                    const rc = cards[i].getBoundingClientRect(), cv = cards[i].querySelector('.gm-art');
+                    if (!rc.width || !cv) continue;
+                    const s = rc.width >= 200 ? 4 : 3, w = Math.max(24, Math.ceil(rc.width / s)), h = Math.max(24, Math.ceil(rc.height / s));
+                    paint(cv, cards[i].dataset.mode, w, h, rc.width / rc.height > 1.8 ? 'strip' : 'card');
+                    cv.style.width = (w * s) + 'px'; cv.style.height = (h * s) + 'px';
+                }
+            }
+            function paintThumb() { const t = $('modeThumb'); if (t) paint(t, mode, 52, 32, 'thumb'); }
+            function repaint() { paintThumb(); if (open) paintCards(); }
+
+            function updateLock() {
+                const btn = $('start-hyperjump-btn');
+                if (!btn) return;
+                if (!btn.dataset.label) btn.dataset.label = btn.textContent;
+                const locked = !GAME_MODES[mode].ready;
+                btn.classList.toggle('gm-locked', locked);
+                btn.setAttribute('aria-disabled', locked ? 'true' : 'false');
+                btn.textContent = locked ? tr('mode.comingSoon') : btn.dataset.label;
+            }
+            function updateUI() {
+                const vi = window._lang === 'vi', name = $('modeName'), soon = $('modeSoon'), bar = $('modeBtn'), panel = $('mode-panel');
+                if (bar) bar.classList.toggle('gm-vi', vi);
+                if (panel) panel.classList.toggle('gm-vi', vi);
+                if (name) { name.dataset.i18n = KEY[mode]; name.textContent = tr(KEY[mode]); }
+                if (soon) soon.hidden = GAME_MODES[mode].ready;
+                const soonTag = document.querySelector('#modeGrid .gm-tag-soon');
+                if (soonTag) soonTag.hidden = GAME_MODES.tutorial.ready;
+                const cards = document.querySelectorAll('#modeGrid .gm-card');
+                for (let i = 0; i < cards.length; i++) {
+                    const m = cards[i].dataset.mode, on = m === mode;
+                    cards[i].classList.toggle('gm-selected', on);
+                    cards[i].setAttribute('aria-checked', on ? 'true' : 'false');
+                    if (m === 'custom') cards[i].hidden = !customAvailable();
+                }
+                const grid = $('modeGrid');
+                if (grid) grid.style.setProperty('--gm-n', String(visibleCards().length || 1));
+                updateLock();
+            }
+            window._refreshGameModeUI = updateUI;
+
+            window.selectGameMode = function (m) {
+                if (!GAME_MODES[m]) m = 'endless';
+                if (m === 'custom' && !customAvailable()) m = 'endless';
+                mode = m;
+                window._gameMode = m;
+                if (GAME_MODES[m].persist) { try { localStorage.setItem('pisces_mode', m); } catch (_) { } }
+                updateUI();
+                paintThumb();
+            };
+            window._gameModeLocked = function () { return !GAME_MODES[mode].ready; };
+            // the sandbox flags belong to Custom Voyage only, so every other mode clears them before a run starts
+            window._prepareGameMode = function (m) {
+                    window._runGameMode = m;
+                    // sandbox and tutorial flags belong to their own mode, so every run first clears the ones it does not use
+                    if (m !== 'tutorial' && typeof window._tutorialAbort === 'function') window._tutorialAbort();
+                    if (m === 'tutorial' && typeof window._tutorialPrepare === 'function') window._tutorialPrepare();
+                    if (m === 'custom' && customAvailable()) window._debugPrepareSession();
+                    else { window._debugSessionActive = false; window._debugWaveRosterActive = false; window._debugSkipSigilPick = false; }
+                };
+                // Custom Voyage and Tutorial are never kept: the menu opens on Endless again after any run
+                window._gameModeAfterMenuReturn = function () {
+                    if (typeof window._tutorialAbort === 'function') window._tutorialAbort();
+                    if (mode === 'custom' || mode === 'tutorial') window.selectGameMode('endless');
+                };
+
+            function onKey(e) {
+                if (!open) return;
+                const cards = visibleCards(), all = cards.concat([$('modeClose')]), i = all.indexOf(document.activeElement);
+                if (e.key === 'Escape') { e.preventDefault(); e.stopPropagation(); window.closeModePicker(true); return; }
+                if (e.key === 'ArrowRight' || e.key === 'ArrowDown' || e.key === 'ArrowLeft' || e.key === 'ArrowUp') {
+                    e.preventDefault(); e.stopPropagation();
+                    const at = cards.indexOf(document.activeElement), step = (e.key === 'ArrowRight' || e.key === 'ArrowDown') ? 1 : -1;
+                    cards[at < 0 ? 0 : (at + step + cards.length) % cards.length].focus();
+                    return;
+                }
+                if (e.key === 'Tab') {
+                    const j = i + (e.shiftKey ? -1 : 1);
+                    if (j < 0) { e.preventDefault(); all[all.length - 1].focus(); } else if (j >= all.length) { e.preventDefault(); all[0].focus(); }
+                }
+            }
+            window.openModePicker = function () {
+                const ov = $('modeOverlay');
+                if (!ov || open) return;
+                open = true;
+                updateUI();
+                ov.style.display = 'flex';
+                paintCards();
+                void ov.offsetWidth;
+                ov.classList.add('gm-open');
+                $('modeBtn').setAttribute('aria-expanded', 'true');
+                const cur = ov.querySelector('.gm-card[data-mode="' + mode + '"]');
+                if (cur && !cur.hidden) cur.focus({ preventScroll: true });
+            };
+            window.closeModePicker = function (restoreFocus) {
+                const ov = $('modeOverlay');
+                if (!ov || !open) return;
+                open = false;
+                ov.classList.remove('gm-open');
+                $('modeBtn').setAttribute('aria-expanded', 'false');
+                const done = function () { if (!open) ov.style.display = 'none'; };
+                if (reduced) done(); else setTimeout(done, 200);
+                if (restoreFocus === true) $('modeBtn').focus({ preventScroll: true });
+            };
+            document.addEventListener('keydown', onKey, true);
+            $('modeOverlay').addEventListener('click', function (e) { if (e.target === $('modeOverlay')) window.closeModePicker(true); });
+            $('modeGrid').addEventListener('click', function (e) {
+                const card = e.target.closest ? e.target.closest('.gm-card') : null;
+                if (!card || card.hidden) return;
+                window.selectGameMode(card.dataset.mode);
+                window.closeModePicker(true);
+            });
+            window.addEventListener('resize', function () { if (open) paintCards(); });
+
+            let saved = 'endless';
+            try { const v = localStorage.getItem('pisces_mode'); if (GAME_MODES[v] && GAME_MODES[v].persist && GAME_MODES[v].ready) saved = v; } catch (_) { }
+            window.selectGameMode(saved);
+        })();
+    </script>
+
 
     <!-- F3 DEBUG PANEL -->
     <script>
@@ -4171,10 +4791,10 @@
 
     <script src="js/vendor/pixi.min.js"></script>
     <script src="js/canvas-guard.js?v=20261008a"></script>
-    <script src="js/audio.js?v=20261102f"></script>
-    <script src="js/offline.js?v=20261102f"></script>
+    <script src="js/audio.js?v=20261104t6"></script>
+    <script src="js/offline.js?v=20261104t6"></script>
     <script src="js/background.js?v=20261102f"></script>
-    <script src="js/config.js?v=20261103a"></script>
+    <script src="js/config.js?v=20261103g"></script>
     <script src="js/timeline-distortion.js?v=20261018c"></script>
     <script src="js/sigils/core.js?v=20261102f"></script>
     <script src="js/sigils/aries.js?v=20261012c"></script>
@@ -4193,27 +4813,28 @@
     <script src="js/sigils/dau.js?v=20261018a"></script>
     <script src="js/sigils/ty.js?v=20261025i"></script>
     <script src="js/yuusha-party.js?v=20261019a"></script>
-    <script src="js/entities/core.js?v=20261103c"></script>
-    <script src="js/entities/sentinel.js?v=20261103a"></script>
+    <script src="js/entities/core.js?v=20261104d"></script>
+    <script src="js/entities/sentinel.js?v=20261103g"></script>
     <script src="js/entities/veilshroud.js?v=20261102b"></script>
     <script src="js/entities/uriel.js?v=20261019a"></script>
     <script src="js/entities/egregor.js?v=20261103b"></script>
+    <script src="js/entities/ammit.js?v=20261104e"></script>
     <script src="js/entities/leviathan.js?v=20261019a"></script>
     <script src="js/entities/marchosias.js?v=20261103a"></script>
     <script src="js/entities/misc-enemies.js?v=20261008a"></script>
     <script src="js/entities/raphael.js?v=20261019a"></script>
     <script src="js/entities/goliath.js?v=20261102a"></script>
-    <script src="js/skills/skill-a.js?v=20261103a"></script>
-    <script src="js/skills/skill-s-spirit.js?v=20261023c"></script>
-    <script src="js/skills/skill-d.js?v=20261023b"></script>
+    <script src="js/skills/skill-a.js?v=20261104d"></script>
+    <script src="js/skills/skill-s-spirit.js?v=20261104a"></script>
+    <script src="js/skills/skill-d.js?v=20261104a"></script>
     <script src="js/skills/sigil-great-sage.js?v=20261010a"></script>
     <script src="js/skills/sigil-cancer.js?v=20260914b"></script>
-    <script src="js/skills/sigil-leo.js?v=20261023b"></script>
-    <script src="js/skills/sigil-dau.js?v=20261013p"></script>
+    <script src="js/skills/sigil-leo.js?v=20261104d"></script>
+    <script src="js/skills/sigil-dau.js?v=20261104a"></script>
     <script src="js/skills/sigil-pisces.js?v=20261014a"></script>
     <script src="js/skills/sigil-capricorn.js?v=20261019a"></script>
     <script src="js/skills/sigil-ty.js?v=20261025i"></script>
-    <script src="js/skills/skill-f.js?v=20261014a"></script>
+    <script src="js/skills/skill-f.js?v=20261104d"></script>
     <script src="js/skills/skill-g.js?v=20261103a"></script>
     <script src="js/skills/skill-shift.js?v=20260909d"></script>
     <script src="js/skills/misc-mechanics.js?v=20261019a"></script>
@@ -4221,12 +4842,12 @@
     <script src="js/skills/sigil-gemini.js?v=20260911a"></script>
     <script src="js/skills/sigil-aries.js?v=20260902a"></script>
     <script src="js/skills/sigil-virgo.js?v=20260911a"></script>
-    <script src="js/render/core.js?v=20261103b"></script>
+    <script src="js/render/core.js?v=20261104d"></script>
     <script src="js/render/kanade-face.js?v=20261015c"></script>
-    <script src="js/render/kanade-cutscene.js?v=20261102f"></script>
+    <script src="js/render/kanade-cutscene.js?v=20261104t6"></script>
     <script src="js/render/fx.js?v=20261103e"></script>
     <script src="js/render/player.js?v=20261103a"></script>
-    <script src="js/render/enemy-common.js?v=20261102c"></script>
+    <script src="js/render/enemy-common.js?v=20261104d"></script>
     <script src="js/render/enemy-raphael.js?v=20261010d"></script>
     <script src="js/render/enemy-thaelis.js?v=20261008a"></script>
     <script src="js/render/enemy-dargruel.js?v=20261010d"></script>
@@ -4236,6 +4857,8 @@
     <script src="js/render/enemy-veilshroud.js?v=20261102c"></script>
     <script src="js/render/enemy-uriel.js?v=20261102c"></script>
     <script src="js/render/enemy-egregor.js?v=20261103b"></script>
+    <script src="js/render/ammit-portal.js?v=20261104d"></script>
+  <script src="js/render/enemy-ammit.js?v=20261104d"></script>
     <script src="js/render/skill-s-spirit.js?v=20261103a"></script>
     <script src="js/render/skill-a.js?v=20261013n"></script>
     <script src="js/render/skill-d.js?v=20260914b"></script>
@@ -4247,18 +4870,20 @@
     <script src="js/render/sigil-capricorn.js?v=20261020i"></script>
     <script src="js/render/sigil-ty.js?v=20261102c"></script>
     <script src="js/render/skill-g.js?v=20261013n"></script>
-    <script src="js/render/skill-buttons.js?v=20261023a"></script>
-    <script src="js/recap.js?v=20261025c"></script>
+    <script src="js/render/skill-buttons.js?v=20261104a"></script>
+    <script src="js/recap.js?v=20261104d"></script>
     <script src="js/pixi-renderer.js?v=20261102f"></script>
-    <script src="js/input.js?v=20261019r"></script>
-    <script src="js/main.js?v=20261103a"></script>
+    <script src="js/input.js?v=20261104a"></script>
+    <script src="js/main.js?v=20261104t7"></script>
+    <script src="js/tutorial.js?v=20261104t7"></script>
+    <script src="js/tutorial-license.js?v=20261104t9"></script>
     <script>
         // Debug/cheat console is a local-dev-only tool (spawn/kill any
         // enemy, force skills, edit HP, etc.) — never fetch/load it on the
         // real deployed site, only when actually running locally.
         if (location.hostname === 'localhost' || location.hostname === '127.0.0.1' || location.protocol === 'file:') {
             const _dbgScript = document.createElement('script');
-            _dbgScript.src = 'js/debug-console.js?v=20261103a';
+            _dbgScript.src = 'js/debug-console.js?v=20261104t6';
             document.head.appendChild(_dbgScript);
         }
     </script>
@@ -5680,8 +6305,8 @@
     <script>
         (function () {
             // Bump with each update log entry that should greet returning players.
-            const RELEASE = '6.9.6';
-            const ITEMS = 6;
+            const RELEASE = '7.0.0';
+            const ITEMS = 5;
             function show() {
                 const ov = document.createElement('div');
                 ov.id = 'whatsNewOverlay';

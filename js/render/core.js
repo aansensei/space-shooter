@@ -2464,6 +2464,7 @@ function draw(deltaTime) {
     }
 
     if (gameState === "playing") {
+        _drawAmmitEntrances();
         _drawEnemyDangerWarnings();
         drawBossShockwaves();
         _drawUrielSwordTelegraphs();
@@ -2509,6 +2510,7 @@ function draw(deltaTime) {
         _drawVeilshroudEffects(); // lightning strikes + echo explosion zones
         if (typeof _drawUrielEffects === 'function') _drawUrielEffects(); // Holy Sword projectiles + death barrier
         _drawEgregorEffects();   // Psychic Tempest telegraphs/strikes + Null Slash
+        _drawAmmitEffects();     // Jaws of Ammit, Weighing of the Heart and the Duat sand pits
         _drawDimBreakZones();   // Lingering Dimension Break arcs (world-space, independent of Egregor)
         _drawEgregorDeathBursts(); // Dedicated Egregor death explosion, independent of Egregor's own lifetime
 
@@ -3119,6 +3121,7 @@ function draw(deltaTime) {
     // Kanade's boss-wave cutscene sits on top of everything, same as the
     // sigil picker - the sim is frozen behind it while it plays.
     if (window._kanadeCutscene && typeof drawKanadeCutscene === 'function') drawKanadeCutscene();
+    if (window._tutorialActive && typeof drawTutorial === 'function') drawTutorial();
     // Debug console's Kanade model viewer, over everything including the
     // cutscene so it can be opened at any time. The Pixi canvas sits above
     // this one, and its nebulae and particles would tint her through the

@@ -33,8 +33,11 @@ A fast-paced arcade space shooter with deep combat mechanics, percentage-based d
 - A small **cyan hitbox dot** at the exact center of your ship shows the true collision point — only that dot touching a bullet costs a life.
 - Enemy bullets always render on top of all effects and are outlined with a **pulsing white glow** so they remain visible in dense situations.
 - The game automatically **pauses** if you switch tabs, and resumes cleanly with no time skips.
+- The bar above **Initiate Hyperjump** picks the voyage: **Endless Voyage** is the standard run, **Tutorial** is a short guided lesson with Kanade that teaches movement, every skill and how to read attack warnings, and **Custom Voyage** is the debug sandbox (only on a local host).
 
 ---
+
+Tutorial awards a bilingual Voyage Pilot Licence after a clean pass through every dodge lesson. The licence records calibration results and can be saved as a PNG.
 
 ## Settings
 
@@ -105,7 +108,7 @@ A stacking debuff inflicted by all friendly attacks that progressively weakens e
 Activates automatically when **any of the following** is true:
 
 - More than 4 enemies are on screen
-- Any **Abnormal or higher** enemy is present (Veilshroud, Uriel, Thaelis, Raphael, Marchosias, Egregor, Dargruel, Leviathan, or Goliath)
+- Any **Abnormal or higher** enemy is present (Veilshroud, Uriel, Thaelis, Raphael, Marchosias, Egregor, Ammit, Dargruel, Leviathan, or Goliath)
 - Skill G is active
 - **Phōtokrystos** (Đại Tinh Linh Khởi Nguyên) is active
 
@@ -321,7 +324,7 @@ Phōtokrystos replaces the normal Spirit when Primeval Creation activates. A sum
 After a 2-second charge, spawns a Death Star that pulls all enemies and enemy bullets toward its center at speed 5.25. Anything that touches it takes **999,999,999 damage** — instant kill, even through Absolute Shields.
 
 - Embryos have **CC Immunity** — immune to the gravitational pull but still die at the center.
-- **Egregor** and **Dargruel** are CC Immune — the Death Star cannot pull them. If they are at the center, they take **30% of their Max HP as true damage** instead of instant kill.
+- **Egregor**, **Dargruel** and **Ammit** are CC Immune — the Death Star cannot pull them. If they are at the center, they take **30% of their Max HP as true damage** instead of instant kill.
 - The Death Star slowly floats upward and disappears off-screen.
 
 **Mark & Annihilate** — Every ~2 seconds while the Death Star is alive, it marks 3 targets (CC-Immune enemies first, since those can't be pulled to the center at all; otherwise the 3 highest-current-HP valid targets). After a 1.5s telegraph, it fires a **piercing true-damage beam** through each marked target and on to the screen edge — **100 base + 15% Max HP**, hitting every enemy the beam crosses, not just the marked one.

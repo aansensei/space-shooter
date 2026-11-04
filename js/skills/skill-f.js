@@ -229,6 +229,7 @@ function updateSkillF(deltaTime) {
             if (enemy.type === 'veilshroud_echo') continue; // untargetable
             if (enemy.type === 'thaelis_cocoon') continue; // untargetable, only its Guards can be hit
             if (enemy.inCoronation) continue;
+            if (enemy.type === 'ammit' && _ammitAbsorbHit(enemy)) continue;
             if (enemy._stealthed) continue; // Uriel mid-Camouflage: fully invisible and untargetable
             // Uriel's death barrier occludes the sweep like a flashlight hitting a wall.
             if (typeof _urielBarrierBlocksSegment === 'function' && _urielBarrierBlocksSegment(player.x, player.y, enemy.x, enemy.y)) continue;
@@ -237,6 +238,9 @@ function updateSkillF(deltaTime) {
                     if (Math.random() < 0.10) _tryTriggerMarchosiasCounter(enemy);
                 } else if (enemy.type === 'leviathan' && enemy.afoShieldActive && !_hasBuff('tu_huyet')) {
                     enemy.afoHitCount = Math.min(250, (enemy.afoHitCount || 0) + 1);
+                } else if (enemy.type === 'ammit') {
+                    dealDamage(enemy, { damage: enemy.maxHp, isTrueDamage: true, _isSkillF: true, _statSrc: 'Skill F: Annihilation Sweep' });
+                    if (enemy.hp <= 0) _onSkillFKill(enemy);
                 } else if (enemy.type === 'goliath') {
                     // Goliath: KHÔNG được set enemy.hp=0 trực tiếp như enemy
                     // thường — bỏ qua hẳn bất khả xâm phạm Alpha, Iron Body

@@ -39,7 +39,7 @@ function _leoReset() {
 // 3 = Dominator (and Goliath), 2 = Elite, 1 = Abnormal, 0 = everything else.
 function _leoEnemyRank(e) {
     if (e.type === 'goliath' || e.type === 'dargruel' || e.type === 'leviathan') return 3;
-    if (e.type === 'egregor' || e.type === 'raphael' || e.type === 'marchosias') return 2;
+    if (e.type === 'egregor' || e.type === 'raphael' || e.type === 'marchosias' || e.type === 'ammit') return 2;
     if (e.type === 'veilshroud' || e.type === 'thaelis' || e.type === 'thaelis_guard' || e.type === 'uriel') return 1;
     return 0;
 }

@@ -616,7 +616,7 @@ function updatePhotoBrangs(deltaTime) {
                         if (_hasBuff('cuc_han') && Math.random() < 0.75) {
                             tgt._slowEnd = Math.max(tgt._slowEnd || 0, now_b + 2000);
                             tgt._slowFactor = Math.max(tgt._slowFactor || 1, 1 / 0.70);
-                            const _cucCCImmune = tgt.type === 'goliath' || tgt.type === 'egregor' || tgt.type === 'dargruel' || tgt.type === 'leviathan' || tgt.type === 'uriel'
+                            const _cucCCImmune = tgt.type === 'goliath' || tgt.type === 'egregor' || tgt.type === 'dargruel' || tgt.type === 'leviathan' || tgt.type === 'uriel' || tgt.type === 'ammit'
                                 || tgt.type === 'thaelis_cocoon' || tgt.type === 'thaelis_guard'
                                 || (tgt.type === 'marchosias' && tgt.arcBarrier && tgt.arcBarrier.hp > 0)
                                 || (tgt.type === 'raphael' && tgt.raphaelInvulnerable)
@@ -765,7 +765,7 @@ function updateBladeArcProjectiles(deltaTime) {
                 if (_hasBuff('cuc_han') && Math.random() < 0.75) {
                     enemy._slowEnd = Math.max(enemy._slowEnd || 0, performance.now() + 2000);
                     enemy._slowFactor = Math.max(enemy._slowFactor || 1, 1 / 0.70);
-                    const _cucArcCCImmune = enemy.type === 'goliath' || enemy.type === 'egregor' || enemy.type === 'dargruel' || enemy.type === 'leviathan' || enemy.type === 'uriel'
+                    const _cucArcCCImmune = enemy.type === 'goliath' || enemy.type === 'egregor' || enemy.type === 'dargruel' || enemy.type === 'leviathan' || enemy.type === 'uriel' || enemy.type === 'ammit'
                         || enemy.type === 'thaelis_cocoon' || enemy.type === 'thaelis_guard'
                         || (enemy.type === 'marchosias' && enemy.arcBarrier && enemy.arcBarrier.hp > 0)
                         || (enemy.type === 'raphael' && enemy.raphaelInvulnerable)
@@ -1001,7 +1001,7 @@ function updateSpiritSpinners(deltaTime) {
             if (_hasBuff('cuc_han') && Math.random() < 0.75) {
                 enemy._slowEnd = Math.max(enemy._slowEnd || 0, now + 2000);
                 enemy._slowFactor = Math.max(enemy._slowFactor || 1, 1 / 0.70);
-                const _cucSpinImmune = enemy.type === 'goliath' || enemy.type === 'egregor' || enemy.type === 'dargruel' || enemy.type === 'leviathan' || enemy.type === 'uriel'
+                const _cucSpinImmune = enemy.type === 'goliath' || enemy.type === 'egregor' || enemy.type === 'dargruel' || enemy.type === 'leviathan' || enemy.type === 'uriel' || enemy.type === 'ammit'
                     || (enemy.type === 'marchosias' && enemy.arcBarrier && enemy.arcBarrier.hp > 0)
                     || (enemy.type === 'raphael' && enemy.raphaelInvulnerable);
                 // CC-immune targets are never pulled - absolute, no exceptions.
