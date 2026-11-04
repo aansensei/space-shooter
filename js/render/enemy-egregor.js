@@ -3,6 +3,7 @@
 // Tempest / Null Slash telegraph and strike effects). Runs to end of original file.
 
 const _egTentPts = new Float32Array(17 * 3);
+const _egTentL = new Float32Array(17 * 2), _egTentR = new Float32Array(17 * 2), _egDash = [0, 0];
 const _egNullPts = new Float32Array(39 * 3);
 const _egAimDash = [10, 14];
 // fixed zigzag offsets for the cracks that open where Null Slash lands
@@ -254,21 +255,49 @@ function _drawEgregor(enemy) {
             a = a * 0.95 + angle * 0.05; x += Math.cos(a) * segLen; y += Math.sin(a) * segLen;
             _egTentPts[i * 3] = x; _egTentPts[i * 3 + 1] = y; _egTentPts[i * 3 + 2] = a;
         }
-        ctx.lineCap = 'round';
-        const stride = _mobPerf || _gfxLevel >= 2 ? 2 : 1;
-        for (let i = 0; i < 16; i += stride) {
-            const taper = 1 - i / 17, width = 36 * sc * taper * (1 + rage * 0.05), j = i * 3;
-            ctx.globalAlpha = 0.6 + health * 0.4; ctx.strokeStyle = rage ? '#54203f' : '#143c4a'; ctx.lineWidth = Math.max(0.5, width);
-            ctx.beginPath(); ctx.moveTo(_egTentPts[j], _egTentPts[j + 1]); ctx.lineTo(_egTentPts[j + stride * 3], _egTentPts[j + stride * 3 + 1]); ctx.stroke();
-            ctx.globalAlpha = (0.16 + health * 0.45) * (0.7 + 0.3 * Math.sin(now * 0.003 + ti + i * 0.2)); ctx.strokeStyle = tint; ctx.lineWidth = Math.max(0.5, width * 0.22); ctx.stroke();
-            if (flash > 0) { ctx.globalAlpha = flash * taper; ctx.strokeStyle = '#f1e5f5'; ctx.lineWidth = width * 0.75; ctx.stroke(); }
-            if (i > 1 && i % 2 === 0 && _gfxLevel < 2 && !_mobPerf) {
+        ctx.lineCap = 'round'; ctx.lineJoin = 'round';
+        // one tentacle costs a handful of canvas calls: a tapered body polygon, three core strokes, one batch of beads and one batch of cracks
+        const wBase = 36 * sc * (1 + rage * 0.05), beads = _gfxLevel < 2 && !_mobPerf;
+        for (let k = 0; k <= 16; k++) {
+            const r = Math.max(0.25, wBase * (1 - Math.min(k, 15) / 17) * 0.5), na = _egTentPts[k * 3 + 2] + Math.PI / 2, nx = Math.cos(na) * r, ny = Math.sin(na) * r;
+            _egTentL[k * 2] = _egTentPts[k * 3] + nx; _egTentL[k * 2 + 1] = _egTentPts[k * 3 + 1] + ny;
+            _egTentR[k * 2] = _egTentPts[k * 3] - nx; _egTentR[k * 2 + 1] = _egTentPts[k * 3 + 1] - ny;
+        }
+        const tipR = Math.max(0.25, wBase * (1 - 15 / 17) * 0.5), tipA = _egTentPts[50];
+        ctx.beginPath(); ctx.moveTo(_egTentL[0], _egTentL[1]);
+        for (let k = 1; k <= 16; k++) ctx.lineTo(_egTentL[k * 2], _egTentL[k * 2 + 1]);
+        ctx.arc(_egTentPts[48], _egTentPts[49], tipR, tipA + Math.PI / 2, tipA - Math.PI / 2, true);
+        for (let k = 16; k >= 0; k--) ctx.lineTo(_egTentR[k * 2], _egTentR[k * 2 + 1]);
+        ctx.closePath();
+        ctx.globalAlpha = 0.6 + health * 0.4; ctx.fillStyle = rage ? '#54203f' : '#143c4a'; ctx.fill();
+        if (flash > 0) { ctx.globalAlpha = flash * 0.6; ctx.fillStyle = '#f1e5f5'; ctx.fill(); }
+        // the light core is a dashed line, so each tentacle keeps its pulsing beaded look without a stroke per segment
+        _egDash[0] = segLen * 0.6; _egDash[1] = segLen * 0.4; ctx.setLineDash(_egDash); ctx.lineCap = 'butt';
+        ctx.strokeStyle = tint;
+        for (let c = 0; c < 3; c++) {
+            const i0 = c * 5, i1 = c === 2 ? 16 : i0 + 6, mid = (i0 + i1) >> 1;
+            ctx.globalAlpha = (0.16 + health * 0.45) * (0.7 + 0.3 * Math.sin(now * 0.003 + ti + mid * 0.2)) * 0.9; ctx.lineWidth = Math.max(0.5, wBase * (1 - mid / 17) * 0.22);
+            ctx.beginPath(); ctx.moveTo(_egTentPts[i0 * 3], _egTentPts[i0 * 3 + 1]);
+            for (let k = i0 + 1; k <= i1; k++) ctx.lineTo(_egTentPts[k * 3], _egTentPts[k * 3 + 1]);
+            ctx.stroke();
+        }
+        ctx.setLineDash([]); ctx.lineCap = 'round';
+        if (beads) {
+            ctx.beginPath();
+            for (let i = 2; i < 16; i += 2) {
+                const taper = 1 - i / 17, width = wBase * taper, j = i * 3, rad = Math.max(0.5, 3.3 * sc * taper);
                 const sx = _egTentPts[j] + Math.cos(_egTentPts[j + 2] - Math.PI / 2) * width * 0.4, sy = _egTentPts[j + 1] + Math.sin(_egTentPts[j + 2] - Math.PI / 2) * width * 0.4;
-                ctx.globalAlpha = 0.3 + health * 0.6; ctx.fillStyle = tint; ctx.beginPath(); ctx.arc(sx, sy, Math.max(0.5, 3.3 * sc * taper), 0, Math.PI * 2); ctx.fill();
+                ctx.moveTo(sx + rad, sy); ctx.arc(sx, sy, rad, 0, Math.PI * 2);
             }
-            if (health < 0.45 && i % 3 === 0) {
-                ctx.globalAlpha = 0.8; ctx.strokeStyle = '#100d1a'; ctx.lineWidth = 1; ctx.beginPath(); ctx.moveTo(_egTentPts[j] - width * 0.3, _egTentPts[j + 1]); ctx.lineTo(_egTentPts[j] + width * 0.25, _egTentPts[j + 1] + width * 0.2); ctx.stroke();
+            ctx.globalAlpha = 0.3 + health * 0.6; ctx.fillStyle = tint; ctx.fill();
+        }
+        if (health < 0.45) {
+            ctx.beginPath();
+            for (let i = 0; i < 16; i += 3) {
+                const width = wBase * (1 - i / 17), j = i * 3;
+                ctx.moveTo(_egTentPts[j] - width * 0.3, _egTentPts[j + 1]); ctx.lineTo(_egTentPts[j] + width * 0.25, _egTentPts[j + 1] + width * 0.2);
             }
+            ctx.globalAlpha = 0.8; ctx.strokeStyle = '#100d1a'; ctx.lineWidth = 1; ctx.stroke();
         }
         ctx.globalAlpha = 1;
     }
@@ -628,6 +657,7 @@ function _drawEgregorEffects() {
         const soulPulse = Math.max(0, 1 - (now - (enemy._ragePulseAt || -1000)) / 900);
         ctx.save(); ctx.strokeStyle = '#aa81ba'; ctx.lineWidth = 0.8;
         ctx.globalAlpha = 0.025 + (linked ? 0.12 : 0) + soulPulse * 0.23;
+        if (linked || soulPulse > 0.02) {
         ctx.beginPath();
         for (let i = 0; i < 24; i++) {
             const a = i / 24 * Math.PI * 2 + now * 0.000018;
@@ -635,7 +665,8 @@ function _drawEgregorEffects() {
             const x = enemy.x + Math.cos(a) * 600, y = enemy.y + Math.sin(a) * 600;
             ctx.moveTo(x, y); ctx.lineTo(enemy.x + Math.cos(a) * 594, enemy.y + Math.sin(a) * 594);
         }
-        ctx.stroke(); ctx.restore();
+        ctx.stroke(); }
+        ctx.restore();
         if (enemy._mindLinkFx) {
             const fo = window._fxOpts;
             for (let i = 0; i < 8; i++) {

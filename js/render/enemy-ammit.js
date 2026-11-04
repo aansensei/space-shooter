@@ -615,6 +615,33 @@ function _ammitBodyPath(radius, now, segments) {
     ctx.closePath();
 }
 
+// The torso silhouette, texture and outline are baked once per palette and size, so a frame draws the body with one image instead of a clip and three strokes.
+const _amBodyBake = [];
+function _ammitBodyBake(pal, radius, tint) {
+    const r = Math.round(radius);
+    let b = _amBodyBake[pal];
+    if (b && b.r === r && b.art === _amArt && b.tint === tint) return b;
+    const sc = r / 90, half = Math.ceil(r * 1.22 * 1.08) + 8, size = half * 2;
+    const make = function (white) {
+        const c = document.createElement('canvas'); c.width = c.height = size;
+        const g = c.getContext('2d');
+        g.translate(half, half); g.scale(1.08, 1.06);
+        g.beginPath();
+        for (let i = 0; i <= 48; i++) {
+            const a = i / 48 * Math.PI * 2, rr = r * (1 + 0.08 * Math.sin(a - Math.PI / 2) + 0.06 * Math.cos(a * 2));
+            if (!i) g.moveTo(Math.cos(a) * rr, Math.sin(a) * rr); else g.lineTo(Math.cos(a) * rr, Math.sin(a) * rr);
+        }
+        g.closePath();
+        if (white) { g.fillStyle = '#fff0b8'; g.fill(); return c; }
+        g.save(); g.clip(); g.drawImage(_amArt.body[pal] || _amArt.body[0], -r * 1.22, -r * 1.22, r * 2.44, r * 2.44); g.restore();
+        g.strokeStyle = '#0b0a10'; g.lineWidth = 5 * sc; g.stroke();
+        g.strokeStyle = tint; g.lineWidth = 1.6 * sc; g.stroke();
+        return c;
+    };
+    b = _amBodyBake[pal] = { r: r, art: _amArt, tint: tint, half: half, img: make(false), white: make(true) };
+    return b;
+}
+
 function _drawAmmitBodySurface(palette, radius, now, segments) {
     if (!_amArt) _amArt = _bakeAmmitBodyArt();
     _ammitBodyPath(radius, now, segments);
@@ -812,16 +839,22 @@ function _drawAmmitBody(enemy) {
     } else {
         // The broad rear torso remains visible below the mane and muzzle.
         const segments = low ? 16 : _gfxLevel === 1 ? 32 : 48;
-        ctx.save(); ctx.translate(0, 72 * sc); ctx.scale(1.08, 1.06);
-        _drawAmmitBodySurface(pal, BASE, now, segments);
-        if (hit > 0) {
-            ctx.save(); ctx.clip(); ctx.globalAlpha = hit * 0.65;
-            ctx.fillStyle = '#fff0b8'; ctx.fill(); ctx.restore();
+        if (!low) {
+            const bk = _ammitBodyBake(pal, BASE, tint), by = 72 * sc - bk.half;
+            ctx.drawImage(bk.img, -bk.half, by);
+            if (hit > 0) { ctx.globalAlpha = hit * 0.65; ctx.drawImage(bk.white, -bk.half, by); ctx.globalAlpha = 1; }
+        } else {
+            ctx.save(); ctx.translate(0, 72 * sc); ctx.scale(1.08, 1.06);
+            _drawAmmitBodySurface(pal, BASE, now, segments);
+            if (hit > 0) {
+                ctx.save(); ctx.clip(); ctx.globalAlpha = hit * 0.65;
+                ctx.fillStyle = '#fff0b8'; ctx.fill(); ctx.restore();
+            }
+            ctx.strokeStyle = '#0b0a10'; ctx.lineWidth = 5 * sc; ctx.stroke();
+            ctx.strokeStyle = tint; ctx.lineWidth = 1.6 * sc; ctx.stroke();
+            ctx.restore();
         }
-        ctx.strokeStyle = '#0b0a10'; ctx.lineWidth = 5 * sc; ctx.stroke();
-        ctx.strokeStyle = tint; ctx.lineWidth = 1.6 * sc; ctx.stroke();
-        ctx.restore();
-    
+
         // Ornamented linen poses sway across the exposed hippo flanks.
         if (wraps > 0) {
             for (let w = 0; w < wraps; w++) {

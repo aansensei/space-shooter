@@ -759,9 +759,9 @@
   <script src="js/render/enemy-goliath.js?v=20261102c"></script>
   <script src="js/render/enemy-thaelis.js"></script>
   <script src="js/render/enemy-dargruel.js"></script>
-  <script src="js/render/enemy-egregor.js?v=20261104a"></script>
+  <script src="js/render/enemy-egregor.js?v=20261104h"></script>
   <script src="js/render/ammit-portal.js?v=20261104d"></script>
-  <script src="js/render/enemy-ammit.js?v=20261104f"></script>
+  <script src="js/render/enemy-ammit.js?v=20261104h"></script>
   <script src="js/render/enemy-uriel.js?v=20261102c"></script>
   <script src="js/render/skill-s-spirit.js"></script>
   <script src="js/render/skill-a.js"></script>
@@ -1358,6 +1358,8 @@
 <li><span class="ul-tag tag-feat">FEAT</span> <b>Tutorial sounds:</b> 22 new sounds: quiet keyboard clicks for her dialogue, a speech box chime, charge, volley, beam, burst, sweep and Domain cues, pass and fail tones, and the licence opening, printing, stamp and seal. They load when needed and stop when you leave training.</li>
 <li><span class="ul-tag tag-feat">FEAT</span> <b>Debug console tabs:</b> the console is grouped into Run, Spawn, Skills, Boss and Test, fits phones and tablets, and a DBG button reopens it during a sandbox run.</li>
 <li><span class="ul-tag tag-perf">PERF</span> <b>Ammit resources:</b> portal art decodes asynchronously with a cached fallback. Scarab and gateway effects reuse drawing resources; sound cues prepare only when needed.</li>
+<li><span class="ul-tag tag-perf">PERF</span> <b>Egregor drawing:</b> each tentacle is now one tapered body shape, three dashed core strokes and one batch of beads and cracks instead of a stroke per segment, which cuts about 290 canvas strokes and 50 fills per Egregor per frame. The faint range ornament is skipped while it is too dim to see.</li>
+<li><span class="ul-tag tag-perf">PERF</span> <b>Ammit drawing:</b> the torso, its outline and its hit flash are baked once per palette and size, so a frame draws the body with one image instead of a clip, a 49 point path and three strokes. The silhouette no longer wobbles faintly, the breathing scale stays.</li>
 <li><span class="ul-tag tag-fix">FIX</span> <b>Ammit combat:</b> simulation clocks respect pauses and time control, scale counts lock before judgment and retract smoothly, dense hits trigger the Feather reliably, and owned hazards clear on death, menu return and a fresh run. Skill F and late damage bonuses respect Ammit defense ceilings. Petrification holds actions while passive windows and existing scarabs continue on simulation time. Skill A and allied homing ignore scarabs.</li>
 <li><span class="ul-tag tag-fix">FIX</span> <b>Tutorial replay and Sigils:</b> restarting calibration prepares Tutorial again instead of launching ordinary waves. Kanade explains the Sigil choice and waits for confirmation before continuing. Leaving training through pause clears its state and returns directly to the menu. Full graphics samples up to sixty character poses per second, movement follows every display frame, and the departure turn preserves one silhouette.</li>
 <li><span class="ul-tag tag-fix">FIX</span> <b>Tutorial hit detection:</b> training hits count through the default shield and defensive orbs. Each attack records one hit, failed dodge lessons never grant a free pass, and leaving training clears its effects and sounds.</li>
