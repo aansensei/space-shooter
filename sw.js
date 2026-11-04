@@ -5,7 +5,7 @@
 //
 // One cache, versioned by CACHE_NAME. Bump the version string whenever the
 // CORE_FILES list changes so old clients pick up the new set on next visit.
-const CACHE_VERSION = 'v620';
+const CACHE_VERSION = 'v621';
 const CACHE_NAME = 'pisces-cache-' + CACHE_VERSION;
 
 // App shell — everything needed for the game to boot and run at all.
@@ -241,14 +241,14 @@ self.addEventListener('install', (event) => {
     self.skipWaiting();
     event.waitUntil(
         caches.open(CACHE_NAME).then((cache) => {
-            // Small batches bound update traffic while a match is running.
+            // Small batches bound update traffic while a match is running. Each file is fetched with cache: 'reload' so the browser's own HTTP cache can never hand the new version an older copy of a file.
             return (async () => {
                 for (let i = 0; i < PRECACHE_FILES.length; i += 4) {
                     // Files stored by an earlier attempt are skipped, and each file gets one retry before the install is judged incomplete.
                     await Promise.all(PRECACHE_FILES.slice(i, i + 4).map(async (url) => {
                         if (await cache.match(url)) return;
                         for (let attempt = 0; attempt < 2; attempt++) {
-                            try { await cache.add(url); return; } catch (_) {}
+                            try { await cache.add(new Request(url, { cache: 'reload' })); return; } catch (_) {}
                         }
                     }));
                 }

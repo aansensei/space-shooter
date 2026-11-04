@@ -340,7 +340,7 @@
             while (idx < missing.length) {
                 const url = missing[idx++];
                 try {
-                    const res = await fetch(url);
+                    const res = await fetch(url, { cache: 'reload' });
                     if (res.ok) await cache.put(url, res);
                     else failed++;
                 } catch (_) {
