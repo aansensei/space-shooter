@@ -101,9 +101,9 @@ const AMMIT_JAWS_CD = AMMIT_TUNE_JAWS_CD;
 const AMMIT_WEIGH_CD = AMMIT_TUNE_WEIGH_CD;
 const AMMIT_CLAW_CD = AMMIT_TUNE_CLAW_CD;
 const AMMIT_CLAW_R = 290;
-const AMMIT_CLAW_SPAN = 0.66;
+const AMMIT_CLAW_SPAN = 0.60;
 const AMMIT_CLAW_REACH_PAD = 80;
-const AMMIT_CLAW_WIND = 1100;
+const AMMIT_CLAW_WIND = 1400;
 const AMMIT_CLAW_TRACK = 500;
 const AMMIT_CLAW_COEFF = AMMIT_TUNE_CLAW_COEFF;
 const AMMIT_CLAW_TRIGGER = 340;
@@ -547,7 +547,7 @@ function _updateAmmitFight(enemy, deltaTime) {
             c.phase = 'wind'; c.t = T;
             // the growl is timed to end right as the rakes land
             if (!c._windSfx && T >= AMMIT_CLAW_WIND - 750) { c._windSfx = true; _ammitSound('ammit-claw-wind', enemy.x, enemy.y); }
-            // the swing keeps tracking the ship until the last 600ms, then the arc is fixed
+            // The swing tracks during the opening 500ms, then its marked sector stays fixed.
             if (T < AMMIT_CLAW_TRACK) { c.ang = Math.max(0.35, Math.min(Math.PI - 0.35, Math.atan2(player.y - c.oy, player.x - c.ox))); c.r = _ammitClawReach(c); }
         } else if (T < AMMIT_CLAW_WIND + 250) {
             c.phase = 'strike'; c.t = T - AMMIT_CLAW_WIND;

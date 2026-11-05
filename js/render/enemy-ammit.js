@@ -82,10 +82,46 @@ function _amAnkhOn(g, x, y, s) {
     g.stroke();
 }
 
+const _amCrackPaths = [];
+function _ammitCrackPath(low, base, scale) {
+    const index = low ? 1 : 0, cached = _amCrackPaths[index];
+    if (cached && cached.base === base && cached.scale === scale) return cached.path;
+    const path = new Path2D(), branches = low ? 5 : 8;
+    for (let c = 0; c < branches; c++) {
+        const a = c * Math.PI * 2 / branches + 0.25;
+        path.moveTo(Math.cos(a) * 10 * scale, Math.sin(a) * 10 * scale);
+        for (let s = 1; s <= 4; s++) {
+            const d = (s / 4) * base * 0.94, off = _amCrack[c * 5 + s] * 12 * scale;
+            path.lineTo(Math.cos(a) * d - Math.sin(a) * off, Math.sin(a) * d + Math.cos(a) * off);
+        }
+    }
+    _amCrackPaths[index] = { base, scale, path };
+    return path;
+}
+
 const _amPalettes = ['#f2b72e', '#f2b72e', '#27d3c3'];
 let _amArt = null;
 
 const _amArtCache = [null, null, null];
+
+// Decoded PNG sprites keep the generated artwork immutable for high quality image scaling.
+function _loadAmmitSprites(art) {
+    const jobs = [];
+    art._pngLoaded = 0; art._pngCount = 0;
+    for (const key of Object.keys(art)) {
+        const parent = Array.isArray(art[key]) ? art[key] : art;
+        const keys = Array.isArray(art[key]) ? Object.keys(parent) : [key];
+        for (const index of keys) {
+            const canvas = parent[index];
+            if (!(canvas instanceof HTMLCanvasElement)) continue;
+            const image = new Image(); image.decoding = 'async';
+            image.src = 'assets/images/game/enemies/ammit-sprites/' + art.quality + '-' + key + (parent === art ? '' : '-' + index) + '.png';
+            art._pngCount++;
+            jobs.push(image.decode().then(() => { parent[index] = image; art._pngLoaded++; }, () => {}));
+        }
+    }
+    art._pngReady = Promise.all(jobs);
+}
 
 function _bakeAmmitBodyArt(quality) {
     const tier = quality === undefined ? (_mobPerf ? 2 : Math.max(0, Math.min(2, _gfxLevel))) : quality;
@@ -111,7 +147,7 @@ function _bakeAmmitBodyArt(quality) {
 
 function _buildAmmitBodyArt(tier) {
     const quality = tier === undefined ? (_mobPerf ? 2 : _gfxLevel) : tier;
-    const density = quality >= 2 ? 1 : quality === 1 ? 1.5 : 2;
+    const density = quality >= 2 ? 1 : 1.5;
     const high = quality === 0, detail = quality < 2;
     const mk = (w, h) => {
         const c = document.createElement('canvas');
@@ -577,6 +613,7 @@ function _buildAmmitBodyArt(tier) {
             }
         }
     }
+    _loadAmmitSprites(art);
     return art;
 }
 
@@ -924,12 +961,12 @@ function _drawAmmitBody(enemy) {
         for (let side = -1; side <= 1; side += 2) {
             ctx.save();
             // the forepaws rise while the claw winds up and lunge down on the strike
-            const cl = enemy._amClaw, clawP = cl && cl.phase === 'wind' ? Math.min(1, cl.t / (typeof AMMIT_CLAW_WIND === 'number' ? AMMIT_CLAW_WIND : 1100)) : 0;
+            const cl = enemy._amClaw, clawP = cl && cl.phase === 'wind' ? Math.min(1, cl.t / (typeof AMMIT_CLAW_WIND === 'number' ? AMMIT_CLAW_WIND : 1400)) : 0;
             const clawHit = cl && cl.phase === 'strike' ? 1 - Math.min(1, cl.t / 250) : 0;
-            const px = (side * 92 + (clawP > .6 ? Math.sin(now * .07 + side) * 2.4 * (clawP - .6) : 0)) * sc, py = (45 + Math.sin(now * 0.003 + side) * 3 - 30 * clawP + 34 * clawHit) * sc;
+            const px = (side * (92 - 8 * clawP + 12 * clawHit) + (clawP > .6 ? Math.sin(now * .07 + side) * 2.4 * (clawP - .6) : 0)) * sc, py = (45 + Math.sin(now * 0.003 + side) * 3 - 42 * _ammitEase(clawP) + 50 * clawHit) * sc;
             ctx.translate(px, py);
             ctx.scale(side * sc * 1.06, sc * 1.06);
-            ctx.rotate(0.12 + breath * 0.05 - 0.5 * clawP + 0.35 * clawHit);
+            ctx.rotate(0.12 + breath * 0.05 - 0.7 * clawP + 0.5 * clawHit);
             ctx.drawImage(_amArt.paw, -45, -44, 90, 116);
             ctx.restore();
         }
@@ -950,25 +987,14 @@ function _drawAmmitBody(enemy) {
 
     // Golden cracks across body and mane when HP < 30% or Exposed
     if (lowHp || exposed) {
-        const crackPulse = 0.65 + 0.35 * Math.sin(now * 0.009);
+        const crackPulse = 0.65 + 0.35 * Math.sin(now * 0.009), cracks = _ammitCrackPath(low, BASE, sc);
         ctx.save();
         ctx.lineCap = 'round';
         for (let pass = 0; pass < 2; pass++) {
             ctx.strokeStyle = pass ? '#fff0b8' : '#f2b72e';
             ctx.lineWidth = (pass ? 1.4 : 3.6) * sc;
             ctx.globalAlpha = crackPulse * (pass ? 0.95 : 0.58);
-            ctx.beginPath();
-            const branches = low ? 5 : 8;
-            for (let c = 0; c < branches; c++) {
-                const a = c * Math.PI * 2 / branches + 0.25;
-                ctx.moveTo(Math.cos(a) * 10 * sc, Math.sin(a) * 10 * sc);
-                for (let s = 1; s <= 4; s++) {
-                    const d = (s / 4) * BASE * 0.94;
-                    const off = _amCrack[c * 5 + s] * 12 * sc;
-                    ctx.lineTo(Math.cos(a) * d - Math.sin(a) * off, Math.sin(a) * d + Math.cos(a) * off);
-                }
-            }
-            ctx.stroke();
+            ctx.stroke(cracks);
         }
         ctx.restore();
     }
@@ -1587,44 +1613,47 @@ function _ammitClawStar(x, y, r) {
 function _drawAmmitClawEffect(enemy, now) {
     const c = enemy._amClaw;
     if (!c || c.phase === 'idle') return;
-    const WIND = typeof AMMIT_CLAW_WIND === 'number' ? AMMIT_CLAW_WIND : 1100;
+    const WIND = typeof AMMIT_CLAW_WIND === 'number' ? AMMIT_CLAW_WIND : 1400;
     const fo = window._fxOpts, low = _mobPerf || _gfxLevel >= 2, glow = !fo || fo.glow !== false, rich = glow && !low;
     const cg = rich ? _ammitClawGlowArt() : null;
     if (c.phase === 'wind') {
-        const p = Math.max(0, Math.min(1, c.t / WIND)), e = p * p;
+        const p = Math.max(0, Math.min(1, c.t / WIND)), e = _ammitEase(p), squeeze = Math.max(0, (p - .72) / .28);
+        const locked = c.t >= (typeof AMMIT_CLAW_TRACK === 'number' ? AMMIT_CLAW_TRACK : 500);
         const targeted = typeof player !== 'undefined' && player && Math.hypot(player.x - c.ox, player.y - c.oy) < c.r;
-        const lift = 70 * _ammitEase(p), lx = c.ox - 88, rx = c.ox + 88, py = c.oy + 18 - lift * .5;
+        const sc = (enemy.size || 180) / 180 * 1.06 * Math.min(1, canvas.height / 600);
+        const lx = c.ox - (92 - 8 * p) * sc, rx = c.ox + (92 - 8 * p) * sc;
+        const py = c.oy - (enemy.size || 180) * .15 + (45 - 42 * e) * sc;
         ctx.save(); ctx.shadowBlur = 0; ctx.globalAlpha = .15 + p * .35;
         // the three rakes are drawn ahead of time as thin gold arcs that grow and brighten
         ctx.strokeStyle = '#f2b72e'; ctx.lineCap = 'round';
         for (let k = -1; k <= 1; k++) {
-            const r = c.r * (0.62 + 0.14 * (k + 1)), a0 = c.ang + k * 0.16 - c.span * 0.42, a1 = a0 + c.span * 0.84 * Math.min(1, p * 1.25);
-            ctx.globalAlpha = .12 + e * .5; ctx.lineWidth = 2 + e * 2;
+            const r = c.r * (0.62 + 0.14 * (k + 1)), a0 = c.ang - c.span * .5, a1 = a0 + c.span * Math.min(1, p * 1.25);
+            ctx.globalAlpha = .12 + e * .5; ctx.lineWidth = (locked ? 2.5 : 1.5) + e * 2;
             ctx.beginPath(); ctx.arc(c.ox, c.oy, r, a0, a1); ctx.stroke();
         }
         if (rich) {
             // gold light swells at each paw and motes spiral into it
             ctx.globalCompositeOperation = 'lighter';
-            const gs = 60 + e * 150;
+            const gs = (70 + e * 180 - squeeze * 60) * sc;
             ctx.globalAlpha = .25 + e * .7;
             ctx.drawImage(cg, lx - gs / 2, py - gs / 2, gs, gs); ctx.drawImage(cg, rx - gs / 2, py - gs / 2, gs, gs);
             if (p > .5) { ctx.globalAlpha = (p - .5) * 1.4; ctx.drawImage(cg, lx - gs / 3, py - gs / 3, gs * .66, gs * .66); ctx.drawImage(cg, rx - gs / 3, py - gs / 3, gs * .66, gs * .66); }
             ctx.fillStyle = '#ffe9a0';
-            for (let i = 0; i < 12; i++) {
-                const u = (p * 1.7 + i / 12) % 1, rad = 120 * (1 - u), a = i * 0.524 + u * 2.6 + now * 0.0006;
+            for (let i = 0; i < 8; i++) {
+                const u = (p * 1.7 + i / 8) % 1, rad = (120 - squeeze * 60) * sc * (1 - u), a = i * Math.PI / 4 + u * 2.6 + now * 0.0006;
                 const mx = Math.cos(a) * rad, my = Math.sin(a) * rad * .8;
                 ctx.globalAlpha = Math.sin(u * Math.PI) * (.35 + p * .5);
                 ctx.fillRect(lx + mx - 2, py + my - 2, 4, 4); ctx.fillRect(rx - mx - 2, py + my - 2, 4, 4);
             }
             ctx.globalCompositeOperation = 'source-over';
         }
-        if (p > .82) {
-            // just before the strike a ring closes on each paw and an eight pointed flash opens
-            const k = (p - .82) / .18;
+        if (p > .72) {
+            // Closing rings compress the charge into a bright point at each paw.
+            const k = squeeze;
             ctx.strokeStyle = '#fff0b8'; ctx.lineWidth = 2.5; ctx.globalAlpha = k * .9;
-            for (let s = -1; s <= 1; s += 2) { ctx.beginPath(); ctx.arc(c.ox + s * 88, py, 80 * (1 - k * .6), 0, Math.PI * 2); ctx.stroke(); }
+            for (let s = -1; s <= 1; s += 2) { ctx.beginPath(); ctx.arc(s < 0 ? lx : rx, py, 80 * sc * (1 - k * .85), 0, Math.PI * 2); ctx.stroke(); }
             ctx.fillStyle = '#fff6d0'; ctx.globalAlpha = k;
-            _ammitClawStar(lx, py, 12 + 26 * k); _ammitClawStar(rx, py, 12 + 26 * k);
+            _ammitClawStar(lx, py, (12 + 32 * k) * sc); _ammitClawStar(rx, py, (12 + 32 * k) * sc);
         }
         ctx.restore();
         _drawDangerZone('sector', c.ox, c.oy, c.r, p, 0.6, now, c.ang, 0, c.span, targeted, false);
@@ -1633,31 +1662,40 @@ function _drawAmmitClawEffect(enemy, now) {
     if (c.phase !== 'strike' && c.phase !== 'after') return;
     const age = c.phase === 'strike' ? c.t : 250 + c.t, fade = Math.max(0, 1 - age / 760);
     if (fade <= 0) return;
-    const sweep = Math.min(1, age / 140);
+    const sweep = 1 - Math.pow(1 - Math.min(1, age / 90), 3), impact = Math.max(0, 1 - age / 180);
     ctx.save();
     ctx.translate(c.ox, c.oy);
     ctx.shadowBlur = 0;
     ctx.lineCap = 'round';
     for (let k = -1; k <= 1; k++) {
-        const r = c.r * (0.62 + 0.14 * (k + 1)), mid = c.ang + k * 0.16;
-        const a0 = mid - c.span * 0.42, a1 = a0 + c.span * 0.84 * sweep;
+        const r = c.r * (0.62 + 0.14 * (k + 1));
+        const a0 = c.ang - c.span * .5, a1 = a0 + c.span * sweep;
+        if (sweep > 0) {
+            const tail = Math.max(a0, a1 - c.span * .85), width = 3 + 13 * impact;
+            ctx.fillStyle = '#f2b72e'; ctx.globalAlpha = fade * .7;
+            ctx.beginPath(); ctx.moveTo(Math.cos(tail) * r, Math.sin(tail) * r);
+            ctx.arc(0, 0, r + width, tail + (a1 - tail) * .32, a1);
+            ctx.lineTo(Math.cos(a1 + .025) * r, Math.sin(a1 + .025) * r);
+            ctx.arc(0, 0, r - width * .5, a1, tail + (a1 - tail) * .32, true);
+            ctx.closePath(); ctx.fill();
+        }
         if (rich) {
             ctx.globalCompositeOperation = 'lighter'; ctx.globalAlpha = fade * .22; ctx.strokeStyle = '#f2b72e'; ctx.lineWidth = 22;
             ctx.beginPath(); ctx.arc(0, 0, r, a0, a1); ctx.stroke();
             if (sweep < 1) { ctx.globalAlpha = fade; ctx.drawImage(cg, Math.cos(a1) * r - 20, Math.sin(a1) * r - 20, 40, 40); }
             ctx.globalCompositeOperation = 'source-over';
         }
-        ctx.globalAlpha = fade * 0.55; ctx.strokeStyle = '#fff0b8'; ctx.lineWidth = 9;
+        ctx.globalAlpha = fade * .8; ctx.strokeStyle = '#f2b72e'; ctx.lineWidth = 8 + 8 * impact;
         ctx.beginPath(); ctx.arc(0, 0, r, a0, a1); ctx.stroke();
-        ctx.globalAlpha = fade; ctx.strokeStyle = '#f2b72e'; ctx.lineWidth = 4;
+        ctx.globalAlpha = fade; ctx.strokeStyle = '#fff6d0'; ctx.lineWidth = 3 + 3 * impact;
         ctx.beginPath(); ctx.arc(0, 0, r, a0, a1); ctx.stroke();
     }
     ctx.restore();
-    if (age < 220) {
+    if (age < 180) {
         // an eight pointed flash bursts where each rake lands
-        const k = 1 - age / 220;
+        const k = 1 - age / 180;
         ctx.save(); ctx.globalCompositeOperation = glow ? 'lighter' : 'source-over'; ctx.fillStyle = '#fff0b8'; ctx.globalAlpha = k * .9;
-        for (let i = -1; i <= 1; i++) { const a = c.ang + i * 0.16; _ammitClawStar(c.ox + Math.cos(a) * c.r * .8, c.oy + Math.sin(a) * c.r * .8, 18 + 34 * k); }
+        for (let i = 0; i < 3; i++) { const r = c.r * (.62 + i * .14), a = c.ang - c.span * .5 + c.span * sweep; _ammitClawStar(c.ox + Math.cos(a) * r, c.oy + Math.sin(a) * r, 18 + 34 * k); }
         ctx.restore();
     }
 }
