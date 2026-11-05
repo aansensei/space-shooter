@@ -99,14 +99,20 @@
     <link rel="stylesheet" href="css/recap.css?v=20261102g">
 
     <style>
+        html {
+            height: 100%;
+            overflow: hidden;
+            background: #07081a;
+        }
+
         body {
             margin: 0;
             background: #07081a;
             color: #fff;
             font-family: 'Courier New', Courier, monospace;
             overflow: hidden;
-            height: 100vh;
-            width: 100vw;
+            height: 100%;
+            width: 100%;
             -webkit-user-select: none;
             user-select: none;
         }
@@ -116,14 +122,23 @@
         /* --- LỚP PHỦ EASTER EGG BẢO VỆ TOÀN MÀN HÌNH --- */
         #easter-egg-overlay {
             position: fixed;
-            top: 0;
-            left: 0;
-            width: 100vw;
-            height: 100vh;
+            inset: 0;
+            width: 100%;
+            height: 100%;
+            /* The menu background also covers the area behind browser toolbars. */
+            min-height: 100vh;
+            min-height: 100lvh;
             z-index: 99999;
             background: #000;
             touch-action: none;
             /* prevent double-tap zoom */
+        }
+
+        /* Translucent browser controls must not sample the gameplay scene through the menu. */
+        body.menu-open > #bgCanvas,
+        body.menu-open > #gameCanvas,
+        body.menu-open > #pixiCanvas {
+            visibility: hidden;
         }
 
         #star-canvas {
@@ -142,6 +157,8 @@
             left: 0;
             width: 100%;
             height: 100%;
+            max-height: 100vh;
+            max-height: 100dvh;
             z-index: 2;
             pointer-events: all;
             background: rgba(10, 25, 47, 0.4);
@@ -157,9 +174,11 @@
             display: flex;
             flex-direction: column;
             justify-content: center;
+            justify-content: safe center;
             align-items: center;
             padding: 20px;
-            max-height: 100dvh;
+            min-height: 0;
+            max-height: 100%;
             overflow-y: auto;
             box-sizing: border-box;
         }
@@ -471,6 +490,11 @@
         @media (max-height: 520px) and (orientation: landscape) {
             #copyrightTag { font-size: 9px !important; letter-spacing: 0.5px !important; line-height: 1.35; }
             #copyrightTag .cp-a, #copyrightTag .cp-b { display: block; }
+        }
+
+        @media (max-height: 420px) and (orientation: landscape) {
+            #lock-screen { padding-top: 0; padding-bottom: 0; }
+            #lock-screen h1 { margin-bottom: 12px !important; }
         }
 
         /* On the smallest landscape phones the Initiate button fills the width, so the two corner lines have no room beside it. */
@@ -1022,7 +1046,7 @@
     </script>
 </head>
 
-<body>
+<body class="menu-open">
     <!-- Audio -->
     <audio id="snd-title" src="assets/audio/bgm/pisces.mp3" loop preload="auto"></audio>
     <audio id="snd-hyperjump" src="assets/audio/sfx/hyperjump.mp3" preload="auto"></audio>
@@ -4202,6 +4226,7 @@
                 easterEggOverlay.style.pointerEvents = '';
                 uiWrapper.style.pointerEvents = '';
                 easterEggOverlay.style.display = 'block';
+                document.body.classList.add('menu-open');
                 lockScreen.style.display = 'flex';
                 loadingScreen.style.display = 'none';
                 loadingScreen.style.opacity = '';
@@ -4903,7 +4928,7 @@
     <script src="js/recap.js?v=20261104d"></script>
     <script src="js/pixi-renderer.js?v=20261102f"></script>
     <script src="js/input.js?v=20261104a"></script>
-    <script src="js/main.js?v=20261104t7"></script>
+    <script src="js/main.js?v=20261104v1"></script>
     <script src="js/tutorial.js?v=20261104t7"></script>
     <script src="js/tutorial-license.js?v=20261104t9"></script>
     <script>

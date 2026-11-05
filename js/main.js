@@ -3662,6 +3662,7 @@ function gameLoop(timeStamp) {
 }
 
 function startGame() {
+    document.body.classList.remove('menu-open');
     if (typeof window._prepareGameMode === 'function') window._prepareGameMode(window._debugSessionActive ? 'custom' : window._tutorialActive ? 'tutorial' : window._inGame ? (window._runGameMode || window._gameMode || 'endless') : (window._gameMode || window._runGameMode || 'endless'));
     if (window.AudioMgr && window.AudioMgr.prepareGameplay) window.AudioMgr.prepareGameplay();
     _updateAllyScratch.length = 0;
