@@ -1,4 +1,4 @@
-// Pisces: Space Journey — © 2024 An Nguyen. Licensed under the MIT License.
+// Pisces: Space Journey. Copyright (c) 2024 An Nguyen. Licensed under the PolyForm Noncommercial License 1.0.0.
 // render/skill-s-spirit.js — extracted from render.js (Remembrance Spirit /
 // Photokrystos: normal spirit, silk tail, primeval summon fx, boomerang,
 // blade-arc projectile). Self-contained, no cross-file calls besides core.js.

@@ -1,4 +1,4 @@
-// Pisces: Space Journey. © 2024 An Nguyen. Licensed under the MIT License.
+// Pisces: Space Journey. Copyright (c) 2024 An Nguyen. Licensed under the PolyForm Noncommercial License 1.0.0.
 // Leo sigil VFX: the Divine Fate meter over the ship, its ready prompt and
 // aura, Burn and stone overlays on enemies, Wildfire sparks. Every gradient,
 // glow and the stone texture is baked once into cached canvases.

@@ -1,4 +1,4 @@
-// Pisces: Space Journey. (c) 2024 An Nguyen. Licensed under the MIT License.
+// Pisces: Space Journey. Copyright (c) 2024 An Nguyen. Licensed under the PolyForm Noncommercial License 1.0.0.
 // Voyage Recap: the end of run screen that replaces GAME OVER. It shows the
 // score, the sigils picked, what was defeated, damage by source, the battle
 // timeline and a share card, all read from window._matchStats; it never

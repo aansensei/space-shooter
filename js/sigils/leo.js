@@ -1,4 +1,4 @@
-// Pisces: Space Journey — © 2024 An Nguyen. Licensed under the MIT License.
+// Pisces: Space Journey. Copyright (c) 2024 An Nguyen. Licensed under the PolyForm Noncommercial License 1.0.0.
 // Leo sigil data (EN + VI). Split out of the old monolithic
 // js/sigils.js; loaded after js/sigils/core.js, which declares SIGIL_DEFS and
 // SIGIL_I18N_VI as empty objects for every sigil file to assign its own entry into.

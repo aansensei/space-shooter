@@ -1,4 +1,4 @@
-// Pisces: Space Journey — © 2024 An Nguyen. Licensed under the MIT License.
+// Pisces: Space Journey. Copyright (c) 2024 An Nguyen. Licensed under the PolyForm Noncommercial License 1.0.0.
 // js/entities/leviathan.js — Leviathan (Dominator): spawn, Envy mark, All
 // for One shield, Perseverance sweep, normal attack. Extracted from
 // entities.js. Must load after entities.js and before main.js.

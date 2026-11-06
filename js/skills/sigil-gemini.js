@@ -1,4 +1,4 @@
-// Pisces: Space Journey — © 2024 An Nguyen. Licensed under the MIT License.
+// Pisces: Space Journey. Copyright (c) 2024 An Nguyen. Licensed under the PolyForm Noncommercial License 1.0.0.
 // js/skills/sigil-gemini.js — split out of the old monolithic js/skills.js.
 // Gemini sigil: Shadow Twin's phantom-volley proc (every 10th allied hit)
 // and its orbs, plus Mirror Laser's bonus piercing-column proc.

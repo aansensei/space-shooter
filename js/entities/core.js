@@ -1,4 +1,4 @@
-// Pisces: Space Journey — © 2024 An Nguyen. Licensed under the MIT License.
+// Pisces: Space Journey. Copyright (c) 2024 An Nguyen. Licensed under the PolyForm Noncommercial License 1.0.0.
 // Real Marchosias's arc-barrier kit moved to js/entities/marchosias.js.
 
 // Sigil: Circuit Engineer — true if the enemy currently carries any recognized debuff

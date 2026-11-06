@@ -231,7 +231,7 @@ function _drawDangerZone(shape, x, y, radius, progress, intensity, now, angle = 
 }
 
 
-// Pisces: Space Journey — © 2024 An Nguyen. Licensed under the MIT License.
+// Pisces: Space Journey. Copyright (c) 2024 An Nguyen. Licensed under the PolyForm Noncommercial License 1.0.0.
 // render/fx.js — extracted from render.js (shared visual effects: raphael lasers,
 // persian tile, dimensional rifts, dim-break zones, boss shockwaves, chain
 // lightning, demon-gift aura, vanguard threads, sentinel, polygon helper,

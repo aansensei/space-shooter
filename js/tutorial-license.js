@@ -1,4 +1,4 @@
-// Pisces: Space Journey, copyright An Nguyen. Licensed under the MIT License.
+// Pisces: Space Journey. Copyright (c) 2024 An Nguyen. Licensed under the PolyForm Noncommercial License 1.0.0.
 (function () {
     'use strict';
     const SLOTS = ['SH', 'A', 'S', 'D', 'F', 'G', 'SPC'];

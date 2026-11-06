@@ -1,4 +1,4 @@
-// Pisces: Space Journey — © 2024 An Nguyen. Licensed under the MIT License.
+// Pisces: Space Journey. Copyright (c) 2024 An Nguyen. Licensed under the PolyForm Noncommercial License 1.0.0.
 // js/skills/skill-g.js — split out of the old monolithic js/skills.js.
 // Skill G: Life Domain / Tesla Matrix - energy orb spawn/linking, Tesla coil
 // spawn/update, and the whole charge/activate/end lifecycle.

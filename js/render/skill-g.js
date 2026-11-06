@@ -1,4 +1,4 @@
-// Pisces: Space Journey — © 2024 An Nguyen. Licensed under the MIT License.
+// Pisces: Space Journey. Copyright (c) 2024 An Nguyen. Licensed under the PolyForm Noncommercial License 1.0.0.
 // render/skill-g.js — Tesla Matrix barrier, energy orb + link, tesla coil,
 // homing bolt. Everything with a gradient or shadow glow is baked once into
 // an offscreen sprite and drawn with drawImage, so a frame with 4 coils, a

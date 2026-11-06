@@ -1,4 +1,4 @@
-// Pisces: Space Journey — © 2024 An Nguyen. Licensed under the MIT License.
+// Pisces: Space Journey. Copyright (c) 2024 An Nguyen. Licensed under the PolyForm Noncommercial License 1.0.0.
 // js/background.js — PIXI.js v8 parallax space background
 // Layers (back→front): gradient · galaxies · nebulas · stars-far · dust ·
 //   stars-mid · asteroids-far · stars-near · asteroids-mid · asteroids-near · brightness

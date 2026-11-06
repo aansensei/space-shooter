@@ -1,4 +1,4 @@
-// Pisces: Space Journey — © 2024 An Nguyen. Licensed under the MIT License.
+// Pisces: Space Journey. Copyright (c) 2024 An Nguyen. Licensed under the PolyForm Noncommercial License 1.0.0.
 // js/entities/raphael.js — Wisdom King mechanic: a hit tally that builds
 // while Custos Aeternus is up, and the Wisdom Orb it periodically launches
 // once that tally hits a multiple of 80. Rendering lives in

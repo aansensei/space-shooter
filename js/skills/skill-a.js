@@ -1,10 +1,10 @@
-// Pisces: Space Journey — © 2024 An Nguyen. Licensed under the MIT License.
+// Pisces: Space Journey. Copyright (c) 2024 An Nguyen. Licensed under the PolyForm Noncommercial License 1.0.0.
 // js/skills/skill-a.js — split out of the old monolithic js/skills.js.
 // Skill A: Thunder Orbs (activate/update/rebalance), Dimensional Rift
 // (a Skill A buff), and the shared scattered-projectiles system its own
 // orb-burst uses.
 
-// Pisces: Space Journey — © 2024 An Nguyen. Licensed under the MIT License.
+// Pisces: Space Journey. Copyright (c) 2024 An Nguyen. Licensed under the PolyForm Noncommercial License 1.0.0.
 function updateDefensiveOrbs() {
     let currentDefensive = skillAOrbs.filter(o => o.isDefensive).length;
     let targetDefensive = Math.min(skillADefensiveCharges, skillAOrbs.length);

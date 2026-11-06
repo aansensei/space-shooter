@@ -1,4 +1,4 @@
-// Pisces: Space Journey — © 2024 An Nguyen. Licensed under the MIT License.
+// Pisces: Space Journey. Copyright (c) 2024 An Nguyen. Licensed under the PolyForm Noncommercial License 1.0.0.
 // js/skills/skill-f.js — split out of the old monolithic js/skills.js.
 // Skill F: Annihilation Sweep - the sweep cast/cone/collision loop, and its
 // Great Sage kill hook (Ransacked Treasury cone growth + gem grant).

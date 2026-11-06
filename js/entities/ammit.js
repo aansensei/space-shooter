@@ -1,4 +1,4 @@
-// Pisces: Space Journey, Copyright 2024 An Nguyen. Licensed under the MIT License.
+// Pisces: Space Journey. Copyright (c) 2024 An Nguyen. Licensed under the PolyForm Noncommercial License 1.0.0.
 // Ammit governs its attacks and defenses on simulation time.
 
 // The middle damage range is controlled by hide reduction and flat armor.

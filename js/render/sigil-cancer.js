@@ -1,4 +1,4 @@
-// Pisces: Space Journey — © 2024 An Nguyen. Licensed under the MIT License.
+// Pisces: Space Journey. Copyright (c) 2024 An Nguyen. Licensed under the PolyForm Noncommercial License 1.0.0.
 // js/render/sigil-cancer.js — Cancer sigil VFX: Tidal Flow's Riptide Surge
 // (tide meter, whirlpool, killer-whale bite) and Lunar Aegis's Ocean Hunter
 // (execute lunge). Mechanic/state lives in js/skills/sigil-cancer.js (_tidalSurgeEffects,

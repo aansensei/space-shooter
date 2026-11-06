@@ -1,4 +1,4 @@
-// Pisces: Space Journey — © 2024 An Nguyen. Licensed under the MIT License.
+// Pisces: Space Journey. Copyright (c) 2024 An Nguyen. Licensed under the PolyForm Noncommercial License 1.0.0.
 // Zodiac Sigil engine: the generic picker/HUD/glyph machinery shared by every
 // sigil. Per-sigil EN+VI data (name/element/buff text) lives one file per sigil in
 // this same folder (js/sigils/<id>.js), each assigning into the SIGIL_DEFS and

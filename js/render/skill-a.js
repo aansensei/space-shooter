@@ -1,4 +1,4 @@
-// Pisces: Space Journey — © 2024 An Nguyen. Licensed under the MIT License.
+// Pisces: Space Journey. Copyright (c) 2024 An Nguyen. Licensed under the PolyForm Noncommercial License 1.0.0.
 // render/skill-a.js — extracted from render.js (Thunder Orbs).
 
 // Blood Arrow (Libra) commissioned art, Dark Fantasy ink-wash redesign -

@@ -1,4 +1,4 @@
-// Pisces: Space Journey — © 2024 An Nguyen. Licensed under the MIT License.
+// Pisces: Space Journey. Copyright (c) 2024 An Nguyen. Licensed under the PolyForm Noncommercial License 1.0.0.
 // js/skills/sigil-great-sage.js — split out of the old monolithic js/skills.js.
 // Great Sage sigil (than): Ransacked Treasury's stolen gem attacks - per-
 // gem flavor/color, lock-point targeting, the 8 scaled-down joker copies,

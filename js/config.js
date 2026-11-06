@@ -1,4 +1,4 @@
-// Pisces: Space Journey — © 2024 An Nguyen. Licensed under the MIT License.
+// Pisces: Space Journey. Copyright (c) 2024 An Nguyen. Licensed under the PolyForm Noncommercial License 1.0.0.
 const TD_FLOW_PLAYER_CD = 0.35;
 const TD_FLOW_ENEMY_BULLET = 1.25;
 const TD_FLOW_ENEMY_CD = 0.25;

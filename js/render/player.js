@@ -1,4 +1,4 @@
-// Pisces: Space Journey — © 2024 An Nguyen. Licensed under the MIT License.
+// Pisces: Space Journey. Copyright (c) 2024 An Nguyen. Licensed under the PolyForm Noncommercial License 1.0.0.
 // render/player.js — extracted from render.js (skill-shift arrows, final defense,
 // player aura, bullets, drawPlayer, charge/laser effects). Depends on core.js.
 

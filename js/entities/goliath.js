@@ -1,4 +1,4 @@
-// Pisces: Space Journey — © 2024 An Nguyen. Licensed under the MIT License.
+// Pisces: Space Journey. Copyright (c) 2024 An Nguyen. Licensed under the PolyForm Noncommercial License 1.0.0.
 // js/entities/goliath.js — Goliath (Demigod of Genesis): Alpha/Circuit
 // Link, Corrupted Genesis, transform, True Form + Inevitable/Warding Palm/
 // Threshold Ward/Unified Front/Tempered Resolve/Waning Might/Shield Burst,

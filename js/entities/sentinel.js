@@ -1,4 +1,4 @@
-// Pisces: Space Journey — © 2024 An Nguyen. Licensed under the MIT License.
+// Pisces: Space Journey. Copyright (c) 2024 An Nguyen. Licensed under the PolyForm Noncommercial License 1.0.0.
 // js/entities/sentinel.js — real Sentinel lifecycle (spawn, death, per-frame
 // AI/fire loop). Extracted from entities.js. Must load after entities.js
 // (uses its shared dealDamage/particle/targeting helpers) and before main.js.

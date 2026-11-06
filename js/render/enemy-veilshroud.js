@@ -1,4 +1,4 @@
-// Pisces: Space Journey — © 2024 An Nguyen. Licensed under the MIT License.
+// Pisces: Space Journey. Copyright (c) 2024 An Nguyen. Licensed under the PolyForm Noncommercial License 1.0.0.
 // render/enemy-veilshroud.js — extracted from render.js (base body, echo clone,
 // lightning-strike/echo-explosion effects). Calls _genBoltPoints/_strokeBoltPath
 // from fx.js.

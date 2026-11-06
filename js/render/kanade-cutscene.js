@@ -1,4 +1,4 @@
-// Pisces: Space Journey — © 2024 An Nguyen. Licensed under the MIT License.
+// Pisces: Space Journey. Copyright (c) 2024 An Nguyen. Licensed under the PolyForm Noncommercial License 1.0.0.
 // render/kanade-cutscene.js — the Timeline Distortion boss-wave cutscene.
 // Kanade's pixel art is ported from misc/kanade-boss/kanade_boss_demo.html:
 // drawKanade, drawKanadeBack and the reality gate are verbatim apart from the

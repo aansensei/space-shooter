@@ -1,4 +1,4 @@
-// Pisces: Space Journey — © 2024 An Nguyen. Licensed under the MIT License.
+// Pisces: Space Journey. Copyright (c) 2024 An Nguyen. Licensed under the PolyForm Noncommercial License 1.0.0.
 // render/enemy-leviathan.js — extracted from render.js. _drawLeviathanEffects
 // (standalone death-laser/perseverance-sweep fx, survives enemy death) sits far
 // from _drawLeviathan in the original file; reassembled together here.

@@ -1,4 +1,4 @@
-// Pisces: Space Journey — © 2024 An Nguyen. Licensed under the MIT License.
+// Pisces: Space Journey. Copyright (c) 2024 An Nguyen. Licensed under the PolyForm Noncommercial License 1.0.0.
 // js/skills/sigil-cancer.js — split out of the old monolithic js/skills.js.
 // Cancer sigil: Tidal Flow's Riptide Surge (tide meter, overflow banking,
 // whirlpool spawn/pull/burst/DOT, sentinel auto-replenish) and Lunar

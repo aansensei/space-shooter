@@ -1,4 +1,4 @@
-// Pisces: Space Journey. (c) 2024 An Nguyen. Licensed under the MIT License.
+// Pisces: Space Journey. Copyright (c) 2024 An Nguyen. Licensed under the PolyForm Noncommercial License 1.0.0.
 // Capricorn sigil VFX in moonlit ink wash: the Compound Interest enso around
 // the ship, the Ley meter over it, Mountainfall and its three rock screens,
 // buried enemies and the faint shan shui backdrop. Every brush texture is

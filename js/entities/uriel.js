@@ -1,4 +1,4 @@
-// Pisces: Space Journey — © 2024 An Nguyen. Licensed under the MIT License.
+// Pisces: Space Journey. Copyright (c) 2024 An Nguyen. Licensed under the PolyForm Noncommercial License 1.0.0.
 // js/entities/uriel.js — Uriel, the Covenant King. A herald-boss that never
 // attacks the player directly: it shields the whole horde (Covenant King),
 // punishes a broken ward with a Holy Sword (Judgment), vanishes and comes

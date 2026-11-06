@@ -1,4 +1,4 @@
-// Pisces: Space Journey — © 2024 An Nguyen. Licensed under the MIT License.
+// Pisces: Space Journey. Copyright (c) 2024 An Nguyen. Licensed under the PolyForm Noncommercial License 1.0.0.
 // js/render/enemy-dargruel.js — Dargruel's own visuals, split out of the old
 // shared js/render/enemy-boss-thaelis.js (which also drew Thaelis through
 // the same function, branching on enemy.type - see js/render/enemy-thaelis.js

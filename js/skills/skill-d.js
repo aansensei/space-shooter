@@ -1,4 +1,4 @@
-// Pisces: Space Journey — © 2024 An Nguyen. Licensed under the MIT License.
+// Pisces: Space Journey. Copyright (c) 2024 An Nguyen. Licensed under the PolyForm Noncommercial License 1.0.0.
 // js/skills/skill-d.js — split out of the old monolithic js/skills.js.
 // Skill D: Death Star (Draconic Annihilation) - charge/pull/mark-and-
 // annihilate, plus its Galactic Spaceships (spawn/fusion/update).

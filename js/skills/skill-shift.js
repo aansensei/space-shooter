@@ -1,4 +1,4 @@
-// Pisces: Space Journey — © 2024 An Nguyen. Licensed under the MIT License.
+// Pisces: Space Journey. Copyright (c) 2024 An Nguyen. Licensed under the PolyForm Noncommercial License 1.0.0.
 // js/skills/skill-shift.js — split out of the old monolithic js/skills.js.
 // Skill Shift: Yog-Sothoth Domain teleport execution and cancellation
 // (cooldown scaling by hold duration, the on-exit enemy-bullet wipe).

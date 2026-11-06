@@ -1,4 +1,4 @@
-// Pisces: Space Journey, © 2024 An Nguyen. Licensed under the MIT License.
+// Pisces: Space Journey. Copyright (c) 2024 An Nguyen. Licensed under the PolyForm Noncommercial License 1.0.0.
 // js/tutorial.js: Tutorial mode. Kanade leads a short calibration run: she steps out of her gate, speaks in a
 // speech box, the skill panel fills in as she names each skill, a few training enemies appear, and her magic
 // circles fire the attack shapes the player has to learn to read. She is drawn as an overlay only: she is never

@@ -4,11 +4,21 @@
 
 **Author:** An Nguyen
 
-**License:** [MIT](LICENSE)
+**License:** [PolyForm Noncommercial 1.0.0](LICENSE). Commercial use is not permitted under this license.
 
 **Play the game:** [https://aansensei.dev/space-shooter/](https://aansensei.dev/space-shooter/)
 
 A fast-paced arcade space shooter with deep combat mechanics, percentage-based damage scaling, and powerful screen-clearing abilities. Survive endless enemy waves, manage your cooldowns, and go for the highest score.
+
+## Educational purpose and references
+
+This is a personal learning project for practising game development. It draws on multiple tutorials, documentation, code examples, and artistic and gameplay references. It is shared for learning, experimentation, and noncommercial enjoyment.
+
+Đây là dự án học tập cá nhân, có tham khảo nhiều nguồn tài liệu, hướng dẫn, ví dụ mã nguồn và ý tưởng hình ảnh, lối chơi. Dự án được chia sẻ để học hỏi, thử nghiệm và giải trí phi thương mại.
+
+The project license applies only to material owned by the project author. Third-party code, images, audio, fonts, characters, and other referenced material remain subject to their respective owners' rights and original license terms. Their inclusion does not claim ownership or grant additional rights. See [third-party notices](THIRD_PARTY_NOTICES.md).
+
+Commercial use of the author's material requires separate permission from the author. This license change does not withdraw permissions already granted for copies previously distributed under MIT.
 
 ![Gameplay](assets/images/site/gameplay.png)
 

@@ -1,4 +1,4 @@
-// Pisces: Space Journey. © 2024 An Nguyen. Licensed under the MIT License.
+// Pisces: Space Journey. Copyright (c) 2024 An Nguyen. Licensed under the PolyForm Noncommercial License 1.0.0.
 // Leo sigil mechanics: Lion's Roar Burn and Wildfire, the Divine Fate meter,
 // and dominant petrification. Petrify and the meter run on game time; Burn
 // windows run on performance.now() and are shifted across pauses.

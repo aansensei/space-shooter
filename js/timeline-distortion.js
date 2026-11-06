@@ -1,4 +1,4 @@
-// Pisces: Space Journey — © 2024 An Nguyen. Licensed under the MIT License.
+// Pisces: Space Journey. Copyright (c) 2024 An Nguyen. Licensed under the PolyForm Noncommercial License 1.0.0.
 // timeline-distortion.js — Kanade's boss-wave modifier system (game logic).
 // Every boss wave (_waveNumber % 5 === 0) rolls one paired effect from the
 // pool below and applies it for that fight only. The cutscene that presents

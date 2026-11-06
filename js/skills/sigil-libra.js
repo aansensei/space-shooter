@@ -1,4 +1,4 @@
-// Pisces: Space Journey — © 2024 An Nguyen. Licensed under the MIT License.
+// Pisces: Space Journey. Copyright (c) 2024 An Nguyen. Licensed under the PolyForm Noncommercial License 1.0.0.
 // js/skills/sigil-libra.js — split out of the old monolithic js/skills.js.
 // Libra sigil: Blood Arrow's Sol Arrow queue/windup/flight (the 3-arrow
 // volley Skill A fires when Libra is equipped) and its Astral Pierce

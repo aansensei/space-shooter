@@ -1,4 +1,4 @@
-// Pisces: Space Journey — © 2024 An Nguyen. Licensed under the MIT License.
+// Pisces: Space Journey. Copyright (c) 2024 An Nguyen. Licensed under the PolyForm Noncommercial License 1.0.0.
 // js/skills/sigil-aries.js — split out of the old monolithic js/skills.js.
 // Aries sigil: Gate of Babylon's blade fan and Enuma Elish's spear thrust -
 // both proc off allied hit counts (trigger sites are in entities/core.js's

@@ -1,4 +1,4 @@
-// Pisces: Space Journey — © 2024 An Nguyen. Licensed under the MIT License.
+// Pisces: Space Journey. Copyright (c) 2024 An Nguyen. Licensed under the PolyForm Noncommercial License 1.0.0.
 // Yuusha Party (Tổ Đội Dũng Giả) — Taurus sigil: Squad Formation system
 
 const YUUSHA_ROLES = {

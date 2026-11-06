@@ -1,4 +1,4 @@
-// Pisces: Space Journey — © 2024 An Nguyen. Licensed under the MIT License.
+// Pisces: Space Journey. Copyright (c) 2024 An Nguyen. Licensed under the PolyForm Noncommercial License 1.0.0.
 // js/skills/sigil-virgo.js — split out of the old monolithic js/skills.js.
 // Virgo sigil: Forest Guardian's Golden Arrow crit-sweep bonus attack
 // (vine-wrapped log sweep while 5+ enemies are on screen).

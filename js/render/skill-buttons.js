@@ -1,4 +1,4 @@
-// Pisces: Space Journey — © 2024 An Nguyen. Licensed under the MIT License.
+// Pisces: Space Journey. Copyright (c) 2024 An Nguyen. Licensed under the PolyForm Noncommercial License 1.0.0.
 // render/skill-buttons.js — extracted from render.js (on-screen skill button UI).
 // drawSkillButton (singular) is confirmed dead code (no caller) — kept as-is,
 // not deleted, per repo convention of not removing unrelated dead code.

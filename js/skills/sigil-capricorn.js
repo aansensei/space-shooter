@@ -1,4 +1,4 @@
-// Pisces: Space Journey. (c) 2024 An Nguyen. Licensed under the MIT License.
+// Pisces: Space Journey. Copyright (c) 2024 An Nguyen. Licensed under the PolyForm Noncommercial License 1.0.0.
 // Capricorn sigil mechanics: Compound Interest stacks and Mountainfall, the
 // mountain that crushes the densest group and breaks into three rock walls
 // that stop everything the enemy sends at the ship. Visuals live in

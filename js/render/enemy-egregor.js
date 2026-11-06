@@ -1,4 +1,4 @@
-// Pisces: Space Journey — © 2024 An Nguyen. Licensed under the MIT License.
+// Pisces: Space Journey. Copyright (c) 2024 An Nguyen. Licensed under the PolyForm Noncommercial License 1.0.0.
 // render/enemy-egregor.js — extracted from render.js (base body + Psychic
 // Tempest / Null Slash telegraph and strike effects). Runs to end of original file.
 

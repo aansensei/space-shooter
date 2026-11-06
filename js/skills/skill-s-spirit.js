@@ -1,4 +1,4 @@
-// Pisces: Space Journey — © 2024 An Nguyen. Licensed under the MIT License.
+// Pisces: Space Journey. Copyright (c) 2024 An Nguyen. Licensed under the PolyForm Noncommercial License 1.0.0.
 // js/skills/skill-s-spirit.js — split out of the old monolithic js/skills.js.
 // Skill S: Remembrance Spirit, its own Photokrystos evolution, Photokrystos's
 // boomerangs, the normal Spirit's Blade Arc/Spinner finale, and its plain

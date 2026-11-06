@@ -1,4 +1,4 @@
-// Pisces: Space Journey — © 2024 An Nguyen. Licensed under the MIT License.
+// Pisces: Space Journey. Copyright (c) 2024 An Nguyen. Licensed under the PolyForm Noncommercial License 1.0.0.
 // js/skills/misc-mechanics.js — split out of the old monolithic js/skills.js.
 // Enemy-side projectile mechanics that live here rather than in
 // entities/*.js: Marchosias's own sword-throw blades, and the Soul Reaver

@@ -1,4 +1,4 @@
-// Pisces: Space Journey — © 2024 An Nguyen. Licensed under the MIT License.
+// Pisces: Space Journey. Copyright (c) 2024 An Nguyen. Licensed under the PolyForm Noncommercial License 1.0.0.
 
 // Catches main-thread blocking tasks the [PROF] rawGap/thisCallback split
 // can't see: anything that runs between two rAF callbacks (GC pause, a

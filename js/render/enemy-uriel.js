@@ -1,4 +1,4 @@
-// Pisces: Space Journey — © 2024 An Nguyen. Licensed under the MIT License.
+// Pisces: Space Journey. Copyright (c) 2024 An Nguyen. Licensed under the PolyForm Noncommercial License 1.0.0.
 // js/render/enemy-uriel.js — Uriel's body (wings, halo, tracking eye row,
 // divine-relic core), Camouflage shield dome, Holy Sword projectile, and
 // its on-death Protection barrier. Ported from the standalone preview demo

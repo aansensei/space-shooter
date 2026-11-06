@@ -1,4 +1,4 @@
-// Pisces: Space Journey, Copyright 2024 An Nguyen. Licensed under the MIT License.
+// Pisces: Space Journey. Copyright (c) 2024 An Nguyen. Licensed under the PolyForm Noncommercial License 1.0.0.
 // The Duat doorway uses a decoded scene or a cached Egyptian fallback.
 const AMMIT_PYRAMID_DOOR = { x: 0.505859375, y: 0.6515625 };
 const AMMIT_PYRAMID_ASPECT = 1.6;
