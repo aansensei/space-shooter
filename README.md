@@ -391,6 +391,7 @@ Enemy skill projectiles the ring touches are turned back on their caster. A turn
 | Uriel Judgment (Holy Sword) | 250% ATK + 2% target Max HP |
 | Raphael Wisdom Orb | 250% ATK + 2% target Max HP |
 | Dargruel Abyssal Chains | 200% ATK + 1.5% target Max HP |
+| Thaelis Ulysses' Return (flying wave only) | 200% ATK + 1.5% target Max HP |
 | Goliath Corrupted Meteor | 300% ATK + 2% target Max HP |
 | Goliath Absolute Verdict | 600% ATK + 3% target Max HP |
 

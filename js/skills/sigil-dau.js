@@ -196,6 +196,8 @@ function _dauReflectEligible(kind, p) {
     if (kind === 'marchosias' && (p.delay > 0 || p.active === false)) return false;
     if (kind === 'raphael' && p.phase !== 'launch') return false;
     if (kind === 'dargruel' && (p.type !== 'abyssal_chain' || p.hp <= 0)) return false;
+    // a Thaelis wave can only be turned while it is flying, not during its gate or as a leftover lane
+    if (kind === 'thaelis' && p.phase !== 'fly') return false;
     const owner = _dauReflectOwner(kind, p);
     // Only the native Verdict and Meteor arrays accept a Goliath owner.
     return kind === 'verdict' || kind === 'meteor' || !owner || owner.type !== 'goliath';
@@ -368,6 +370,7 @@ function _dauBeginFrame(deltaTime, currentTime) {
             _dauReflectArray(ring, previousRadius, window._urielHolySwords, 'uriel');
             _dauReflectArray(ring, previousRadius, raphaelWisdomOrbs, 'raphael');
             _dauReflectArray(ring, previousRadius, enemies, 'dargruel');
+            _dauReflectArray(ring, previousRadius, _thaelisWaves, 'thaelis');
             _dauReflectArray(ring, previousRadius, window._goliathMeteors, 'meteor');
             _dauReflectArray(ring, previousRadius, window._goliathOrbs, 'verdict');
         }

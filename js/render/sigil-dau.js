@@ -1008,6 +1008,17 @@ function _dauSprites() {
         _dauBrushBezier(g, 34, 66, 46, 64, 52, 63, 58, 62, 0.8, 2.0, 1.2, '#FF5100');
     });
 
+    // three nested crescents facing right, the Thaelis wave turned golden
+    reflectShapes.thaelis = _dauBake(160, 192, g => {
+        g.translate(24, 96);
+        g.fillStyle = 'rgba(255,168,28,0.26)';
+        g.beginPath(); g.arc(0, 0, 110, -0.85, 0.85); g.arc(-20, 0, 92, 0.85, -0.85, true); g.closePath(); g.fill();
+        for (let k = 0; k < 3; k++) {
+            const a = 0.85 - k * 0.12;
+            _dauBrushArc(g, -k * 8, 0, 110 - k * 20, -a, a, 1.4, 4.2 - k * 0.6, 1.4, k === 0 ? '#FFF9D2' : '#FFD23F');
+        }
+    });
+
     reflectShapes.dargruel = _dauBake(128, 64, g => {
         // Interlocking miao jin chain links tipped with a barbed golden spearhead.
         for (let i = 0; i < 5; i++) {
@@ -1285,8 +1296,8 @@ function _drawDauReflections(s, gfx) {
     const list = window._dauReflections;
     for (let i = 0; i < list.length; i++) {
         const r = list[i], large = r.kind === 'verdict';
-        const width = large ? 180 : r.kind === 'marchosias' ? 200 : r.kind === 'uriel' ? 108 : r.kind === 'dargruel' ? 80 : 72;
-        const height = r.kind === 'dargruel' ? 40 : width;
+        const width = large ? 180 : r.kind === 'marchosias' ? 200 : r.kind === 'uriel' ? 108 : r.kind === 'dargruel' ? 80 : r.kind === 'thaelis' ? 150 : 72;
+        const height = r.kind === 'dargruel' ? 40 : r.kind === 'thaelis' ? 180 : width;
         if (gfx < 2) _dauImage(s.reflectFire, r.x - Math.cos(r.angle) * width, r.y - Math.sin(r.angle) * width, width * 2.7, height * 0.5, r.angle, 0.65);
         const angle = r.kind === 'uriel' ? r.angle + Math.PI / 2 : r.kind === 'marchosias' ? r.age / 110 : r.angle;
         _dauImage(s.reflectShapes[r.kind], r.x, r.y, width, height, angle, 1);

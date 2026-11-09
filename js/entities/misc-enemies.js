@@ -399,6 +399,8 @@ function _castThaelisWave(enemy) {
         ox: enemy.x, oy: enemy.y, x: enemy.x, y: enemy.y, angle: angle,
         halfWidth: THAELIS_WAVE_HALF_WIDTH, radius: THAELIS_WAVE_HALF_WIDTH,
         speed: THAELIS_WAVE_SPEED * (1 + speedBonus), s: 0, prevS: 0,
+        // a turned wave goes back to its caster, so the Dau reflect reads the owner and the heading
+        owner: enemy, vx: Math.cos(angle) * THAELIS_WAVE_SPEED * (1 + speedBonus), vy: Math.sin(angle) * THAELIS_WAVE_SPEED * (1 + speedBonus),
         atk: (enemy.type === 'thaelis_cocoon' ? enemy._ordealAtk || 0 : (enemy.atk || 0) * _enemyEnrageMult(enemy)) * (1 + enemy._ordealBonus),
         len: _thaelisLaneLength(enemy.x, enemy.y, angle),
         slow: slow, hitPlayer: false, hitEnemies: [], born: _thaelisClock,

@@ -323,6 +323,7 @@ const DAU_REFLECT = {
     uriel: { atk: 2.50, percentDamage: 0.02 },
     raphael: { atk: 2.50, percentDamage: 0.02 },
     dargruel: { atk: 2.00, percentDamage: 0.015 },
+    thaelis: { atk: 2.00, percentDamage: 0.015 },
     meteor: { atk: 3.00, percentDamage: 0.02 },
     verdict: { atk: 6.00, percentDamage: 0.03 },
 };
