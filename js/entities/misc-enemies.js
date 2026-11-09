@@ -512,3 +512,44 @@ function _thaelisLaneSlowMult() {
     }
     return m;
 }
+
+// Penelope's Shroud. Like the shroud she wove by day and unwove by night, Thaelis keeps
+// mending itself. Damage its shield soaks heals it, and with no shield standing it
+// recovers on its own. Healing and shield effectiveness are stronger while it is bare.
+const THAELIS_SHROUD_ABSORB_HEAL = 0.38;   // share of the damage a shield soaks that comes back as HP
+const THAELIS_SHROUD_REGEN = 0.015;        // Max HP per second while no shield stands
+const THAELIS_SHROUD_BARE_BONUS = 0.35;    // heal and shield effectiveness while no shield stands
+const THAELIS_SHROUD_WARDED_BONUS = 0.10;  // the same while a shield stands
+const THAELIS_SHROUD_SOUL_REAVER = 0.60;   // Soul Reaver cuts its healing like any other enemy's
+
+// Multiplier for every heal and shield Thaelis receives, read from its shield at that moment.
+function _thaelisSustainMult(enemy) {
+    return 1 + ((enemy.shield || 0) > 0 ? THAELIS_SHROUD_WARDED_BONUS : THAELIS_SHROUD_BARE_BONUS);
+}
+
+// Heals Thaelis by amount after effectiveness; returns the HP actually restored.
+function _thaelisShroudHeal(enemy, amount) {
+    if (!(amount > 0) || !(enemy.hp > 0) || enemy._markedForDeath) return 0;
+    let heal = amount * _thaelisSustainMult(enemy) * _walpurgisHealShieldMult();
+    if (enemy.soulReaver) heal *= THAELIS_SHROUD_SOUL_REAVER;
+    const before = enemy.hp;
+    enemy.hp = Math.min(enemy.maxHp, enemy.hp + heal);
+    return enemy.hp - before;
+}
+
+// Called by dealDamage with the damage the shield just soaked, before the shield shrinks.
+function _thaelisShroudAbsorb(enemy, absorbed) {
+    const healed = _thaelisShroudHeal(enemy, absorbed * THAELIS_SHROUD_ABSORB_HEAL);
+    if (healed <= 0) return;
+    // render reads these to flash the mend: when it happened and how much HP came back
+    enemy._shroudMendAt = performance.now();
+    enemy._shroudMendAmt = healed;
+    if (!_mobPerf && Math.random() < 0.3) createParticles(enemy.x, enemy.y, 1, '#9dffb0', 1, 4);
+}
+
+// Per frame: with no shield standing Thaelis recovers 1.5% of its Max HP per second.
+function updateThaelisShroud(enemy, deltaTime) {
+    if ((enemy.shield || 0) > 0 || !(enemy.hp > 0) || enemy.hp >= enemy.maxHp) return;
+    if (enemy._reviveInvulnEnd && performance.now() < enemy._reviveInvulnEnd) return;
+    _thaelisShroudHeal(enemy, enemy.maxHp * THAELIS_SHROUD_REGEN * deltaTime / 1000);
+}

@@ -537,6 +537,7 @@ function _addEnemyShield(enemy, amount) {
     if (!amount || amount <= 0) return;
     if (enemy.type === 'thaelis_cocoon') return; // no shield from any outside source, only its own HP pool matters
     amount *= _walpurgisHealShieldMult(); // Walpurgis (Huyết Dạ): +5% shield effectiveness per stack
+    if (enemy.type === 'thaelis') amount *= _thaelisSustainMult(enemy); // Penelope's Shroud
     // docs/combat-scaling-rebalance.md Part 3: ordinary enemy shields have an
     // aggregate cap of 50% Max HP. Goliath's own stricter 30% Hentry cap is
     // already enforced upstream by _goliathGrantShield before this runs.
@@ -1695,6 +1696,8 @@ function dealDamage(enemy, source) {
     if (enemy.type === 'thaelis') enemy._ordealShieldHit = 0;
     if (enemy.type === 'thaelis' && (enemy.shield || 0) > 0 && !source.isSpiritLaser) {
         const _absorbed = Math.min(totalDamage, enemy.shield);
+        // Penelope's Shroud heals before the shield shrinks, so the shield still counts as standing for the effectiveness bonus
+        _thaelisShroudAbsorb(enemy, _absorbed);
         enemy.shield -= _absorbed;
         enemy.shield = Math.max(0, enemy.shield);
         if (enemy.shield <= 0) {
@@ -2154,8 +2157,10 @@ function dealDamage(enemy, source) {
         const _hpLost = enemy.maxHp - enemy.hp;
         const shieldGrant = Math.ceil(enemy.maxHp * 0.35 + _hpLost * 0.10 + 100);
         const _grantShield = () => {
-            enemy.shield = (enemy.shield || 0) + shieldGrant;
-            enemy._shieldPeak = (enemy._shieldPeak || 0) + shieldGrant;
+            // Penelope's Shroud: a shield made while bare is 35% stronger, while another still stands 10%
+            const grant = Math.ceil(shieldGrant * _thaelisSustainMult(enemy));
+            enemy.shield = (enemy.shield || 0) + grant;
+            enemy._shieldPeak = (enemy._shieldPeak || 0) + grant;
             createParticles(enemy.x, enemy.y, 35, '#ffe066', 3, 12);
             createParticles(enemy.x, enemy.y, 18, '#ffffff', 2, 8);
         };

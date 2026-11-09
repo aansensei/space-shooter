@@ -554,6 +554,8 @@ Thaelis has no normal attack. Its attack is **Ulysses' Return**:
 - No single hit can exceed **max(35%, 90% − 5% × HP% lost) × MaxHP** damage (scales down as HP is chipped away).
 - Every time Thaelis loses **30% of its Max HP** (at 70%, 40%, and 10% HP thresholds), it generates a **Shield** worth **35% MaxHP + 10% HP lost + 100**: it must be fully destroyed before any damage (normal or piercing) reaches Thaelis's body. Displayed as a pulsing gold ring. The sole exception is **Spirit Laser**, which bypasses it; even true damage from other sources must destroy the Shield first.
 
+**Passive: Penelope's Shroud:** Damage its Shield soaks heals Thaelis for **38%** of the amount soaked. With no Shield standing it recovers **1.5% of its Max HP per second**. Its healing and Shield effectiveness is **+35%** while it has no Shield and **+10%** while one stands; this covers Tenacity Shields and the heals and Shields it receives from Raphael. Soul Reaver cuts its healing by 40%.
+
 **Reincarnation:** At 0 HP, Thaelis collapses into an untargetable **Cocoon**.
 
 - The Cocoon itself carries no HP and cannot be hit directly: it's **CC Immune**, has an absolute **Iron Body**, and cannot receive outside heals or shields. It's guarded by **4 Guards** at all times, each with **500–1,000 flat HP** (not tied to Thaelis's own Max HP), the same evade chance as Thaelis's own tier, **40% + 20 flat Damage Reduction**, and full immunity to every DoT source in the game.

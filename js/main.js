@@ -1167,6 +1167,7 @@ function update(rawDeltaTime) {
                     if (ally.levEnvy) finalHeal *= 1.15; // Envy: +15% heal (docs/combat-scaling-rebalance.md Part 3)
                     // docs/combat-scaling-rebalance.md Part 3: capped at 3% of the recipient's own Max HP per second
                     finalHeal = Math.min(finalHeal, 0.03 * ally.maxHp * (deltaTime / 1000));
+                    if (ally.type === 'thaelis') finalHeal *= _thaelisSustainMult(ally); // Penelope's Shroud
                     if (ally.hp <= 0) return; // cannot heal at 0 HP
                     const veilNormal = ally.type === 'veilshroud' && !ally.inPhantom;
                     // An allied Goliath in True Form routes all external heal/shield
@@ -1729,7 +1730,7 @@ function update(rawDeltaTime) {
                 }
             }
 
-            if (enemy.type === 'thaelis') updateThaelisOrdeal(enemy, deltaTime, currentTime);
+            if (enemy.type === 'thaelis') { updateThaelisOrdeal(enemy, deltaTime, currentTime); updateThaelisShroud(enemy, deltaTime); }
             if (enemy.type === 'dargruel' || enemy.type === 'thaelis') {
                 let currentShootTimer = (autoFireInterval * 2) * 0.75;
                 if (gloryForJusticeActive) currentShootTimer *= 1.25;
