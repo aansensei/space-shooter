@@ -85,18 +85,18 @@ function triggerDemonGift(boss) {
 // damaged, healed, or shielded by anything (CC immune, Iron Body, fully
 // untargetable - see the early return in dealDamage). The only way to
 // destroy it for good is to kill a random number of its Guards within the
-// 9s window; each Guard has its own flat HP pool and respawns individually
+// 7.5s window; each Guard has its own flat HP pool and respawns individually
 // 0.5s after death. Killing enough Guards in time means Thaelis is dead for
 // good; falling short means the real Thaelis climbs back out, fully itself
 // (not a downgraded copy), at reduced Max HP.
-const THAELIS_COCOON_DURATION = 9000;
+const THAELIS_COCOON_DURATION = 7500;
 const THAELIS_COCOON_GUARD_COUNT = 4; // kept alive at all times
 const THAELIS_COCOON_GUARD_HP_MIN = 500; // flat, not tied to Thaelis's own Max HP anymore
 const THAELIS_COCOON_GUARD_HP_MAX = 1000;
 const THAELIS_COCOON_GUARD_DR = 0.40; // Guards are the real damage sink now, some DR keeps them from melting instantly
 const THAELIS_COCOON_GUARD_FLAT_DR = 20; // subtracted after the % cut above, same pattern as Walpurgis/Leviathan's own flat DR
 const THAELIS_COCOON_GUARD_RESPAWN_MS = 1000;
-const THAELIS_COCOON_GUARD_SHIELD_GRANT = 150; // flat Shield banked per Guard kill, carried over to Thaelis if it revives (see _reviveThaelis, capped there at 30% revived Max HP) - purely a reward, doesn't affect the kill-count win condition. docs/combat-scaling-rebalance.md Part 3
+const THAELIS_COCOON_GUARD_SHIELD_GRANT = 250; // flat Shield banked per Guard kill, carried over to Thaelis if it revives (see _reviveThaelis, capped there at 50% revived Max HP) - purely a reward, doesn't affect the kill-count win condition. docs/combat-scaling-rebalance.md Part 3
 const THAELIS_COCOON_KILLS_NEEDED_MIN = 12; // random per Cocoon, how many Guard kills within the 9s actually destroys it
 const THAELIS_COCOON_KILLS_NEEDED_MAX = 16;
 const THAELIS_REVIVE_HP_PCT = 0.40;
@@ -154,6 +154,11 @@ function _spawnThaelisCocoon(deadThaelis) {
         _cocoonKillsNeeded: killsNeeded,
         _cocoonKillsSoFar: 0,
     };
+    // the Cocoon keeps Thaelis's Ordeal state and can still fire the waves already stored while it holds out
+    for (const k of ['_ordealPts', '_ordealDmg', '_ordealQueue', '_ordealCd', '_ordealIdle', '_ordealBonus', '_ordealSlowPts', '_ordealCastAt']) cocoon[k] = deadThaelis[k] || 0;
+    cocoon._ordealGlow = 0; cocoon._ordealShieldHit = 0;
+    if (cocoon._ordealCastAt === 0) cocoon._ordealCastAt = -1e9;
+    cocoon._ordealAtk = (deadThaelis.atk || 0) * _enemyEnrageMult(deadThaelis);
     enemies.push(cocoon);
     for (let i = 0; i < THAELIS_COCOON_GUARD_COUNT; i++) _spawnThaelisCocoonGuard(cocoon);
 }
@@ -171,8 +176,8 @@ function _reviveThaelis(cocoon) {
     // stronger, not just a diminished remnant. `reincarnated: true` marks
     // this lineage for those DR bonuses.
     const hp = Math.max(1, _reviveBaseHp * 2);
-    // docs/combat-scaling-rebalance.md Part 3: capped at 30% of revived Max HP
-    const _bankedShield = Math.min(cocoon.shield || 0, hp * 0.30);
+    // Banked Guard Shield carries over up to 50% of the revived Max HP, and the revive itself adds a free 20% on top.
+    const _bankedShield = Math.min(cocoon.shield || 0, hp * 0.50) + hp * 0.20;
     enemies.push({
         x: cocoon.x, y: cocoon.y, size: cocoon._cocoonOriginalSize || cocoon.size / 0.85,
         speed: (1 + Math.random() * 2) * 0.8 * 0.80 * 0.80,
@@ -191,6 +196,8 @@ function _reviveThaelis(cocoon) {
         _cocoonCooldownUntil: performance.now() + THAELIS_COCOON_RETRIGGER_COOLDOWN_MS,
     });
     _enemySnapshotAtk(enemies[enemies.length - 1], 'thaelis');
+    // half of the Ordeal points the dead Thaelis held come back with it
+    _thaelisOrdealInit(enemies[enemies.length - 1], Math.floor(_thaelisOrdealPoints(cocoon) / 2));
     addExplosion(cocoon.x, cocoon.y, cocoon.size * 1.6, '#22cc55');
     createParticles(cocoon.x, cocoon.y, 40, '#22cc55', 3, 10);
     _setShake(10, 300);
@@ -203,7 +210,7 @@ function spawnThaelis() {
     // Early-game floor bumped 1100 -> 1265 (+15%), on top of the separate
     // +15% global HP buff multiplier below - Thaelis specifically reads too
     // squishy in the first waves compared to other Abnormal-tier enemies.
-    let hp = Math.ceil(Math.min(2640, 1265 + hpFromTime * 53) * 1.15 * _walpurgisHpMult());
+    let hp = Math.ceil(Math.min(3170, 1520 + hpFromTime * 64) * 1.15 * _walpurgisHpMult());
     enemies.push({
         x: Math.random() * (canvas.width - size) + size / 2, y: -size, size: size,
         speed: (1 + Math.random() * 2) * 0.8 * 0.80 * 0.80,
@@ -214,6 +221,7 @@ function spawnThaelis() {
         _tenacityBarrier70: false, _tenacityBarrier40: false, _tenacityBarrier10: false
     });
     _enemySnapshotAtk(enemies[enemies.length - 1], 'thaelis');
+    _thaelisOrdealInit(enemies[enemies.length - 1], 0);
 }
 
 function spawnRaphael() {
@@ -295,4 +303,210 @@ function updateApostleCoronation(enemy, deltaTime) {
             enemy._coronationConsumed = true;
         }
     }
+}
+
+// Ulysses' Return. Thaelis banks Ordeal points from the damage it takes, three
+// points queue one wave, and every wave is its own object in _thaelisWaves, so
+// a cast that has begun keeps going even when Thaelis dies during the gate.
+const THAELIS_ORDEAL_CHUNK = 0.04;      // share of Max HP in landed damage that earns 1 point
+const THAELIS_ORDEAL_CHUNK_LOW = 0.03;  // same share while Thaelis is under 40% HP
+const THAELIS_ORDEAL_HIT_MAX = 2;       // most points one hit can give
+const THAELIS_ORDEAL_COST = 3;          // points per queued wave
+const THAELIS_ORDEAL_MAX_QUEUE = 2;
+const THAELIS_ORDEAL_IDLE_MS = 6000;    // a point arrives on its own at this pace
+const THAELIS_ORDEAL_CD = 4000;         // pause between two casts of one Thaelis
+const THAELIS_ORDEAL_MIN_GAP = 2500;    // overflow can shorten that pause, never below this
+const THAELIS_ORDEAL_MAX_WAVES = 6;     // waves alive at once, several Thaelis can cast together
+const THAELIS_ORDEAL_OVER_CD = 500;     // cooldown shaved by each point earned past a full queue
+const THAELIS_ORDEAL_OVER_DMG = 0.04;   // wave damage added by each such point
+const THAELIS_ORDEAL_OVER_DMG_MAX = 0.20;
+const THAELIS_ORDEAL_SLOW_POINTS = 4;   // such points that make the next wave leave a slowing lane
+const THAELIS_WAVE_GATE_MS = 900;
+const THAELIS_WAVE_HALF_WIDTH = 100;    // Marchosias's blade has radius 88
+const THAELIS_WAVE_SPEED = 15;
+const THAELIS_WAVE_FRONT = 36;
+const THAELIS_WAVE_LANE_MS = 1500;
+const THAELIS_WAVE_LANE_SLOW = 0.75;
+const THAELIS_WAVE_COEFF = [0.45, 0.38, 0.35]; // x snapshotted atk on a Sentinel, 1st, 2nd, 3rd hit
+const THAELIS_WAVE_BODY = 360;         // length of the wave's trail behind its front, every ally shot inside it is cut
+
+function _thaelisOrdealInit(enemy, carryPoints) {
+    enemy._ordealPts = 0; enemy._ordealDmg = 0; enemy._ordealQueue = 0; enemy._ordealShieldHit = 0;
+    enemy._ordealCd = 3000 + Math.random() * 2000; enemy._ordealIdle = 0;
+    enemy._ordealBonus = 0; enemy._ordealSlowPts = 0; enemy._ordealGlow = 0; enemy._ordealCastAt = -1e9;
+    if (carryPoints > 0) _thaelisOrdealAddPoints(enemy, carryPoints);
+}
+
+function _thaelisOrdealPoints(enemy) {
+    return (enemy._ordealQueue || 0) * THAELIS_ORDEAL_COST + (enemy._ordealPts || 0);
+}
+
+function _thaelisOrdealAddPoints(enemy, n) {
+    for (let i = 0; i < n; i++) {
+        enemy._ordealGlow = 1;
+        if (enemy._ordealQueue >= THAELIS_ORDEAL_MAX_QUEUE) {
+            enemy._ordealCd = Math.max(0, enemy._ordealCd - THAELIS_ORDEAL_OVER_CD);
+            enemy._ordealBonus = Math.min(THAELIS_ORDEAL_OVER_DMG_MAX, enemy._ordealBonus + THAELIS_ORDEAL_OVER_DMG);
+            enemy._ordealSlowPts++;
+        } else if (++enemy._ordealPts >= THAELIS_ORDEAL_COST) {
+            enemy._ordealPts -= THAELIS_ORDEAL_COST;
+            enemy._ordealQueue++;
+        }
+    }
+}
+
+// Called with the damage a hit actually landed (shield and Max HP together).
+function _thaelisOrdealGain(enemy, amount) {
+    if (!(amount > 0) || !(enemy.hp > 0) || enemy._ordealPts === undefined) return;
+    const chunk = enemy.maxHp * (enemy.hp / enemy.maxHp < 0.4 ? THAELIS_ORDEAL_CHUNK_LOW : THAELIS_ORDEAL_CHUNK);
+    enemy._ordealDmg += amount;
+    const whole = Math.floor(enemy._ordealDmg / chunk);
+    if (whole <= 0) return;
+    enemy._ordealDmg -= whole * chunk;
+    _thaelisOrdealAddPoints(enemy, Math.min(THAELIS_ORDEAL_HIT_MAX, whole));
+}
+
+function updateThaelisOrdeal(enemy, deltaTime, now) {
+    if (enemy._ordealPts === undefined) _thaelisOrdealInit(enemy, 0);
+    // Tenacity quickens the whole cycle as Thaelis loses HP
+    const lost = 1 - enemy.hp / enemy.maxHp;
+    const dt = deltaTime * (1 + Math.min(0.20, lost * 0.1));
+    enemy._ordealGlow = Math.max(0, enemy._ordealGlow - deltaTime / 400);
+    if (enemy._ordealCd > 0) enemy._ordealCd -= dt;
+    // the Cocoon only fires waves already stored, it earns no points
+    if (enemy.type !== 'thaelis_cocoon') {
+        enemy._ordealIdle += dt;
+        if (enemy._ordealIdle >= THAELIS_ORDEAL_IDLE_MS) { enemy._ordealIdle = 0; _thaelisOrdealAddPoints(enemy, 1); }
+    }
+    if (enemy._ordealQueue <= 0 || enemy._ordealCd > 0) return;
+    if (_thaelisClock - enemy._ordealCastAt < THAELIS_ORDEAL_MIN_GAP) return;
+    if (enemy._reviveInvulnEnd && now < enemy._reviveInvulnEnd) return;
+    if (!_isCCImmune(enemy) && enemy._silencedEnd && now < enemy._silencedEnd) return;
+    let alive = 0;
+    for (let i = 0; i < _thaelisWaves.length; i++) if (_thaelisWaves[i].phase !== 'lane') alive++;
+    if (alive >= THAELIS_ORDEAL_MAX_WAVES) return;
+    _castThaelisWave(enemy);
+}
+
+function _castThaelisWave(enemy) {
+    const target = findClosestSentinelOrPlayer(enemy.x, enemy.y) || player;
+    const angle = Math.atan2(target.y - enemy.y, target.x - enemy.x);
+    const slow = enemy._ordealSlowPts >= THAELIS_ORDEAL_SLOW_POINTS;
+    // Tenacity: +3.5% wave speed per 0.5% HP lost, capped at +25%
+    const speedBonus = Math.min(0.25, (1 - enemy.hp / enemy.maxHp) * 7.0);
+    _thaelisWaves.push({
+        type: 'thaelis_wave', phase: 'gate', timer: THAELIS_WAVE_GATE_MS, dur: THAELIS_WAVE_GATE_MS,
+        ox: enemy.x, oy: enemy.y, x: enemy.x, y: enemy.y, angle: angle,
+        halfWidth: THAELIS_WAVE_HALF_WIDTH, radius: THAELIS_WAVE_HALF_WIDTH,
+        speed: THAELIS_WAVE_SPEED * (1 + speedBonus), s: 0, prevS: 0,
+        atk: (enemy.type === 'thaelis_cocoon' ? enemy._ordealAtk || 0 : (enemy.atk || 0) * _enemyEnrageMult(enemy)) * (1 + enemy._ordealBonus),
+        len: _thaelisLaneLength(enemy.x, enemy.y, angle),
+        slow: slow, hitPlayer: false, hitEnemies: [], born: _thaelisClock,
+    });
+    enemy._ordealQueue--;
+    enemy._ordealCd = THAELIS_ORDEAL_CD;
+    enemy._ordealBonus = 0;
+    if (slow) enemy._ordealSlowPts = 0;
+    enemy._ordealCastAt = _thaelisClock;
+    createParticles(enemy.x, enemy.y, 14, '#ffe066', 2, 7);
+    // energy gathers at Thaelis while the gate lights
+    if (window.AudioMgr) window.AudioMgr.playSfxAt('thaelis-wave-charge', enemy.x, enemy.y);
+}
+
+// The wave cuts every ally shot (the ship's bullets, Sentinel spears, spirit bullets) that crosses its front or its trail.
+function _thaelisWaveCutShots(w) {
+    const lists = [bullets, spiritBullets];
+    const ca = Math.cos(w.angle), sa = Math.sin(w.angle);
+    for (let li = 0; li < lists.length; li++) {
+        const list = lists[li];
+        for (let j = list.length - 1; j >= 0; j--) {
+            const b = list[j];
+            if (!Number.isFinite(b.x) || !Number.isFinite(b.y)) continue;
+            const dx = b.x - w.ox, dy = b.y - w.oy, rad = (b.size || 6) * 0.5;
+            const t = dx * ca + dy * sa, d = Math.abs(-dx * sa + dy * ca);
+            if (d >= w.halfWidth + rad || t < w.s - THAELIS_WAVE_BODY || t > w.s + rad) continue;
+            if (_gfxLevel < 2 && window._bulletSlashFx.length < 48) window._bulletSlashFx.push({ x: b.x, y: b.y, angle: w.angle + 0.7, r: Math.max(3, b.size || 6), large: false, age: 0 });
+            if (!_mobPerf) createParticles(b.x, b.y, 2, '#9dffb0', 1, 4);
+            list.splice(j, 1);
+        }
+    }
+}
+
+// Where the lane leaves the screen, so the warning, the hoops and the wave cover only what the player can see.
+function _thaelisLaneLength(ox, oy, angle) {
+    const ca = Math.cos(angle), sa = Math.sin(angle);
+    const tx = ca > 0.0001 ? (canvas.width - ox) / ca : ca < -0.0001 ? -ox / ca : Infinity;
+    const ty = sa > 0.0001 ? (canvas.height - oy) / sa : sa < -0.0001 ? -oy / sa : Infinity;
+    return Math.max(300, Math.min(tx, ty) + 60);
+}
+
+// Where a point sits against a wave: t along its heading, d across it.
+function _thaelisWaveHits(w, px, py, rad) {
+    const dx = px - w.ox, dy = py - w.oy, ca = Math.cos(w.angle), sa = Math.sin(w.angle);
+    const t = dx * ca + dy * sa, d = Math.abs(-dx * sa + dy * ca);
+    if (d >= w.halfWidth + rad) return false;
+    return t >= w.prevS - THAELIS_WAVE_FRONT - rad && t <= w.s + rad;
+}
+
+function updateThaelisWaves(deltaTime) {
+    _thaelisClock += deltaTime;
+    const dt = deltaTime / 16.67;
+    for (let i = _thaelisWaves.length - 1; i >= 0; i--) {
+        const w = _thaelisWaves[i];
+        if (w.phase === 'gate') {
+            w.timer -= deltaTime;
+            if (w.timer <= 0) {
+                w.phase = 'fly';
+                if (window.AudioMgr) window.AudioMgr.playSfxAt('thaelis-wave-sweep', w.ox, w.oy);
+                if (typeof _setShake === 'function') _setShake(5, 160);
+            }
+            continue;
+        }
+        if (w.phase === 'lane') {
+            w.timer -= deltaTime;
+            if (w.timer <= 0) _thaelisWaves.splice(i, 1);
+            continue;
+        }
+        w.prevS = w.s;
+        w.s += w.speed * dt;
+        const ca = Math.cos(w.angle), sa = Math.sin(w.angle);
+        // The player takes one life, then the Yuusha redirect and shield layers apply as for any hit
+        if (!w.hitPlayer && _thaelisWaveHits(w, player.x, player.y, player.hitRadius)) {
+            w.hitPlayer = true;
+            const tp = (player.x - w.ox) * ca + (player.y - w.oy) * sa;
+            w.x = w.ox + ca * tp; w.y = w.oy + sa * tp;
+            if (typeof _yuushaPierceRedirect !== 'function' || !_yuushaPierceRedirect(THAELIS_WAVE_COEFF[0] * w.atk, false, w)) playerTakesHit(w);
+            if (window.AudioMgr) window.AudioMgr.playSfxAt('metal-hit', player.x, player.y);
+        }
+        for (const s of sentinels) {
+            if (w.hitEnemies.includes(s) || !_thaelisWaveHits(w, s.x, s.y, s.size)) continue;
+            const ts = (s.x - w.ox) * ca + (s.y - w.oy) * sa;
+            w.x = w.ox + ca * ts; w.y = w.oy + sa * ts;
+            const coeff = THAELIS_WAVE_COEFF[Math.min(w.hitEnemies.length, THAELIS_WAVE_COEFF.length - 1)];
+            dealDamage(s, { damage: w.atk * coeff, _noHitSfx: true, _attackerType: 'thaelis', _capSource: w, _capKind: 'skill' });
+            w.hitEnemies.push(s);
+            addExplosion(s.x, s.y, 20, '#22cc55');
+            if (window.AudioMgr) window.AudioMgr.playSfxAt('metal-hit', s.x, s.y);
+        }
+        w.x = w.ox + ca * w.s; w.y = w.oy + sa * w.s;
+        _thaelisWaveCutShots(w);
+        if (w.s > w.len + THAELIS_WAVE_BODY) {
+            if (w.slow) { w.phase = 'lane'; w.timer = THAELIS_WAVE_LANE_MS; }
+            else _thaelisWaves.splice(i, 1);
+        }
+    }
+}
+
+// The lane a slowing wave leaves behind drags at the ship, same hook the Duat sand pits use.
+function _thaelisLaneSlowMult() {
+    let m = 1;
+    for (let i = 0; i < _thaelisWaves.length; i++) {
+        const w = _thaelisWaves[i];
+        if (!w.slow || w.phase === 'gate') continue;
+        const dx = player.x - w.ox, dy = player.y - w.oy, ca = Math.cos(w.angle), sa = Math.sin(w.angle);
+        const t = dx * ca + dy * sa, d = Math.abs(-dx * sa + dy * ca);
+        const reach = w.phase === 'lane' ? w.len : w.s;
+        if (d < w.halfWidth + player.hitRadius && t >= 0 && t <= reach) m = Math.min(m, THAELIS_WAVE_LANE_SLOW);
+    }
+    return m;
 }

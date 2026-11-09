@@ -116,6 +116,13 @@ function _drawEnemyDangerWarnings() {
             for (let j = 0; j < count; j++) _drawDangerZone('strip', x, y, length, e._meteorChargeTimer / 800, 0.9, now, angle + (j - (count - 1) / 2) * 0.18, 46);
         }
     }
+    // Ulysses' Return waves outlive the Thaelis that cast them, so they are read from their own list
+    if (typeof _thaelisWaves !== 'undefined') for (let i = 0; i < _thaelisWaves.length; i++) {
+        const w = _thaelisWaves[i];
+        // the red zone belongs to the gate only, it goes out the moment the wave launches
+        if (w.phase === 'gate') _drawDangerZone('strip', w.ox, w.oy, w.len, 1 - w.timer / w.dur, 0.6, now, w.angle, w.halfWidth);
+        else if (w.phase === 'fly' && typeof _drawThreatRing === 'function') _drawThreatRing(w.x, w.y, w.halfWidth + 15, 1);
+    }
 }
 
 // All area warnings share geometry, timing marks and a dark boundary underlay.

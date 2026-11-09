@@ -536,22 +536,28 @@ A herald-boss that never attacks the player directly. It patrols the **upper hal
 
 **Available after:** Wave 2 | **Spawn rate:** 12% → 25% | **Cap:** 2 on screen | **Score on kill:** HP × 6 points | **Speed:** 1.4 u/s
 
-HP: **1,265–2,640**.
+HP: **1,520–3,170**. It carries **60 flat DR** from the start.
 
-Fires **2 large projectiles** every second. After 0.6 seconds of flight each splits into **6 smaller homing bullets**. Small bullets deal 1 life of damage to the player, or **15% Max HP** to a Sentinel.
+Thaelis has no normal attack. Its attack is **Ulysses' Return**:
+
+- Every **4% of its Max HP** in damage it takes (Shield included, **3%** while under 40% HP) is **1 Ordeal point**, at most 2 from one hit. It also earns 1 point on its own every 6 seconds.
+- **3 points** queue one wave, and up to **2 waves** are stored. A queued wave fires at the nearest Sentinel or the ship after a **0.9 second** gate of hoops, with 4 seconds between casts of one Thaelis, and several Thaelis can cast together.
+- The wave is a **200 pixel wide lane**, drawn as sweeping green energy slashes, that nothing can destroy or deflect and that cuts every ally shot (the ship's bullets, Sentinel spears, spirit bullets) touching its front or trail. It hits the ship once for **1 life** and each Sentinel once for **45%, 38% then 35%** of Thaelis's ATK.
+- A point earned while 2 waves are stored is not lost: it shaves **0.5 seconds** off the cooldown (one Thaelis never casts twice within 2.5 seconds) and adds **+4% damage** to the next wave (max +20%), and 4 of them make that wave leave a lane that slows the ship by **25%** for 1.5 seconds.
+- A wave that has been cast keeps going even if Thaelis dies, and while it resurrects the Cocoon can still fire the waves already stored, but earns no points (the revived Thaelis then keeps half of what is left). Its gate uses the same red warning as other area attacks and follows the Red danger warning setting and goes out as soon as the wave launches.
 
 **Skill: Tenacity** — A passive scaling skill that activates as Thaelis loses HP:
 
-- For every **1% of Max HP lost**, Thaelis gains **+1% Damage Reduction** on its body. Capped at **60% total DR** from this source.
-- For every **0.5% of Max HP lost**, Thaelis's projectile speed increases by **+3.5%**. Capped at **+25%**.
+- For every **1% of Max HP lost**, Thaelis gains **+1% Damage Reduction** on its body. Capped at **65% total DR** from this source.
+- For every **0.5% of Max HP lost**, Thaelis's wave speed increases by **+3.5%**. Capped at **+25%**. Its Ordeal timers also run up to **10%** faster.
 - No single hit can exceed **max(35%, 90% − 5% × HP% lost) × MaxHP** damage (scales down as HP is chipped away).
-- Every time Thaelis loses **30% of its Max HP** (at 70%, 40%, and 10% HP thresholds), it generates a **Shield** worth **20% MaxHP + 10% HP lost + 100**: it must be fully destroyed before any damage (normal or piercing) reaches Thaelis's body. Displayed as a pulsing gold ring. The sole exception is **Spirit Laser**, which bypasses it; even true damage from other sources must destroy the Shield first.
+- Every time Thaelis loses **30% of its Max HP** (at 70%, 40%, and 10% HP thresholds), it generates a **Shield** worth **35% MaxHP + 10% HP lost + 100**: it must be fully destroyed before any damage (normal or piercing) reaches Thaelis's body. Displayed as a pulsing gold ring. The sole exception is **Spirit Laser**, which bypasses it; even true damage from other sources must destroy the Shield first.
 
 **Reincarnation:** At 0 HP, Thaelis collapses into an untargetable **Cocoon**.
 
 - The Cocoon itself carries no HP and cannot be hit directly: it's **CC Immune**, has an absolute **Iron Body**, and cannot receive outside heals or shields. It's guarded by **4 Guards** at all times, each with **500–1,000 flat HP** (not tied to Thaelis's own Max HP), the same evade chance as Thaelis's own tier, **40% + 20 flat Damage Reduction**, and full immunity to every DoT source in the game.
-- Killing a Guard doesn't damage the Cocoon directly. It banks a flat **150 Shield** (carried over to Thaelis if it revives, capped at 30% of its revived Max HP, see below) and counts toward a random **12–16 kill quota** rolled fresh each time, shown live as a number on the Cocoon's body. A dead Guard is replaced after **1 second**.
-- Meeting the kill quota within the **9-second** timer destroys the Cocoon for good, killing Thaelis. Falling short, Thaelis climbs back out at **40% of its original Max HP** plus whatever Shield was banked, with **1 second of invulnerability**, a **12-second cooldown** before it can trigger Reincarnation again if it dies again right away, and three permanent Reincarnation buffs: **+100% Max HP** (so effectively 80% of its original Max HP), **+10% DR**, and **+100 flat DR** on top of its usual Tenacity scaling.
+- Killing a Guard doesn't damage the Cocoon directly. It banks a flat **250 Shield** (carried over to Thaelis if it revives, capped at 50% of its revived Max HP, see below) and counts toward a random **12–16 kill quota** rolled fresh each time, shown live as a number on the Cocoon's body. A dead Guard is replaced after **1 second**.
+- Meeting the kill quota within the **7.5-second** timer destroys the Cocoon for good, killing Thaelis. Falling short, Thaelis climbs back out at **40% of its original Max HP** plus whatever Shield was banked and a free **20% of its revived Max HP** in Shield, with **1 second of invulnerability**, a **12-second cooldown** before it can trigger Reincarnation again if it dies again right away, and three permanent Reincarnation buffs: **+100% Max HP** (so effectively 80% of its original Max HP), **+10% DR**, and **+150 flat DR** on top of its usual Tenacity scaling. It also keeps half of the Ordeal points it held when it died.
 
 ---
 

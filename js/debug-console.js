@@ -646,7 +646,8 @@ window.debugSetYuukiBonus = function () {
       <div style="opacity:0.55; font-size:10px; margin-bottom:4px;">Applies the blessing to whatever spawns next, skipping the 10% roll, the wave-6 gate and the 12-per-wave ceiling. Works on any type, including ones the real roll never picks.</div>
       <div class="dbg-row" style="flex-wrap:wrap;">
         <button class="dbg-btn" onclick="debugSpawn('spawnApostle')" onmouseover="_dbgHint(this)" onmouseout="_dbgHint()" data-hp="22–330" data-size="20–30">Apostle</button>
-        <button class="dbg-btn" onclick="debugSpawn('spawnThaelis')" onmouseover="_dbgHint(this)" onmouseout="_dbgHint()" data-hp="1265–2640" data-size="100–150">Thaelis</button>
+        <button class="dbg-btn" onclick="debugSpawn('spawnThaelis')" onmouseover="_dbgHint(this)" onmouseout="_dbgHint()" data-hp="1520–3170" data-size="100–150">Thaelis</button>
+        <button class="dbg-btn" onclick="debugThaelisOrdeal()">Thaelis: fill wave queue</button>
         <button class="dbg-btn" onclick="debugSpawn('spawnRaphael')" onmouseover="_dbgHint(this)" onmouseout="_dbgHint()" data-hp="2500–4500" data-size="52–66">Raphael</button>
         <button class="dbg-btn" onclick="debugSpawn('spawnMarchosias')" onmouseover="_dbgHint(this)" onmouseout="_dbgHint()" data-hp="2112–4092" data-size="100–150">Marchosias</button>
         <button class="dbg-btn" onclick="debugSpawn('spawnDargruel')" onmouseover="_dbgHint(this)" onmouseout="_dbgHint()" data-hp="6200–16000" data-size="200–300">Dargruel</button>
@@ -1588,6 +1589,9 @@ window.debugSetYuukiBonus = function () {
     window.debugGreatSageFire = function (type) {
         if (typeof _castStolenGemAttack !== 'function') return;
         _castStolenGemAttack(type, 1);
+    };
+    window.debugThaelisOrdeal = function () {
+        for (const e of enemies) if (e.type === 'thaelis') { e._ordealQueue = THAELIS_ORDEAL_MAX_QUEUE; e._ordealCd = 0; }
     };
     window.debugGreatSageGiveGem = function (type) {
         if (typeof _greatSageGems === 'undefined') return;

@@ -1199,10 +1199,10 @@ function dealDamage(enemy, source) {
         combinedDR += Math.min(0.30, (percentPointsLost * 0.75 / 100));
     }
 
-    // Tenacity: +1% DR per 1% HP lost, cap 60% (docs/combat-scaling-rebalance.md Part 3)
+    // Tenacity: +1% DR per 1% HP lost, cap 65% (docs/combat-scaling-rebalance.md Part 3)
     if (enemy.type === 'thaelis') {
         const hpLostPct = (1 - enemy.hp / enemy.maxHp) * 100;
-        combinedDR += Math.min(0.60, hpLostPct * 0.01);
+        combinedDR += Math.min(0.65, hpLostPct * 0.01);
         // A Thaelis that climbed back out of its Cocoon is tougher than the
         // one that went in: +10% DR on top of Tenacity's own scaling.
         if (enemy.reincarnated) combinedDR += 0.10;
@@ -1488,7 +1488,7 @@ function dealDamage(enemy, source) {
         // fully bypassed by true damage, same as the % DR right above it.
         if (enemy.type === 'thaelis_guard') _flatArmor += THAELIS_COCOON_GUARD_FLAT_DR;
         // A revived Thaelis also gets flat armor on top of its extra 10% DR above.
-        if (enemy.type === 'thaelis' && enemy.reincarnated) _flatArmor += 100;
+        if (enemy.type === 'thaelis') _flatArmor += enemy.reincarnated ? 150 : 60;
         // Unified Front (Goliath True Form): flat armor recomputed every 1s
         // off the current ally count, same base and rate against both
         // normal and %MaxHP-scaling hits now. The leading 200 is Goliath's own
@@ -1692,6 +1692,7 @@ function dealDamage(enemy, source) {
     // let sources like Skill A's bonus true-damage hit punch straight through
     // a fully-stacked Shield and finish Thaelis off in a couple of hits -
     // Thaelis's own Shield is meant to be a harder block than that.
+    if (enemy.type === 'thaelis') enemy._ordealShieldHit = 0;
     if (enemy.type === 'thaelis' && (enemy.shield || 0) > 0 && !source.isSpiritLaser) {
         const _absorbed = Math.min(totalDamage, enemy.shield);
         enemy.shield -= _absorbed;
@@ -1702,7 +1703,8 @@ function dealDamage(enemy, source) {
             enemy._shieldBreakCrackAt = performance.now();
         }
         totalDamage -= _absorbed;
-        if (totalDamage <= 0) { enemy.hp = Math.max(0, enemy.hp); return; }
+        enemy._ordealShieldHit = _absorbed;
+        if (totalDamage <= 0) { enemy.hp = Math.max(0, enemy.hp); _thaelisOrdealGain(enemy, _absorbed); return; }
     }
 
     // Gaia Barrier (Sentinel): absorbs only what its pool actually has,
@@ -2142,13 +2144,15 @@ function dealDamage(enemy, source) {
         if (oldPercent > 0.01 && newPercent <= 0.01 && !enemy.demonGift1Triggered) { _demonTrigger(); enemy.demonGift1Triggered = true; }
     }
 
-    // Tenacity, mỗi khi mất 30% HP, nhận Shield (20% MaxHP + 10% HP đã mất +
+    // Tenacity, mỗi khi mất 30% HP, nhận Shield (35% MaxHP + 10% HP đã mất +
     // 100), docs/combat-scaling-rebalance.md Part 3
     if (enemy.type === 'thaelis') {
+        _thaelisOrdealGain(enemy, Math.max(0, oldHP - enemy.hp) + (enemy._ordealShieldHit || 0));
+        enemy._ordealShieldHit = 0;
         const oldPct = oldHP / enemy.maxHp;
         const newPct = enemy.hp / enemy.maxHp;
         const _hpLost = enemy.maxHp - enemy.hp;
-        const shieldGrant = Math.ceil(enemy.maxHp * 0.20 + _hpLost * 0.10 + 100);
+        const shieldGrant = Math.ceil(enemy.maxHp * 0.35 + _hpLost * 0.10 + 100);
         const _grantShield = () => {
             enemy.shield = (enemy.shield || 0) + shieldGrant;
             enemy._shieldPeak = (enemy._shieldPeak || 0) + shieldGrant;

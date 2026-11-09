@@ -78,6 +78,8 @@ let playerAbsoluteShield = false;
 let bossShockwaves = [];
 let raphaelLasers = [];
 let marchosiasBlades = []; // Global array, blades tồn tại độc lập, không bị ngắt
+let _thaelisWaves = []; // Ulysses' Return waves, independent of the Thaelis that cast them
+let _thaelisClock = 0;
 
 // Accurate Parry (Yog-Sothoth)
 let accurateParryActive = false;

@@ -135,6 +135,7 @@ function _drawThaelis(enemy) {
         ctx.beginPath(); ctx.arc(enemy.x, enemy.y, r + 12 + pulse2, 0, Math.PI * 2); ctx.fill(); ctx.restore();
     }
     _drawThaelisOrbitDots(enemy, rotation * 1.5);
+    _drawThaelisOrdealHud(enemy, r, now);
 
     // Tenacity Shield ring, vẽ thành vòng ngoài thân cho dễ nhìn dù bản
     // chất chỉ là enemy.shield như mọi enemy khác
@@ -435,6 +436,7 @@ function _drawThaelisCocoon(enemy) {
     ctx.restore();
 
     ctx.restore();
+    _drawThaelisOrdealHud(enemy, r, now);
 }
 
 function _drawThaelisGuard(enemy) {
@@ -518,5 +520,184 @@ function _drawThaelisGuard(enemy) {
     ctx.beginPath(); ctx.arc(0, -r * 2.2, 2 + pulse, 0, Math.PI * 2); ctx.fill();
     ctx.shadowBlur = 0;
 
+    ctx.restore();
+}
+
+// Ulysses' Return visuals. The gate is a lane of hoops (the twelve axe heads of Odysseus's bow
+// test) edged with a Greek meander; energy gathers at Thaelis, then a wave of stacked green
+// crescent slashes sweeps along the lane. Every shape is baked once.
+let _thaelisWaveArt = null;
+function _thaelisWaveSprites() {
+    if (_thaelisWaveArt) return _thaelisWaveArt;
+    const mk = (w, h) => { const c = document.createElement('canvas'); c.width = w; c.height = h; return c; };
+    const W = THAELIS_WAVE_HALF_WIDTH;
+    const ring = mk(40, 2 * Math.round(W * 0.84) + 16), rg = ring.getContext('2d');
+    const rcy = ring.height / 2, rry = ring.height / 2 - 8;
+    rg.lineWidth = 6; rg.strokeStyle = '#ffe066';
+    rg.beginPath(); rg.ellipse(20, rcy, 14, rry, 0, 0, Math.PI * 2); rg.stroke();
+    rg.lineWidth = 3; rg.strokeStyle = '#22cc55';
+    rg.beginPath(); rg.ellipse(20, rcy, 8, rry - 8, 0, 0, Math.PI * 2); rg.stroke();
+    rg.fillStyle = '#fffbd0'; rg.fillRect(15, rcy - rry - 5, 10, 8); rg.fillRect(15, rcy + rry - 3, 10, 8);
+
+    // Greek meander tile, repeated along both edges of the lane
+    const meander = mk(32, 16), mg = meander.getContext('2d');
+    mg.strokeStyle = '#ffe066'; mg.lineWidth = 2; mg.lineJoin = 'miter';
+    mg.beginPath(); mg.moveTo(0, 14); mg.lineTo(0, 2); mg.lineTo(14, 2); mg.lineTo(14, 10); mg.lineTo(6, 10); mg.lineTo(6, 6);
+    mg.moveTo(16, 14); mg.lineTo(32, 14); mg.stroke();
+    mg.strokeStyle = 'rgba(34,204,85,0.9)'; mg.lineWidth = 1;
+    mg.beginPath(); mg.moveTo(0, 15.5); mg.lineTo(32, 15.5); mg.moveTo(0, 0.5); mg.lineTo(32, 0.5); mg.stroke();
+
+    // One crescent slash bowed toward +x, as tall as the lane. Its brightest edge sits at x = SX.
+    const slash = mk(140, 2 * W + 24), sg = slash.getContext('2d');
+    const sh = slash.height, top = 8, bot = sh - 8, mid = sh / 2;
+    const sgr = sg.createLinearGradient(0, 0, 140, 0);
+    sgr.addColorStop(0, 'rgba(16,110,60,0)');
+    sgr.addColorStop(0.15, 'rgba(34,204,85,0.5)');
+    sgr.addColorStop(0.38, 'rgba(140,255,90,0.9)');
+    sgr.addColorStop(0.47, 'rgba(244,255,200,1)');
+    sgr.addColorStop(0.53, 'rgba(160,255,110,0.9)');
+    sgr.addColorStop(0.7, 'rgba(34,204,85,0)');
+    sg.shadowColor = '#7dff6a'; sg.shadowBlur = 14;
+    sg.fillStyle = sgr;
+    sg.beginPath(); sg.moveTo(14, top);
+    sg.quadraticCurveTo(122, mid, 14, bot);
+    sg.quadraticCurveTo(76, mid, 14, top);
+    sg.closePath(); sg.fill();
+
+    const trail = mk(360, 2 * W + 24), tg = trail.getContext('2d');
+    const tx = tg.createLinearGradient(0, 0, 360, 0);
+    tx.addColorStop(0, 'rgba(34,204,85,0)'); tx.addColorStop(1, 'rgba(120,255,150,0.38)');
+    tg.fillStyle = tx; tg.fillRect(0, 0, 360, trail.height);
+    tg.globalCompositeOperation = 'destination-in';
+    const ty = tg.createLinearGradient(0, 0, 0, trail.height);
+    ty.addColorStop(0, 'rgba(0,0,0,0)'); ty.addColorStop(0.25, 'rgba(0,0,0,1)'); ty.addColorStop(0.75, 'rgba(0,0,0,1)'); ty.addColorStop(1, 'rgba(0,0,0,0)');
+    tg.fillStyle = ty; tg.fillRect(0, 0, 360, trail.height);
+    return (_thaelisWaveArt = { ring: ring, meander: meander, slash: slash, SX: 68, trail: trail });
+}
+
+// Offset behind the front, height and depth scale, alpha and side shift of each crescent in the wave.
+const _THAELIS_SLASH_LAYERS = [
+    [0, 1.0, 1.0, 1.0, 0], [22, 0.86, 0.8, 0.8, -14], [44, 0.72, 0.7, 0.62, 12],
+    [70, 0.9, 0.6, 0.45, -6], [100, 0.6, 0.5, 0.3, 16],
+];
+function _drawThaelisSlashWave(art, s, alpha, now) {
+    const n = _mobPerf ? 3 : _THAELIS_SLASH_LAYERS.length, sh = art.slash.height;
+    ctx.save();
+    ctx.globalCompositeOperation = 'lighter';
+    for (let i = n - 1; i >= 0; i--) {
+        const L = _THAELIS_SLASH_LAYERS[i];
+        const x = s - L[0], sy = L[1], sx = L[2];
+        const dy = L[4] + Math.sin(now / 60 + i * 1.3) * 3;
+        ctx.globalAlpha = alpha * L[3] * (0.85 + 0.15 * Math.sin(now / 45 + i * 1.7));
+        ctx.drawImage(art.slash, x - art.SX * sx, dy - sh * sy / 2, 140 * sx, sh * sy);
+    }
+    // sparks thrown off the edges of the wave
+    ctx.fillStyle = '#d8ffb0';
+    const sparks = _mobPerf ? 6 : 14, hw = THAELIS_WAVE_HALF_WIDTH;
+    for (let i = 0; i < sparks; i++) {
+        const q = (now * 0.002 + i * 0.37) % 1, side = i % 2 ? -1 : 1;
+        const y = side * (hw * 0.45 + q * hw * 0.6) * (0.7 + 0.3 * Math.sin(i * 12.9898));
+        ctx.globalAlpha = alpha * (1 - q) * 0.9;
+        ctx.fillRect(s - 20 - q * 160, y - 1.5, 3, 3);
+    }
+    ctx.restore();
+}
+
+function _drawThaelisWaves() {
+    if (!_thaelisWaves.length) return;
+    const art = _thaelisWaveSprites(), count = _mobPerf ? 6 : 12, now = performance.now();
+    const ringH = art.ring.height;
+    let meanderPat = null;
+    for (let k = 0; k < _thaelisWaves.length; k++) {
+        const w = _thaelisWaves[k];
+        const len = w.len;
+        if (w.phase === 'lane') {
+            // the slowing lane left behind: a calm green mist, not a warning
+            ctx.save(); ctx.translate(w.ox, w.oy); ctx.rotate(w.angle);
+            const fade = Math.min(1, w.timer / 400);
+            ctx.globalAlpha = 0.14 * fade; ctx.fillStyle = '#22cc55'; ctx.fillRect(0, -w.halfWidth, len, w.halfWidth * 2);
+            ctx.globalAlpha = 0.5 * fade; ctx.strokeStyle = '#9dffb0'; ctx.lineWidth = 1.5; ctx.setLineDash([14, 18]); ctx.lineDashOffset = -now * 0.03;
+            ctx.beginPath(); ctx.moveTo(0, -w.halfWidth); ctx.lineTo(len, -w.halfWidth); ctx.moveTo(0, w.halfWidth); ctx.lineTo(len, w.halfWidth); ctx.stroke();
+            ctx.restore();
+            continue;
+        }
+        ctx.save();
+        ctx.translate(w.ox, w.oy); ctx.rotate(w.angle);
+        const p = w.phase === 'gate' ? 1 - w.timer / w.dur : 1;
+        const step = (len - 240) / (count - 1);
+        if (w.phase === 'gate') {
+            // meander along both edges, drawn in as the gate charges
+            if (!meanderPat) meanderPat = ctx.createPattern(art.meander, 'repeat');
+            if (meanderPat) {
+                ctx.globalAlpha = 0.25 + 0.55 * p; ctx.fillStyle = meanderPat;
+                const mw = Math.max(0, len * Math.min(1, p * 1.6));
+                ctx.fillRect(0, -w.halfWidth + 3, mw, 16); ctx.save(); ctx.translate(0, w.halfWidth - 3); ctx.scale(1, -1); ctx.fillRect(0, 0, mw, 16); ctx.restore();
+            }
+        }
+        for (let i = 0; i < count; i++) {
+            const t = 120 + i * step;
+            let a;
+            if (w.phase === 'gate') a = Math.max(0, Math.min(1, p * (count + 2) - i)) * 0.9;
+            else a = t < w.s - 30 ? Math.max(0.1, 1 - (w.s - t) / 300) : 0.6;
+            if (a <= 0.01) continue;
+            ctx.globalAlpha = a;
+            ctx.drawImage(art.ring, t - 12, -ringH / 2, 24, ringH);
+        }
+        if (w.phase === 'gate') {
+            // energy gathers at Thaelis: motes spiral into a growing orb at the head of the lane
+            const mx = 40, orb = (10 + 54 * p) * (0.9 + 0.1 * Math.sin(now / 70));
+            const glow = _getGlowSprite('rgba(190,255,170,0.9)', 48);
+            if (glow) { ctx.globalAlpha = 0.35 + 0.6 * p; ctx.drawImage(glow, mx - orb, -orb, orb * 2, orb * 2); }
+            ctx.fillStyle = '#e4ffc8'; ctx.globalAlpha = 0.85;
+            const motes = _mobPerf ? 6 : 14;
+            for (let i = 0; i < motes; i++) {
+                const q = (p * 1.7 + i / motes) % 1, a0 = i * 2.39996, d = (130 + (i % 5) * 22) * (1 - q) + 8;
+                ctx.fillRect(mx + Math.cos(a0 + q * 2.6) * d - 1.5, Math.sin(a0 + q * 2.6) * d * 0.8 - 1.5, 3, 3);
+            }
+        } else {
+            // launch flash at Thaelis, then the wave sweeping along the lane
+            const flash = Math.max(0, 1 - w.s / 160);
+            if (flash > 0) {
+                const g2 = _getGlowSprite('rgba(210,255,190,0.95)', 64);
+                if (g2) { ctx.globalAlpha = flash; ctx.drawImage(g2, 20 - 90, -90, 180, 180); }
+                ctx.globalAlpha = flash * 0.8; ctx.strokeStyle = '#e4ffc8'; ctx.lineWidth = 3;
+                ctx.beginPath(); ctx.arc(20, 0, 30 + w.s * 1.1, 0, Math.PI * 2); ctx.stroke();
+            }
+            const trailLen = Math.min(w.s + 60, THAELIS_WAVE_BODY + 40);
+            ctx.globalAlpha = 0.8; ctx.drawImage(art.trail, w.s - 12 - trailLen, -art.trail.height / 2, trailLen, art.trail.height);
+            _drawThaelisSlashWave(art, w.s, 1, now);
+        }
+        ctx.restore();
+    }
+}
+
+// Pips and a progress arc under Thaelis: one pip per queued wave, the arc fills toward the next.
+function _drawThaelisOrdealHud(enemy, r, now) {
+    if (enemy._ordealPts === undefined) return;
+    const q = enemy._ordealQueue || 0, glow = enemy._ordealGlow || 0, R = r + 26, cx = enemy.x, cy = enemy.y;
+    const a0 = Math.PI * 0.18, a1 = Math.PI * 0.82;
+    ctx.save();
+    ctx.lineCap = 'round';
+    ctx.strokeStyle = 'rgba(34,204,85,0.28)'; ctx.lineWidth = 3;
+    ctx.beginPath(); ctx.arc(cx, cy, R, a0, a1); ctx.stroke();
+    const frac = q >= THAELIS_ORDEAL_MAX_QUEUE ? 1 : (enemy._ordealPts || 0) / THAELIS_ORDEAL_COST;
+    if (frac > 0) {
+        ctx.strokeStyle = q >= THAELIS_ORDEAL_MAX_QUEUE ? '#ffffff' : '#ffe066'; ctx.lineWidth = 3 + glow * 2;
+        ctx.beginPath(); ctx.arc(cx, cy, R, a0, a0 + (a1 - a0) * frac); ctx.stroke();
+    }
+    for (let i = 0; i < THAELIS_ORDEAL_MAX_QUEUE; i++) {
+        const a = Math.PI / 2 + (i - (THAELIS_ORDEAL_MAX_QUEUE - 1) / 2) * 0.34, px = cx + Math.cos(a) * (R + 12), py = cy + Math.sin(a) * (R + 12);
+        const on = i < q, s = on ? 6 + glow * 2 : 4;
+        ctx.fillStyle = on ? '#ffe066' : 'rgba(34,204,85,0.35)';
+        ctx.strokeStyle = on ? '#ffffff' : 'rgba(255,255,255,0.25)'; ctx.lineWidth = 1;
+        ctx.beginPath(); ctx.moveTo(px, py - s); ctx.lineTo(px + s * 0.7, py); ctx.lineTo(px, py + s); ctx.lineTo(px - s * 0.7, py); ctx.closePath();
+        ctx.fill(); ctx.stroke();
+    }
+    const castAge = _thaelisClock - (enemy._ordealCastAt || -1e9);
+    if (castAge >= 0 && castAge < THAELIS_WAVE_GATE_MS) {
+        const k = castAge / THAELIS_WAVE_GATE_MS;
+        ctx.globalAlpha = (1 - k) * 0.7; ctx.strokeStyle = '#ffe066'; ctx.lineWidth = 3;
+        ctx.beginPath(); ctx.arc(cx, cy, r * (1.1 + 0.9 * k), 0, Math.PI * 2); ctx.stroke();
+    }
     ctx.restore();
 }

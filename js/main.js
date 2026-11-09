@@ -843,6 +843,8 @@ function update(rawDeltaTime) {
         }
     }
 
+    if (typeof _thaelisLaneSlowMult === 'function') _dimBreakMult = Math.min(_dimBreakMult, _thaelisLaneSlowMult());
+
     const _xBeforeMove = player.x;
     // A phone's play area is narrow enough that full speed crosses most of
     // the screen in one sweep - trimmed a bit so lateral movement feels
@@ -1075,6 +1077,7 @@ function update(rawDeltaTime) {
 
         if (enemy.type === 'thaelis_cocoon' && enemy.hp > 0) {
             enemy._cocoonTimer -= deltaTime;
+            updateThaelisOrdeal(enemy, deltaTime, currentTime);
 
             // Guard respawns: each dead Guard queued a timer here (see the
             // guard-death handling below) - count them down and spawn a
@@ -1623,49 +1626,10 @@ function update(rawDeltaTime) {
             }
 
         } else if (enemy.type.startsWith('enemy_bullet')) {
-            if (enemy.type === 'enemy_bullet_large') {
-                // Sine-wave weave: forward motion along the original firing
-                // angle plus a perpendicular oscillation, computed straight
-                // from elapsed travel distance rather than accumulated
-                // velocity - one smooth, repeatable curve for the whole
-                // flight instead of a flat line.
-                const _wSpdMult = dt * teslaSpeedMultiplier * raphaelSpeedMultiplier * _tdBulletSpeed;
-                enemy._waveForward += enemy._waveSpeed * _wSpdMult;
-                const _ca = Math.cos(enemy._waveAngle), _sa = Math.sin(enemy._waveAngle);
-                const _wPhase = enemy._waveForward * enemy._waveFreq;
-                const _waveOffset = enemy._waveAmp * enemy._waveSign * Math.sin(_wPhase);
-                enemy.x = enemy._waveOriginX + _ca * enemy._waveForward - _sa * _waveOffset;
-                enemy.y = enemy._waveOriginY + _sa * enemy._waveForward + _ca * _waveOffset;
-                // Keep vx/vy as the instantaneous tangent direction (derivative
-                // of the curve above) so anything else reading velocity -
-                // rendering, trail effects - still points the right way.
-                const _waveTangentPerp = enemy._waveAmp * enemy._waveSign * enemy._waveFreq * Math.cos(_wPhase);
-                enemy.vx = enemy._waveSpeed * (_ca - _sa * _waveTangentPerp);
-                enemy.vy = enemy._waveSpeed * (_sa + _ca * _waveTangentPerp);
-            } else if (enemy.type === 'enemy_bullet_small' && enemy._curveRate) {
-                // Touhou-style bloom (see spawn site): heading keeps rotating
-                // at this fragment's own fixed rate instead of staying dead straight.
-                enemy._curveAngle += enemy._curveRate * dt * teslaSpeedMultiplier * raphaelSpeedMultiplier * _tdBulletSpeed;
-                enemy.vx = Math.cos(enemy._curveAngle) * enemy._curveSpeed;
-                enemy.vy = Math.sin(enemy._curveAngle) * enemy._curveSpeed;
-                enemy.x += enemy.vx * dt * teslaSpeedMultiplier * raphaelSpeedMultiplier * _tdBulletSpeed;
-                enemy.y += enemy.vy * dt * teslaSpeedMultiplier * raphaelSpeedMultiplier * _tdBulletSpeed;
-            } else {
-                enemy.x += enemy.vx * dt * teslaSpeedMultiplier * raphaelSpeedMultiplier * _tdBulletSpeed;
-                enemy.y += enemy.vy * dt * teslaSpeedMultiplier * raphaelSpeedMultiplier * _tdBulletSpeed;
-            }
+            enemy.x += enemy.vx * dt * teslaSpeedMultiplier * raphaelSpeedMultiplier * _tdBulletSpeed;
+            enemy.y += enemy.vy * dt * teslaSpeedMultiplier * raphaelSpeedMultiplier * _tdBulletSpeed;
 
             if (_capStopProjectile(enemy, capMoveX, capMoveY, 'bullet', false, enemy.size)) { enemy.hp = 0; continue; }
-
-            // Thaelis's large/small bullets curve and wave instead of flying
-            // in a straight line, so they can drift off any edge (not just
-            // the bottom, which is all the generic boundaryY cull below
-            // catches) - despawn once fully off-screen in any direction
-            // instead of lingering forever.
-            if ((enemy.type === 'enemy_bullet_large' || enemy.type === 'enemy_bullet_small')
-                && (enemy.x < -100 || enemy.x > canvas.width + 100 || enemy.y < -100 || enemy.y > canvas.height + 100)) {
-                enemies.splice(i, 1); continue;
-            }
 
             if (Math.hypot(enemy.x - player.x, enemy.y - player.y) < enemy.size + player.hitRadius) {
                 playerTakesHit(enemy);
@@ -1713,29 +1677,6 @@ function update(rawDeltaTime) {
                 }
             }
 
-            if (enemy.type === 'enemy_bullet_large') {
-                enemy.splitTimer -= deltaTime;
-                if (enemy.splitTimer <= 0) {
-                    enemy.hp = 0;
-                    enemy.isSplit = true;
-                    const target = findClosestSentinelOrPlayer(enemy.x, enemy.y);
-                    let baseAngle = target ? Math.atan2(target.y - enemy.y, target.x - enemy.x) : Math.PI / 2;
-                    for (let j = 0; j < 6; j++) {
-                        const _slot = j - 2.5;
-                        let angle = baseAngle + _slot * 0.28;
-                        const _spd = 3.73;
-                        enemies.push({
-                            x: enemy.x, y: enemy.y, vx: Math.cos(angle) * _spd, vy: Math.sin(angle) * _spd,
-                            damage: 0.25 * ((enemy.ownerRef && enemy.ownerRef.atk) || 0), size: 10.8, hp: 60, maxHp: 60, type: 'enemy_bullet_small', shield: 0, ownerRef: enemy.ownerRef || null,
-                            // Touhou-style bloom: each fragment keeps bending along its own
-                            // fixed rate (outer ones bend out more than inner ones) instead
-                            // of flying dead straight, so the whole fan opens like a flower
-                            // over its flight - reads as one deliberate curve, not 6 flat rays.
-                            _curveAngle: angle, _curveSpeed: _spd, _curveRate: _slot * 0.006,
-                        });
-                    }
-                }
-            }
 
         } else if (enemy.type === 'egregor') {
             updateEgregor(enemy, deltaTime);
@@ -1788,9 +1729,9 @@ function update(rawDeltaTime) {
                 }
             }
 
+            if (enemy.type === 'thaelis') updateThaelisOrdeal(enemy, deltaTime, currentTime);
             if (enemy.type === 'dargruel' || enemy.type === 'thaelis') {
-                const thaelisTenacityBonus = (enemy.type === 'thaelis') ? Math.min(0.20, (1 - enemy.hp / enemy.maxHp) * 0.001 * 100) : 0;
-                let currentShootTimer = (enemy.type === 'thaelis') ? 1000 / (1 + thaelisTenacityBonus) : (autoFireInterval * 2) * 0.75;
+                let currentShootTimer = (autoFireInterval * 2) * 0.75;
                 if (gloryForJusticeActive) currentShootTimer *= 1.25;
                 currentShootTimer *= teslaAttackSpeedMultiplier;
 
@@ -1802,38 +1743,14 @@ function update(rawDeltaTime) {
 
                 enemy.shootTimer -= deltaTime;
                 const _silenced = !_ccImmune && enemy._silencedEnd && currentTime < enemy._silencedEnd;
-                if (enemy.shootTimer <= 0 && !_silenced) {
+                if (enemy.type === 'dargruel' && enemy.shootTimer <= 0 && !_silenced) {
                     enemy.shootTimer = currentShootTimer;
                     const target = findClosestSentinelOrPlayer(enemy.x, enemy.y);
                     if (target) {
                         const angle = Math.atan2(target.y - enemy.y, target.x - enemy.x);
-                        if (enemy.type === 'thaelis') {
-                            // Tenacity: +3.5% bullet speed per 0.5% HP lost, cap +25%
-                            const thaelisBonusPct = Math.min(0.25, (1 - enemy.hp / enemy.maxHp) * 7.0);
-                            const thaelisSpd = 3.36 * (1 + thaelisBonusPct);
-                            // Fires 2 large projectiles per second with slight spread, each
-                            // weaving in a fixed sine-wave instead of a plain straight line
-                            // (see the 'enemy_bullet_large' branch below) - same damage/split,
-                            // just a smooth predictable curve that reads clearly on approach
-                            // instead of a flat line, easier to track and dodge on reaction.
-                            // Enrage (lost-HP) category: scales with how much of Thaelis's
-                            // own HP is already gone, snapshotted per shot rather than
-                            // re-read later - a desperate low-HP Thaelis hits harder.
-                            const _thaelisBulletDmg = enemy.atk * _enemyEnrageMult(enemy);
-                            for (const _spr of [-0.15, 0.15]) {
-                                const _waveAngle = angle + _spr;
-                                enemies.push({
-                                    x: enemy.x, y: enemy.y, vx: Math.cos(_waveAngle) * thaelisSpd, vy: Math.sin(_waveAngle) * thaelisSpd,
-                                    damage: _thaelisBulletDmg, size: 18, hp: 180, maxHp: 180, type: 'enemy_bullet_large', shield: 0, splitTimer: 600, ownerRef: enemy,
-                                    _waveAngle, _waveSpeed: thaelisSpd, _waveOriginX: enemy.x, _waveOriginY: enemy.y,
-                                    _waveForward: 0, _waveAmp: 26, _waveFreq: 1 / 260, _waveSign: _spr < 0 ? 1 : -1,
-                                });
-                            }
-                        } else {
-                            const bulletHp = Math.ceil(10 + Math.random() * 30);
-                            const _dargruelBulletDmg = enemy.atk * (0.4 + Math.random() * 1.2); // uniform(0.4, 1.6) x E
-                            enemies.push({ x: enemy.x, y: enemy.y, vx: Math.cos(angle) * (player.speed / 3), vy: Math.sin(angle) * (player.speed / 3), damage: _dargruelBulletDmg, size: 15, hp: bulletHp, maxHp: bulletHp, type: 'enemy_bullet', shield: 0, ownerRef: enemy });
-                        }
+                        const bulletHp = Math.ceil(10 + Math.random() * 30);
+                        const _dargruelBulletDmg = enemy.atk * (0.4 + Math.random() * 1.2); // uniform(0.4, 1.6) x E
+                        enemies.push({ x: enemy.x, y: enemy.y, vx: Math.cos(angle) * (player.speed / 3), vy: Math.sin(angle) * (player.speed / 3), damage: _dargruelBulletDmg, size: 15, hp: bulletHp, maxHp: bulletHp, type: 'enemy_bullet', shield: 0, ownerRef: enemy });
                     }
                 }
 
@@ -2598,6 +2515,7 @@ function update(rawDeltaTime) {
     updateTeslaCoils(deltaTime, currentTime); _profChk2.push(performance.now());
     updateTeslaBolts(deltaTime, currentTime);
     updateMarchosiasBlades(deltaTime); _profChk2.push(performance.now());
+    updateThaelisWaves(deltaTime);
     updateRaphaelWisdomOrbs(deltaTime); _profChk2.push(performance.now());
     updateRaphaelWisdomZones(deltaTime); _profChk2.push(performance.now());
     if (_profChk2[_profChk2.length - 1] - _profChk2[0] > 60) {
@@ -3725,6 +3643,7 @@ function startGame() {
     bossShockwaves = [];
     raphaelLasers = [];
     marchosiasBlades = [];
+    _thaelisWaves.length = 0; _thaelisClock = 0;
     window._levDeathLasers = [];
     window._levDeathLaserSoundPending = false;
     window._levPersBeams = [];

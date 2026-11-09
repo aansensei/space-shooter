@@ -2492,6 +2492,7 @@ function draw(deltaTime) {
         if (typeof _drawOceanHunterBites === 'function') _drawOceanHunterBites();
         spiritSpinners.forEach(drawSpiritSpinner);
         marchosiasBlades.forEach(_drawMarchoBlade);
+        if (typeof _drawThaelisWaves === 'function') _drawThaelisWaves();
         scatteredProjectiles.forEach(drawScatteredProjectile);
         _drawDimensionalRiftsCtx(); // always on ctx, drawn before enemies so rift appears behind them
 

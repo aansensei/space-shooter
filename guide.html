@@ -752,12 +752,12 @@
     }
   </script>
   <script src="js/canvas-guard.js?v=20261106a"></script>
-  <script src="js/render/core.js?v=20261106a"></script>
-  <script src="js/render/fx.js?v=20261106a"></script>
+  <script src="js/render/core.js?v=20261108a"></script>
+  <script src="js/render/fx.js?v=20261108f"></script>
   <script src="js/render/player.js?v=20261106a"></script>
   <script src="js/render/enemy-common.js?v=20261106a"></script>
   <script src="js/render/enemy-goliath.js?v=20261106a"></script>
-  <script src="js/render/enemy-thaelis.js?v=20261106a"></script>
+  <script src="js/render/enemy-thaelis.js?v=20261108f"></script>
   <script src="js/render/enemy-dargruel.js?v=20261106a"></script>
   <script src="js/render/enemy-egregor.js?v=20261106a"></script>
   <script src="js/render/ammit-portal.js?v=20261106a"></script>
@@ -1153,12 +1153,12 @@
 </ul></div>
 
 
-<div class="card"><h2 class="dsname" style="color:#22cc55">THAELIS <span class="dsclass" style="font-size:10px;color:#22cc55">ABNORMAL</span></h2><div class="sub">Wave 2 • HP 1,265–2,640 • Evade 3→5% • CAP 2 • Speed 1.4 u/s</div>
+<div class="card"><h2 class="dsname" style="color:#22cc55">THAELIS <span class="dsclass" style="font-size:10px;color:#22cc55">ABNORMAL</span></h2><div class="sub">Wave 2 • HP 1,520–3,170 • Evade 3→5% • CAP 2 • Speed 1.4 u/s</div>
 <div class="ab" style="height:110px"><canvas id="cvThaelis" style="width:100%;height:100%"></canvas></div>
 <ul>
-<li><span style="color:#a855f7;font-size:10px">PASSIVE</span> <b>Reincarnation:</b> <span class="det-full">at 0 HP, Thaelis collapses into an untargetable <b>Cocoon</b> (CC immune, Iron Body) guarded by <span class="hi">4 Guards</span> (500–1,000 HP each, same evade as Thaelis, immune to all DoT, 40%+20 flat DR). A Guard killed banks <span class="hg">150 flat Shield</span> (capped at 30% of Thaelis's revived Max HP on transfer) and counts toward a random <span class="dmg">12–16 kill quota</span> (shown live on the Cocoon's body); a dead Guard respawns after 1s. Meeting the quota within the <span class="hi">9s</span> timer destroys the Cocoon for good. Falling short, Thaelis climbs back out at <span class="hg">40% of its original Max HP</span> plus the banked Shield, with 1s invulnerability, and permanently gains three Reincarnation buffs: <span class="hg">+100% Max HP</span> (so effectively <span class="hi">80%</span> of its original Max HP), <span class="hg">+10% DR</span>, and <span class="hg">+100 flat DR</span> on top of its usual Tenacity scaling.</span><span class="det-short">At 0 HP becomes an untargetable Cocoon guarded by 4 Guards (500–1,000 HP, respawn 1s). Kill a random 12–16 within 9s to destroy it for good, or Thaelis revives at 40% Max HP (buffed +100% to 80%) with the banked Shield (capped 30% of revived Max HP) plus permanent +10%/+100 flat DR.</span></li>
-<li><span style="color:var(--gold);font-size:10px">NORMAL ATK</span> Fires <b>2 large projectiles</b> every 1s. Each splits into <span class="hr">6 homing bullets</span> after 0.6s of flight. Bullets deal 1 life (player) or <span class="hr">15% Max HP</span> (Sentinel).</li>
-<li><span style="color:var(--cyan);font-size:10px">SKILL</span> <b>Tenacity</b> — <span class="det-full">per 1% HP lost: <span class="dmg">+1% DR</span> (cap <span class="dmg">60%</span>). Per 0.5% HP lost: <span class="hi">+3.5% bullet speed</span> (cap <span class="hi">+25%</span>). Per-hit damage capped at <span class="dmg">max(35%, 90%−5%×HP%lost) × MaxHP</span>. Every time Thaelis loses <span class="dmg">30% HP</span>, generates <b>Shield</b> worth <span class="hg">20% MaxHP + 10% HP lost + 100</span>, shown as a pulsing gold ring around the body. Must be fully destroyed before any damage (normal or piercing) reaches Thaelis's body. Exception: <span class="hi">Spirit Laser bypasses</span>.</span><span class="det-short">Gains DR (cap 60%) and bullet speed as HP drops; generates a gold Shield every 30% HP lost that blocks all damage until destroyed. Spirit Laser bypasses it.</span></li>
+<li><span style="color:#a855f7;font-size:10px">PASSIVE</span> <b>Reincarnation:</b> <span class="det-full">at 0 HP, Thaelis collapses into an untargetable <b>Cocoon</b> (CC immune, Iron Body) guarded by <span class="hi">4 Guards</span> (500–1,000 HP each, same evade as Thaelis, immune to all DoT, 40%+20 flat DR). A Guard killed banks <span class="hg">250 flat Shield</span> (capped at 50% of Thaelis's revived Max HP on transfer, and the revive adds a free 20% on top) and counts toward a random <span class="dmg">12–16 kill quota</span> (shown live on the Cocoon's body); a dead Guard respawns after 1s. Meeting the quota within the <span class="hi">7.5s</span> timer destroys the Cocoon for good. Falling short, Thaelis climbs back out at <span class="hg">40% of its original Max HP</span> plus the banked Shield, with 1s invulnerability, and permanently gains three Reincarnation buffs: <span class="hg">+100% Max HP</span> (so effectively <span class="hi">80%</span> of its original Max HP), <span class="hg">+10% DR</span>, and <span class="hg">+150 flat DR</span> on top of its usual Tenacity scaling.</span><span class="det-short">At 0 HP becomes an untargetable Cocoon guarded by 4 Guards (500–1,000 HP, respawn 1s). Kill a random 12–16 within 7.5s to destroy it for good, or Thaelis revives at 40% Max HP (buffed +100% to 80%) with the banked Shield (capped 50% of revived Max HP, plus a free 20%) and permanent +10%/+150 flat DR.</span></li>
+<li><span style="color:var(--cyan);font-size:10px">SKILL</span> <b>Ulysses' Return:</b> <span class="det-full">Thaelis has no normal attack. Every <span class="dmg">4%</span> of its Max HP in damage it takes (shield included, <span class="dmg">3%</span> under 40% HP) is <span class="hi">1 Ordeal point</span>, max 2 per hit, plus 1 on its own every 6s. <span class="hi">3 points</span> queue a wave, up to <span class="hi">2 waves</span> stored. A wave fires at the nearest Sentinel or the ship after a <span class="hi">0.9s</span> windup, 4s between casts (never under 2.5s). It is a <span class="hr">200px wide lane</span> that can't be destroyed or deflected and cuts ally shots in its path. It hits the ship once for <span class="hr">1 life</span> and each Sentinel once for <span class="hr">45%, 38% then 35%</span> of ATK. Each point earned while 2 waves are stored <span class="hg">cuts 0.5s off the cooldown</span> and adds <span class="dmg">+4% damage</span> to the next wave (max +20%); at 4 such points, that wave also leaves a lane that <span class="hi">slows the ship 25% for 1.5s</span>. A cast wave keeps going if Thaelis dies, and during resurrection the Cocoon can still fire waves already stored, but earns no points.</span><span class="det-short">Banks Ordeal points from damage taken (3 queue a wave, 2 stored). Fires an undestroyable 200px energy wave after a 0.9s windup that cuts ally shots. Points past a full queue cut cooldown, add damage and a slowing lane. As a Cocoon it fires stored waves but earns no points.</span></li>
+<li><span style="color:var(--cyan);font-size:10px">SKILL</span> <b>Tenacity</b> — <span class="det-full">per 1% HP lost: <span class="dmg">+1% DR</span> (cap <span class="dmg">65%</span>). Per 0.5% HP lost: <span class="hi">+3.5% wave speed</span> (cap <span class="hi">+25%</span>), and its Ordeal timers run up to <span class="hi">10% faster</span>. Per-hit damage capped at <span class="dmg">max(35%, 90%−5%×HP%lost) × MaxHP</span>. Every time Thaelis loses <span class="dmg">30% HP</span>, generates <b>Shield</b> worth <span class="hg">35% MaxHP + 10% HP lost + 100</span>, shown as a pulsing gold ring around the body. Must be fully destroyed before any damage (normal or piercing) reaches Thaelis's body. Exception: <span class="hi">Spirit Laser bypasses</span>. Thaelis also carries <span class="hg">60 flat DR</span> from the start.</span><span class="det-short">Gains DR (cap 65%) and wave speed as HP drops; generates a gold Shield every 30% HP lost that blocks all damage until destroyed. Spirit Laser bypasses it.</span></li>
 </ul></div>
 
 <div class="card"><h2 class="dsname" style="color:#22cc55">VEILSHROUD <span class="dsclass" style="font-size:10px;color:#22cc55">ABNORMAL</span></h2><div class="sub">Wave 2 • HP 1,320–3,300 • CAP 2 • Speed 2.0 u/s • Base DR 40% • Evade 3→5%</div>
@@ -1342,8 +1342,20 @@
 <div class="card"><h2 style="color:var(--cyan)">UPDATE LOG</h2><div class="sub">FULL VERSION HISTORY · NEWEST FIRST</div>
 <div class="ul-hero" oncontextmenu="return false"><img src="assets/images/site/update-log-hero.png" draggable="false" alt="Pisces: Space Journey"></div></div>
 
+<div class="ul-entry" style="--ul-accent:#22cc55">
+<div class="ul-head"><span class="ul-ver">v7.0.1: ULYSSES' RETURN</span><span class="ul-badge">CURRENT</span></div>
+<div class="ul-date">2026-11-08 &middot; Thaelis trades its split bullets for a wave of its own and comes back stronger from its Cocoon</div>
+<p class="det-short ul-summary">Thaelis loses its normal attack and gains Ulysses' Return, a wave it earns from the damage it takes. Its Shield is much stronger before and after the Cocoon, and it returns sooner.</p>
+<ul class="det-full">
+<li><span class="ul-tag tag-buff">BUFF</span> <b>Thaelis Tenacity:</b> the Shield made every 30% HP lost is now <span class="hg">35% of Max HP</span> plus 10% of HP lost plus 100 (was 20%), and the DR from lost HP caps at <span class="hg">65%</span> (was 60%).</li>
+<li><span class="ul-tag tag-buff">BUFF</span> <b>Thaelis Reincarnation:</b> the Cocoon lasts <span class="hg">7.5s</span> (was 9s). A Guard kill banks <span class="hg">250</span> Shield (was 150), up to <span class="hg">50%</span> of the revived Max HP (was 30%), and the revived Thaelis also gets a free <span class="hg">20%</span> of its Max HP in Shield. Its flat DR is <span class="hg">+150</span> (was +100), and it keeps half of its Ordeal points.</li>
+<li><span class="ul-tag tag-buff">BUFF</span> <b>Thaelis HP and armor:</b> Max HP is 20% higher (<span class="hg">1,520 to 3,170</span> before other bonuses) and it carries <span class="hg">60 flat DR</span> from the start.</li>
+<li><span class="ul-tag tag-balance">BALANCE</span> <b>Thaelis normal attack removed:</b> the two large projectiles that split into six homing bullets are gone. Tenacity's bullet speed bonus now speeds up the wave.</li>
+<li><span class="ul-tag tag-feat">FEAT</span> <b>Thaelis, Ulysses' Return:</b> damage Thaelis takes, Shield included, fills Ordeal points: <span class="hi">3 points</span> queue a wave and 2 waves can be stored. A queued wave fires after a <span class="hi">0.9s</span> gate of hoops as a <span class="hr">200px wide lane</span> that nothing can destroy or deflect. It costs the ship 1 life and each Sentinel 45%, 38% then 35% of Thaelis's ATK. Points earned past a full queue shave the cooldown (never under 2.5s between casts), add damage, and at 4 of them make the next wave leave a lane that slows the ship. The wave is drawn as sweeping green energy slashes that cut every ally shot touching them, several Thaelis can cast together, a wave already cast keeps going even if Thaelis dies, and while Thaelis resurrects the Cocoon can still fire waves already stored but earns no points. The gate uses the red danger warning, follows its setting and goes out when the wave launches.</li>
+</ul></div>
+
 <div class="ul-entry" style="--ul-accent:#f2b72e">
-<div class="ul-head"><span class="ul-ver">v7.0.0: AMMIT AND KANADE'S CALIBRATION</span><span class="ul-badge">CURRENT</span></div>
+<div class="ul-head"><span class="ul-ver">v7.0.0: AMMIT AND KANADE'S CALIBRATION</span></div>
 <div class="ul-date">2026-11-04 &middot; Ammit joins the Elite waves, Kanade's Tutorial is finished, the Voyage Pilot Licence replaces the recap, and Voyages get a picker</div>
 <p class="det-short ul-summary">Ammit, devourer of hearts, now appears among the Elite enemies, one at a time. Kanade's calibration run now teaches with real attacks you must dodge, expressive faces and hand gestures, 22 new sounds and a Vietnamese script that matches the rest of the game. It ends with a personal Voyage Pilot Licence you can rename and save as an image, and the menu gains a Voyage picker.</p>
 <ul class="det-full">
@@ -2809,12 +2821,12 @@
 </ul></div>
 
 
-<div class="card"><h2 class="dsname" style="color:#22cc55">THAELIS <span class="dsclass" style="font-size:10px;color:#22cc55">THƯỢNG CẤP</span></h2><div class="sub">Wave 2 • HP 1,265–2,640 • Né 3→5% • CAP 2 • Tốc độ 1.4 u/s</div>
+<div class="card"><h2 class="dsname" style="color:#22cc55">THAELIS <span class="dsclass" style="font-size:10px;color:#22cc55">THƯỢNG CẤP</span></h2><div class="sub">Wave 2 • HP 1,520–3,170 • Né 3→5% • CAP 2 • Tốc độ 1.4 u/s</div>
 <div class="ab" style="height:110px"><canvas id="cvThaelis" style="width:100%;height:100%"></canvas></div>
 <ul>
-<li><span style="color:#a855f7;font-size:10px">PASSIVE</span> <b>Tái Sinh:</b> <span class="det-full">khi HP về 0, Thaelis co lại thành 1 <b>Kén</b> không thể bị chọn làm mục tiêu (miễn nhiễm khống chế, Iron Body), được <span class="hi">4 Trụ</span> bảo vệ (mỗi Trụ 500–1.000 HP, cùng tier né đòn với Thaelis, miễn nhiễm mọi DoT, DR 40%+20 phẳng). Mỗi Trụ bị hạ gục tích thêm <span class="hg">150 Shield phẳng</span> (giới hạn 30% Max HP lúc Thaelis hồi sinh) và tính vào mức <span class="dmg">12–16 lần hạ gục</span> ngẫu nhiên (hiển thị trực tiếp trên thân Kén); Trụ chết sẽ hồi sinh sau 1s. Đạt đủ số lần hạ gục trong <span class="hi">9s</span> sẽ phá hủy Kén vĩnh viễn. Không đạt đủ, Thaelis sẽ trồi ra với <span class="hg">40% Max HP gốc</span> cộng thêm Shield đã tích, cùng 1s bất tử, và vĩnh viễn nhận 3 buff Tái Sinh: <span class="hg">+100% Max HP</span> (nên thực tế thành <span class="hi">80%</span> Max HP gốc), <span class="hg">+10% DR</span>, và <span class="hg">+100 DR phẳng</span> ngoài mức Kiên Cường thông thường.</span><span class="det-short">Khi HP về 0, biến thành 1 Kén không thể bị chọn làm mục tiêu, được 4 Trụ bảo vệ (mỗi Trụ 500–1.000 HP, hồi sinh sau 1s). Hạ gục đủ 12–16 Trụ (ngẫu nhiên) trong 9s sẽ phá hủy Kén vĩnh viễn, không thì Thaelis hồi sinh với 40% Max HP (buff +100% thành 80%) cùng Shield đã tích (giới hạn 30% Max HP hồi sinh) và +10%/+100 DR phẳng vĩnh viễn.</span></li>
-<li><span style="color:var(--gold);font-size:10px">ĐÒN THƯỜNG</span> Bắn <b>2 đạn lớn</b> mỗi 1s. Mỗi đạn tách thành <span class="hr">6 đạn định hướng</span> sau 0.6s bay. Đạn gây 1 mạng (người chơi) hoặc <span class="hr">15% Max HP</span> (Vệ Binh).</li>
-<li><span style="color:var(--cyan);font-size:10px">SKILL</span> <b>Kiên Cường</b> — <span class="det-full">mỗi 1% HP mất: <span class="dmg">+1% DR</span> (CAP <span class="dmg">60%</span>). Mỗi 0.5% HP mất: <span class="hi">+3.5% tốc độ đạn</span> (CAP <span class="hi">+25%</span>). Sát thương mỗi đòn bị giới hạn ở <span class="dmg">max(35%, 90%−5%×%HP đã mất) × MaxHP</span>. Mỗi lần Thaelis mất <span class="dmg">30% HP</span>, tạo ra <b>Shield</b> trị giá <span class="hg">20% MaxHP + 10% HP đã mất + 100</span>, hiển thị dưới dạng vòng vàng nhấp nháy quanh thân. Phải bị phá hủy hoàn toàn trước khi bất kỳ sát thương nào (thường hoặc xuyên) chạm tới thân Thaelis. Ngoại lệ: <span class="hi">Spirit Laser xuyên qua được</span>.</span><span class="det-short">Nhận DR (cap 60%) và tốc độ đạn khi HP giảm; tạo ra Shield vàng mỗi khi mất 30% HP, chặn mọi sát thương cho tới khi bị phá hủy. Spirit Laser xuyên qua được.</span></li>
+<li><span style="color:#a855f7;font-size:10px">PASSIVE</span> <b>Tái Sinh:</b> <span class="det-full">khi HP về 0, Thaelis co lại thành 1 <b>Kén</b> không thể bị chọn làm mục tiêu (miễn nhiễm khống chế, Iron Body), được <span class="hi">4 Trụ</span> bảo vệ (mỗi Trụ 500–1.000 HP, cùng tier né đòn với Thaelis, miễn nhiễm mọi DoT, DR 40%+20 phẳng). Mỗi Trụ bị hạ gục tích thêm <span class="hg">250 Shield phẳng</span> (giới hạn 50% Max HP lúc Thaelis hồi sinh, lần hồi sinh tặng thêm 20% Shield) và tính vào mức <span class="dmg">12–16 lần hạ gục</span> ngẫu nhiên (hiển thị trực tiếp trên thân Kén); Trụ chết sẽ hồi sinh sau 1s. Đạt đủ số lần hạ gục trong <span class="hi">7.5s</span> sẽ phá hủy Kén vĩnh viễn. Không đạt đủ, Thaelis sẽ trồi ra với <span class="hg">40% Max HP gốc</span> cộng thêm Shield đã tích, cùng 1s bất tử, và vĩnh viễn nhận 3 buff Tái Sinh: <span class="hg">+100% Max HP</span> (nên thực tế thành <span class="hi">80%</span> Max HP gốc), <span class="hg">+10% DR</span>, và <span class="hg">+150 DR phẳng</span> ngoài mức Kiên Cường thông thường.</span><span class="det-short">Khi HP về 0, biến thành 1 Kén không thể bị chọn làm mục tiêu, được 4 Trụ bảo vệ (mỗi Trụ 500–1.000 HP, hồi sinh sau 1s). Hạ gục đủ 12–16 Trụ (ngẫu nhiên) trong 7.5s sẽ phá hủy Kén vĩnh viễn, không thì Thaelis hồi sinh với 40% Max HP (buff +100% thành 80%) cùng Shield đã tích (giới hạn 50% Max HP hồi sinh, cộng 20% tặng thêm) và +10%/+150 DR phẳng vĩnh viễn.</span></li>
+<li><span style="color:var(--cyan);font-size:10px">SKILL</span> <b>Ulysses' Return:</b> <span class="det-full">Thaelis không còn đòn thường. Mỗi <span class="dmg">4%</span> Max HP sát thương nhận vào (tính cả Shield, <span class="dmg">3%</span> khi dưới 40% HP) là <span class="hi">1 điểm Thử Thách</span>, một đòn tối đa 2 điểm, và mỗi 6s tự có thêm 1 điểm. <span class="hi">3 điểm</span> xếp 1 sóng, trữ tối đa <span class="hi">2 sóng</span>. Sóng bắn vào Vệ Binh hoặc tàu gần nhất sau <span class="hi">0.9s</span> chuẩn bị, nghỉ 4s giữa hai lần bắn (không bao giờ dưới 2.5s). Sóng là <span class="hr">dải rộng 200px</span>, không thể phá hay đỡ, và chém đạn đồng minh trên đường đi. Trúng tàu <span class="hr">1 mạng</span> một lần, trúng mỗi Vệ Binh một lần với <span class="hr">45%, 38% rồi 35%</span> ATK. Mỗi điểm kiếm được khi đã trữ đủ 2 sóng <span class="hg">giảm 0.5s hồi chiêu</span> và <span class="dmg">+4% sát thương</span> cho sóng kế (tối đa +20%); gom 4 điểm thì sóng đó để lại dải <span class="hi">làm chậm tàu 25% trong 1.5s</span>. Sóng đã bắn vẫn bay tiếp khi Thaelis chết, và trong lúc hồi sinh Kén vẫn bắn được các sóng đã trữ, nhưng không tích thêm điểm.</span><span class="det-short">Tích điểm Thử Thách từ sát thương nhận vào (3 điểm ra 1 sóng, trữ 2 sóng). Bắn sóng năng lượng 200px không thể phá sau 0.9s chuẩn bị, chém đạn đồng minh trên đường đi. Điểm dư giảm hồi chiêu, tăng sát thương và để lại dải làm chậm. Lúc hồi sinh, Kén bắn được sóng đã trữ nhưng không tích điểm.</span></li>
+<li><span style="color:var(--cyan);font-size:10px">SKILL</span> <b>Kiên Cường</b> — <span class="det-full">mỗi 1% HP mất: <span class="dmg">+1% DR</span> (CAP <span class="dmg">65%</span>). Mỗi 0.5% HP mất: <span class="hi">+3.5% tốc độ sóng</span> (CAP <span class="hi">+25%</span>), các bộ đếm Thử Thách chạy nhanh hơn tối đa <span class="hi">10%</span>. Sát thương mỗi đòn bị giới hạn ở <span class="dmg">max(35%, 90%−5%×%HP đã mất) × MaxHP</span>. Mỗi lần Thaelis mất <span class="dmg">30% HP</span>, tạo ra <b>Shield</b> trị giá <span class="hg">35% MaxHP + 10% HP đã mất + 100</span>, hiển thị dưới dạng vòng vàng nhấp nháy quanh thân. Phải bị phá hủy hoàn toàn trước khi bất kỳ sát thương nào (thường hoặc xuyên) chạm tới thân Thaelis. Ngoại lệ: <span class="hi">Spirit Laser xuyên qua được</span>. Thaelis còn mang sẵn <span class="hg">60 DR phẳng</span> ngay từ đầu.</span><span class="det-short">Nhận DR (cap 65%) và tốc độ sóng khi HP giảm; tạo ra Shield vàng mỗi khi mất 30% HP, chặn mọi sát thương cho tới khi bị phá hủy. Spirit Laser xuyên qua được.</span></li>
 </ul></div>
 
 <div class="card"><h2 class="dsname" style="color:#22cc55">VEILSHROUD <span class="dsclass" style="font-size:10px;color:#22cc55">THƯỢNG CẤP</span></h2><div class="sub">Wave 2 • HP 1,320–3,300 • CAP 2 • Tốc độ 2.0 u/s • DR nền 40% • Né 3→5%</div>
@@ -4051,26 +4063,44 @@
             // Orbiting dots
             c.fillStyle = '#FFD700';
             for (let i = 0; i < 6; i++) { const a = t / 2000 + (i / 6) * Math.PI * 2; c.beginPath(); c.arc(cx2 + Math.cos(a) * (r + 12), cy2 + Math.sin(a) * (r + 12), 2, 0, Math.PI * 2); c.fill(); }
-            // Split projectile animation
-            const sp = (t / 2000) % 1;
-            if (sp < 0.4) { c.fillStyle = '#FFD700'; c.globalAlpha = 0.7; c.beginPath(); c.arc(cx2 + r + 20 + sp * 150, cy2 - 5, 5, 0, Math.PI * 2); c.fill(); c.globalAlpha = 1; }
-            if (sp > 0.4 && sp < 0.9) {
-              const sp2 = (sp - 0.4) / 0.5;
-              c.fillStyle = '#ffaa00';[[-10, -15], [0, 0], [10, 15]].forEach(([dx, dy]) => { c.beginPath(); c.arc(cx2 + r + 80 + sp2 * 80 + dx, cy2 + dy * sp2, 3, 0, Math.PI * 2); c.fill(); });
+            // Ulysses' Return: damage taken fills the Ordeal arc, the gate of hoops lights, then one lane wave crosses
+            const cyc = (t / 1000) % 6.5, lane0 = cx2 + r + 24, lane1 = w - 10, lh = Math.min(h * 0.3, 26);
+            const gateP = cyc >= 2.4 && cyc < 3.3 ? (cyc - 2.4) / 0.9 : (cyc >= 3.3 && cyc < 4.6 ? 1 : 0);
+            if (cyc >= 2.4 && cyc < 4.6) {
+              c.fillStyle = `rgba(255,58,36,${0.08 + 0.1 * gateP})`; c.fillRect(lane0, cy2 - lh, lane1 - lane0, lh * 2);
+              c.strokeStyle = '#ff4631'; c.lineWidth = 1; c.strokeRect(lane0, cy2 - lh, lane1 - lane0, lh * 2);
+              for (let i = 0; i < 6; i++) {
+                const rx = lane0 + 14 + i * (lane1 - lane0 - 28) / 5, lit = Math.min(1, Math.max(0, gateP * 8 - i));
+                c.globalAlpha = 0.25 + 0.65 * lit;
+                c.strokeStyle = '#ffe066'; c.lineWidth = 1.4; c.beginPath(); c.ellipse(rx, cy2, 3, lh - 3, 0, 0, Math.PI * 2); c.stroke();
+                c.strokeStyle = '#22cc55'; c.lineWidth = 0.8; c.beginPath(); c.ellipse(rx, cy2, 1.6, lh - 7, 0, 0, Math.PI * 2); c.stroke();
+              }
+              c.globalAlpha = 1;
             }
-            // Embryo
-            const emx = w * 0.7, emy = h * 0.5;
-            const ep = Math.abs(Math.sin(t / 150)) * 3;
-            c.fillStyle = 'rgba(138,43,226,0.15)'; c.beginPath(); c.ellipse(emx, emy, 8 + ep, 11 + ep, 0, 0, Math.PI * 2); c.fill();
-            const emg = c.createRadialGradient(emx - 2, emy - 2, 0, emx, emy, 8 + ep);
-            emg.addColorStop(0, '#df88ff'); emg.addColorStop(0.4, '#8A2BE2'); emg.addColorStop(1, '#4a0080');
-            c.fillStyle = emg; c.beginPath(); c.ellipse(emx, emy, 6 + ep, 9 + ep, 0, 0, Math.PI * 2); c.fill();
+            if (cyc >= 3.3 && cyc < 4.6) {
+              const wx = lane0 + (lane1 - lane0) * (cyc - 3.3) / 1.3, tl = Math.min(50, wx - lane0);
+              const tg = c.createLinearGradient(wx - 50, 0, wx, 0); tg.addColorStop(0, 'rgba(34,204,85,0)'); tg.addColorStop(1, 'rgba(120,255,150,0.55)');
+              c.fillStyle = tg; c.fillRect(wx - tl, cy2 - lh + 2, tl, lh * 2 - 4);
+              c.save(); c.globalCompositeOperation = 'lighter'; c.lineCap = 'round';
+              for (let i = 0; i < 4; i++) {
+                const sx = wx - i * 7, sh = (lh - 2) * (1 - i * 0.12), bow = 9 - i * 1.5;
+                c.globalAlpha = 1 - i * 0.22; c.strokeStyle = i ? '#7dff6a' : '#f4ffc8'; c.lineWidth = 3 - i * 0.5;
+                c.beginPath(); c.moveTo(sx - bow, cy2 - sh); c.quadraticCurveTo(sx + bow, cy2, sx - bow, cy2 + sh); c.stroke();
+              }
+              c.restore();
+            }
+            // Ordeal progress arc and the queued wave pip under Thaelis
+            const pts = Math.min(3, cyc / 0.8), queued = cyc >= 2.4 && cyc < 3.3;
+            c.strokeStyle = 'rgba(34,204,85,0.3)'; c.lineWidth = 2; c.beginPath(); c.arc(cx2, cy2, r + 16, Math.PI * 0.18, Math.PI * 0.82); c.stroke();
+            if (cyc < 3.3) { c.strokeStyle = '#ffe066'; c.beginPath(); c.arc(cx2, cy2, r + 16, Math.PI * 0.18, Math.PI * 0.18 + Math.PI * 0.64 * (pts / 3)); c.stroke(); }
+            c.fillStyle = queued ? '#ffe066' : 'rgba(34,204,85,0.4)';
+            const px = cx2, py = cy2 + r + 27;
+            c.beginPath(); c.moveTo(px, py - 4); c.lineTo(px + 3, py); c.lineTo(px, py + 4); c.lineTo(px - 3, py); c.closePath(); c.fill();
             // Labels
             c.fillStyle = '#FFD70088'; c.font = '7px Share Tech Mono, monospace'; c.textAlign = 'center';
-            c.fillText('splits into 3 homing', w * 0.42, h * 0.22);
-            c.fillText('EMBRYO (90% DR)', emx, emy + 18);
-            c.fillStyle = '#8A2BE255'; c.fillText('hatches @3s', emx, emy + 27);
-            c.textAlign = 'left';
+            c.fillText("ULYSSES' RETURN", w * 0.6, h * 0.14);
+            c.fillStyle = '#22cc5588'; c.fillText(cyc < 2.4 ? 'damage taken fills the Ordeal arc' : 'one lane, cannot be blocked', w * 0.6, h * 0.94);
+c.textAlign = 'left';
             activeAnimations.push(requestAnimationFrame(() => drawThal(performance.now())));
           }
           drawThal(performance.now());
