@@ -427,6 +427,8 @@ function _thaelisWaveCutShots(w) {
             const dx = b.x - w.ox, dy = b.y - w.oy, rad = (b.size || 6) * 0.5;
             const t = dx * ca + dy * sa, d = Math.abs(-dx * sa + dy * ca);
             if (d >= w.halfWidth + rad || t < w.s - THAELIS_WAVE_BODY || t > w.s + rad) continue;
+            // render draws a Thaelis spark at each cut shot from this list
+            if (_thaelisCutFx.length < 24) _thaelisCutFx.push({ x: b.x, y: b.y, angle: w.angle, age: 0 });
             if (_gfxLevel < 2 && window._bulletSlashFx.length < 48) window._bulletSlashFx.push({ x: b.x, y: b.y, angle: w.angle + 0.7, r: Math.max(3, b.size || 6), large: false, age: 0 });
             if (!_mobPerf) createParticles(b.x, b.y, 2, '#9dffb0', 1, 4);
             list.splice(j, 1);
@@ -452,6 +454,10 @@ function _thaelisWaveHits(w, px, py, rad) {
 
 function updateThaelisWaves(deltaTime) {
     _thaelisClock += deltaTime;
+    for (let i = _thaelisCutFx.length - 1; i >= 0; i--) {
+        _thaelisCutFx[i].age += deltaTime;
+        if (_thaelisCutFx[i].age > 320) _thaelisCutFx.splice(i, 1);
+    }
     const dt = deltaTime / 16.67;
     for (let i = _thaelisWaves.length - 1; i >= 0; i--) {
         const w = _thaelisWaves[i];
@@ -521,6 +527,7 @@ const THAELIS_SHROUD_REGEN = 0.015;        // Max HP per second while no shield 
 const THAELIS_SHROUD_BARE_BONUS = 0.35;    // heal and shield effectiveness while no shield stands
 const THAELIS_SHROUD_WARDED_BONUS = 0.10;  // the same while a shield stands
 const THAELIS_SHROUD_SOUL_REAVER = 0.60;   // Soul Reaver cuts its healing like any other enemy's
+const THAELIS_SHROUD_OVERHEAL_SHIELD = 0.55; // share of any healing past its Max HP that turns into shield
 
 // Multiplier for every heal and shield Thaelis receives, read from its shield at that moment.
 function _thaelisSustainMult(enemy) {
@@ -532,9 +539,24 @@ function _thaelisShroudHeal(enemy, amount) {
     if (!(amount > 0) || !(enemy.hp > 0) || enemy._markedForDeath) return 0;
     let heal = amount * _thaelisSustainMult(enemy) * _walpurgisHealShieldMult();
     if (enemy.soulReaver) heal *= THAELIS_SHROUD_SOUL_REAVER;
-    const before = enemy.hp;
+    const before = enemy.hp, room = enemy.maxHp - enemy.hp;
     enemy.hp = Math.min(enemy.maxHp, enemy.hp + heal);
+    // render reads this to keep a mending glow up while any heal keeps landing
+    if (enemy.hp > before) enemy._shroudHealAt = performance.now();
+    if (heal > room) _thaelisOverhealToShield(enemy, heal - room);
     return enemy.hp - before;
+}
+
+// Healing past Max HP is not lost: 55% of it becomes shield, which still follows the usual shield rules and cap.
+function _thaelisOverhealToShield(enemy, overheal) {
+    if (!(overheal > 0)) return;
+    const before = enemy.shield || 0;
+    _addEnemyShield(enemy, overheal * THAELIS_SHROUD_OVERHEAL_SHIELD);
+    const gained = (enemy.shield || 0) - before;
+    if (!(gained > 0)) return;
+    // render reads these to show healing spilling over into the shield ring
+    enemy._shroudOverflowAt = performance.now();
+    enemy._shroudOverflowAmt = gained;
 }
 
 // Called by dealDamage with the damage the shield just soaked, before the shield shrinks.

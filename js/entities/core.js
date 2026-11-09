@@ -546,6 +546,7 @@ function _addEnemyShield(enemy, amount) {
     if (amount <= 0) return;
     _goliathTrackResourceGain(enemy, amount);
     enemy.shield = (enemy.shield || 0) + amount;
+    if (enemy.type === 'thaelis') enemy._shieldPeak = (enemy._shieldPeak || 0) + amount; // the shield ring measures itself against every shield it was given
 }
 
 // Aggregate shield cap for friendly units (docs/combat-scaling-rebalance.md
@@ -2159,6 +2160,7 @@ function dealDamage(enemy, source) {
         const _grantShield = () => {
             // Penelope's Shroud: a shield made while bare is 35% stronger, while another still stands 10%
             const grant = Math.ceil(shieldGrant * _thaelisSustainMult(enemy));
+            enemy._shieldGrantAt = performance.now(); // render weaves the new shield in from this moment
             enemy.shield = (enemy.shield || 0) + grant;
             enemy._shieldPeak = (enemy._shieldPeak || 0) + grant;
             createParticles(enemy.x, enemy.y, 35, '#ffe066', 3, 12);

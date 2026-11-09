@@ -1167,7 +1167,10 @@ function update(rawDeltaTime) {
                     if (ally.levEnvy) finalHeal *= 1.15; // Envy: +15% heal (docs/combat-scaling-rebalance.md Part 3)
                     // docs/combat-scaling-rebalance.md Part 3: capped at 3% of the recipient's own Max HP per second
                     finalHeal = Math.min(finalHeal, 0.03 * ally.maxHp * (deltaTime / 1000));
-                    if (ally.type === 'thaelis') finalHeal *= _thaelisSustainMult(ally); // Penelope's Shroud
+                    if (ally.type === 'thaelis') {
+                        finalHeal *= _thaelisSustainMult(ally); // Penelope's Shroud
+                        if (finalHeal > 0 && ally.hp < ally.maxHp) ally._shroudHealAt = performance.now();
+                    }
                     if (ally.hp <= 0) return; // cannot heal at 0 HP
                     const veilNormal = ally.type === 'veilshroud' && !ally.inPhantom;
                     // An allied Goliath in True Form routes all external heal/shield
@@ -1186,7 +1189,8 @@ function update(rawDeltaTime) {
                             ally.hp = ally.maxHp;
                             let overshield = overheal * 0.25; // docs/combat-scaling-rebalance.md Part 3
                             if (veilNormal) overshield *= 1.20; // Alteration: +20% shield (docs/combat-scaling-rebalance.md Part 3)
-                            _addEnemyShield(ally, overshield);
+                            if (ally.type === 'thaelis') _thaelisOverhealToShield(ally, overheal); // Penelope's Shroud: 55% of the excess instead
+                            else _addEnemyShield(ally, overshield);
                         } else {
                             _goliathTrackResourceGain(ally, finalHeal);
                             ally.hp = Math.max(0, newHp);
@@ -3644,7 +3648,7 @@ function startGame() {
     bossShockwaves = [];
     raphaelLasers = [];
     marchosiasBlades = [];
-    _thaelisWaves.length = 0; _thaelisClock = 0;
+    _thaelisWaves.length = 0; _thaelisCutFx.length = 0; _thaelisClock = 0;
     window._levDeathLasers = [];
     window._levDeathLaserSoundPending = false;
     window._levPersBeams = [];
