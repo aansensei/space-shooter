@@ -757,7 +757,7 @@
   <script src="js/render/player.js?v=20261106a"></script>
   <script src="js/render/enemy-common.js?v=20261106a"></script>
   <script src="js/render/enemy-goliath.js?v=20261106a"></script>
-  <script src="js/render/enemy-thaelis.js?v=20261108f"></script>
+  <script src="js/render/enemy-thaelis.js?v=20261109a"></script>
   <script src="js/render/enemy-dargruel.js?v=20261106a"></script>
   <script src="js/render/enemy-egregor.js?v=20261106a"></script>
   <script src="js/render/ammit-portal.js?v=20261106a"></script>
@@ -4049,23 +4049,40 @@
             // Halo
             c.fillStyle = `rgba(255,200,0,${0.12 + 0.08 * Math.sin(t / 400)})`;
             c.beginPath(); c.arc(cx2, cy2, r + 10, 0, Math.PI * 2); c.fill();
-            // Octagon
+            // Hoplite shield octagon
             c.save(); c.translate(cx2, cy2); c.rotate(t / 3000);
             c.fillStyle = '#1a1a2e'; c.strokeStyle = '#FFD700'; c.lineWidth = 1.5;
-            c.beginPath(); for (let i = 0; i < 8; i++) { const a = (i / 8) * Math.PI * 2; const px = Math.cos(a) * r, py = Math.sin(a) * r; i === 0 ? c.moveTo(px, py) : c.lineTo(px, py); } c.closePath(); c.fill(); c.stroke();
+            c.beginPath(); for (let i = 0; i < 8; i++) { const a = (i / 8) * Math.PI * 2; const px = Math.cos(a) * r, py = Math.sin(a) * r; if (i === 0) c.moveTo(px, py); else c.lineTo(px, py); } c.closePath(); c.fill(); c.stroke();
+            c.strokeStyle = 'rgba(255,215,0,0.35)'; c.lineWidth = 0.8;
+            c.beginPath(); c.arc(0, 0, r * 0.75, 0, Math.PI * 2); c.arc(0, 0, r * 0.50, 0, Math.PI * 2); c.stroke();
+            c.fillStyle = '#c87d28';
+            for (let i = 0; i < 8; i++) { const a = (i / 8) * Math.PI * 2; c.beginPath(); c.arc(Math.cos(a) * (r * 0.9), Math.sin(a) * (r * 0.9), 1.0, 0, Math.PI * 2); c.fill(); }
             c.restore();
-            // Inner octagon
+            // Inner octagon with Vitruvian wave scroll
             c.save(); c.translate(cx2, cy2); c.rotate(-t / 3900);
             c.strokeStyle = '#FFA500'; c.lineWidth = 1; c.globalAlpha = 0.55;
-            c.beginPath(); for (let i = 0; i < 8; i++) { const a = (i / 8) * Math.PI * 2; const px = Math.cos(a) * r * 0.55, py = Math.sin(a) * r * 0.55; i === 0 ? c.moveTo(px, py) : c.lineTo(px, py); } c.closePath(); c.stroke();
+            c.beginPath(); for (let i = 0; i < 8; i++) { const a = (i / 8) * Math.PI * 2; const px = Math.cos(a) * r * 0.55, py = Math.sin(a) * r * 0.55; if (i === 0) c.moveTo(px, py); else c.lineTo(px, py); } c.closePath(); c.stroke();
+            c.strokeStyle = 'rgba(255,200,60,0.4)'; c.lineWidth = 0.8;
+            for (let w0 = 0; w0 < 8; w0++) { const wa = (w0 / 8) * Math.PI * 2; c.beginPath(); c.arc(Math.cos(wa) * r * 0.35, Math.sin(wa) * r * 0.35, 2.2, 0, Math.PI); c.stroke(); }
             c.globalAlpha = 1; c.restore();
-            // Core
+            // Athena eye core with dark pupil
             const cg = c.createRadialGradient(cx2, cy2, 0, cx2, cy2, r * 0.28);
-            cg.addColorStop(0, '#fff'); cg.addColorStop(0.5, '#FFD700'); cg.addColorStop(1, '#FFA500');
+            cg.addColorStop(0, '#100a18'); cg.addColorStop(0.45, '#822830'); cg.addColorStop(0.85, '#FFD700'); cg.addColorStop(1, '#FFA500');
             c.fillStyle = cg; c.beginPath(); c.arc(cx2, cy2, r * 0.28, 0, Math.PI * 2); c.fill();
-            // Orbiting dots
+            // Golden laurel wreath arch
+            c.strokeStyle = '#ffe066'; c.lineWidth = 1.2;
+            c.beginPath(); c.arc(cx2, cy2, r * 0.82, Math.PI * 0.95, Math.PI * 0.05, false); c.stroke();
+            for (let lf = 0; lf < 6; lf++) { const la = Math.PI * 0.95 + ((lf + 0.5) / 6) * Math.PI * 1.1; const lx = cx2 + Math.cos(la) * r * 0.82, ly = cy2 + Math.sin(la) * r * 0.82; c.fillStyle = '#ffea75'; c.beginPath(); c.ellipse(lx, ly, 2.0, 1.0, la + Math.PI / 2, 0, Math.PI * 2); c.fill(); }
+            // Orbiting dots with connecting loom thread
+            c.strokeStyle = 'rgba(255,215,0,0.35)'; c.lineWidth = 0.8;
+            c.beginPath();
+            for (let i = 0; i < 6; i++) { const a = t / 2000 + (i / 6) * Math.PI * 2; const px = cx2 + Math.cos(a) * (r + 12), py = cy2 + Math.sin(a) * (r + 12); if (i === 0) c.moveTo(px, py); else c.lineTo(px, py); }
+            c.closePath(); c.stroke();
             c.fillStyle = '#FFD700';
             for (let i = 0; i < 6; i++) { const a = t / 2000 + (i / 6) * Math.PI * 2; c.beginPath(); c.arc(cx2 + Math.cos(a) * (r + 12), cy2 + Math.sin(a) * (r + 12), 2, 0, Math.PI * 2); c.fill(); }
+            // Penelope's shroud shield ring
+            c.strokeStyle = 'rgba(255,230,80,0.65)'; c.lineWidth = 1.4;
+            c.beginPath(); c.arc(cx2, cy2, r + 7, 0, Math.PI * 2); c.stroke();
             // Ulysses' Return: damage taken fills the Ordeal arc, the gate of hoops lights, then one lane wave crosses
             const cyc = (t / 1000) % 6.5, lane0 = cx2 + r + 24, lane1 = w - 10, lh = Math.min(h * 0.3, 26);
             const gateP = cyc >= 2.4 && cyc < 3.3 ? (cyc - 2.4) / 0.9 : (cyc >= 3.3 && cyc < 4.6 ? 1 : 0);

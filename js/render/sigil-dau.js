@@ -1008,7 +1008,7 @@ function _dauSprites() {
         _dauBrushBezier(g, 34, 66, 46, 64, 52, 63, 58, 62, 0.8, 2.0, 1.2, '#FF5100');
     });
 
-    // three nested crescents facing right, the Thaelis wave turned golden
+    // three nested crescents facing right with golden fletching, the Thaelis wave turned golden
     reflectShapes.thaelis = _dauBake(160, 192, g => {
         g.translate(24, 96);
         g.fillStyle = 'rgba(255,168,28,0.26)';
@@ -1017,6 +1017,13 @@ function _dauSprites() {
             const a = 0.85 - k * 0.12;
             _dauBrushArc(g, -k * 8, 0, 110 - k * 20, -a, a, 1.4, 4.2 - k * 0.6, 1.4, k === 0 ? '#FFF9D2' : '#FFD23F');
         }
+        g.strokeStyle = 'rgba(255,249,210,0.65)';
+        g.lineWidth = 1.6;
+        g.beginPath();
+        g.moveTo(20, -42); g.lineTo(-24, -22);
+        g.moveTo(35, 0); g.lineTo(-30, 0);
+        g.moveTo(20, 42); g.lineTo(-24, 22);
+        g.stroke();
     });
 
     reflectShapes.dargruel = _dauBake(128, 64, g => {
