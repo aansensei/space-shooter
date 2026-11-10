@@ -422,6 +422,21 @@ window.debugSetYuukiBonus = function () {
 };
 
 (function () {
+    // every Thaelis test action: id, button label, tooltip. The Boss tab section runs them on all Thaelis, a row runs them on its own.
+    const THAELIS_DEBUG_ACTIONS = [
+        ['fill', 'Fill queue', 'Ulysses\' Return: store the most waves it can hold'],
+        ['cast', 'Cast wave', 'Ulysses\' Return: fire a wave now'],
+        ['slowlane', 'Arm slow lane', 'Next wave leaves a slowing lane and hits for the most extra damage'],
+        ['points', '+3 points', 'Ulysses\' Return: add 3 Ordeal points'],
+        ['shield', '+Shield', 'Add a shield worth 30% of Max HP'],
+        ['tenacity', 'Tenacity shield', 'Cross the 70% HP line so Tenacity weaves a new shield'],
+        ['absorb', 'Absorb hit', 'Penelope\'s Shroud: the shield soaks a hit and heals Thaelis'],
+        ['overheal', 'Overheal', 'Penelope\'s Shroud: heal past Max HP so 55% of the excess becomes shield'],
+        ['break', 'Break shield', 'Remove the shield with the break effect'],
+        ['hurt', 'Hurt to 50%', 'Set HP to half, with no shield it mends on its own'],
+        ['reborn', 'Mark reborn', 'Give it the reborn look and its flat armor'],
+        ['cocoon', 'To Cocoon', 'Reincarnation: die into a Cocoon now']
+    ];
     const PANEL_HTML = `
 <div id="debugConsoleOverlay" style="display:none; position:fixed; inset:0; z-index:999999999;
     justify-content:flex-end; align-items:stretch; pointer-events:none;">
@@ -744,9 +759,10 @@ window.debugSetYuukiBonus = function () {
 
     <div class="dbg-section">
       <div class="dbg-h">THAELIS: ULYSSES' RETURN</div>
-      <div class="dbg-note">Works on every Thaelis on screen. Spawn one from the Spawn tab first.</div>
+      <div class="dbg-note">Every button here works on all Thaelis on screen. Spawn one from the Spawn tab first. Each Thaelis row under Active Enemies has the same buttons for that one only.</div>
       <div class="dbg-row">
-        <button class="dbg-btn" onclick="debugThaelisOrdeal()">Fill wave queue</button>
+        ${THAELIS_DEBUG_ACTIONS.map(a => '<button class="dbg-btn" onclick="debugThaelis(\'' + a[0] + '\')" title="' + a[2] + '">' + a[1] + '</button>').join('')}
+        <button class="dbg-btn" onclick="debugThaelis('hatch')" title="Reincarnation: end the Cocoon timer now so Thaelis climbs out">Hatch Cocoon</button>
       </div>
     </div>
 
@@ -1645,9 +1661,40 @@ window.debugSetYuukiBonus = function () {
         if (typeof _castStolenGemAttack !== 'function') return;
         _castStolenGemAttack(type, 1);
     };
-    window.debugThaelisOrdeal = function () {
-        for (const e of enemies) if (e.type === 'thaelis') { e._ordealQueue = THAELIS_ORDEAL_MAX_QUEUE; e._ordealCd = 0; }
+    // idx runs the action on that one enemy, no idx runs it on every living Thaelis
+    window.debugThaelis = function (action, idx) {
+        if (action === 'hatch') {
+            for (const c of enemies) if (c.type === 'thaelis_cocoon' && c.hp > 0) c._cocoonTimer = 1;
+            return;
+        }
+        const targets = typeof idx === 'number' ? [enemies[idx]] : enemies.filter(x => x.type === 'thaelis');
+        for (const e of targets) {
+            if (!e || e.type !== 'thaelis' || !(e.hp > 0)) continue;
+            const max = e.maxHp, now = performance.now();
+            if (action === 'fill') { e._ordealQueue = THAELIS_ORDEAL_MAX_QUEUE; e._ordealCd = 0; e._ordealCastAt = -1e9; }
+            else if (action === 'cast') { e._ordealQueue = Math.max(1, e._ordealQueue || 0); e._ordealCd = 0; e._ordealCastAt = -1e9; _castThaelisWave(e); }
+            else if (action === 'slowlane') { e._ordealSlowPts = THAELIS_ORDEAL_SLOW_POINTS; e._ordealBonus = THAELIS_ORDEAL_OVER_DMG_MAX; e._ordealQueue = Math.max(1, e._ordealQueue || 0); e._ordealCd = 0; e._ordealCastAt = -1e9; }
+            else if (action === 'points') _thaelisOrdealAddPoints(e, 3);
+            else if (action === 'shield') _addEnemyShield(e, max * 0.30);
+            else if (action === 'tenacity') {
+                e._tenacityBarrier70 = e._tenacityBarrier40 = e._tenacityBarrier10 = false;
+                e.hp = max * 0.71;
+                dealDamage(e, { damage: max * 0.04, isTrueDamage: true, _bypassIronBody: true, isSpiritLaser: true });
+            }
+            else if (action === 'absorb') {
+                if (!((e.shield || 0) > 0)) _addEnemyShield(e, max * 0.30);
+                if (e.hp >= max) e.hp = max * 0.6;
+                dealDamage(e, { damage: max * 0.1, isTrueDamage: true, _bypassIronBody: true });
+            }
+            else if (action === 'overheal') { e.hp = max; _thaelisShroudHeal(e, max * 0.2); }
+            else if (action === 'break') { e.shield = 0; e._shieldBreakCrackAt = now; }
+            else if (action === 'hurt') e.hp = max * 0.5;
+            else if (action === 'reborn') { e.reincarnated = true; e._justRevivedAt = now; }
+            else if (action === 'cocoon') { e._cocoonCooldownUntil = 0; e.hp = 0; }
+        }
+        refreshEnemyList();
     };
+    window.debugThaelisOrdeal = function () { window.debugThaelis('fill'); };
     window.debugGreatSageGiveGem = function (type) {
         if (typeof _greatSageGems === 'undefined') return;
         if (_greatSageGems.length < 3 && !_greatSageGems.includes(type)) _greatSageGems.push(type);
@@ -2059,6 +2106,7 @@ window.debugSetYuukiBonus = function () {
         if (e.type === 'egregor') return `<button class="dbg-btn" onclick="debugForceEnemySkill(${i},'ns')">Null Slash</button><button class="dbg-btn" onclick="debugForceEnemySkill(${i},'tempest')">Tempest</button><button class="dbg-btn" onclick="debugForceEnemySkill(${i},'rage')">+Rage Stack (${e._rageStacks || 0}/5)</button>`;
         if (e.type === 'ammit') return `<button class="dbg-btn" onclick="debugForceEnemySkill(${i},'am_jaws')">Jaws</button><button class="dbg-btn" onclick="debugForceEnemySkill(${i},'am_weigh')">Weighing</button><button class="dbg-btn" onclick="debugForceEnemySkill(${i},'am_claw')">Lion Claw</button><button class="dbg-btn" onclick="debugForceEnemySkill(${i},'am_stomp')">Hippo Stomp</button><button class="dbg-btn" onclick="debugForceEnemySkill(${i},'am_entrance')">Ammit: màn xuất hiện</button><button class="dbg-btn" onclick="debugForceEnemySkill(${i},'am_enrage')">Ammit: nổi điên</button><button class="dbg-btn" onclick="debugForceEnemySkill(${i},'am_exposed')">Ammit: Lộ Diện</button><button class="dbg-btn" onclick="debugAmmitTTK()">Ammit: thử TTK</button>`;
         if (e.type === 'marchosias') return `<button class="dbg-btn" onclick="debugForceEnemySkill(${i},'sword')">Sword</button>`;
+        if (e.type === 'thaelis') return THAELIS_DEBUG_ACTIONS.map(a => `<button class="dbg-btn" onclick="debugThaelis('${a[0]}', ${i})" title="${a[2]}">${a[1]}</button>`).join('');
         if (e.type === 'dargruel') return `<button class="dbg-btn" onclick="debugForceEnemySkill(${i},'haki')">Maou Haki</button><button class="dbg-btn" onclick="debugForceEnemySkill(${i},'chains')">Chains</button>`;
         if (e.type === 'raphael') return `<button class="dbg-btn" onclick="debugForceEnemySkill(${i},'laser')">Laser</button><button class="dbg-btn" onclick="debugForceEnemySkill(${i},'wisdom_orb')">Wisdom Orb</button>`;
         if (e.type === 'leviathan') return `<button class="dbg-btn" onclick="debugForceEnemySkill(${i},'perseverance')">Perseverance</button>`;
