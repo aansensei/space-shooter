@@ -652,7 +652,6 @@ window.debugSetYuukiBonus = function () {
       <div class="dbg-row" style="flex-wrap:wrap;">
         <button class="dbg-btn" onclick="debugSpawn('spawnApostle')" onmouseover="_dbgHint(this)" onmouseout="_dbgHint()" data-hp="22–330" data-size="20–30">Apostle</button>
         <button class="dbg-btn" onclick="debugSpawn('spawnThaelis')" onmouseover="_dbgHint(this)" onmouseout="_dbgHint()" data-hp="1520–3170" data-size="100–150">Thaelis</button>
-        <button class="dbg-btn" onclick="debugThaelisOrdeal()">Thaelis: fill wave queue</button>
         <button class="dbg-btn" onclick="debugSpawn('spawnRaphael')" onmouseover="_dbgHint(this)" onmouseout="_dbgHint()" data-hp="2500–4500" data-size="52–66">Raphael</button>
         <button class="dbg-btn" onclick="debugSpawn('spawnMarchosias')" onmouseover="_dbgHint(this)" onmouseout="_dbgHint()" data-hp="2112–4092" data-size="100–150">Marchosias</button>
         <button class="dbg-btn" onclick="debugSpawn('spawnDargruel')" onmouseover="_dbgHint(this)" onmouseout="_dbgHint()" data-hp="6200–16000" data-size="200–300">Dargruel</button>
@@ -744,6 +743,14 @@ window.debugSetYuukiBonus = function () {
     </div>
 
     <div class="dbg-section">
+      <div class="dbg-h">THAELIS: ULYSSES' RETURN</div>
+      <div class="dbg-note">Works on every Thaelis on screen. Spawn one from the Spawn tab first.</div>
+      <div class="dbg-row">
+        <button class="dbg-btn" onclick="debugThaelisOrdeal()">Fill wave queue</button>
+      </div>
+    </div>
+
+    <div class="dbg-section">
       <div class="dbg-h">ACTIVE ENEMIES</div>
       <div id="dbgEnemyList" style="display:flex; flex-direction:column; gap:8px;"></div>
     </div>
@@ -826,7 +833,7 @@ window.debugSetYuukiBonus = function () {
         ['run', 'Run', /SPEED|PLAYER|WAVE|SESSION/],
         ['spawn', 'Spawn', /SPAWN|ENEMIES|SENTINELS|DUMMY/],
         ['skills', 'Skills', /SKILL|SIGIL/],
-        ['boss', 'Boss', /GOLIATH|KANADE|TIMELINE|AMMIT|TUTORIAL|ECHO/],
+        ['boss', 'Boss', /GOLIATH|KANADE|TIMELINE|AMMIT|TUTORIAL|ECHO|THAELIS/],
         ['test', 'Test', /./]
     ];
     function organizePanel() {
