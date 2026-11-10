@@ -437,9 +437,12 @@ window.debugSetYuukiBonus = function () {
     </div>
     <div style="opacity:0.6; font-size:10px; margin-bottom:6px;">\` toggles this panel · P freezes/unfreezes the game.</div>
     <div id="dbgSessionStatus" style="font-size:10px; margin-bottom:10px; padding:5px 8px; border-radius:6px; background:rgba(0,229,255,0.08); border:1px solid rgba(0,229,255,0.2);"></div>
-    <div class="dbg-row" style="margin-bottom:14px;">
+    <div class="dbg-row dbg-toolbar">
       <button class="dbg-btn" id="dbgPauseBtn" onclick="debugTogglePause()" style="min-width:110px; font-weight:bold;">Pause Game</button>
-      <span style="opacity:0.55; font-size:10px;">or press P</span>
+      <span class="dbg-toolbar-end">
+        <button class="dbg-btn" onclick="debugResetPlayer()" title="Put the ship back in the middle with full lives">Reset Player</button>
+        <button class="dbg-btn" onclick="debugRestartRun()" title="Start the debug sandbox, or restart it empty">Start / Restart Sandbox</button>
+      </span>
     </div>
     <div class="dbg-row" style="margin-bottom:14px;">
       <button class="dbg-btn" onclick="debugOpenRecap(false)">Voyage Recap (this run)</button>
@@ -459,17 +462,13 @@ window.debugSetYuukiBonus = function () {
 
     <div class="dbg-section">
       <div class="dbg-h">PLAYER</div>
-      <div class="dbg-row">
-        <button class="dbg-btn" onclick="debugResetPlayer()">Reset Player</button>
-        <button class="dbg-btn" onclick="debugRestartRun()">Start/Restart Debug Sandbox</button>
-      </div>
       <label class="dbg-row" style="cursor:pointer;">
         <input type="checkbox" id="dbgAutoshotToggle" onchange="window._debugAutoshotOff = !this.checked;">
         Autoshot enabled
       </label>
       <label class="dbg-row" style="cursor:pointer;">
         <input type="checkbox" id="dbgCooldownToggle" onchange="window._debugNoCooldown = !this.checked;">
-        Hồi chiêu
+        Cooldowns enabled
       </label>
       <label class="dbg-row" style="cursor:pointer;">
         <input type="checkbox" id="dbgInvulnToggle" onchange="window._debugPlayerInvuln = this.checked;">
@@ -477,10 +476,10 @@ window.debugSetYuukiBonus = function () {
       </label>
       <label class="dbg-row" style="cursor:pointer;">
         <input type="checkbox" id="dbgAutoplayToggle" onchange="_setDebugAutoplay(this.checked);">
-        Autoplay (di chuyển + spam skill)
+        Autoplay (moves and spams skills)
       </label>
       <div class="dbg-row">
-        <button class="dbg-btn danger" onclick="debugExitSession()">Exit Debug Mode → Main Menu</button>
+        <button class="dbg-btn danger" onclick="debugExitSession()">Exit Debug Mode (to Main Menu)</button>
       </div>
     </div>
 
@@ -498,7 +497,7 @@ window.debugSetYuukiBonus = function () {
 
     <div class="dbg-section">
       <div class="dbg-h">COMBAT VERIFY (DPS/TTK)</div>
-      <div style="opacity:0.55; font-size:10px; margin-bottom:4px;">Runs waves 1, 2, 5, 10, 15, 20 back to back through the real wave system, autoplay + 4x speed, no sigils. Reports clear time, lives lost, and damage dealt/received per wave. docs/combat-scaling-rebalance.md Part 2.</div>
+      <div class="dbg-note">Runs waves 1, 2, 5, 10, 15, 20 back to back through the real wave system, autoplay + 4x speed, no sigils. Reports clear time, lives lost, and damage dealt/received per wave. docs/combat-scaling-rebalance.md Part 2.</div>
       <div class="dbg-row">
         <button class="dbg-btn" onclick="runCombatVerification()">Run Verification</button>
       </div>
@@ -506,7 +505,7 @@ window.debugSetYuukiBonus = function () {
     </div>
 
     <div class="dbg-section">
-      <div class="dbg-h">SKILLS — force ready &amp; activate now</div>
+      <div class="dbg-h">SKILLS (force ready and activate now)</div>
       <div class="dbg-row">
         <button class="dbg-btn" onclick="debugForceSkill('A')">A</button>
         <button class="dbg-btn" onclick="debugForceSkill('S')">S</button>
@@ -533,7 +532,7 @@ window.debugSetYuukiBonus = function () {
           <button class="dbg-btn" onclick="debugForceSilence('dargruel')">Silence: Dargruel (root+silence, 4s)</button>
           <button class="dbg-btn" onclick="debugForceSilence('goliath')">Silence: Goliath (silence only, 4s)</button>
         </div>
-        <div style="opacity:0.5; font-size:10px;">Glory for Justice isn't a toggle — it auto-activates whenever &gt;4 enemies are on screen, an Abnormal+ enemy is present, Skill G is active, or Photokrystos is active. Spawn any boss type below (or 5+ enemies) to trigger it. Vulnerability is applied per-enemy — see the "+Vuln" button on each row in Active Enemies.</div>
+        <div class="dbg-note dbg-note-flush">Glory for Justice isn't a toggle: it auto-activates whenever &gt;4 enemies are on screen, an Abnormal+ enemy is present, Skill G is active, or Photokrystos is active. Spawn any boss type below (or 5+ enemies) to trigger it. Vulnerability is applied per enemy: see the "+Vuln" button on each row in Active Enemies.</div>
       </div>
       <div id="dbgGreatSageSection" style="margin-top:8px; padding-top:8px; border-top:1px solid rgba(0,229,255,0.12); display:none;">
         <div class="dbg-h" style="font-size:10px;">GREAT SAGE, STOLEN GEMS</div>
@@ -563,7 +562,7 @@ window.debugSetYuukiBonus = function () {
           <button class="dbg-btn" onclick="debugGreatSageClearGems()">Clear Gems</button>
           <button class="dbg-btn" onclick="debugGreatSageForceStealth()">Force Stealth (1s)</button>
         </div>
-        <div style="opacity:0.5; font-size:10px;">"Fire" unleashes that stolen attack immediately without touching the gem bank. "+Gem" adds it to the bank (respects the 3-slot/no-duplicate cap) so you can test the real F-to-release flow.</div>
+        <div class="dbg-note dbg-note-flush">"Fire" unleashes that stolen attack immediately without touching the gem bank. "+Gem" adds it to the bank (respects the 3-slot/no-duplicate cap) so you can test the real F-to-release flow.</div>
       </div>
       <div id="dbgCancerSection" style="margin-top:8px; padding-top:8px; border-top:1px solid rgba(0,229,255,0.12); display:none;">
         <div class="dbg-h" style="font-size:10px;">CANCER, TIDAL SURGE / OCEAN HUNTER</div>
@@ -574,7 +573,7 @@ window.debugSetYuukiBonus = function () {
           <button class="dbg-btn" onclick="debugCancerOceanHunter()">Force Ocean Hunter (nearest enemy)</button>
           <button class="dbg-btn" onclick="debugCancerClear()">Clear State</button>
         </div>
-        <div style="opacity:0.5; font-size:10px;">"Fill Meter" mirrors real absorb/passive feed up to ready. "Force Release" simulates the real Space press. "Ocean Hunter" drops the nearest enemy to 5% HP so the real execute check fires on its own.</div>
+        <div class="dbg-note dbg-note-flush">"Fill Meter" mirrors real absorb/passive feed up to ready. "Force Release" simulates the real Space press. "Ocean Hunter" drops the nearest enemy to 5% HP so the real execute check fires on its own.</div>
       </div>
       <div id="dbgLeoSection" style="margin-top:8px; padding-top:8px; border-top:1px solid rgba(0,229,255,0.12); display:none;">
         <div class="dbg-h" style="font-size:10px;">LEO, DIVINE FATE / WILDFIRE</div>
@@ -587,7 +586,7 @@ window.debugSetYuukiBonus = function () {
           <button class="dbg-btn" onclick="debugLeoPetrify(5000)">Wave Petrify 5s</button>
           <button class="dbg-btn" onclick="debugLeoClear()">Clear State</button>
         </div>
-        <div style="opacity:0.5; font-size:10px;">Shown while Leo is equipped. "Release" goes through the real Space path (Cancer first if both are ready, blocked while silenced). "Petrify 3s now" skips the meter but still starts the 8s rest; "Wave Petrify 5s" is the wave start version with no rest. "Clear State" empties the meter, rest, petrify and every Burn.</div>
+        <div class="dbg-note dbg-note-flush">Shown while Leo is equipped. "Release" goes through the real Space path (Cancer first if both are ready, blocked while silenced). "Petrify 3s now" skips the meter but still starts the 8s rest; "Wave Petrify 5s" is the wave start version with no rest. "Clear State" empties the meter, rest, petrify and every Burn.</div>
       </div>
       <div id="dbgTySection" style="margin-top:8px;display:none;">
         <div class="dbg-h">UMBRAL SERPENT</div>
@@ -599,7 +598,7 @@ window.debugSetYuukiBonus = function () {
           <button class="dbg-btn" onclick="debugTyAction('spawn')">Spawn 10 Serpents</button>
           <button class="dbg-btn" onclick="debugTyAction('break')">Break Scale Shield</button>
           <button class="dbg-btn" onclick="debugTyAction('restore')">Restore Scale Shield</button>
-          <button class="dbg-btn" onclick="debugTyAction('venom')">Kịch Độc: 5 tầng</button>
+          <button class="dbg-btn" onclick="debugTyAction('venom')">Venom: 5 stacks</button>
         </div>
       </div>
       <div id="dbgDauSection" style="margin-top:8px; padding-top:8px; border-top:1px solid rgba(0,229,255,0.12); display:none;">
@@ -626,13 +625,13 @@ window.debugSetYuukiBonus = function () {
           <button class="dbg-btn" onclick="debugCapricornDrop()">Drop Mountain Now</button>
           <button class="dbg-btn" onclick="debugCapricornClear()">Clear State</button>
         </div>
-        <div style="opacity:0.5; font-size:10px;">"+10 Stacks" goes through the real stack gain, so it also fills the Ley meter. "Start Loss Warning" jumps to 4s without a stack: the circle cracks for 2s, then every stack is lost. "Release" uses the real Space path (Cancer, then Leo, then Capricorn; blocked while silenced or while a mountain is up). "Drop Mountain Now" skips the meter.</div>
+        <div class="dbg-note dbg-note-flush">"+10 Stacks" goes through the real stack gain, so it also fills the Ley meter. "Start Loss Warning" jumps to 4s without a stack: the circle cracks for 2s, then every stack is lost. "Release" uses the real Space path (Cancer, then Leo, then Capricorn; blocked while silenced or while a mountain is up). "Drop Mountain Now" skips the meter.</div>
       </div>
     </div>
 
     <div class="dbg-section">
       <div class="dbg-h">SPAWN ENEMY / SENTINEL</div>
-      <div style="opacity:0.55; font-size:10px; margin-bottom:4px;">Stats below apply to the next spawn (blank = that type's default). Hover a button to see that type's HP/size range.</div>
+      <div class="dbg-note">Stats below apply to the next spawn (blank = that type's default). Hover a button to see that type's HP/size range.</div>
       <div class="dbg-row">
         <input type="number" id="dbgSpawnHp" placeholder="HP" class="dbg-enemy-hp" style="width:70px;">
         <input type="number" id="dbgSpawnSize" placeholder="Size" class="dbg-enemy-hp" style="width:70px;">
@@ -642,8 +641,14 @@ window.debugSetYuukiBonus = function () {
         <label style="cursor:pointer; display:flex; gap:4px; align-items:center; font-size:11px;">
           <input type="checkbox" id="dbgSpawnBlessed"> Administrator's Blessing
         </label>
+        <label style="cursor:pointer; display:flex; gap:4px; align-items:center; font-size:11px;">
+          <input type="checkbox" id="dbgSpawnStill" onchange="window._debugSpawnStill = this.checked;"> Spawn still
+        </label>
+        <button class="dbg-btn" onclick="debugPinEnemies(true)" title="Freeze every enemy where it stands. It can still cast.">Pin all</button>
+        <button class="dbg-btn" onclick="debugPinEnemies(false)" title="Let pinned enemies move again">Release all</button>
       </div>
-      <div style="opacity:0.55; font-size:10px; margin-bottom:4px;">Applies the blessing to whatever spawns next, skipping the 10% roll, the wave-6 gate and the 12-per-wave ceiling. Works on any type, including ones the real roll never picks.</div>
+      <div class="dbg-note">Spawn still: new enemies stand where they appear and never move, but keep casting. Without a click position they appear in the upper part of the screen. Pin all and Release all do the same for enemies already out.</div>
+      <div class="dbg-note">Applies the blessing to whatever spawns next, skipping the 10% roll, the wave-6 gate and the 12-per-wave ceiling. Works on any type, including ones the real roll never picks.</div>
       <div class="dbg-row" style="flex-wrap:wrap;">
         <button class="dbg-btn" onclick="debugSpawn('spawnApostle')" onmouseover="_dbgHint(this)" onmouseout="_dbgHint()" data-hp="22–330" data-size="20–30">Apostle</button>
         <button class="dbg-btn" onclick="debugSpawn('spawnThaelis')" onmouseover="_dbgHint(this)" onmouseout="_dbgHint()" data-hp="1520–3170" data-size="100–150">Thaelis</button>
@@ -676,17 +681,17 @@ window.debugSetYuukiBonus = function () {
           <option value="spawnSentinel">Sentinel</option>
         </select>
       </div>
-      <div style="opacity:0.55; font-size:10px;">When a type is picked above, click anywhere on the game screen to spawn it there (uses the HP/Size/Speed overrides too). Pick "off" to stop. Works with the panel open or closed.</div>
+      <div class="dbg-note dbg-note-flush">When a type is picked above, click anywhere on the game screen to spawn it there (uses the HP/Size/Speed overrides too). Pick "off" to stop. Works with the panel open or closed.</div>
       <div class="dbg-row" style="margin-top:8px; padding-top:8px; border-top:1px solid rgba(0,229,255,0.12);">
         <input type="number" id="dbgWaveNum" class="dbg-enemy-hp" style="width:70px;" min="1" value="5" placeholder="Wave #">
         <button class="dbg-btn" onclick="debugSpawnWaveComposition()">Spawn Wave's Full Roster</button>
       </div>
-      <div style="opacity:0.55; font-size:10px;">Runs that wave number through the real wave system: a 3s countdown, then the normal wave banner and a gradual spawn (the 15s queue for waves 1-10, the live trickle + surges for waves 11+), Goliath included if the wave is a multiple of 5. Hands back to the frozen sandbox once the wave is fully spawned and cleared. Applies that wave's Walpurgis and Yuuki scaling.</div>
+      <div class="dbg-note dbg-note-flush">Runs that wave number through the real wave system: a 3s countdown, then the normal wave banner and a gradual spawn (the 15s queue for waves 1-10, the live trickle + surges for waves 11+), Goliath included if the wave is a multiple of 5. Hands back to the frozen sandbox once the wave is fully spawned and cleared. Applies that wave's Walpurgis and Yuuki scaling.</div>
     </div>
 
     <div class="dbg-section">
       <div class="dbg-h">GOLIATH: ENDLESS ECHO</div>
-      <div style="opacity:0.55; font-size:10px; margin-bottom:4px;">Kanade reaches out of her gate, two ghosts replay your last 1.5s of flight at 0.6x speed, each living 2.5s. Uses the True Form Goliath on screen, or spawns one. If fewer than 10 path samples are recorded it fills in a made-up path so the trail has something to show.</div>
+      <div class="dbg-note">Kanade reaches out of her gate, two ghosts replay your last 1.5s of flight at 0.6x speed, each living 2.5s. Uses the True Form Goliath on screen, or spawns one. If fewer than 10 path samples are recorded it fills in a made-up path so the trail has something to show.</div>
       <div class="dbg-row" style="flex-wrap:wrap;">
         <button class="dbg-btn" onclick="debugEchoCast(true)">Spawn Goliath + Cast</button>
         <button class="dbg-btn" onclick="debugEchoCast(false)">Cast Now</button>
@@ -697,7 +702,7 @@ window.debugSetYuukiBonus = function () {
 
     <div class="dbg-section">
       <div class="dbg-h">KANADE / TIMELINE DISTORTION</div>
-      <div style="opacity:0.55; font-size:10px; margin-bottom:4px;">The boss-wave cutscene and the effect it imposes. Playing it freezes the sim, the audio and the background exactly as a real boss wave does, and its summon beat spawns a real Goliath.</div>
+      <div class="dbg-note">The boss-wave cutscene and the effect it imposes. Playing it freezes the sim, the audio and the background exactly as a real boss wave does, and its summon beat spawns a real Goliath.</div>
       <div class="dbg-row" style="flex-wrap:wrap;">
         <select id="dbgTimelineDistortion" class="dbg-enemy-hp" style="width:100%; margin-bottom:4px;">
           ${TIMELINE_DISTORTION_POOL.map(effect => '<option value="' + effect.id + '">' + effect.name + '</option>').join('')}
@@ -722,10 +727,10 @@ window.debugSetYuukiBonus = function () {
         <button class="dbg-btn" onclick="debugKanadeModel('cast')">Cast pose</button>
         <span id="dbgKanadeModelState" style="font-size:10px; color:#7fd8ff; align-self:center;"></span>
       </div>
-      <div style="opacity:0.55; font-size:10px;">Holds the body sprite still, blown up, with the 180-unit grid and the landmark lines the drawing code is written against (eyes y=38, shoulders y=62, hem y=125). Opens over anything, including a running cutscene.</div>
-      <div style="opacity:0.55; font-size:10px;">Resetting the flag makes the next boss wave play the cutscene forced again and hides the Skip toggle in Settings until it has been watched once more.</div>
+      <div class="dbg-note dbg-note-flush">Holds the body sprite still, blown up, with the 180-unit grid and the landmark lines the drawing code is written against (eyes y=38, shoulders y=62, hem y=125). Opens over anything, including a running cutscene.</div>
+      <div class="dbg-note dbg-note-flush">Resetting the flag makes the next boss wave play the cutscene forced again and hides the Skip toggle in Settings until it has been watched once more.</div>
       <div class="dbg-h" style="margin-top:12px;">TUTORIAL (Kanade)</div>
-      <div style="opacity:0.55; font-size:10px; margin-bottom:4px;">These work while the Tutorial mode is running (pick Tutorial in the Voyage bar on the menu).</div>
+      <div class="dbg-note">These work while the Tutorial mode is running (pick Tutorial in the Voyage bar on the menu).</div>
       <div class="dbg-row" style="flex-wrap:wrap;">
         <button class="dbg-btn" onclick="debugTutorial('next')">Next step</button>
         <button class="dbg-btn" onclick="debugTutorial('restart')">Restart</button>
@@ -750,7 +755,7 @@ window.debugSetYuukiBonus = function () {
 
     <div class="dbg-section">
       <div class="dbg-h">COMBAT DUMMY</div>
-      <div style="opacity:0.55; font-size:10px; margin-bottom:4px;">Stationary hex-drone. Takes real damage from all skills and abilities. Auto-respawns when killed.</div>
+      <div class="dbg-note">Stationary hex-drone. Takes real damage from all skills and abilities. Auto-respawns when killed.</div>
       <div class="dbg-row" style="flex-wrap:wrap;">
         <input type="number" id="dbgDummyHp" class="dbg-enemy-hp" style="width:80px;" value="5000000" placeholder="HP">
         <input type="number" id="dbgDummySize" class="dbg-enemy-hp" style="width:70px;" value="40" placeholder="Size">
@@ -790,6 +795,10 @@ window.debugSetYuukiBonus = function () {
   .dbg-enemy-row { background:rgba(0,229,255,0.05); border:1px solid rgba(0,229,255,0.15); border-radius:8px; padding:8px; }
   .dbg-enemy-hp { width:70px; background:rgba(0,0,0,0.4); border:1px solid rgba(0,229,255,0.3); color:#c8e8ff; border-radius:4px; padding:2px 4px; font-family:inherit; }
   .dbg-row { flex-wrap:wrap; }
+  .dbg-toolbar { display:flex; align-items:center; gap:6px; margin-bottom:10px; }
+  .dbg-toolbar-end { margin-left:auto; display:flex; gap:6px; flex-wrap:wrap; justify-content:flex-end; }
+  .dbg-note { opacity:0.55; font-size:10px; margin-bottom:4px; }
+  .dbg-note-flush { margin-bottom:0; }
   .dbg-sticky { position:sticky; top:-16px; z-index:3; margin:-16px -16px 12px; padding:14px 16px 8px; background:rgba(0,12,28,0.98); border-bottom:1px solid rgba(0,229,255,0.2); }
   .dbg-tabs { display:flex; gap:4px; margin-top:8px; }
   .dbg-tab { flex:1; min-height:30px; padding:4px 2px; font-family:inherit; font-size:11px; letter-spacing:1px; text-transform:uppercase; color:#8fb4d4; background:rgba(0,229,255,0.05); border:1px solid rgba(0,229,255,0.2); border-radius:6px; cursor:pointer; }
@@ -874,13 +883,13 @@ window.debugSetYuukiBonus = function () {
         if (el) {
             const playing = typeof gameState !== 'undefined' && gameState === 'playing';
             if (!playing) {
-                el.textContent = 'Not in a match — click "Initiate Hyperjump" for a normal run, or "Start Debug Sandbox" below for an empty hands-off one.';
+                el.textContent = 'Not in a match. Click "Initiate Hyperjump" for a normal run, or "Start / Restart Sandbox" above for an empty hands-off one.';
                 el.style.color = '#ffcc66';
             } else if (window._debugSessionActive) {
-                el.textContent = (gamePaused ? 'PAUSED — ' : 'Running — ') + 'debug sandbox (auto-spawn off, sigil picker skipped).';
+                el.textContent = (gamePaused ? 'PAUSED: ' : 'Running: ') + 'debug sandbox (auto-spawn off, sigil picker skipped).';
                 el.style.color = gamePaused ? '#ffcc66' : '#7fffb0';
             } else {
-                el.textContent = (gamePaused ? 'PAUSED — ' : 'Running — ') + 'normal match.';
+                el.textContent = (gamePaused ? 'PAUSED: ' : 'Running: ') + 'normal match.';
                 el.style.color = gamePaused ? '#ffcc66' : '#7fffb0';
             }
         }
@@ -938,6 +947,7 @@ window.debugSetYuukiBonus = function () {
         // thường (mở panel trước, rồi bấm nút thật ngoài menu) vẫn đi qua
         // đúng luồng chọn sigil như 1 trận chơi thật.
         window._debugSkipSigilPick = true;
+        window._debugStillAny = false; // a fresh sandbox starts with no pinned enemies
         if (typeof startGame === 'function') startGame();
         // The real hyperjump click-chain (index.html) is what normally starts
         // these, but this button skips straight to startGame() without going
@@ -1008,6 +1018,10 @@ window.debugSetYuukiBonus = function () {
         window._debugNoCooldown = false;
         window._debugGameSpeed = 1;
         window._debugClickSpawnType = '';
+        window._debugSpawnStill = false;
+        window._debugStillAny = false;
+        const stillCb = document.getElementById('dbgSpawnStill');
+        if (stillCb) stillCb.checked = false;
         _setDebugAutoplay(false);
         const autoplayCb = document.getElementById('dbgAutoplayToggle');
         if (autoplayCb) autoplayCb.checked = false;
@@ -1078,7 +1092,15 @@ window.debugSetYuukiBonus = function () {
     document.addEventListener('click', (e) => {
         const fnName = window._debugClickSpawnType;
         if (!fnName || typeof gameState === 'undefined' || gameState !== 'playing') return;
-        if (e.target.closest && e.target.closest('#debug-console-panel')) return;
+        // the path is read as it was when the click started, so a button that rebuilds the panel in its own handler is still recognised
+        const path = e.composedPath ? e.composedPath() : [];
+        for (let i = 0; i < path.length; i++) {
+            const n = path[i];
+            if (!n || !n.id && !n.matches) continue;
+            if (n.id === 'debug-console-panel' || n.id === 'dbgFab') return;
+            if (n.matches && n.matches('button, input, select, textarea, a, label, [role="button"]')) return;
+        }
+        if (e.target.closest && e.target.closest('#debug-console-panel, #dbgFab')) return;
         const gc = document.getElementById('gameCanvas');
         if (!gc) return;
         const rect = gc.getBoundingClientRect();
@@ -1217,7 +1239,7 @@ window.debugSetYuukiBonus = function () {
             return `<label class="dbg-row" style="cursor:pointer;">
         <input type="checkbox" id="dbgSigil_${id}" onchange="debugToggleSigil('${id}', this.checked)">
         <span style="color:${def.color}">${def.name}</span>
-        <span style="opacity:0.55; font-size:10px;">— ${def.buffs.map(b => b.name).join(' / ')}</span>
+        <span class="dbg-note dbg-note-flush">(${def.buffs.map(b => b.name).join(' / ')})</span>
       </label>`;
         }).join('');
         syncSigilCheckboxes();
@@ -1296,6 +1318,32 @@ window.debugSetYuukiBonus = function () {
         if (typeof y === 'number') e.y = y;
         applySpawnStatOverrides(e, true);
         applyDebugBlessing(e);
+        // Spawn still: stand where it appeared (a spot in the upper screen when no click gave one) and never move
+        if (window._debugSpawnStill) {
+            if (typeof x !== 'number') e.x = canvas.width * (0.2 + 0.15 * ((window._debugStillSlot = (window._debugStillSlot || 0) + 1) % 5));
+            if (typeof y !== 'number') e.y = canvas.height * 0.28;
+            pinEnemy(e, true);
+        }
+        refreshEnemyList();
+    };
+
+    // A pinned enemy is put back on its spot every frame by main.js, so whatever its own movement does, it stays and still casts.
+    function pinEnemy(e, on) {
+        if (on) {
+            if (e._debugStill) return;
+            e._debugStill = true; e._stillX = e.x; e._stillY = e.y; e._stillSpeed = e.speed;
+            e.speed = 0;
+            window._debugStillAny = true;
+        } else if (e._debugStill) {
+            e._debugStill = false;
+            if (e._stillSpeed !== undefined) e.speed = e._stillSpeed;
+        }
+    }
+    window.debugPinEnemies = function (on) {
+        for (const e of enemies) {
+            if (e.hp <= 0 || e.type.startsWith('enemy_bullet') || e.type === 'abyssal_chain') continue;
+            pinEnemy(e, on);
+        }
         refreshEnemyList();
     };
 
@@ -1542,7 +1590,7 @@ window.debugSetYuukiBonus = function () {
         const d = _getDummy();
         if (!d) { el.textContent = 'No dummy on screen.'; return; }
         const _drPct = d._debugDR ? Math.round(d._debugDR * 100) : 0;
-        el.textContent = `Active — ${Math.max(0, Math.round(d.hp))}/${Math.round(d.maxHp)} HP · DR ${_drPct}% · ${d._state}${d._ironActive ? ' · iron' : ''}${d._isImmune ? ' · immune' : ''}`;
+        el.textContent = `Active: ${Math.max(0, Math.round(d.hp))}/${Math.round(d.maxHp)} HP · DR ${_drPct}% · ${d._state}${d._ironActive ? ' · iron' : ''}${d._isImmune ? ' · immune' : ''}`;
         const ironCb = document.getElementById('dbgDummyIron');
         if (ironCb) ironCb.checked = !!d._ironActive;
         const immuneCb = document.getElementById('dbgDummyImmune');
@@ -2095,7 +2143,7 @@ window.debugSetYuukiBonus = function () {
         el.innerHTML = sentinels.map((s, i) => `
       <div class="dbg-enemy-row">
         <div style="display:flex; justify-content:space-between; margin-bottom:4px;">
-          <b>Sentinel${s.isFortified ? ' (fortified)' : ''} — tier ${s.synergyTier}</b>
+          <b>Sentinel${s.isFortified ? ' (fortified)' : ''}, tier ${s.synergyTier}</b>
           <span style="opacity:0.6;">${Math.round(s.hp)} / ${Math.round(s.maxHp)} HP</span>
         </div>
         <div class="dbg-row">

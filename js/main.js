@@ -1033,6 +1033,7 @@ function update(rawDeltaTime) {
 
     for (let i = enemies.length - 1; i >= 0; i--) {
         let enemy = enemies[i];
+        if (enemy && enemy._debugStill) { enemy.x = enemy._stillX; enemy.y = enemy._stillY; } // debug console: pinned enemies stay put
         const capMoveX = enemy.x, capMoveY = enemy.y;
         const _dauPinned = enemy._dauPinEnd > currentTime && typeof _dauPinAllowed === 'function' && _dauPinAllowed(enemy);
         const _dauPinX = enemy.x, _dauPinY = enemy.y;
@@ -2131,6 +2132,10 @@ function update(rawDeltaTime) {
                 enemies.splice(i, 1);
             }
         }
+    }
+    // debug console: whatever a pinned enemy's own movement did this frame is undone before it is drawn
+    if (window._debugStillAny) {
+        for (let i = 0; i < enemies.length; i++) { const e = enemies[i]; if (e._debugStill) { e.x = e._stillX; e.y = e._stillY; } }
     }
     if (typeof _dauEndFrame === 'function') _dauEndFrame();
 
