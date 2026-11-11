@@ -865,6 +865,7 @@ function _drawThaelis(enemy) {
     _blitThaelisSprite(_getThaelisWreathSprite(enemy.reincarnated), enemy, 0);
     _drawThaelisArmor(enemy, r, now, cast, rotation);
     _drawThaelisAxe(enemy, r, now, cast);
+    _drawThaelisParryFx(enemy, r, now);
 
     _drawThaelisRebornDetails(enemy, r, now);
     _drawThaelisCracks(enemy, r, now, hpPct);
@@ -1180,7 +1181,7 @@ const _THAELIS_SLASH_LAYERS = [
 
 // the head of the sound wave: curved fronts that open backwards and pulse forward like a sonic boom
 function _drawThaelisSonicRipples(s, alpha, now) {
-    const hw = THAELIS_WAVE_HALF_WIDTH, rip = _mobPerf ? 2 : 4, rho = hw * 1.15, phi = 0.88;
+    const hw = THAELIS_WAVE_HALF_WIDTH, rip = _mobPerf ? 3 : 5, rho = hw * 1.15, phi = 0.88;
     ctx.save();
     ctx.lineCap = 'round';
     for (let i = 0; i < rip; i++) {
@@ -1189,7 +1190,7 @@ function _drawThaelisSonicRipples(s, alpha, now) {
         const a = alpha * Math.sin(Math.PI * Math.min(1, t * 1.25 + 0.0)) * (0.9 - t * 0.5);
         if (a <= 0.02) continue;
         ctx.strokeStyle = i % 2 ? `rgba(255, 90, 66, ${a})` : `rgba(255, 226, 190, ${a})`;
-        ctx.lineWidth = 4.2 - t * 3;
+        ctx.lineWidth = 5.5 - t * 3.8;
         ctx.beginPath();
         ctx.arc(xf - rho, 0, rho, -phi, phi);
         ctx.stroke();
@@ -1197,7 +1198,7 @@ function _drawThaelisSonicRipples(s, alpha, now) {
     ctx.restore();
 }
 
-function _drawThaelisSlashWave(art, s, alpha, now) {
+function _drawThaelisSlashWave(art, s, alpha, now, focus) {
     const n = _mobPerf ? 3 : _THAELIS_SLASH_LAYERS.length, sh = art.slash.height;
     ctx.save();
     ctx.globalCompositeOperation = 'lighter';
@@ -1216,6 +1217,24 @@ function _drawThaelisSlashWave(art, s, alpha, now) {
             ctx.drawImage(art.slash, x - art.SX * sx, dy - sh * sy / 2, 140 * sx, sh * sy);
         }
         _drawThaelisSonicRipples(s, alpha, now);
+    }
+
+    // a focused wave (fewer than 3 targets in its lane, 50% more damage) drags black lightning behind its front
+    if (focus) {
+        const hwF = THAELIS_WAVE_HALF_WIDTH, frame = Math.floor(now / 55), bolts = _mobPerf ? 2 : 4;
+        ctx.globalCompositeOperation = 'source-over';
+        ctx.lineCap = 'round'; ctx.lineJoin = 'round';
+        for (let pass = 0; pass < 2; pass++) {
+            ctx.globalAlpha = alpha * (pass === 0 ? 0.85 : 1);
+            ctx.strokeStyle = pass === 0 ? '#ff3c32' : '#07020a';
+            for (let i = 0; i < bolts; i++) {
+                const seed = frame * 9.1 + i * 17.7, y0 = (_twHash(seed) - 0.5) * 1.7 * hwF, y1 = (_twHash(seed + 1) - 0.5) * 1.7 * hwF;
+                ctx.lineWidth = pass === 0 ? 7.5 : 3;
+                _twBoltPath(s + 14, y0, s - 90 - _twHash(seed + 2) * 130, y1, seed, 22);
+                ctx.stroke();
+            }
+        }
+        ctx.globalCompositeOperation = 'lighter';
     }
 
     // Trailing arrow fletching threads behind crescent slashes
@@ -1388,7 +1407,7 @@ function _drawThaelisWaves() {
             const trailLen = Math.min(w.s + 60, THAELIS_WAVE_BODY + 40);
             ctx.globalAlpha = 0.8;
             ctx.drawImage(art.trail, w.s - 12 - trailLen, -art.trail.height / 2, trailLen, art.trail.height);
-            _drawThaelisSlashWave(art, w.s, 1, now);
+            _drawThaelisSlashWave(art, w.s, 1, now, w.focus);
         }
         ctx.restore();
     }

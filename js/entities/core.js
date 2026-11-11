@@ -1363,6 +1363,10 @@ function dealDamage(enemy, source) {
         return;
     }
 
+    // Penelope's Shroud: Thaelis may parry the hit with its axe (see _thaelisTryParry, entities/misc-enemies.js).
+    // Rolled before Iron Body, so a parry does not spend a layer.
+    if (enemy.type === 'thaelis' && _thaelisTryParry(enemy, source)) return;
+
     // Coronation Iron Body perk, 1-hit block on spawned enemy (tu_huyet blade arc bypasses)
     if (!isSentinel && enemy.ironBodyHits > 0 && !source._bypassIronBody) {
         enemy.ironBodyHits--;

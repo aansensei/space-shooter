@@ -95,7 +95,7 @@ const THAELIS_COCOON_GUARD_HP_MIN = 500; // flat, not tied to Thaelis's own Max 
 const THAELIS_COCOON_GUARD_HP_MAX = 1000;
 const THAELIS_COCOON_GUARD_DR = 0.40; // Guards are the real damage sink now, some DR keeps them from melting instantly
 const THAELIS_COCOON_GUARD_FLAT_DR = 20; // subtracted after the % cut above, same pattern as Walpurgis/Leviathan's own flat DR
-const THAELIS_COCOON_GUARD_RESPAWN_MS = 1000;
+const THAELIS_COCOON_GUARD_RESPAWN_MS = 1050;
 const THAELIS_COCOON_GUARD_SHIELD_GRANT = 250; // flat Shield banked per Guard kill, carried over to Thaelis if it revives (see _reviveThaelis, capped there at 50% revived Max HP) - purely a reward, doesn't affect the kill-count win condition. docs/combat-scaling-rebalance.md Part 3
 const THAELIS_COCOON_KILLS_NEEDED_MIN = 12; // random per Cocoon, how many Guard kills within the 9s actually destroys it
 const THAELIS_COCOON_KILLS_NEEDED_MAX = 16;
@@ -331,7 +331,41 @@ const THAELIS_WAVE_FRONT = 36;
 const THAELIS_WAVE_LANE_MS = 1500;
 const THAELIS_WAVE_LANE_SLOW = 0.75;
 const THAELIS_WAVE_COEFF = [0.45, 0.38, 0.35]; // x snapshotted atk on a Sentinel, 1st, 2nd, 3rd hit
+const THAELIS_WAVE_FOCUS_TARGETS = 3;   // a wave with fewer targets than this in its lane when it leaves is a focused wave
+const THAELIS_WAVE_FOCUS_MULT = 1.5;    // damage of a focused wave
 const THAELIS_WAVE_BODY = 360;         // length of the wave's trail behind its front, every ally shot inside it is cut
+
+// Penelope's Shroud, axe parry. Thaelis can cut a hit out of the air with its axe, which blocks that hit whole.
+const THAELIS_PARRY_CHANCE = 0.15;          // per hit while no Shield stands
+const THAELIS_PARRY_CHANCE_SHIELDED = 0.08; // per hit while a Shield stands
+const THAELIS_PARRY_CD_MS = 1200;           // the axe needs this long before it can parry again
+const THAELIS_PARRY_BUSY_MS = 400;          // after a wave's gate closes the axe is still chopping
+
+// Rolls the parry for one hit. Damage over time and the Spirit Laser cannot be parried, nor can anything that
+// passes Iron Body, and the axe cannot parry while it gathers or chops Ulysses' Return.
+function _thaelisTryParry(enemy, source) {
+    if (!(source.damage > 0 || source.percentDamage > 0) || source._bypassIronBody || source.isSpiritLaser) return false;
+    if (source.isTeslaDot || source._isDtuDot || source._isNocToiDot || source._isSthDot || source._isSrDot || source._isTyVenomDot) return false;
+    if (_thaelisClock - (enemy._parryClock === undefined ? -1e9 : enemy._parryClock) < THAELIS_PARRY_CD_MS) return false;
+    const castAge = _thaelisClock - (enemy._ordealCastAt === undefined ? -1e9 : enemy._ordealCastAt);
+    if (castAge >= 0 && castAge < THAELIS_WAVE_GATE_MS + THAELIS_PARRY_BUSY_MS) return false;
+    if (Math.random() >= ((enemy.shield || 0) > 0 ? THAELIS_PARRY_CHANCE_SHIELDED : THAELIS_PARRY_CHANCE)) return false;
+    _thaelisParry(enemy, Number.isFinite(source.x) ? source.x : player.x, Number.isFinite(source.y) ? source.y : player.y);
+    return true;
+}
+
+// The parry itself: render swings the axe across the line the hit came down (see _parryAt, _parryAngle).
+function _thaelisParry(enemy, fromX, fromY) {
+    let a = Math.atan2(fromY - enemy.y, fromX - enemy.x);
+    if (!Number.isFinite(a) || (fromX === enemy.x && fromY === enemy.y)) a = Math.atan2(player.y - enemy.y, player.x - enemy.x);
+    enemy._parryClock = _thaelisClock;
+    enemy._parryAt = performance.now();
+    enemy._parryAngle = a;
+    const r = enemy.size / 2;
+    createParticles(enemy.x + Math.cos(a) * r * 1.5, enemy.y + Math.sin(a) * r * 1.5, 12, '#ffe6d0', 3, 9);
+    createParticles(enemy.x + Math.cos(a) * r * 1.5, enemy.y + Math.sin(a) * r * 1.5, 8, '#ff4a3c', 2, 7);
+    if (window.AudioMgr) window.AudioMgr.playSfxAt('metal-hit', enemy.x, enemy.y);
+}
 
 function _thaelisOrdealInit(enemy, carryPoints) {
     enemy._ordealPts = 0; enemy._ordealDmg = 0; enemy._ordealQueue = 0; enemy._ordealShieldHit = 0;
@@ -450,6 +484,13 @@ function _thaelisLaneLength(ox, oy, angle) {
     return Math.max(300, Math.min(tx, ty) + 60);
 }
 
+// Whether a point stands anywhere in a wave's lane, ahead of its origin.
+function _thaelisInLane(w, px, py, rad) {
+    const dx = px - w.ox, dy = py - w.oy, ca = Math.cos(w.angle), sa = Math.sin(w.angle);
+    const t = dx * ca + dy * sa, d = Math.abs(-dx * sa + dy * ca);
+    return d < w.halfWidth + rad && t >= 0 && t <= w.len;
+}
+
 // Where a point sits against a wave: t along its heading, d across it.
 function _thaelisWaveHits(w, px, py, rad) {
     const dx = px - w.ox, dy = py - w.oy, ca = Math.cos(w.angle), sa = Math.sin(w.angle);
@@ -471,8 +512,12 @@ function updateThaelisWaves(deltaTime) {
             w.timer -= deltaTime;
             if (w.timer <= 0) {
                 w.phase = 'fly';
+                // counted as the wave leaves: Sentinels and the ship standing in its lane. Under 3 and it hits 50% harder
+                let inLane = _thaelisInLane(w, player.x, player.y, player.hitRadius) ? 1 : 0;
+                for (const s of sentinels) if (_thaelisInLane(w, s.x, s.y, s.size)) inLane++;
+                if (inLane < THAELIS_WAVE_FOCUS_TARGETS) { w.focus = true; w.atk *= THAELIS_WAVE_FOCUS_MULT; }
                 if (window.AudioMgr) window.AudioMgr.playSfxAt('thaelis-wave-sweep', w.ox, w.oy);
-                if (typeof _setShake === 'function') _setShake(5, 160);
+                if (typeof _setShake === 'function') _setShake(9, 240);
             }
             continue;
         }

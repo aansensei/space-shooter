@@ -432,6 +432,7 @@ window.debugSetYuukiBonus = function () {
         ['tenacity', 'Tenacity shield', 'Cross the 70% HP line so Tenacity weaves a new shield'],
         ['absorb', 'Absorb hit', 'Penelope\'s Shroud: the shield soaks a hit and heals Thaelis'],
         ['overheal', 'Overheal', 'Penelope\'s Shroud: heal past Max HP so 55% of the excess becomes shield'],
+        ['parry', 'Axe parry', 'Penelope\'s Shroud: swing the axe to parry a hit from the ship now'],
         ['break', 'Break shield', 'Remove the shield with the break effect'],
         ['hurt', 'Hurt to 50%', 'Set HP to half, with no shield it mends on its own'],
         ['hurt20', 'Hurt to 20%', 'Set HP to a fifth so Tenacity\'s battle aura (đấu khí) burns at full strength'],
@@ -1692,6 +1693,7 @@ window.debugSetYuukiBonus = function () {
             else if (action === 'break') { e.shield = 0; e._shieldBreakCrackAt = now; }
             else if (action === 'hurt') e.hp = max * 0.5;
             else if (action === 'hurt20') e.hp = max * 0.2;
+            else if (action === 'parry') _thaelisParry(e, player.x, player.y);
             else if (action === 'iron') e.ironBodyHits = THAELIS_REVIVE_IRON_BODY;
             else if (action === 'reborn') { e.reincarnated = true; e._justRevivedAt = now; e.ironBodyHits = THAELIS_REVIVE_IRON_BODY; }
             else if (action === 'cocoon') { e._cocoonCooldownUntil = 0; e.hp = 0; }

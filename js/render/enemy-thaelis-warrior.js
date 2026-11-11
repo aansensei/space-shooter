@@ -6,6 +6,7 @@
 //     the axe chops, the ground bursts and bá khí wisps lift away. A huge ghost shape (the bá khí phantom)
 //     stands behind a bare Thaelis and behind its Cocoon alike while the wave is gathered and chops with a
 //     giant ghost of the axe, and black lightning breaks out of the chop,
+//   - Penelope's Shroud's parry: the axe whips across an incoming hit and leaves a white-hot cut,
 //   - Tenacity's đấu khí, the flame aura that burns hotter the more HP Thaelis has lost,
 //   - the Iron Body layers a revived Thaelis wears (5 plates).
 // Everything has a code-drawn version. If the art listed in _THAELIS_ART exists on disk it is
@@ -21,7 +22,7 @@ const _THAELIS_ART = {
     axe: { src: 'assets/images/game/enemies/thaelis-axe.png', len: 2.05, pivot: 0.17, head: 0.86, bladeOff: 0.55 },
     // chest centre at the image centre, drawn additive (black is invisible). widthR = whole image width in r.
     // body only: the phantom's axe arm is drawn live so it can chop
-    phantom: { src: 'assets/images/game/effects/thaelis-bakhi-phantom.png', widthR: 6.4 },
+    phantom: { src: 'assets/images/game/effects/thaelis-bakhi-phantom.png', widthR: 6.9 },
     // the head of the sonic wave: the leading crescent sits at tip (fraction of the width), ripples trail to the left
     sonic: { src: 'assets/images/game/effects/thaelis-sonic-arc.png', tip: 0.70 },
 };
@@ -30,9 +31,10 @@ const _TW_REF = 150;            // radius the figure is baked at
 const _TW_TAU = Math.PI * 2;
 const THAELIS_SWING_MS = 240;   // the chop, right when the wave's gate closes
 const THAELIS_RELEASE_MS = 1500; // bá khí rising after the chop
+const THAELIS_PARRY_SWING_MS = 130, THAELIS_PARRY_MS = 420; // Penelope's Shroud parry: the cut across the hit, then the whole move
 
 const _twCast = { kind: 0, p: 0, angle: Math.PI / 2 };   // kind: 0 idle, 1 gather, 2 chop, 3 release
-const _twPose = { ang: 0, hx: 0, hy: 0, glow: 0, sweep: 0, armOff: 0 };
+const _twPose = { ang: 0, hx: 0, hy: 0, glow: 0, sweep: 0, armOff: 0, trail: 0 };
 let _twArmorSprite = null, _twAxeSprite = null, _twPhantomSprite = null, _twGhostAxeSprite = null;
 // where the phantom's axe is this frame, for the black lightning that follows it
 const _twGhost = { on: false, hx: 0, hy: 0, headX: 0, headY: 0, k: 0 };
@@ -329,12 +331,28 @@ function _twShortAngle(a) { a = a % _TW_TAU; if (a > Math.PI) a -= _TW_TAU; else
 // where the hanging axe and its grip sit for the current cast stage, in units of r
 const _TW_IDLE = { ang: -1.2, hx: 1.28, hy: 0.12 };    // hangs upright at the side
 const _TW_COCK = { ang: -2.3, hx: 0.95, hy: -1.15 };   // raised high and cocked back
-function _twComputePose(cast, now) {
+function _twComputePose(cast, now, enemy) {
     const P = _twPose;
-    P.glow = 0; P.sweep = 0; P.armOff = 0;
+    P.glow = 0.12; P.sweep = 0; P.armOff = 0; P.trail = 0;
     if (cast.kind === 0) {
         P.ang = _TW_IDLE.ang + Math.sin(now / 760) * 0.05;
         P.hx = _TW_IDLE.hx; P.hy = _TW_IDLE.hy + Math.sin(now / 760 + 1) * 0.03;
+        // Penelope's Shroud parry: the axe whips across the line the hit came down, then eases home
+        const age = enemy && enemy._parryAt ? now - enemy._parryAt : 1e9;
+        if (age >= 0 && age < THAELIS_PARRY_MS) {
+            const pa = enemy._parryAngle || 0, from = pa - 1.5, to = pa + 1.1;
+            const gx = Math.cos(pa) * 0.7, gy = Math.sin(pa) * 0.7;
+            if (age < THAELIS_PARRY_SWING_MS) {
+                const t = _twEaseOut(age / THAELIS_PARRY_SWING_MS);
+                P.ang = from + (to - from) * t; P.hx = gx; P.hy = gy;
+                P.trail = Math.min(1.6, (to - from) * t); P.glow = 0.9;
+            } else {
+                const t = _twEaseInOut((age - THAELIS_PARRY_SWING_MS) / (THAELIS_PARRY_MS - THAELIS_PARRY_SWING_MS));
+                P.ang = to + _twShortAngle(P.ang - to) * t;
+                P.hx = _twLerp(gx, P.hx, t); P.hy = _twLerp(gy, P.hy, t);
+                P.glow = 0.9 * (1 - t) + 0.12 * t;
+            }
+        }
         return P;
     }
     // the chop runs clockwise over the top unless the target sits close to the cocked angle
@@ -353,11 +371,12 @@ function _twComputePose(cast, now) {
         P.ang = _TW_COCK.ang + delta * t;
         P.hx = _twLerp(_TW_COCK.hx, endHx, t); P.hy = _twLerp(_TW_COCK.hy, endHy, t);
         P.glow = 1; P.sweep = q; P.armOff = 0.9 * (1 - t);
+        if (q > 0.05) P.trail = (delta >= 0 ? 1 : -1) * Math.min(Math.abs(delta), 1.5);
     } else {
         const t = _twEaseInOut((cast.p - 0.25) / 0.75);
         P.ang = _twLerp(_TW_COCK.ang + delta, _TW_IDLE.ang, t);
         P.hx = _twLerp(endHx, _TW_IDLE.hx, t); P.hy = _twLerp(endHy, _TW_IDLE.hy, t);
-        P.glow = 1 - cast.p; P.armOff = 0.9 * t;
+        P.glow = Math.max(0.12, 1 - cast.p); P.armOff = 0.9 * t;
     }
     return P;
 }
@@ -392,16 +411,14 @@ function _drawThaelisArmor(enemy, r, now, cast, rotation) {
 
 // the red axe hangs beside the shield with no hand on it: it rises and trembles as power gathers, then comes down
 function _drawThaelisAxe(enemy, r, now, cast) {
-    const P = _twComputePose(cast, now);
+    const P = _twComputePose(cast, now, enemy);
     ctx.save();
     ctx.translate(enemy.x, enemy.y);
 
-    // swing smear: the path the blade just travelled
-    if (cast.kind === 2 && P.sweep > 0.05) {
+    // swing smear: the path the blade just travelled, for the chop and for a parry
+    if (P.trail !== 0) {
         const len = 1.41 * r;
-        let delta = ((cast.angle - _TW_COCK.ang) % _TW_TAU + _TW_TAU) % _TW_TAU;
-        if (delta > Math.PI * 1.25) delta -= _TW_TAU;
-        const trail = Math.min(Math.abs(delta), 1.5), dir = delta >= 0 ? 1 : -1;
+        const trail = Math.abs(P.trail), dir = P.trail >= 0 ? 1 : -1;
         ctx.save();
         ctx.globalCompositeOperation = 'lighter';
         ctx.lineCap = 'round';
@@ -441,6 +458,49 @@ function _drawThaelisAxe(enemy, r, now, cast) {
     ctx.restore();
 }
 
+// Penelope's Shroud parry: where the axe met the hit, a white-hot cut in a crimson edge, sparks and a ring
+function _drawThaelisParryFx(enemy, r, now) {
+    if (!enemy._parryAt) return;
+    const age = now - enemy._parryAt;
+    if (age < 0 || age >= THAELIS_PARRY_MS) return;
+    const p = age / THAELIS_PARRY_MS, pa = enemy._parryAngle || 0;
+    const ix = enemy.x + Math.cos(pa) * r * 1.7, iy = enemy.y + Math.sin(pa) * r * 1.7;
+    ctx.save();
+    ctx.translate(ix, iy);
+    ctx.rotate(pa);
+    ctx.globalCompositeOperation = 'lighter';
+    ctx.lineCap = 'round';
+    // the cut: a crescent across the incoming line
+    const cutA = Math.pow(1 - p, 1.5);
+    for (let i = 0; i < 3; i++) {
+        ctx.globalAlpha = cutA * (i === 0 ? 0.5 : i === 1 ? 0.7 : 1);
+        ctx.strokeStyle = i === 0 ? '#e0242c' : i === 1 ? '#ff7a54' : '#fff3e0';
+        ctx.lineWidth = r * (0.34 - i * 0.12) * (1 - p * 0.5);
+        ctx.beginPath();
+        ctx.arc(-r * 0.9, 0, r * (0.95 + p * 0.25), -0.95, 0.95);
+        ctx.stroke();
+    }
+    // sparks thrown back toward the attacker
+    ctx.strokeStyle = '#ffe9c8';
+    ctx.lineWidth = 1.8;
+    const n = _mobPerf ? 5 : 10;
+    for (let i = 0; i < n; i++) {
+        const a = (_twHash(i * 3.1 + 2) - 0.5) * 2.4, d0 = r * (0.15 + p * 1.5 * (0.5 + _twHash(i + 9))), d1 = d0 + r * 0.28 * (1 - p);
+        ctx.globalAlpha = (1 - p) * 0.95;
+        ctx.beginPath(); ctx.moveTo(Math.cos(a) * d0, Math.sin(a) * d0); ctx.lineTo(Math.cos(a) * d1, Math.sin(a) * d1); ctx.stroke();
+    }
+    // the ring of the clash and its flash
+    ctx.globalAlpha = (1 - p) * 0.8;
+    ctx.strokeStyle = '#ffd0b0';
+    ctx.lineWidth = 2.4 * (1 - p) + 0.5;
+    ctx.beginPath(); ctx.arc(0, 0, r * (0.2 + p * 0.9), 0, _TW_TAU); ctx.stroke();
+    if (p < 0.35) {
+        const g = _getGlowSprite('rgba(255, 235, 210, 0.95)', 32);
+        if (g) { const gr = r * 0.9 * (1 - p); ctx.globalAlpha = 1 - p / 0.35; ctx.drawImage(g, -gr, -gr, gr * 2, gr * 2); }
+    }
+    ctx.restore();
+}
+
 // ---------- ground cracks ----------
 
 // jagged crack paths radiating from the body, baked once as unit vectors; each is a polyline of [x, y] in units of its reach
@@ -472,7 +532,7 @@ function _drawThaelisGroundCracks(enemy, r, now, cast) {
     else if (cast.kind === 2) { grow = 1 + cast.p * 0.35; heat = 1; burst = cast.p; }
     else { grow = 1.35; heat = Math.pow(1 - cast.p, 1.3); burst = Math.max(0, 0.7 - cast.p * 1.6); }
     if (heat <= 0.02) return;
-    const reach = r * 2.7 * grow;
+    const reach = r * 3.2 * grow;
     ctx.save();
     ctx.translate(enemy.x, enemy.y);
     ctx.globalCompositeOperation = 'lighter';
@@ -496,7 +556,7 @@ function _drawThaelisGroundCracks(enemy, r, now, cast) {
     }
     // the slab edges lift and break away, then drift up
     if (!_mobPerf) {
-        const rocks = 12, lift = cast.kind === 1 ? cast.p : 1;
+        const rocks = 18, lift = cast.kind === 1 ? cast.p : 1;
         for (let i = 0; i < rocks; i++) {
             const h = (i * 0.618) % 1, a = (i / rocks) * _TW_TAU + h;
             let d = r * (1.35 + 1.1 * h) * (1 + burst * 0.9), y = Math.sin(a) * d * 0.82 - lift * r * (0.15 + 0.3 * h) - burst * r * 1.1 * (0.5 + h);
@@ -511,12 +571,25 @@ function _drawThaelisGroundCracks(enemy, r, now, cast) {
             ctx.restore();
         }
     }
-    // the slam
+    // the slam: two shock rings and streaks of dust thrown outward
     if (burst > 0.02) {
-        ctx.globalAlpha = burst;
-        ctx.strokeStyle = '#ffd0b0';
-        ctx.lineWidth = 3 * burst + 0.6;
-        ctx.beginPath(); ctx.ellipse(0, 0, r * (1.2 + (1 - burst) * 2.6), r * (1.2 + (1 - burst) * 2.6) * 0.82, 0, 0, _TW_TAU); ctx.stroke();
+        for (let j = 0; j < 2; j++) {
+            const b = Math.max(0, burst - j * 0.25);
+            if (b <= 0) continue;
+            ctx.globalAlpha = b;
+            ctx.strokeStyle = j ? '#ff6a4a' : '#ffe0c8';
+            ctx.lineWidth = (j ? 5 : 3.5) * b + 0.6;
+            const rr = r * (1.2 + (1 - b) * (3.2 - j * 0.6));
+            ctx.beginPath(); ctx.ellipse(0, 0, rr, rr * 0.82, 0, 0, _TW_TAU); ctx.stroke();
+        }
+        ctx.strokeStyle = '#ffc8a8';
+        ctx.lineWidth = 2;
+        const streaks = _mobPerf ? 8 : 16;
+        for (let i = 0; i < streaks; i++) {
+            const a = (i / streaks) * _TW_TAU + (i % 2) * 0.13, d0 = r * (1.3 + (1 - burst) * 2.4), d1 = d0 + r * (0.35 + 0.3 * ((i * 0.618) % 1));
+            ctx.globalAlpha = burst * 0.8;
+            ctx.beginPath(); ctx.moveTo(Math.cos(a) * d0, Math.sin(a) * d0 * 0.82); ctx.lineTo(Math.cos(a) * d1, Math.sin(a) * d1 * 0.82); ctx.stroke();
+        }
     }
     ctx.restore();
 }
@@ -556,7 +629,7 @@ function _drawThaelisPhantom(enemy, r, now, cast) {
     else if (cast.kind === 2) { k = 1; scale = 1 + 0.07 * cast.p; lunge = Math.sin(cast.p * Math.PI) * 0.45 * r; }
     else { k = Math.pow(1 - cast.p, 1.4); scale = 1.07 + 0.1 * cast.p; rise = -cast.p * 1.3 * r; }
     if (k <= 0.01) return;
-    const P = _twComputePose(cast, now);
+    const P = _twComputePose(cast, now, null);
     const art = _twImg('phantom'), spr = art ? null : _twGetPhantom();
     const src = art || spr.canvas;
     const w = _THAELIS_ART.phantom.widthR * r * scale, h = w * (art ? art.naturalHeight / art.naturalWidth : 1);
@@ -570,7 +643,7 @@ function _drawThaelisPhantom(enemy, r, now, cast) {
         const dx = i === 0 ? 0 : Math.sin(now / 210 + i * 2.1) * r * 0.07 * i;
         const dy = i === 0 ? 0 : Math.cos(now / 170 + i) * r * 0.05 * i;
         const s = i === 0 ? 1 : 1 + 0.03 * i * Math.sin(now / 260 + i);
-        ctx.globalAlpha = (i === 0 ? 0.8 : 0.24) * k * flicker;
+        ctx.globalAlpha = (i === 0 ? 0.92 : 0.28) * k * flicker;
         ctx.drawImage(src, cx - w * s / 2 + dx, cy - h * s / 2 + dy, w * s, h * s);
     }
 
@@ -652,12 +725,12 @@ function _drawThaelisBlackLightning(enemy, r, now, cast) {
     let power;
     if (cast.kind === 1) power = cast.p > 0.55 ? (cast.p - 0.55) / 0.45 * 0.45 : 0;
     else if (cast.kind === 2) power = 1;
-    else if (cast.kind === 3) power = cast.p < 0.3 ? 1 - cast.p / 0.3 : 0;
+    else if (cast.kind === 3) power = cast.p < 0.4 ? 1 - cast.p / 0.4 : 0;
     else power = 0;
     if (power <= 0.02) return;
     const frame = Math.floor(now / 55), seed0 = frame * 13.7 + enemy.x * 0.01;
     const burst = cast.kind !== 1;
-    const nBody = burst ? (_mobPerf ? 3 : 6) : 0, nGhost = _twGhost.on ? (burst ? (_mobPerf ? 2 : 4) : (_mobPerf ? 1 : 3)) : 0;
+    const nBody = burst ? (_mobPerf ? 4 : 10) : (_mobPerf ? 0 : 2), nGhost = _twGhost.on ? (burst ? (_mobPerf ? 2 : 6) : (_mobPerf ? 1 : 3)) : 0;
     ctx.save();
     ctx.lineCap = 'round'; ctx.lineJoin = 'round';
     for (let pass = 0; pass < 2; pass++) {
@@ -666,15 +739,15 @@ function _drawThaelisBlackLightning(enemy, r, now, cast) {
         ctx.strokeStyle = pass === 0 ? '#ff3c32' : '#07020a';
         for (let i = 0; i < nBody + nGhost; i++) {
             const seed = seed0 + i * 31.3;
-            if (_twHash(seed + 5) < 0.25) continue;   // each bolt is out for a frame now and then
+            if (_twHash(seed + 5) < 0.15) continue;   // each bolt is out for a frame now and then
             const ghost = i >= nBody;
             const ox = ghost ? _twGhost.headX : enemy.x, oy = ghost ? _twGhost.headY : enemy.y;
             // bolts fan round the wave's heading on the chop, any way at all while gathering
             const a = burst ? cast.angle + (_twHash(seed + 1) - 0.5) * (ghost ? 2.2 : 2.8) : _twHash(seed + 1) * _TW_TAU;
-            const reach = r * (burst ? 1.6 + _twHash(seed + 2) * 2.2 : 0.7 + _twHash(seed + 2) * 0.9) * (ghost ? 1.15 : 1);
+            const reach = r * (burst ? 2.0 + _twHash(seed + 2) * 2.8 : 0.8 + _twHash(seed + 2) * 1.0) * (ghost ? 1.15 : 1);
             const start = ghost ? 0 : r * 0.9;
-            const wd = (ghost ? 3.4 : 2.8) * (0.7 + 0.6 * _twHash(seed + 3)) * (burst ? 1 : 0.7);
-            ctx.lineWidth = pass === 0 ? wd + 4.5 : wd;
+            const wd = (ghost ? 4.2 : 3.6) * (0.7 + 0.6 * _twHash(seed + 3)) * (burst ? 1 : 0.7);
+            ctx.lineWidth = pass === 0 ? wd + 5.5 : wd;
             _twBoltPath(ox + Math.cos(a) * start, oy + Math.sin(a) * start, ox + Math.cos(a) * (start + reach), oy + Math.sin(a) * (start + reach), seed, reach * 0.16);
             ctx.stroke();
         }
@@ -683,9 +756,9 @@ function _drawThaelisBlackLightning(enemy, r, now, cast) {
     if (cast.kind === 2 && cast.p < 0.5) {
         const g = _getGlowSprite('rgba(255, 70, 60, 0.9)', 64);
         if (g) {
-            const gr = r * 2.6;
+            const gr = r * 3.4;
             ctx.globalCompositeOperation = 'lighter';
-            ctx.globalAlpha = (1 - cast.p * 2) * 0.5;
+            ctx.globalAlpha = (1 - cast.p * 2) * 0.75;
             ctx.drawImage(g, enemy.x - gr, enemy.y - gr, gr * 2, gr * 2);
         }
     }
@@ -751,7 +824,7 @@ function _drawThaelisDouqi(enemy, r, now, hpPct, cast) {
     const g = _getGlowSprite('rgba(255, 170, 40, 0.6)', 64);
     if (g) {
         const gr = r * (1.55 + 0.55 * lvl + 0.5 * gather);
-        ctx.globalAlpha = 0.2 + 0.34 * lvl;
+        ctx.globalAlpha = 0.24 + 0.4 * lvl;
         ctx.drawImage(g, -gr, -gr, gr * 2, gr * 2);
     }
 
@@ -762,7 +835,7 @@ function _drawThaelisDouqi(enemy, r, now, hpPct, cast) {
         let dx = ox * 0.38, dy = oy * 0.38 - 0.62;
         const dl = Math.hypot(dx, dy); dx /= dl; dy /= dl;
         const flick = 0.72 + 0.28 * Math.sin(now / 95 + i * 2.3);
-        const L = r * (0.5 + 0.95 * lvl) * flick * (0.62 + 0.38 * -oy) * (1 + burst * 0.5 + gather * 0.45);
+        const L = r * (0.5 + 0.95 * lvl) * flick * (0.62 + 0.38 * -oy) * (1 + burst * 0.5 + gather * 0.75);
         const w = r * (0.13 + 0.09 * lvl);
         const bx = ox * r * 1.02, by = oy * r * 1.02;
         const px = -dy, py = dx;
