@@ -4,7 +4,8 @@
 //   - bronze and crimson armour plates riveted onto the shield, and the red Viking bearded axe that hangs beside it,
 //   - the Ulysses' Return cast: the axe is raised, red đấu khí and bá khí gather and the ground cracks open,
 //     the axe chops, the ground bursts and bá khí wisps lift away. A huge ghost shape (the bá khí phantom)
-//     stands behind a bare Thaelis and behind its Cocoon alike while the wave is gathered,
+//     stands behind a bare Thaelis and behind its Cocoon alike while the wave is gathered and chops with a
+//     giant ghost of the axe, and black lightning breaks out of the chop,
 //   - Tenacity's đấu khí, the flame aura that burns hotter the more HP Thaelis has lost,
 //   - the Iron Body layers a revived Thaelis wears (5 plates).
 // Everything has a code-drawn version. If the art listed in _THAELIS_ART exists on disk it is
@@ -18,7 +19,8 @@ const _THAELIS_ART = {
     // len = whole sprite width in r, head = where the blade meets the haft, as a fraction of the width,
     // bladeOff = how far the middle of the blade hangs off the haft, in r (0 for a blade mirrored about the haft)
     axe: { src: 'assets/images/game/enemies/thaelis-axe.png', len: 2.05, pivot: 0.17, head: 0.86, bladeOff: 0.38 },
-    // chest centre at the image centre, drawn additive (black is invisible). widthR = whole image width in r
+    // chest centre at the image centre, drawn additive (black is invisible). widthR = whole image width in r.
+    // body only: the phantom's axe arm is drawn live so it can chop
     phantom: { src: 'assets/images/game/effects/thaelis-bakhi-phantom.png', widthR: 6.4 },
     // the head of the sonic wave: the leading crescent sits at tip (fraction of the width), ripples trail to the left
     sonic: { src: 'assets/images/game/effects/thaelis-sonic-arc.png', tip: 0.70 },
@@ -30,8 +32,10 @@ const THAELIS_SWING_MS = 240;   // the chop, right when the wave's gate closes
 const THAELIS_RELEASE_MS = 1500; // bá khí rising after the chop
 
 const _twCast = { kind: 0, p: 0, angle: Math.PI / 2 };   // kind: 0 idle, 1 gather, 2 chop, 3 release
-const _twPose = { ang: 0, hx: 0, hy: 0, glow: 0, sweep: 0 };
-let _twArmorSprite = null, _twAxeSprite = null, _twPhantomSprite = null;
+const _twPose = { ang: 0, hx: 0, hy: 0, glow: 0, sweep: 0, armOff: 0 };
+let _twArmorSprite = null, _twAxeSprite = null, _twPhantomSprite = null, _twGhostAxeSprite = null;
+// where the phantom's axe is this frame, for the black lightning that follows it
+const _twGhost = { on: false, hx: 0, hy: 0, headX: 0, headY: 0, k: 0 };
 let _twArtRequested = false;
 
 function _twClamp01(x) { return x < 0 ? 0 : x > 1 ? 1 : x; }
@@ -218,7 +222,7 @@ function _twGetAxe() {
     return _twAxeSprite;
 }
 
-// the bá khí phantom: a huge translucent Odysseus with the axe raised overhead and a round shield on the other arm.
+// the bá khí phantom: a huge translucent Odysseus with a round shield on one arm (his axe arm is drawn live).
 // Baked in an 8U x 8U square (U = 80px), chest at the centre, then drawn additive. The body is drawn once as a solid
 // silhouette so overlapping limbs do not stack alpha, then tinted, carved with armour lines and wrapped in flames.
 function _twGetPhantom() {
@@ -244,17 +248,7 @@ function _twGetPhantom() {
     s.bezierCurveTo(1.2 * U, 1.1 * U, 1.7 * U, -0.2 * U, 1.8 * U, -1.15 * U);
     s.bezierCurveTo(1.65 * U, -1.72 * U, 0.9 * U, -1.8 * U, 0.32 * U, -1.8 * U);
     s.closePath(); s.fill();
-    // right arm up, fist over the head, axe haft and its bearded blade
-    s.lineWidth = 0.66 * U;
-    s.beginPath(); s.moveTo(1.55 * U, -1.2 * U); s.lineTo(2.25 * U, -2.0 * U); s.lineTo(1.85 * U, -2.85 * U); s.stroke();
-    s.lineWidth = 0.15 * U;
-    s.beginPath(); s.moveTo(1.8 * U, -1.9 * U); s.lineTo(2.0 * U, -3.82 * U); s.stroke();
-    s.beginPath();
-    s.moveTo(2.05 * U, -3.85 * U);
-    s.quadraticCurveTo(1.2 * U, -4.0 * U, 0.75 * U, -3.55 * U);
-    s.quadraticCurveTo(0.7 * U, -2.9 * U, 1.3 * U, -2.5 * U);
-    s.quadraticCurveTo(1.45 * U, -3.0 * U, 1.9 * U, -3.2 * U);
-    s.closePath(); s.fill();
+    // the right arm and the axe are not baked: _drawThaelisPhantom swings them live
     // left arm down to a big round shield
     s.lineWidth = 0.62 * U;
     s.beginPath(); s.moveTo(-1.5 * U, -1.2 * U); s.lineTo(-2.15 * U, -0.2 * U); s.stroke();
@@ -299,7 +293,7 @@ function _twGetPhantom() {
         c.closePath(); c.fill();
     };
     const spots = [[-0.4, -2.7], [0.45, -2.7], [-1.5, -1.6], [-1.0, -1.75], [1.0, -1.75], [1.5, -1.6], [-2.35, -0.8], [-3.0, -0.4], [-1.7, -0.35],
-        [2.9, -3.6], [1.2, -3.6], [2.0, -3.9], [2.3, -2.1], [-0.9, 0.2], [0.9, 0.2], [-0.3, -3.6], [0.4, -3.3]];
+        [2.1, -1.7], [-0.9, 0.2], [0.9, 0.2], [-0.3, -3.6], [0.4, -3.3]];
     for (let i = 0; i < spots.length; i++) {
         const h = (i * 0.618) % 1;
         lick(spots[i][0] * U, spots[i][1] * U, (0.55 + 0.75 * h) * U, (0.12 + 0.1 * h) * U, (h - 0.5) * 0.5 * U, 0.2 + 0.18 * h, 12 + h * 34);
@@ -328,7 +322,7 @@ const _TW_IDLE = { ang: -1.2, hx: 1.28, hy: 0.12 };    // hangs upright at the s
 const _TW_COCK = { ang: -2.3, hx: 0.95, hy: -1.15 };   // raised high and cocked back
 function _twComputePose(cast, now) {
     const P = _twPose;
-    P.glow = 0; P.sweep = 0;
+    P.glow = 0; P.sweep = 0; P.armOff = 0;
     if (cast.kind === 0) {
         P.ang = _TW_IDLE.ang + Math.sin(now / 760) * 0.05;
         P.hx = _TW_IDLE.hx; P.hy = _TW_IDLE.hy + Math.sin(now / 760 + 1) * 0.03;
@@ -344,17 +338,17 @@ function _twComputePose(cast, now) {
         P.ang = _twLerp(_TW_IDLE.ang, _TW_COCK.ang, t);
         P.hx = _twLerp(_TW_IDLE.hx, _TW_COCK.hx, t) + Math.sin(now / 23) * tr;
         P.hy = _twLerp(_TW_IDLE.hy, _TW_COCK.hy, t) + Math.cos(now / 19) * tr;
-        P.glow = cast.p;
+        P.glow = cast.p; P.armOff = 0.9;
     } else if (cast.kind === 2) {
         const q = cast.p, t = q * q;
         P.ang = _TW_COCK.ang + delta * t;
         P.hx = _twLerp(_TW_COCK.hx, endHx, t); P.hy = _twLerp(_TW_COCK.hy, endHy, t);
-        P.glow = 1; P.sweep = q;
+        P.glow = 1; P.sweep = q; P.armOff = 0.9 * (1 - t);
     } else {
         const t = _twEaseInOut((cast.p - 0.25) / 0.75);
         P.ang = _twLerp(_TW_COCK.ang + delta, _TW_IDLE.ang, t);
         P.hx = _twLerp(endHx, _TW_IDLE.hx, t); P.hy = _twLerp(endHy, _TW_IDLE.hy, t);
-        P.glow = 1 - cast.p;
+        P.glow = 1 - cast.p; P.armOff = 0.9 * t;
     }
     return P;
 }
@@ -520,15 +514,40 @@ function _drawThaelisGroundCracks(enemy, r, now, cast) {
 
 // ---------- bá khí ----------
 
+// the phantom's own axe: the same bearded axe, burnt down to a crimson glow
+function _twGetGhostAxe() {
+    if (_twGhostAxeSprite) return _twGhostAxeSprite;
+    const base = _twGetAxe(), pad = 30;
+    const tint = document.createElement('canvas');
+    tint.width = base.w; tint.height = base.h;
+    const t = tint.getContext('2d');
+    t.drawImage(base.canvas, 0, 0);
+    t.globalCompositeOperation = 'source-in';
+    const g = t.createLinearGradient(0, 0, base.w, 0);
+    g.addColorStop(0, 'rgb(150, 20, 28)'); g.addColorStop(0.7, 'rgb(240, 60, 44)'); g.addColorStop(1, 'rgb(255, 190, 140)');
+    t.fillStyle = g; t.fillRect(0, 0, base.w, base.h);
+    const off = document.createElement('canvas');
+    off.width = base.w + pad * 2; off.height = base.h + pad * 2;
+    const c = off.getContext('2d');
+    c.shadowColor = 'rgba(255, 50, 40, 1)'; c.shadowBlur = 22;
+    c.globalAlpha = 0.85; c.drawImage(tint, pad, pad);
+    c.shadowBlur = 0; c.globalAlpha = 0.5; c.drawImage(tint, pad, pad);
+    _twGhostAxeSprite = { canvas: off, w: base.w, h: base.h, pad: pad };
+    return _twGhostAxeSprite;
+}
+
 // While Ulysses' Return is gathered the warrior's own bá khí takes his shape behind the body, larger than he is.
-// It lunges with the chop and then lifts away. Works for a bare Thaelis and for its Cocoon alike.
+// His arm raises a giant ghost of the axe with the real one and chops with it, then the whole shape lifts away.
+// Works for a bare Thaelis and for its Cocoon alike.
 function _drawThaelisPhantom(enemy, r, now, cast) {
+    _twGhost.on = false;
     if (cast.kind === 0) return;
     let k, rise = 0, scale = 1, lunge = 0;
     if (cast.kind === 1) { k = _twEaseOut(cast.p * 1.15); scale = 0.74 + 0.26 * k; rise = (1 - k) * 0.35 * r; }
     else if (cast.kind === 2) { k = 1; scale = 1 + 0.07 * cast.p; lunge = Math.sin(cast.p * Math.PI) * 0.45 * r; }
     else { k = Math.pow(1 - cast.p, 1.4); scale = 1.07 + 0.1 * cast.p; rise = -cast.p * 1.3 * r; }
     if (k <= 0.01) return;
+    const P = _twComputePose(cast, now);
     const art = _twImg('phantom'), spr = art ? null : _twGetPhantom();
     const src = art || spr.canvas;
     const w = _THAELIS_ART.phantom.widthR * r * scale, h = w * (art ? art.naturalHeight / art.naturalWidth : 1);
@@ -545,6 +564,45 @@ function _drawThaelisPhantom(enemy, r, now, cast) {
         ctx.globalAlpha = (i === 0 ? 0.8 : 0.24) * k * flicker;
         ctx.drawImage(src, cx - w * s / 2 + dx, cy - h * s / 2 + dy, w * s, h * s);
     }
+
+    // the phantom's axe arm: shoulder fixed on the shape, the arm trails the axe, the axe follows the real one's angle
+    const U = w / 8, A = _THAELIS_ART.axe;
+    const shX = cx + 1.55 * U, shY = cy - 1.2 * U;
+    const armAng = P.ang + P.armOff;
+    const hx = shX + Math.cos(armAng) * 1.5 * U, hy = shY + Math.sin(armAng) * 1.5 * U;
+    const gl = 4.6 * U, headD = (A.head - A.pivot) * gl;
+    const g = _twGetGhostAxe(), gs = gl / g.w;
+    ctx.globalAlpha = 0.75 * k * flicker;
+    ctx.lineCap = 'round';
+    ctx.strokeStyle = 'rgb(200, 34, 36)';
+    ctx.lineWidth = 0.62 * U;
+    ctx.beginPath(); ctx.moveTo(shX, shY); ctx.lineTo(hx, hy); ctx.stroke();
+    // the cut it leaves in the air
+    if (cast.kind === 2 && P.sweep > 0.05) {
+        let delta = ((cast.angle - _TW_COCK.ang) % _TW_TAU + _TW_TAU) % _TW_TAU;
+        if (delta > Math.PI * 1.25) delta -= _TW_TAU;
+        const trail = Math.min(Math.abs(delta) * P.sweep * P.sweep, 1.7), dir = delta >= 0 ? 1 : -1;
+        for (let i = 0; i < 3; i++) {
+            ctx.globalAlpha = (i === 0 ? 0.4 : i === 1 ? 0.5 : 0.7) * k;
+            ctx.strokeStyle = i === 0 ? 'rgb(200, 24, 34)' : i === 1 ? 'rgb(255, 96, 64)' : 'rgb(255, 236, 210)';
+            ctx.lineWidth = U * (1.1 - i * 0.42);
+            ctx.beginPath();
+            ctx.arc(hx, hy, headD * (0.96 + i * 0.03), P.ang - dir * trail, P.ang, dir < 0);
+            ctx.stroke();
+        }
+    }
+    ctx.save();
+    ctx.translate(hx, hy);
+    ctx.rotate(P.ang);
+    ctx.globalAlpha = 0.9 * k * flicker;
+    ctx.drawImage(g.canvas, -A.pivot * gl - g.pad * gs, -(g.h * gs) / 2 - g.pad * gs, g.canvas.width * gs, g.canvas.height * gs);
+    ctx.restore();
+    // remember where the ghost blade is for the lightning
+    const off = A.bladeOff * (gl / A.len);
+    _twGhost.on = true; _twGhost.k = k; _twGhost.hx = hx; _twGhost.hy = hy;
+    _twGhost.headX = hx + Math.cos(P.ang) * headD - Math.sin(P.ang) * off;
+    _twGhost.headY = hy + Math.sin(P.ang) * headD + Math.cos(P.ang) * off;
+
     // a crimson ring on the ground of the shape, strongest at the moment of the chop
     const ringA = cast.kind === 1 ? cast.p * 0.35 : cast.kind === 2 ? 0.55 : 0.35 * (1 - cast.p);
     if (ringA > 0.01) {
@@ -554,6 +612,73 @@ function _drawThaelisPhantom(enemy, r, now, cast) {
         ctx.beginPath();
         ctx.arc(enemy.x, enemy.y, r * (1.2 + (cast.kind === 1 ? (1 - cast.p) * 1.2 : cast.kind === 2 ? cast.p * 0.4 : 0.4 + cast.p * 0.6)), 0, _TW_TAU);
         ctx.stroke();
+    }
+    ctx.restore();
+}
+
+// ---------- black lightning ----------
+
+function _twHash(n) { const x = Math.sin(n * 127.1 + 311.7) * 43758.5453; return x - Math.floor(x); }
+
+// one jagged bolt from (x0, y0) to (x1, y1); the same seed always gives the same shape, so it can be stroked twice
+function _twBoltPath(x0, y0, x1, y1, seed, jit) {
+    const dx = x1 - x0, dy = y1 - y0, len = Math.hypot(dx, dy) || 1, px = -dy / len, py = dx / len, segs = 7;
+    ctx.beginPath();
+    ctx.moveTo(x0, y0);
+    for (let i = 1; i < segs; i++) {
+        const t = i / segs, j = (_twHash(seed + i * 7.3) - 0.5) * 2 * jit * Math.sin(t * Math.PI);
+        ctx.lineTo(x0 + dx * t + px * j, y0 + dy * t + py * j);
+        if (i === 3) {   // a short fork
+            const f = (_twHash(seed + 91) - 0.5) * 2;
+            ctx.lineTo(x0 + dx * (t + 0.12) + px * (j + f * jit * 1.6), y0 + dy * (t + 0.12) + py * (j + f * jit * 1.6));
+            ctx.moveTo(x0 + dx * t + px * j, y0 + dy * t + py * j);
+        }
+    }
+    ctx.lineTo(x1, y1);
+}
+
+// black lightning: a black core in a crimson sheath. It crackles round the phantom's blade as power gathers and
+// bursts out of the chop, from the ghost axe and from the body, mostly down the heading of the wave
+function _drawThaelisBlackLightning(enemy, r, now, cast) {
+    let power;
+    if (cast.kind === 1) power = cast.p > 0.55 ? (cast.p - 0.55) / 0.45 * 0.45 : 0;
+    else if (cast.kind === 2) power = 1;
+    else if (cast.kind === 3) power = cast.p < 0.3 ? 1 - cast.p / 0.3 : 0;
+    else power = 0;
+    if (power <= 0.02) return;
+    const frame = Math.floor(now / 55), seed0 = frame * 13.7 + enemy.x * 0.01;
+    const burst = cast.kind !== 1;
+    const nBody = burst ? (_mobPerf ? 3 : 6) : 0, nGhost = _twGhost.on ? (burst ? (_mobPerf ? 2 : 4) : (_mobPerf ? 1 : 3)) : 0;
+    ctx.save();
+    ctx.lineCap = 'round'; ctx.lineJoin = 'round';
+    for (let pass = 0; pass < 2; pass++) {
+        // pass 0: crimson sheath, pass 1: the black core on top of it
+        ctx.globalAlpha = Math.min(1, power * 1.2) * (pass === 0 ? 0.85 : 1);
+        ctx.strokeStyle = pass === 0 ? '#ff3c32' : '#07020a';
+        for (let i = 0; i < nBody + nGhost; i++) {
+            const seed = seed0 + i * 31.3;
+            if (_twHash(seed + 5) < 0.25) continue;   // each bolt is out for a frame now and then
+            const ghost = i >= nBody;
+            const ox = ghost ? _twGhost.headX : enemy.x, oy = ghost ? _twGhost.headY : enemy.y;
+            // bolts fan round the wave's heading on the chop, any way at all while gathering
+            const a = burst ? cast.angle + (_twHash(seed + 1) - 0.5) * (ghost ? 2.2 : 2.8) : _twHash(seed + 1) * _TW_TAU;
+            const reach = r * (burst ? 1.6 + _twHash(seed + 2) * 2.2 : 0.7 + _twHash(seed + 2) * 0.9) * (ghost ? 1.15 : 1);
+            const start = ghost ? 0 : r * 0.9;
+            const wd = (ghost ? 3.4 : 2.8) * (0.7 + 0.6 * _twHash(seed + 3)) * (burst ? 1 : 0.7);
+            ctx.lineWidth = pass === 0 ? wd + 4.5 : wd;
+            _twBoltPath(ox + Math.cos(a) * start, oy + Math.sin(a) * start, ox + Math.cos(a) * (start + reach), oy + Math.sin(a) * (start + reach), seed, reach * 0.16);
+            ctx.stroke();
+        }
+    }
+    // the flash the first frames of the chop
+    if (cast.kind === 2 && cast.p < 0.5) {
+        const g = _getGlowSprite('rgba(255, 70, 60, 0.9)', 64);
+        if (g) {
+            const gr = r * 2.6;
+            ctx.globalCompositeOperation = 'lighter';
+            ctx.globalAlpha = (1 - cast.p * 2) * 0.5;
+            ctx.drawImage(g, enemy.x - gr, enemy.y - gr, gr * 2, gr * 2);
+        }
     }
     ctx.restore();
 }

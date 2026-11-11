@@ -877,6 +877,7 @@ function _drawThaelis(enemy) {
     _drawThaelisShieldBreak(enemy, r, now);
     _drawThaelisRevive(enemy, r, now);
     _drawThaelisIronBody(enemy, r, now);
+    _drawThaelisBlackLightning(enemy, r, now, cast);
     _drawThaelisBakhiRise(enemy, r, now, cast);
     _drawThaelisOrdealHud(enemy, r, now);
 }
@@ -1039,6 +1040,7 @@ function _drawThaelisCocoon(enemy) {
     ctx.restore();
 
     ctx.restore();
+    _drawThaelisBlackLightning(enemy, r, now, cast);
     _drawThaelisBakhiRise(enemy, r, now, cast);
     _drawThaelisOrdealHud(enemy, r, now);
 }
