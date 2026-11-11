@@ -570,7 +570,7 @@
         'spirit-finale-laser': 0.7,
         'great-sage-hit': 0.7,
         'spirit-arc-slash': 1.0,
-        'thaelis-wave-charge': 1.0, 'thaelis-wave-sweep': 1.0,
+        'thaelis-wave-charge': 1.0, 'thaelis-wave-sweep': 1.0, 'thaelis-ulysses-slash': 1.0,
         gameover: 1.0, 'new-wave': 1.0,
         'maou-haki': 1.0, 'low-hp': 1.0, 'yog-parry': 1.0,
         'charged-shot': 1.0, 'wave-clear': 1.0,
@@ -1363,6 +1363,7 @@
         _makePool('spirit-arc-slash', 'assets/audio/sfx/spirit-arc-slash.mp3', 3);
         _makePool('thaelis-wave-charge', 'assets/audio/sfx/thaelis-wave-charge.mp3', 3);
         _makePool('thaelis-wave-sweep', 'assets/audio/sfx/thaelis-wave-sweep.mp3', 3);
+        _makePool('thaelis-ulysses-slash', 'assets/audio/sfx/thaelis-ulysses-slash.mp3', 3);
         _makePool('gameover',  'assets/audio/sfx/gameover.mp3',  1);
         _makePool('new-wave',  'assets/audio/sfx/new-wave.mp3',  2);
         _makePool('yog-parry', 'assets/audio/sfx/yog-parry.mp3', 2);

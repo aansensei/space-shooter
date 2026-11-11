@@ -551,6 +551,8 @@ function updateThaelisWaves(deltaTime) {
                 for (const s of sentinels) if (_thaelisInLane(w, s.x, s.y, s.size)) inLane++;
                 if (inLane < THAELIS_WAVE_FOCUS_TARGETS) { w.focus = true; w.atk *= THAELIS_WAVE_FOCUS_MULT; }
                 if (window.AudioMgr) window.AudioMgr.playSfxAt('thaelis-wave-sweep', w.ox, w.oy);
+                // the axe chop layers its own hit on top of the sweep, its peak lands as the swing finishes
+                if (window.AudioMgr) window.AudioMgr.playSfxAt('thaelis-ulysses-slash', w.ox, w.oy);
                 if (typeof _setShake === 'function') _setShake(9, 240);
             }
             continue;
