@@ -48,6 +48,19 @@ function _twEaseOut(t) { t = _twClamp01(t); return 1 - (1 - t) * (1 - t) * (1 - 
 function _twEaseInOut(t) { t = _twClamp01(t); return t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2; }
 function _twGlowOn() { return !_mobPerf && window._fxOpts && window._fxOpts.glow; }
 
+// Detail tiers come from the graphics level: 0 full, 1 medium, 2 low, 3 minimum, 4 performance (mobile only).
+function _twTier() { const g = window._gfxLevel || 0; return g > 4 ? 4 : g; }
+// A count for the current tier. Full and low are given, medium sits halfway between them, minimum is half of low
+// and performance a third of it, never below 1 unless low itself is 0.
+function _twCount(low, full) {
+    const t = _twTier();
+    if (t === 0) return full;
+    if (t === 1) return Math.max(low, Math.round((full + low) / 2));
+    if (t === 2) return low;
+    if (low < 1) return low;
+    return Math.max(1, Math.floor(low / (t === 3 ? 2 : 3)));
+}
+
 // one request per art file, made the first time a Thaelis is drawn; a missing file just keeps the code-drawn version
 function _twImg(key) {
     const a = _THAELIS_ART[key];
@@ -485,7 +498,7 @@ function _drawThaelisParryFx(enemy, r, now) {
     // sparks thrown back toward the attacker
     ctx.strokeStyle = '#ffe9c8';
     ctx.lineWidth = 1.8;
-    const n = _mobPerf ? 5 : 10;
+    const n = _twCount(5, 10);
     for (let i = 0; i < n; i++) {
         const a = (_twHash(i * 3.1 + 2) - 0.5) * 2.4, d0 = r * (0.15 + p * 1.5 * (0.5 + _twHash(i + 9))), d1 = d0 + r * 0.28 * (1 - p);
         ctx.globalAlpha = (1 - p) * 0.95;
@@ -542,7 +555,7 @@ function _drawThaelisGroundCracks(enemy, r, now, cast) {
     // molten glow under the cracks
     const g = _getGlowSprite('rgba(255, 60, 40, 0.8)', 64);
     if (g) { const gr = reach * 0.75; ctx.globalAlpha = 0.3 * heat; ctx.drawImage(g, -gr, -gr * 0.8, gr * 2, gr * 1.6); }
-    const nCr = _mobPerf ? 9 : _TW_CRACKS.length;
+    const nCr = _twCount(9, _TW_CRACKS.length);
     for (let pass = 0; pass < 2; pass++) {
         ctx.strokeStyle = pass === 0 ? `rgba(230, 36, 30, ${0.6 * heat})` : `rgba(255, 226, 180, ${0.95 * heat})`;
         ctx.lineWidth = pass === 0 ? 8 : 2.4;
@@ -586,7 +599,7 @@ function _drawThaelisGroundCracks(enemy, r, now, cast) {
         }
         ctx.strokeStyle = '#ffc8a8';
         ctx.lineWidth = 2;
-        const streaks = _mobPerf ? 8 : 16;
+        const streaks = _twCount(8, 16);
         for (let i = 0; i < streaks; i++) {
             const a = (i / streaks) * _TW_TAU + (i % 2) * 0.13, d0 = r * (1.3 + (1 - burst) * 2.4), d1 = d0 + r * (0.35 + 0.3 * ((i * 0.618) % 1));
             ctx.globalAlpha = burst * 0.8;
@@ -640,7 +653,7 @@ function _drawThaelisPhantom(enemy, r, now, cast) {
     ctx.save();
     ctx.globalCompositeOperation = 'lighter';
     // three copies, the outer two drifting, so the edge shimmers like heat
-    const copies = _mobPerf ? 1 : 3;
+    const copies = _twCount(1, 3);
     for (let i = 0; i < copies; i++) {
         const dx = i === 0 ? 0 : Math.sin(now / 210 + i * 2.1) * r * 0.07 * i;
         const dy = i === 0 ? 0 : Math.cos(now / 170 + i) * r * 0.05 * i;
@@ -732,7 +745,7 @@ function _drawThaelisBlackLightning(enemy, r, now, cast) {
     if (power <= 0.02) return;
     const frame = Math.floor(now / 55), seed0 = frame * 13.7 + enemy.x * 0.01;
     const burst = cast.kind !== 1;
-    const nBody = burst ? (_mobPerf ? 4 : 10) : (_mobPerf ? 0 : 2), nGhost = _twGhost.on ? (burst ? (_mobPerf ? 2 : 6) : (_mobPerf ? 1 : 3)) : 0;
+    const nBody = burst ? (_twCount(4, 10)) : (_twCount(0, 2)), nGhost = _twGhost.on ? (burst ? (_twCount(2, 6)) : (_twCount(1, 3))) : 0;
     ctx.save();
     ctx.lineCap = 'round'; ctx.lineJoin = 'round';
     for (let pass = 0; pass < 2; pass++) {
@@ -771,7 +784,7 @@ function _drawThaelisBlackLightning(enemy, r, now, cast) {
 function _drawThaelisBakhiRise(enemy, r, now, cast) {
     if (cast.kind !== 3 && cast.kind !== 2) return;
     const q = cast.kind === 2 ? cast.p * 0.12 : 0.12 + cast.p * 0.88;
-    const n = _mobPerf ? 6 : 14;
+    const n = _twCount(6, 14);
     ctx.save();
     ctx.translate(enemy.x, enemy.y);
     ctx.globalCompositeOperation = 'lighter';
@@ -817,7 +830,7 @@ function _drawThaelisDouqi(enemy, r, now, hpPct, cast) {
     const gather = cast.kind === 1 ? _twEaseOut(cast.p * 1.2) : cast.kind === 2 ? 1 : cast.kind === 3 ? 1 - cast.p : 0;
     const lvl = Math.min(1, Math.max(qi + burst * 0.6, gather));
     const hue = 48 - 26 * lvl - 20 * gather;
-    const n = _mobPerf ? 7 : 13;
+    const n = _twCount(7, 13);
 
     ctx.save();
     ctx.translate(enemy.x, enemy.y);
@@ -1064,7 +1077,7 @@ function _drawThaelisDeathFx() {
         // light breaks out through the cracks
         ctx.globalCompositeOperation = 'lighter';
         ctx.lineCap = 'round';
-        const rays = _mobPerf ? 6 : 12, rayA = Math.pow(1 - _twClamp01(p / 0.6), 1.5);
+        const rays = _twCount(6, 12), rayA = Math.pow(1 - _twClamp01(p / 0.6), 1.5);
         if (rayA > 0.02) {
             ctx.strokeStyle = slain ? '#ff8a6a' : '#fff0b0';
             for (let i = 0; i < rays; i++) {
@@ -1090,7 +1103,7 @@ function _drawThaelisDeathFx() {
             // black lightning tears out in every direction
             const power = 1 - _twClamp01(p / 0.5);
             if (power > 0.02) {
-                const frame = Math.floor(now / 55), bolts = _mobPerf ? 5 : 11;
+                const frame = Math.floor(now / 55), bolts = _twCount(5, 11);
                 ctx.lineCap = 'round'; ctx.lineJoin = 'round';
                 for (let pass = 0; pass < 2; pass++) {
                     ctx.globalAlpha = Math.min(1, power * 1.4) * (pass === 0 ? 0.85 : 1);
@@ -1109,7 +1122,7 @@ function _drawThaelisDeathFx() {
             }
             // embers rise off the spot for the whole effect
             ctx.globalCompositeOperation = 'lighter';
-            const embers = _mobPerf ? 8 : 18;
+            const embers = _twCount(8, 18);
             for (let i = 0; i < embers; i++) {
                 const h = (i * 0.618) % 1, h2 = (i * 0.754 + 0.3) % 1, t = _twClamp01((p - h * 0.3) / 0.7);
                 if (t <= 0 || t >= 1) continue;
@@ -1143,7 +1156,7 @@ function _drawThaelisDeathFx() {
             _twDrawAxeAt(r * (1.28 + 1.5 * p), r * (0.12 - 1.1 * p + 2.4 * p * p), _TW_IDLE.ang + p * 9, r, 1 - p * p * p);
             // green threads wind in from all round: the Cocoon is being spun
             if (p > 0.3) {
-                const q = (p - 0.3) / 0.7, threads = _mobPerf ? 4 : 8;
+                const q = (p - 0.3) / 0.7, threads = _twCount(4, 8);
                 ctx.strokeStyle = `rgba(130, 255, 170, ${Math.sin(Math.PI * q) * 0.85})`;
                 ctx.lineWidth = 1.6;
                 for (let i = 0; i < threads; i++) {

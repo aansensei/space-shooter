@@ -600,7 +600,7 @@ function _drawThaelisHeal(enemy, r, now) {
         ctx.setLineDash([]);
 
         if (window._fxOpts && window._fxOpts.particles) {
-            const moteCount = _mobPerf ? 3 : 6;
+            const moteCount = _twCount(3, 6);
             ctx.fillStyle = `rgba(160, 255, 180, ${intensity * 0.8})`;
             for (let m = 0; m < moteCount; m++) {
                 const mt = ((now * 0.0008 * (0.8 + m * 0.2) + m * 0.23) % 1);
@@ -629,7 +629,7 @@ function _drawThaelisMend(enemy, r, now) {
     if (age < 0 || age >= 450) return;
     const p = age / 450;
     const amtFrac = Math.min(1.0, (enemy._shroudMendAmt || 60) / (enemy.maxHp * 0.15));
-    const threadCount = _mobPerf ? 1 : 4;
+    const threadCount = _twCount(1, 4);
     const bR = r + 16;
 
     ctx.save();
@@ -671,7 +671,7 @@ function _drawThaelisOverflow(enemy, r, now) {
         ctx.stroke();
     } else {
         const streamP = (p - 0.5) / 0.5;
-        const threadCount = _mobPerf ? 3 : 6;
+        const threadCount = _twCount(3, 6);
         ctx.strokeStyle = `rgba(255, 230, 80, ${(1 - streamP) * 0.85 * amtFrac})`;
         ctx.lineWidth = 2.2;
         for (let i = 0; i < threadCount; i++) {
@@ -696,7 +696,7 @@ function _drawThaelisWeave(enemy, r, now) {
     const bR = r + 16 + 2 * Math.sin(now / 150);
     const pulse = 0.75 + 0.25 * Math.sin(now / 120);
 
-    const maxWeft = _mobPerf ? 6 : 13;
+    const maxWeft = _twCount(6, 13);
     const weftCount = Math.max(1, Math.round(maxWeft * bFrac));
     const rot = now / 5500;
 
@@ -739,7 +739,7 @@ function _drawThaelisShieldGrant(enemy, r, now) {
     const age = now - enemy._shieldGrantAt;
     if (age < 0 || age >= 700) return;
     const p = age / 700;
-    const threadCount = _mobPerf ? 4 : 8;
+    const threadCount = _twCount(4, 8);
     const bR = r + 16;
 
     ctx.save();
@@ -774,7 +774,7 @@ function _drawThaelisShieldBreak(enemy, r, now) {
     const age = now - enemy._shieldBreakCrackAt;
     if (age < 0 || age >= 600) return;
     const p = age / 600;
-    const threadCount = _mobPerf ? 5 : 10;
+    const threadCount = _twCount(5, 10);
     const bR = r + 16;
 
     ctx.save();
@@ -807,7 +807,7 @@ function _drawThaelisRevive(enemy, r, now) {
             ctx.save();
             ctx.translate(enemy.x, enemy.y);
 
-            const threadCount = _mobPerf ? 4 : 8;
+            const threadCount = _twCount(4, 8);
             ctx.strokeStyle = `rgba(160, 255, 150, ${(1 - p) * 0.85})`;
             ctx.lineWidth = 1.8;
             for (let i = 0; i < threadCount; i++) {
@@ -919,7 +919,7 @@ function _drawThaelisCocoon(enemy) {
     ctx.shadowBlur = 0;
 
     // Penelope's shroud threads wrap the cocoon in slow shifting layers
-    const shroudLayers = _mobPerf ? 2 : 4;
+    const shroudLayers = _twCount(2, 4);
     for (let sh = 0; sh < shroudLayers; sh++) {
         const shAngle = (sh / shroudLayers) * Math.PI + Math.sin(now / 1600 + sh) * 0.15;
         ctx.save();
@@ -934,7 +934,7 @@ function _drawThaelisCocoon(enemy) {
 
     if (urgency > 0.75) {
         // threads snap and burst outward as the cocoon prepares to hatch
-        const burstCount = _mobPerf ? 4 : 8;
+        const burstCount = _twCount(4, 8);
         ctx.strokeStyle = `hsla(${auraHue}, 100%, 80%, ${0.6 + pulse * 0.3})`;
         ctx.lineWidth = 1.6;
         for (let b = 0; b < burstCount; b++) {
@@ -1181,7 +1181,7 @@ const _THAELIS_SLASH_LAYERS = [
 
 // the head of the sound wave: curved fronts that open backwards and pulse forward like a sonic boom
 function _drawThaelisSonicRipples(s, alpha, now) {
-    const hw = THAELIS_WAVE_HALF_WIDTH, rip = _mobPerf ? 3 : 5, rho = hw * 1.15, phi = 0.88;
+    const hw = THAELIS_WAVE_HALF_WIDTH, rip = _twCount(3, 5), rho = hw * 1.15, phi = 0.88;
     ctx.save();
     ctx.lineCap = 'round';
     for (let i = 0; i < rip; i++) {
@@ -1199,7 +1199,7 @@ function _drawThaelisSonicRipples(s, alpha, now) {
 }
 
 function _drawThaelisSlashWave(art, s, alpha, now, focus) {
-    const n = _mobPerf ? 3 : _THAELIS_SLASH_LAYERS.length, sh = art.slash.height;
+    const n = _twCount(3, _THAELIS_SLASH_LAYERS.length), sh = art.slash.height;
     ctx.save();
     ctx.globalCompositeOperation = 'lighter';
     const sonicImg = _twImg('sonic');
@@ -1221,7 +1221,7 @@ function _drawThaelisSlashWave(art, s, alpha, now, focus) {
 
     // a focused wave (fewer than 3 targets in its lane, 50% more damage) drags black lightning behind its front
     if (focus) {
-        const hwF = THAELIS_WAVE_HALF_WIDTH, frame = Math.floor(now / 55), bolts = _mobPerf ? 2 : 4;
+        const hwF = THAELIS_WAVE_HALF_WIDTH, frame = Math.floor(now / 55), bolts = _twCount(2, 4);
         ctx.globalCompositeOperation = 'source-over';
         ctx.lineCap = 'round'; ctx.lineJoin = 'round';
         for (let pass = 0; pass < 2; pass++) {
@@ -1255,7 +1255,7 @@ function _drawThaelisSlashWave(art, s, alpha, now, focus) {
     ctx.fill();
 
     ctx.fillStyle = '#ffb48a';
-    const sparks = _mobPerf ? 6 : 14;
+    const sparks = _twCount(6, 14);
     for (let i = 0; i < sparks; i++) {
         const q = (now * 0.002 + i * 0.37) % 1, side = i % 2 ? -1 : 1;
         const y = side * (hw * 0.45 + q * hw * 0.6) * (0.7 + 0.3 * Math.sin(i * 12.9898));
@@ -1300,7 +1300,7 @@ function _drawThaelisWaves() {
     }
 
     if (!_thaelisWaves.length) return;
-    const art = _thaelisWaveSprites(), count = _mobPerf ? 6 : 12, now = performance.now();
+    const art = _thaelisWaveSprites(), count = _twCount(6, 12), now = performance.now();
     const ringH = art.ring.height;
     let meanderPat = null;
 
@@ -1322,7 +1322,7 @@ function _drawThaelisWaves() {
             ctx.globalAlpha = 0.45 * fade;
             ctx.strokeStyle = '#ff7a6a';
             ctx.lineWidth = 1.4;
-            const threadCount = _mobPerf ? 2 : 4;
+            const threadCount = _twCount(2, 4);
             for (let th = 0; th < threadCount; th++) {
                 const ty = -w.halfWidth * 0.65 + (th / (threadCount - 1)) * w.halfWidth * 1.3;
                 const dashPhase = (now * 0.04 + th * 25) % 40;
@@ -1388,7 +1388,7 @@ function _drawThaelisWaves() {
             }
             ctx.fillStyle = '#ffb8a0';
             ctx.globalAlpha = 0.85;
-            const motes = _mobPerf ? 6 : 14;
+            const motes = _twCount(6, 14);
             for (let i = 0; i < motes; i++) {
                 const q = (p * 1.7 + i / motes) % 1, a0 = i * 2.39996, d = (130 + (i % 5) * 22) * (1 - q) + 8;
                 ctx.fillRect(mx + Math.cos(a0 + q * 2.6) * d - 1.5, Math.sin(a0 + q * 2.6) * d * 0.8 - 1.5, 3, 3);
