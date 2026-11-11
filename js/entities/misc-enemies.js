@@ -102,6 +102,7 @@ const THAELIS_COCOON_KILLS_NEEDED_MAX = 16;
 const THAELIS_REVIVE_HP_PCT = 0.40;
 const THAELIS_REVIVE_INVULN_MS = 1000;
 const THAELIS_COCOON_RETRIGGER_COOLDOWN_MS = 12000; // a revived Thaelis can't cocoon again this soon if it dies right away
+const THAELIS_REVIVE_IRON_BODY = 5; // Iron Body layers (one whole hit each) a Thaelis wears after climbing out of its Cocoon
 
 // angle is passed when respawning, so the replacement stands where the dead
 // guard stood rather than on top of one that's still alive
@@ -155,7 +156,7 @@ function _spawnThaelisCocoon(deadThaelis) {
         _cocoonKillsSoFar: 0,
     };
     // the Cocoon keeps Thaelis's Ordeal state and can still fire the waves already stored while it holds out
-    for (const k of ['_ordealPts', '_ordealDmg', '_ordealQueue', '_ordealCd', '_ordealIdle', '_ordealBonus', '_ordealSlowPts', '_ordealCastAt']) cocoon[k] = deadThaelis[k] || 0;
+    for (const k of ['_ordealPts', '_ordealDmg', '_ordealQueue', '_ordealCd', '_ordealIdle', '_ordealBonus', '_ordealSlowPts', '_ordealCastAt', '_ordealCastAngle']) cocoon[k] = deadThaelis[k] || 0;
     cocoon._ordealGlow = 0; cocoon._ordealShieldHit = 0;
     if (cocoon._ordealCastAt === 0) cocoon._ordealCastAt = -1e9;
     cocoon._ordealAtk = (deadThaelis.atk || 0) * _enemyEnrageMult(deadThaelis);
@@ -188,6 +189,8 @@ function _reviveThaelis(cocoon) {
         shield: _bankedShield,
         type: 'thaelis', shootTimer: 1000, reincarnated: true,
         _shieldPeak: _bankedShield,
+        // climbing out of the Cocoon wears 5 Iron Body layers, each soaks one whole hit (see dealDamage, entities/core.js)
+        ironBodyHits: THAELIS_REVIVE_IRON_BODY,
         _tenacityBarrier70: false, _tenacityBarrier40: false, _tenacityBarrier10: false,
         _reviveInvulnEnd: performance.now() + THAELIS_REVIVE_INVULN_MS,
         _justRevivedAt: performance.now(),
@@ -334,6 +337,8 @@ function _thaelisOrdealInit(enemy, carryPoints) {
     enemy._ordealPts = 0; enemy._ordealDmg = 0; enemy._ordealQueue = 0; enemy._ordealShieldHit = 0;
     enemy._ordealCd = 3000 + Math.random() * 2000; enemy._ordealIdle = 0;
     enemy._ordealBonus = 0; enemy._ordealSlowPts = 0; enemy._ordealGlow = 0; enemy._ordealCastAt = -1e9;
+    // render poses the warrior from the cast time (gather, then chop, then bá khí rising) and aims the chop along the wave
+    enemy._ordealCastAngle = Math.PI / 2;
     if (carryPoints > 0) _thaelisOrdealAddPoints(enemy, carryPoints);
 }
 
@@ -410,7 +415,8 @@ function _castThaelisWave(enemy) {
     enemy._ordealBonus = 0;
     if (slow) enemy._ordealSlowPts = 0;
     enemy._ordealCastAt = _thaelisClock;
-    createParticles(enemy.x, enemy.y, 14, '#ffe066', 2, 7);
+    enemy._ordealCastAngle = angle;
+    createParticles(enemy.x, enemy.y, 14, '#ff8a5c', 2, 7);
     // energy gathers at Thaelis while the gate lights
     if (window.AudioMgr) window.AudioMgr.playSfxAt('thaelis-wave-charge', enemy.x, enemy.y);
 }

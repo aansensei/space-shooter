@@ -222,6 +222,7 @@
         'js/render/kanade-cutscene.js',
         'js/render/enemy-raphael.js',
         'js/render/enemy-thaelis.js',
+        'js/render/enemy-thaelis-warrior.js',
         'js/render/enemy-dargruel.js',
         'js/render/enemy-common.js',
         'js/render/enemy-egregor.js',

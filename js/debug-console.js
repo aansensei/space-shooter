@@ -434,7 +434,9 @@ window.debugSetYuukiBonus = function () {
         ['overheal', 'Overheal', 'Penelope\'s Shroud: heal past Max HP so 55% of the excess becomes shield'],
         ['break', 'Break shield', 'Remove the shield with the break effect'],
         ['hurt', 'Hurt to 50%', 'Set HP to half, with no shield it mends on its own'],
-        ['reborn', 'Mark reborn', 'Give it the reborn look and its flat armor'],
+        ['hurt20', 'Hurt to 20%', 'Set HP to a fifth so Tenacity\'s battle aura (đấu khí) burns at full strength'],
+        ['reborn', 'Mark reborn', 'Give it the reborn look, its flat armor and the 5 Iron Body layers a revive grants'],
+        ['iron', 'Iron Body x5', 'Refill 5 Iron Body layers, each one soaks a whole hit'],
         ['cocoon', 'To Cocoon', 'Reincarnation: die into a Cocoon now']
     ];
     const PANEL_HTML = `
@@ -1689,7 +1691,9 @@ window.debugSetYuukiBonus = function () {
             else if (action === 'overheal') { e.hp = max; _thaelisShroudHeal(e, max * 0.2); }
             else if (action === 'break') { e.shield = 0; e._shieldBreakCrackAt = now; }
             else if (action === 'hurt') e.hp = max * 0.5;
-            else if (action === 'reborn') { e.reincarnated = true; e._justRevivedAt = now; }
+            else if (action === 'hurt20') e.hp = max * 0.2;
+            else if (action === 'iron') e.ironBodyHits = THAELIS_REVIVE_IRON_BODY;
+            else if (action === 'reborn') { e.reincarnated = true; e._justRevivedAt = now; e.ironBodyHits = THAELIS_REVIVE_IRON_BODY; }
             else if (action === 'cocoon') { e._cocoonCooldownUntil = 0; e.hp = 0; }
         }
         refreshEnemyList();

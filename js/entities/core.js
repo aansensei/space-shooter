@@ -1366,6 +1366,7 @@ function dealDamage(enemy, source) {
     // Coronation Iron Body perk, 1-hit block on spawned enemy (tu_huyet blade arc bypasses)
     if (!isSentinel && enemy.ironBodyHits > 0 && !source._bypassIronBody) {
         enemy.ironBodyHits--;
+        enemy._ironBodyHitAt = performance.now(); // Thaelis draws the layer that just broke off
         createParticles(enemy.x, enemy.y, 6, '#ffd700', 2, 7);
         return; // 1 hit absorbed
     }

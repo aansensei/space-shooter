@@ -25,6 +25,7 @@ Check `index.html`'s script tags to see which mode is currently active.
 | `enemy-common.js` | 1091 | `drawEnemy()` — the type-dispatch entry point `draw()` in `core.js` calls for every enemy. Also: normal-enemy visuals, enemy bullets, Embryo, Vulnerability icon, Coronation fx. |
 | `enemy-raphael.js` | 185 | Heavenly Raphael visuals. Self-contained, no cross-file calls besides `core.js`'s `_mobPerf`. |
 | `enemy-thaelis.js` | 323 | Thaelis's own visuals (split out of the old shared `enemy-boss-thaelis.js`), plus its Reincarnation Cocoon and Guards, drawn over a commissioned sprite (`assets/images/game/enemies/thaelis-cocoon.png`). Calls `drawPolygon()` from `fx.js`. |
+| `enemy-thaelis-warrior.js` | 560 | Thaelis's Odyssey war gear, called from `enemy-thaelis.js`: armour plates on the shield, the red axe and its Ulysses' Return cast (ground cracks, bá khí phantom behind Thaelis and its Cocoon, rising wisps), Tenacity's đấu khí flame aura, and the Iron Body plates of a revived Thaelis. All code-drawn, with optional Gemini art listed in `_THAELIS_ART` (brief: `misc/thaelis-odyssey-art-brief.txt`, ingest: `misc/scripts/ingest_thaelis_assets.py`). |
 | `enemy-dargruel.js` | 335 | Dargruel's own visuals (the other half of the old shared `enemy-boss-thaelis.js`). |
 | `enemy-marchosias.js` | 340 | Marchosias main body, minion, death-sword blade. Reassembled from three separate ranges in the original file. |
 | `enemy-leviathan.js` | 360 | Leviathan body + `_drawLeviathanEffects` (standalone death-laser / Perseverance-sweep fx that survives Leviathan's own death — sat far from the main draw function in the original file, reassembled together here). |
@@ -49,6 +50,7 @@ player.js
 enemy-common.js
 enemy-raphael.js
 enemy-thaelis.js
+enemy-thaelis-warrior.js
 enemy-dargruel.js
 enemy-marchosias.js
 enemy-leviathan.js
