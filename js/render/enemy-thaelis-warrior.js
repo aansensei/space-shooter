@@ -9,6 +9,8 @@
 //   - Penelope's Shroud's parry: the axe whips across an incoming hit and leaves a white-hot cut,
 //   - Tenacity's đấu khí, the flame aura that burns hotter the more HP Thaelis has lost,
 //   - the Iron Body layers a revived Thaelis wears (5 plates).
+//   - Thaelis going down: the shield and armour burst apart as it falls into its Cocoon, and a larger
+//     end (torn phantom, black lightning, a pillar of light, the axe stuck in the ground) when it is slain for good.
 // Everything has a code-drawn version. If the art listed in _THAELIS_ART exists on disk it is
 // drawn instead (misc/scripts/ingest_thaelis_assets.py prepares those files).
 // Nothing here allocates per frame: the pose and cast state live in two reused objects.
@@ -948,4 +950,211 @@ function _drawThaelisIronBody(enemy, r, now) {
         }
     }
     ctx.restore();
+}
+
+// ---------- going down ----------
+
+const _twFxPos = { x: 0, y: 0 }, _twFxCast = { kind: 3, p: 0, angle: Math.PI / 2 };
+
+function _twDrawAxeAt(x, y, ang, r, alpha) {
+    const A = _THAELIS_ART.axe, img = _twImg('axe'), spr = img ? null : _twGetAxe();
+    const aw = A.len * r, ah = aw * (img ? img.naturalHeight / img.naturalWidth : spr.h / spr.w);
+    ctx.save();
+    ctx.translate(x, y);
+    ctx.rotate(ang);
+    ctx.globalAlpha = alpha;
+    ctx.drawImage(img || spr.canvas, -A.pivot * aw, -ah / 2, aw, ah);
+    ctx.restore();
+}
+
+// the shield bursts into its eight wedges and the armour plates fly off it, both spinning out and fading
+function _twDrawWreck(r, rot, p, reach) {
+    const out = _twEaseOut(p), a = Math.max(0, 1 - p * p);
+    for (let i = 0; i < 8; i++) {
+        const h = (i * 0.618) % 1, mid = rot + ((i + 0.5) / 8) * _TW_TAU;
+        // shield wedge
+        const d = r * (0.08 + reach * 0.62 * out * (0.7 + 0.6 * h));
+        ctx.save();
+        ctx.translate(Math.cos(mid) * d, Math.sin(mid) * d);
+        ctx.rotate(rot + (h - 0.5) * 2.4 * out);
+        ctx.globalAlpha = a;
+        ctx.fillStyle = i % 2 ? '#f2b705' : '#ffd84a';
+        ctx.strokeStyle = '#7a3c08';
+        ctx.lineWidth = 1.2;
+        ctx.beginPath();
+        ctx.moveTo(0, 0);
+        ctx.lineTo(Math.cos((i / 8) * _TW_TAU) * r, Math.sin((i / 8) * _TW_TAU) * r);
+        ctx.lineTo(Math.cos(((i + 1) / 8) * _TW_TAU) * r, Math.sin(((i + 1) / 8) * _TW_TAU) * r);
+        ctx.closePath();
+        ctx.fill(); ctx.stroke();
+        // the engraved rings of the shield face still show on each piece
+        ctx.strokeStyle = 'rgba(120, 58, 6, 0.55)';
+        ctx.lineWidth = 1;
+        for (const k of [0.74, 0.46]) { ctx.beginPath(); ctx.arc(0, 0, r * k, (i / 8) * _TW_TAU + 0.06, ((i + 1) / 8) * _TW_TAU - 0.06); ctx.stroke(); }
+        ctx.restore();
+        // armour plate
+        const va = rot + (i / 8) * _TW_TAU, pd = r * (0.95 + reach * out * (0.8 + 0.5 * h));
+        ctx.save();
+        ctx.translate(Math.cos(va) * pd, Math.sin(va) * pd);
+        ctx.rotate(va + out * (4 + h * 5) * (i % 2 ? 1 : -1));
+        ctx.globalAlpha = a;
+        ctx.fillStyle = '#d9a23a';
+        ctx.beginPath(); ctx.moveTo(-r * 0.18, 0); ctx.lineTo(-r * 0.06, -r * 0.15); ctx.lineTo(r * 0.36, 0); ctx.lineTo(-r * 0.06, r * 0.15); ctx.closePath(); ctx.fill();
+        ctx.fillStyle = '#c4202a';
+        ctx.beginPath(); ctx.moveTo(-r * 0.04, -r * 0.04); ctx.lineTo(r * 0.28, 0); ctx.lineTo(-r * 0.04, r * 0.04); ctx.closePath(); ctx.fill();
+        ctx.restore();
+    }
+}
+
+// Thaelis going down. 'fall': the shield breaks, the plates and the axe are thrown clear and green threads wind in to
+// start the Cocoon. 'slain': the bá khí shape is torn in two and lifts away, black lightning bursts out, a pillar of
+// red light stands over the spot, and the axe is flung up, comes down and sticks in the ground before it fades.
+function _drawThaelisDeathFx() {
+    if (typeof _thaelisDeathFx === 'undefined' || !_thaelisDeathFx.length) return;
+    const now = performance.now();
+    for (let f = 0; f < _thaelisDeathFx.length; f++) {
+        const fx = _thaelisDeathFx[f], p = _twClamp01(fx.age / fx.dur), r = fx.r, slain = fx.kind === 'slain';
+        ctx.save();
+        ctx.translate(fx.x, fx.y);
+
+        if (slain) {
+            // the ground it stood on: cracks cooling as the effect runs
+            _twFxPos.x = 0; _twFxPos.y = 0; _twFxCast.p = p;
+            _drawThaelisGroundCracks(_twFxPos, r, now, _twFxCast);
+            // pillar of red light
+            const pk = Math.sin(Math.PI * _twClamp01(p * 1.5)), pw = r * (0.25 + 1.1 * pk);
+            if (pk > 0.02) {
+                const pg = ctx.createLinearGradient(-pw, 0, pw, 0);
+                pg.addColorStop(0, 'rgba(255, 40, 30, 0)'); pg.addColorStop(0.5, `rgba(255, 190, 150, ${0.8 * pk})`); pg.addColorStop(1, 'rgba(255, 40, 30, 0)');
+                ctx.globalCompositeOperation = 'lighter';
+                ctx.fillStyle = pg;
+                ctx.fillRect(-pw, -r * 9, pw * 2, r * 9.6);
+                ctx.globalCompositeOperation = 'source-over';
+            }
+            // the bá khí shape, torn down the middle, each half drifting off and up
+            const ghostA = Math.pow(1 - _twClamp01(p / 0.8), 1.2);
+            if (ghostA > 0.02) {
+                const art = _twImg('phantom'), src = art || _twGetPhantom().canvas;
+                const sw = art ? art.naturalWidth : src.width, sh = art ? art.naturalHeight : src.height;
+                const w = _THAELIS_ART.phantom.widthR * r * (1 + 0.15 * p), h = w * sh / sw;
+                ctx.globalCompositeOperation = 'lighter';
+                ctx.globalAlpha = 0.9 * ghostA;
+                for (const side of [-1, 1]) {
+                    const dx = side * r * 0.9 * p, dy = -r * 1.4 * p;
+                    ctx.save();
+                    ctx.translate(dx, dy);
+                    ctx.rotate(side * 0.28 * p);
+                    ctx.drawImage(src, side < 0 ? 0 : sw / 2, 0, sw / 2, sh, side < 0 ? -w / 2 : 0, -h / 2, w / 2, h);
+                    ctx.restore();
+                }
+                ctx.globalCompositeOperation = 'source-over';
+                ctx.globalAlpha = 1;
+            }
+        }
+
+        // flash, then the wreck of the shield and its armour
+        const flash = Math.pow(1 - _twClamp01(p / (slain ? 0.3 : 0.4)), 2);
+        if (flash > 0.02) {
+            const g = _getGlowSprite(slain ? 'rgba(255, 120, 90, 0.95)' : 'rgba(255, 225, 140, 0.95)', 64);
+            if (g) { const gr = r * (slain ? 3.6 : 2.4); ctx.globalCompositeOperation = 'lighter'; ctx.globalAlpha = flash; ctx.drawImage(g, -gr, -gr, gr * 2, gr * 2); ctx.globalCompositeOperation = 'source-over'; ctx.globalAlpha = 1; }
+        }
+        _twDrawWreck(r, fx.rot, _twClamp01(p * (slain ? 1.25 : 1)), slain ? 3.4 : 2.2);
+        ctx.globalAlpha = 1;
+
+        // light breaks out through the cracks
+        ctx.globalCompositeOperation = 'lighter';
+        ctx.lineCap = 'round';
+        const rays = _mobPerf ? 6 : 12, rayA = Math.pow(1 - _twClamp01(p / 0.6), 1.5);
+        if (rayA > 0.02) {
+            ctx.strokeStyle = slain ? '#ff8a6a' : '#fff0b0';
+            for (let i = 0; i < rays; i++) {
+                const a = (i / rays) * _TW_TAU + fx.rot, l0 = r * 0.3, l1 = r * (1.2 + 2.6 * p) * (0.7 + 0.5 * ((i * 0.618) % 1));
+                ctx.globalAlpha = rayA * 0.85;
+                ctx.lineWidth = 3 * (1 - p) + 0.8;
+                ctx.beginPath(); ctx.moveTo(Math.cos(a) * l0, Math.sin(a) * l0); ctx.lineTo(Math.cos(a) * l1, Math.sin(a) * l1); ctx.stroke();
+            }
+        }
+        // shock rings
+        for (let j = 0; j < (slain ? 3 : 2); j++) {
+            const q = _twClamp01(p * 1.6 - j * 0.22);
+            if (q <= 0 || q >= 1) continue;
+            ctx.globalAlpha = (1 - q) * 0.9;
+            ctx.strokeStyle = j === 0 ? '#ffe9c8' : slain ? '#ff4a3c' : '#ffc23c';
+            ctx.lineWidth = (4 - j) * (1 - q) + 0.6;
+            ctx.beginPath(); ctx.arc(0, 0, r * (1 + q * (slain ? 4.2 : 2.8)), 0, _TW_TAU); ctx.stroke();
+        }
+        ctx.globalCompositeOperation = 'source-over';
+        ctx.globalAlpha = 1;
+
+        if (slain) {
+            // black lightning tears out in every direction
+            const power = 1 - _twClamp01(p / 0.5);
+            if (power > 0.02) {
+                const frame = Math.floor(now / 55), bolts = _mobPerf ? 5 : 11;
+                ctx.lineCap = 'round'; ctx.lineJoin = 'round';
+                for (let pass = 0; pass < 2; pass++) {
+                    ctx.globalAlpha = Math.min(1, power * 1.4) * (pass === 0 ? 0.85 : 1);
+                    ctx.strokeStyle = pass === 0 ? '#ff3c32' : '#07020a';
+                    for (let i = 0; i < bolts; i++) {
+                        const seed = frame * 11.3 + i * 29.1 + f;
+                        if (_twHash(seed + 5) < 0.2) continue;
+                        const a = (i / bolts) * _TW_TAU + _twHash(seed + 1) * 0.5, reach = r * (2.2 + _twHash(seed + 2) * 3);
+                        const wd = 3.6 * (0.7 + 0.6 * _twHash(seed + 3));
+                        ctx.lineWidth = pass === 0 ? wd + 5.5 : wd;
+                        _twBoltPath(Math.cos(a) * r * 0.5, Math.sin(a) * r * 0.5, Math.cos(a) * reach, Math.sin(a) * reach, seed, reach * 0.15);
+                        ctx.stroke();
+                    }
+                }
+                ctx.globalAlpha = 1;
+            }
+            // embers rise off the spot for the whole effect
+            ctx.globalCompositeOperation = 'lighter';
+            const embers = _mobPerf ? 8 : 18;
+            for (let i = 0; i < embers; i++) {
+                const h = (i * 0.618) % 1, h2 = (i * 0.754 + 0.3) % 1, t = _twClamp01((p - h * 0.3) / 0.7);
+                if (t <= 0 || t >= 1) continue;
+                ctx.globalAlpha = (1 - t) * 0.9;
+                ctx.fillStyle = i % 3 ? '#ff7a4a' : '#ffe0a8';
+                const ex = (h2 * 2 - 1) * r * 1.4 + Math.sin(t * 6 + i) * r * 0.12, ey = r * 0.3 - t * r * (2 + 2.2 * h);
+                ctx.fillRect(ex - 1.5, ey - 1.5, 3, 3);
+            }
+            ctx.globalCompositeOperation = 'source-over';
+            ctx.globalAlpha = 1;
+            // the axe: flung up spinning, comes down blade first, sticks, then fades
+            const landX = r * 0.5, landY = r * 0.35;
+            if (p < 0.55) {
+                const t = p / 0.55;
+                _twDrawAxeAt(_twLerp(r * 1.28, landX, t), _twLerp(r * 0.12, landY - r * 1.2, t) - Math.sin(Math.PI * t) * r * 2.4, _TW_IDLE.ang + t * t * 14.2, r, 1);
+            } else {
+                const t = (p - 0.55) / 0.45, hitP = _twClamp01(t / 0.35);
+                _twDrawAxeAt(landX, landY - r * 1.2 * (1 - _twEaseOut(t * 6)), Math.PI / 2 + 0.22 + Math.sin(t * 40) * 0.05 * (1 - hitP), r, 1 - _twClamp01((t - 0.55) / 0.45));
+                if (hitP < 1) {
+                    ctx.globalCompositeOperation = 'lighter';
+                    ctx.globalAlpha = 1 - hitP;
+                    ctx.strokeStyle = '#ffd0b0';
+                    ctx.lineWidth = 2.5 * (1 - hitP) + 0.5;
+                    ctx.beginPath(); ctx.ellipse(landX, landY + r * 0.7, r * (0.3 + 1.3 * hitP), r * (0.3 + 1.3 * hitP) * 0.5, 0, 0, _TW_TAU); ctx.stroke();
+                    ctx.globalCompositeOperation = 'source-over';
+                    ctx.globalAlpha = 1;
+                }
+            }
+        } else {
+            // the axe is thrown clear, tumbling, and fades
+            _twDrawAxeAt(r * (1.28 + 1.5 * p), r * (0.12 - 1.1 * p + 2.4 * p * p), _TW_IDLE.ang + p * 9, r, 1 - p * p * p);
+            // green threads wind in from all round: the Cocoon is being spun
+            if (p > 0.3) {
+                const q = (p - 0.3) / 0.7, threads = _mobPerf ? 4 : 8;
+                ctx.strokeStyle = `rgba(130, 255, 170, ${Math.sin(Math.PI * q) * 0.85})`;
+                ctx.lineWidth = 1.6;
+                for (let i = 0; i < threads; i++) {
+                    const a = (i / threads) * _TW_TAU + q * 3.2, d1 = r * 2.6 * (1 - q) + r * 0.5, d2 = r * 0.4;
+                    ctx.beginPath();
+                    ctx.moveTo(Math.cos(a) * d1, Math.sin(a) * d1);
+                    ctx.quadraticCurveTo(Math.cos(a + 0.9) * d1 * 0.6, Math.sin(a + 0.9) * d1 * 0.6, Math.cos(a + 1.6) * d2, Math.sin(a + 1.6) * d2);
+                    ctx.stroke();
+                }
+            }
+        }
+        ctx.restore();
+    }
 }

@@ -164,6 +164,36 @@ function _spawnThaelisCocoon(deadThaelis) {
     for (let i = 0; i < THAELIS_COCOON_GUARD_COUNT; i++) _spawnThaelisCocoonGuard(cocoon);
 }
 
+// Called once when a Thaelis or its Cocoon reaches 0 HP. A Thaelis off its Cocoon cooldown falls into a Cocoon;
+// one that dies inside the cooldown, and a Cocoon that is destroyed before it hatches, is slain for good.
+// render/enemy-thaelis-warrior.js draws the effect from _thaelisDeathFx.
+function _thaelisOnDeath(enemy) {
+    if (enemy._deathHandled) return;
+    enemy._deathHandled = true;
+    if (enemy.type === 'thaelis') {
+        if (!enemy._cocoonCooldownUntil || performance.now() >= enemy._cocoonCooldownUntil) {
+            _spawnThaelisCocoon(enemy);
+            _thaelisDeathFxAdd(enemy.x, enemy.y, enemy.size / 2, 'fall');
+        } else _thaelisDeathFxAdd(enemy.x, enemy.y, enemy.size / 2, 'slain');
+    } else if (enemy.type === 'thaelis_cocoon' && !enemy._cocoonHatched) {
+        _thaelisDeathFxAdd(enemy.x, enemy.y, (enemy._cocoonOriginalSize || enemy.size / 0.85) / 2, 'slain');
+    }
+}
+
+function _thaelisDeathFxAdd(x, y, r, kind) {
+    if (_thaelisDeathFx.length >= 6) _thaelisDeathFx.shift();
+    _thaelisDeathFx.push({ x: x, y: y, r: r, kind: kind, age: 0, dur: kind === 'slain' ? 1800 : 1000, rot: performance.now() / 3000 });
+    if (kind === 'slain') {
+        if (typeof _setShake === 'function') _setShake(12, 380);
+        createParticles(x, y, 30, '#ff4a3c', 4, 12);
+        createParticles(x, y, 20, '#ffd45a', 3, 10);
+    } else {
+        if (typeof _setShake === 'function') _setShake(6, 200);
+        createParticles(x, y, 18, '#ffd45a', 3, 9);
+    }
+    if (window.AudioMgr) window.AudioMgr.playSfxAt('metal-hit', x, y);
+}
+
 // Cocoon survived its full timer: the real Thaelis climbs back out at the
 // same spot, fully itself (not a downgraded copy) but at reduced Max HP, with
 // a brief invulnerability window so it isn't punished for the exact frame it
@@ -501,6 +531,10 @@ function _thaelisWaveHits(w, px, py, rad) {
 
 function updateThaelisWaves(deltaTime) {
     _thaelisClock += deltaTime;
+    for (let i = _thaelisDeathFx.length - 1; i >= 0; i--) {
+        _thaelisDeathFx[i].age += deltaTime;
+        if (_thaelisDeathFx[i].age > _thaelisDeathFx[i].dur) _thaelisDeathFx.splice(i, 1);
+    }
     for (let i = _thaelisCutFx.length - 1; i >= 0; i--) {
         _thaelisCutFx[i].age += deltaTime;
         if (_thaelisCutFx[i].age > 320) _thaelisCutFx.splice(i, 1);

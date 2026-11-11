@@ -81,6 +81,7 @@ let marchosiasBlades = []; // Global array, blades tồn tại độc lập, kh�
 let _thaelisWaves = []; // Ulysses' Return waves, independent of the Thaelis that cast them
 let _thaelisCutFx = []; // sparks where a wave cut an ally shot, {x, y, angle, age}
 let _thaelisClock = 0;
+let _thaelisDeathFx = []; // Thaelis going down: {x, y, r, kind ('fall' into a Cocoon, 'slain' for good), age, dur, rot}
 
 // Accurate Parry (Yog-Sothoth)
 let accurateParryActive = false;

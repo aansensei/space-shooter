@@ -1267,6 +1267,7 @@ function _drawThaelisSlashWave(art, s, alpha, now, focus) {
 
 // each cut shot leaves a short green slash that fades over 320ms
 function _drawThaelisWaves() {
+    _drawThaelisDeathFx();   // Thaelis going down, drawn here so it sits under the Cocoon that takes its place
     // sparks where wave sliced through ally shots
     if (typeof _thaelisCutFx !== 'undefined' && _thaelisCutFx.length) {
         for (let i = 0; i < _thaelisCutFx.length; i++) {

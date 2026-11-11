@@ -1372,9 +1372,8 @@ function update(rawDeltaTime) {
                 }
             }
 
-            if (enemy.type === 'thaelis' && (!enemy._cocoonCooldownUntil || performance.now() >= enemy._cocoonCooldownUntil)) {
-                _spawnThaelisCocoon(enemy);
-            }
+            // a Thaelis falls into its Cocoon or is slain for good, a Cocoon that did not hatch is slain: each leaves its own effect
+            if (enemy.type === 'thaelis' || enemy.type === 'thaelis_cocoon') _thaelisOnDeath(enemy);
 
             if (enemy.type === 'abyssal_chain') {
                 // Chain consumed, no kill, no life loss, no explosion
@@ -2027,9 +2026,8 @@ function update(rawDeltaTime) {
                 enemies.splice(i, 1); continue;
             }
 
-            if (enemy.type === 'thaelis' && (!enemy._cocoonCooldownUntil || performance.now() >= enemy._cocoonCooldownUntil)) {
-                _spawnThaelisCocoon(enemy);
-            }
+            // a Thaelis falls into its Cocoon or is slain for good, a Cocoon that did not hatch is slain: each leaves its own effect
+            if (enemy.type === 'thaelis' || enemy.type === 'thaelis_cocoon') _thaelisOnDeath(enemy);
 
             // ASSIMILATION: Marchosias tách 3 robot nhỏ khi chết
             if (enemy.type === 'marchosias') {
@@ -3653,7 +3651,7 @@ function startGame() {
     bossShockwaves = [];
     raphaelLasers = [];
     marchosiasBlades = [];
-    _thaelisWaves.length = 0; _thaelisCutFx.length = 0; _thaelisClock = 0;
+    _thaelisWaves.length = 0; _thaelisCutFx.length = 0; _thaelisDeathFx.length = 0; _thaelisClock = 0;
     window._levDeathLasers = [];
     window._levDeathLaserSoundPending = false;
     window._levPersBeams = [];

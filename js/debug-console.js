@@ -438,7 +438,8 @@ window.debugSetYuukiBonus = function () {
         ['hurt20', 'Hurt to 20%', 'Set HP to a fifth so Tenacity\'s battle aura (đấu khí) burns at full strength'],
         ['reborn', 'Mark reborn', 'Give it the reborn look, its flat armor and the 5 Iron Body layers a revive grants'],
         ['iron', 'Iron Body x5', 'Refill 5 Iron Body layers, each one soaks a whole hit'],
-        ['cocoon', 'To Cocoon', 'Reincarnation: die into a Cocoon now']
+        ['cocoon', 'To Cocoon', 'Reincarnation: die into a Cocoon now'],
+        ['slay', 'Slay for good', 'Die inside the Cocoon cooldown, so Thaelis is slain with no Cocoon']
     ];
     const PANEL_HTML = `
 <div id="debugConsoleOverlay" style="display:none; position:fixed; inset:0; z-index:999999999;
@@ -1697,6 +1698,7 @@ window.debugSetYuukiBonus = function () {
             else if (action === 'iron') e.ironBodyHits = THAELIS_REVIVE_IRON_BODY;
             else if (action === 'reborn') { e.reincarnated = true; e._justRevivedAt = now; e.ironBodyHits = THAELIS_REVIVE_IRON_BODY; }
             else if (action === 'cocoon') { e._cocoonCooldownUntil = 0; e.hp = 0; }
+            else if (action === 'slay') { e._cocoonCooldownUntil = now + 1e9; e.hp = 0; }
         }
         refreshEnemyList();
     };
