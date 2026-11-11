@@ -1,22 +1,23 @@
 // Pisces: Space Journey. Copyright (c) 2024 An Nguyen. Licensed under the PolyForm Noncommercial License 1.0.0.
 // js/render/enemy-thaelis-warrior.js: the Odyssey war gear on Thaelis's hoplite shield.
 // Pure Canvas2D, called from enemy-thaelis.js. It draws
-//   - bronze and crimson armour plates riveted onto the shield, and the red axe that hangs beside it,
+//   - bronze and crimson armour plates riveted onto the shield, and the red Viking bearded axe that hangs beside it,
 //   - the Ulysses' Return cast: the axe is raised, red đấu khí and bá khí gather and the ground cracks open,
 //     the axe chops, the ground bursts and bá khí wisps lift away. A huge ghost shape (the bá khí phantom)
 //     stands behind a bare Thaelis and behind its Cocoon alike while the wave is gathered,
 //   - Tenacity's đấu khí, the flame aura that burns hotter the more HP Thaelis has lost,
 //   - the Iron Body layers a revived Thaelis wears (5 plates).
-// Everything has a code-drawn version. If the Gemini art listed in _THAELIS_ART exists on disk it is
-// drawn instead (see misc/thaelis-odyssey-art-brief.txt and misc/scripts/ingest_thaelis_assets.py).
+// Everything has a code-drawn version. If the art listed in _THAELIS_ART exists on disk it is
+// drawn instead (misc/scripts/ingest_thaelis_assets.py prepares those files).
 // Nothing here allocates per frame: the pose and cast state live in two reused objects.
 
 const _THAELIS_ART = {
     // armour ring laid over the shield: centred, the shield (radius r in game) is rFrac of the image width
     armor: { src: 'assets/images/game/enemies/thaelis-armor.png', rFrac: 0.36 },
-    // the axe lies along +x, butt on the left, double blade on the right. pivot = grip, as a fraction of the width,
-    // len = whole sprite width in r, head = centre of the blade, as a fraction of the width
-    axe: { src: 'assets/images/game/enemies/thaelis-axe.png', len: 2.05, pivot: 0.17, head: 0.86 },
+    // the axe lies along +x, butt on the left, the blade on the right. pivot = grip, as a fraction of the width,
+    // len = whole sprite width in r, head = where the blade meets the haft, as a fraction of the width,
+    // bladeOff = how far the middle of the blade hangs off the haft, in r (0 for a blade mirrored about the haft)
+    axe: { src: 'assets/images/game/enemies/thaelis-axe.png', len: 2.05, pivot: 0.17, head: 0.86, bladeOff: 0.38 },
     // chest centre at the image centre, drawn additive (black is invisible). widthR = whole image width in r
     phantom: { src: 'assets/images/game/effects/thaelis-bakhi-phantom.png', widthR: 6.4 },
     // the head of the sonic wave: the leading crescent sits at tip (fraction of the width), ripples trail to the left
@@ -127,60 +128,92 @@ function _twGetArmor() {
     return _twArmorSprite;
 }
 
-// the double bladed axe lies along +x: butt on the left, grip near it, blades on the right
+// the Viking bearded axe lies along +x: butt on the left, grip near it, one long bearded blade hanging to +y on the right
 function _twGetAxe() {
     if (_twAxeSprite) return _twAxeSprite;
     const A = _THAELIS_ART.axe, R = _TW_REF;
-    const W = Math.ceil(A.len * R), H = Math.ceil(1.26 * R);
+    const W = Math.ceil(A.len * R), H = Math.ceil(1.9 * R);
     const off = document.createElement('canvas');
     off.width = W; off.height = H;
     const c = off.getContext('2d');
     c.translate(A.pivot * W, H / 2);
-    const headX = (A.head - A.pivot) * W;
-    // haft
-    const hg = c.createLinearGradient(0, -0.05 * R, 0, 0.05 * R);
-    hg.addColorStop(0, '#a8693a'); hg.addColorStop(0.5, '#7a4a22'); hg.addColorStop(1, '#4a2a12');
+    const headX = (A.head - A.pivot) * W, tipX = (1 - A.pivot) * W - 0.02 * R;
+    c.lineJoin = 'round';
+    // haft: dark ash, slightly thicker toward the head
+    const hg = c.createLinearGradient(0, -0.06 * R, 0, 0.06 * R);
+    hg.addColorStop(0, '#b07a48'); hg.addColorStop(0.5, '#7a4a22'); hg.addColorStop(1, '#40240f');
     c.fillStyle = hg;
-    c.fillRect(-A.pivot * W, -0.045 * R, headX + A.pivot * W, 0.09 * R);
-    // leather wrapped grip
+    c.beginPath();
+    c.moveTo(-A.pivot * W + 0.03 * R, -0.04 * R);
+    c.lineTo(tipX, -0.055 * R); c.lineTo(tipX, 0.055 * R);
+    c.lineTo(-A.pivot * W + 0.03 * R, 0.04 * R);
+    c.closePath(); c.fill();
+    // wood grain
+    c.strokeStyle = 'rgba(40, 20, 8, 0.4)'; c.lineWidth = 0.008 * R;
+    for (const gy of [-0.02, 0.012]) { c.beginPath(); c.moveTo(0.34 * R, gy * R); c.lineTo(headX - 0.25 * R, gy * R * 1.2); c.stroke(); }
+    // leather wrapped grip with crossed lacing
     c.fillStyle = '#2a1608';
-    c.fillRect(-0.12 * R, -0.058 * R, 0.4 * R, 0.116 * R);
-    c.strokeStyle = 'rgba(200, 150, 80, 0.55)';
-    c.lineWidth = 0.012 * R;
-    for (let i = 0; i < 8; i++) { const x = -0.1 * R + i * 0.05 * R; c.beginPath(); c.moveTo(x, -0.058 * R); c.lineTo(x + 0.03 * R, 0.058 * R); c.stroke(); }
-    // bronze butt cap and collar below the blades
-    c.fillStyle = '#c99235';
-    c.fillRect(-A.pivot * W, -0.065 * R, 0.07 * R, 0.13 * R);
-    c.fillRect(headX - 0.16 * R, -0.07 * R, 0.07 * R, 0.14 * R);
-    // two crescent blades, mirrored about the haft
-    for (const side of [-1, 1]) {
-        c.beginPath();
-        c.moveTo(headX - 0.07 * R, side * 0.05 * R);
-        c.quadraticCurveTo(headX + 0.30 * R, side * 0.10 * R, headX + 0.25 * R, side * 0.62 * R);
-        c.quadraticCurveTo(headX - 0.02 * R, side * 0.50 * R, headX - 0.16 * R, side * 0.10 * R);
-        c.closePath();
-        const bg = c.createLinearGradient(headX - 0.1 * R, 0, headX + 0.28 * R, side * 0.6 * R);
-        bg.addColorStop(0, '#5a0c12'); bg.addColorStop(0.5, '#c8202a'); bg.addColorStop(1, '#ffb090');
-        c.fillStyle = bg;
-        c.fill();
-        c.strokeStyle = '#fffbe0';
-        c.lineWidth = 0.014 * R;
-        c.stroke();
-        // the hot edge Ulysses' Return charges
-        c.strokeStyle = 'rgba(255, 225, 190, 0.95)';
-        c.lineWidth = 0.022 * R;
-        c.beginPath();
-        c.moveTo(headX + 0.30 * R, side * 0.16 * R);
-        c.quadraticCurveTo(headX + 0.31 * R, side * 0.46 * R, headX + 0.25 * R, side * 0.61 * R);
-        c.stroke();
+    c.fillRect(-0.14 * R, -0.056 * R, 0.44 * R, 0.112 * R);
+    c.strokeStyle = 'rgba(214, 160, 86, 0.6)'; c.lineWidth = 0.012 * R;
+    for (let i = 0; i < 7; i++) {
+        const x = -0.12 * R + i * 0.058 * R;
+        c.beginPath(); c.moveTo(x, -0.056 * R); c.lineTo(x + 0.05 * R, 0.056 * R); c.moveTo(x + 0.05 * R, -0.056 * R); c.lineTo(x, 0.056 * R); c.stroke();
     }
-    // boss with a ruby
+    // iron pommel ring and two iron bands
+    c.fillStyle = '#8d8f98'; c.strokeStyle = '#d9dbe2'; c.lineWidth = 0.01 * R;
+    c.beginPath(); c.arc(-A.pivot * W + 0.07 * R, 0, 0.07 * R, 0, _TW_TAU); c.fill(); c.stroke();
+    c.fillStyle = '#1c0d06';
+    c.beginPath(); c.arc(-A.pivot * W + 0.07 * R, 0, 0.03 * R, 0, _TW_TAU); c.fill();
+    c.fillStyle = '#8d8f98';
+    for (const bx of [0.36, 0.62]) c.fillRect(bx * R, -0.058 * R, 0.035 * R, 0.116 * R);
+    // crimson cord lashed under the head
+    c.strokeStyle = '#b01822'; c.lineWidth = 0.022 * R;
+    for (let i = 0; i < 4; i++) { const x = headX - 0.34 * R + i * 0.035 * R; c.beginPath(); c.moveTo(x, -0.06 * R); c.lineTo(x + 0.02 * R, 0.06 * R); c.stroke(); }
+
+    // the bearded blade: a short toe ahead of the haft tip, a long curved edge, and the beard hooking back down the haft
+    const blade = () => {
+        c.beginPath();
+        c.moveTo(headX + 0.14 * R, -0.07 * R);
+        c.quadraticCurveTo(headX + 0.34 * R, 0.06 * R, headX + 0.42 * R, 0.36 * R);        // out to the toe
+        c.quadraticCurveTo(headX + 0.06 * R, 0.86 * R, headX - 0.5 * R, 0.72 * R);          // the cutting edge, down to the beard tip
+        c.quadraticCurveTo(headX - 0.24 * R, 0.56 * R, headX - 0.17 * R, 0.2 * R);          // inside of the beard
+        c.lineTo(headX - 0.15 * R, -0.07 * R);
+        c.closePath();
+    };
+    const bg = c.createLinearGradient(headX, -0.05 * R, headX - 0.05 * R, 0.8 * R);
+    bg.addColorStop(0, '#2c2f38'); bg.addColorStop(0.3, '#5a1218'); bg.addColorStop(0.72, '#c2222c'); bg.addColorStop(1, '#ff8a6a');
+    blade();
+    c.fillStyle = bg; c.fill();
+    c.strokeStyle = '#1a0a0c'; c.lineWidth = 0.02 * R; c.stroke();
+    // fuller: a darker forged groove following the edge
+    c.strokeStyle = 'rgba(20, 6, 8, 0.5)'; c.lineWidth = 0.035 * R;
+    c.beginPath(); c.moveTo(headX + 0.22 * R, 0.2 * R); c.quadraticCurveTo(headX + 0.02 * R, 0.58 * R, headX - 0.3 * R, 0.56 * R); c.stroke();
+    // the honed edge, white hot
+    c.strokeStyle = '#ffe9d0'; c.lineWidth = 0.028 * R; c.lineCap = 'round';
+    c.beginPath(); c.moveTo(headX + 0.415 * R, 0.37 * R); c.quadraticCurveTo(headX + 0.06 * R, 0.855 * R, headX - 0.49 * R, 0.715 * R); c.stroke();
+    c.strokeStyle = 'rgba(255, 120, 90, 0.75)'; c.lineWidth = 0.06 * R;
+    c.beginPath(); c.moveTo(headX + 0.38 * R, 0.37 * R); c.quadraticCurveTo(headX + 0.05 * R, 0.8 * R, headX - 0.44 * R, 0.68 * R); c.stroke();
+    // runes inlaid in gold on the cheek of the blade
+    c.strokeStyle = '#ffd979'; c.lineWidth = 0.014 * R;
+    const rune = (x, y, k) => {
+        c.beginPath();
+        c.moveTo(x, y - 0.06 * R); c.lineTo(x, y + 0.06 * R);
+        if (k === 0) { c.moveTo(x, y - 0.06 * R); c.lineTo(x + 0.04 * R, y - 0.02 * R); c.lineTo(x, y + 0.02 * R); }           // thurisaz
+        else if (k === 1) { c.moveTo(x - 0.035 * R, y - 0.03 * R); c.lineTo(x, y - 0.06 * R); c.lineTo(x + 0.035 * R, y - 0.03 * R); } // tiwaz
+        else { c.moveTo(x, y - 0.02 * R); c.lineTo(x + 0.04 * R, y - 0.06 * R); c.moveTo(x, y + 0.01 * R); c.lineTo(x + 0.04 * R, y - 0.03 * R); } // ansuz
+        c.stroke();
+    };
+    rune(headX + 0.14 * R, 0.24 * R, 0); rune(headX + 0.0 * R, 0.34 * R, 1); rune(headX - 0.14 * R, 0.4 * R, 2);
+    // iron eye around the haft, a hammer poll on the back and a rivet
+    const eg = c.createLinearGradient(0, -0.2 * R, 0, 0.12 * R);
+    eg.addColorStop(0, '#c9ccd6'); eg.addColorStop(1, '#4a4d58');
+    c.fillStyle = eg; c.strokeStyle = '#14151a'; c.lineWidth = 0.014 * R;
+    c.beginPath();
+    c.moveTo(headX - 0.17 * R, 0.1 * R); c.lineTo(headX - 0.15 * R, -0.09 * R); c.lineTo(headX - 0.1 * R, -0.2 * R);
+    c.lineTo(headX + 0.1 * R, -0.2 * R); c.lineTo(headX + 0.15 * R, -0.09 * R); c.lineTo(headX + 0.16 * R, 0.1 * R);
+    c.closePath(); c.fill(); c.stroke();
     c.fillStyle = '#e9bd5e';
-    c.beginPath(); c.arc(headX, 0, 0.1 * R, 0, _TW_TAU); c.fill();
-    c.fillStyle = '#d3202a';
-    c.beginPath(); c.arc(headX, 0, 0.05 * R, 0, _TW_TAU); c.fill();
-    c.fillStyle = '#fff';
-    c.beginPath(); c.arc(headX - 0.015 * R, -0.015 * R, 0.014 * R, 0, _TW_TAU); c.fill();
+    c.beginPath(); c.arc(headX, 0, 0.04 * R, 0, _TW_TAU); c.fill();
     _twAxeSprite = { canvas: off, w: W, h: H };
     return _twAxeSprite;
 }
@@ -211,18 +244,17 @@ function _twGetPhantom() {
     s.bezierCurveTo(1.2 * U, 1.1 * U, 1.7 * U, -0.2 * U, 1.8 * U, -1.15 * U);
     s.bezierCurveTo(1.65 * U, -1.72 * U, 0.9 * U, -1.8 * U, 0.32 * U, -1.8 * U);
     s.closePath(); s.fill();
-    // right arm up, fist over the head, axe haft and double blade
+    // right arm up, fist over the head, axe haft and its bearded blade
     s.lineWidth = 0.66 * U;
     s.beginPath(); s.moveTo(1.55 * U, -1.2 * U); s.lineTo(2.25 * U, -2.0 * U); s.lineTo(1.85 * U, -2.85 * U); s.stroke();
     s.lineWidth = 0.15 * U;
     s.beginPath(); s.moveTo(1.8 * U, -1.9 * U); s.lineTo(2.0 * U, -3.82 * U); s.stroke();
-    for (const side of [-1, 1]) {
-        s.beginPath();
-        s.moveTo(2.0 * U, -3.45 * U);
-        s.quadraticCurveTo(2.0 * U + side * 1.15 * U, -3.4 * U, 2.0 * U + side * 0.9 * U, -4.0 * U + 0.1 * U);
-        s.quadraticCurveTo(2.0 * U + side * 0.4 * U, -3.75 * U, 2.0 * U, -3.62 * U);
-        s.closePath(); s.fill();
-    }
+    s.beginPath();
+    s.moveTo(2.05 * U, -3.85 * U);
+    s.quadraticCurveTo(1.2 * U, -4.0 * U, 0.75 * U, -3.55 * U);
+    s.quadraticCurveTo(0.7 * U, -2.9 * U, 1.3 * U, -2.5 * U);
+    s.quadraticCurveTo(1.45 * U, -3.0 * U, 1.9 * U, -3.2 * U);
+    s.closePath(); s.fill();
     // left arm down to a big round shield
     s.lineWidth = 0.62 * U;
     s.beginPath(); s.moveTo(-1.5 * U, -1.2 * U); s.lineTo(-2.15 * U, -0.2 * U); s.stroke();
@@ -393,7 +425,7 @@ function _drawThaelisAxe(enemy, r, now, cast) {
     // the blades gather red light as the cast builds
     if (P.glow > 0.02) {
         const headD = (A.head - A.pivot) * A.len * r;
-        const hx = P.hx * r + Math.cos(P.ang) * headD, hy = P.hy * r + Math.sin(P.ang) * headD;
+        const hx = P.hx * r + Math.cos(P.ang) * headD - Math.sin(P.ang) * A.bladeOff * r, hy = P.hy * r + Math.sin(P.ang) * headD + Math.cos(P.ang) * A.bladeOff * r;
         const g = _getGlowSprite('rgba(255, 60, 44, 0.95)', 48), g2 = _getGlowSprite('rgba(255, 235, 200, 0.95)', 24);
         if (g) {
             const gr = r * (0.3 + 0.75 * P.glow) * (0.92 + 0.08 * Math.sin(now / 38));

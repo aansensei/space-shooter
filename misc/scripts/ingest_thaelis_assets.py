@@ -1,4 +1,4 @@
-"""Ingest the Gemini art for Thaelis (see misc/thaelis-odyssey-art-brief.txt).
+"""Prepare the art for Thaelis's axe, armour, phantom and wave head.
 
 Usage:  python3 misc/scripts/ingest_thaelis_assets.py <folder with armor/axe/phantom/sonic images>
         add --dry-run to only report, --no-register to leave sw.js and js/offline.js alone.
