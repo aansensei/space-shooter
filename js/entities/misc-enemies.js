@@ -373,13 +373,13 @@ const THAELIS_PARRY_CD_MS = 1200;           // the axe needs this long before it
 const THAELIS_PARRY_BUSY_MS = 400;          // after a wave's gate closes the axe is still chopping
 
 // Rolls the parry for one hit. Damage over time and the Spirit Laser cannot be parried, nor can anything that
-// passes Iron Body, and the axe cannot parry while it gathers or chops Ulysses' Return.
+// passes Iron Body. The axe can parry while Ulysses' Return gathers, but not while it chops.
 function _thaelisTryParry(enemy, source) {
     if (!(source.damage > 0 || source.percentDamage > 0) || source._bypassIronBody || source.isSpiritLaser) return false;
     if (source.isTeslaDot || source._isDtuDot || source._isNocToiDot || source._isSthDot || source._isSrDot || source._isTyVenomDot) return false;
     if (_thaelisClock - (enemy._parryClock === undefined ? -1e9 : enemy._parryClock) < THAELIS_PARRY_CD_MS) return false;
     const castAge = _thaelisClock - (enemy._ordealCastAt === undefined ? -1e9 : enemy._ordealCastAt);
-    if (castAge >= 0 && castAge < THAELIS_WAVE_GATE_MS + THAELIS_PARRY_BUSY_MS) return false;
+    if (castAge >= THAELIS_WAVE_GATE_MS && castAge < THAELIS_WAVE_GATE_MS + THAELIS_PARRY_BUSY_MS) return false;
     if (Math.random() >= ((enemy.shield || 0) > 0 ? THAELIS_PARRY_CHANCE_SHIELDED : THAELIS_PARRY_CHANCE)) return false;
     _thaelisParry(enemy, Number.isFinite(source.x) ? source.x : player.x, Number.isFinite(source.y) ? source.y : player.y);
     return true;

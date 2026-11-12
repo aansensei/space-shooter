@@ -371,28 +371,32 @@ const _TW_COCK = { ang: -2.3, hx: 0.95, hy: -1.15 };   // raised high and cocked
 // the grip travels, in r), so the chop starts from a longer run and covers a much bigger arc
 const _TW_WINDUP = { back: 0.85, dx: 0.45, dy: 0.2 };
 const _TW_MAX_SMEAR = 3.7;
+// Penelope's Shroud parry: the axe whips across the line the hit came down, then eases back to the pose it held, which is
+// the hanging pose when idle and the gather pose while Ulysses' Return is being gathered
+function _twApplyParry(P, enemy, now) {
+    const age = enemy && enemy._parryAt ? now - enemy._parryAt : 1e9;
+    if (!(age >= 0 && age < THAELIS_PARRY_MS)) return;
+    const pa = enemy._parryAngle || 0, from = pa - 1.5, to = pa + 1.1;
+    const gx = Math.cos(pa) * 0.7, gy = Math.sin(pa) * 0.7, baseGlow = P.glow;
+    if (age < THAELIS_PARRY_SWING_MS) {
+        const t = _twEaseOut(age / THAELIS_PARRY_SWING_MS);
+        P.ang = from + (to - from) * t; P.hx = gx; P.hy = gy;
+        P.trail = Math.min(1.6, (to - from) * t); P.glow = Math.max(baseGlow, 0.9);
+    } else {
+        const t = _twEaseInOut((age - THAELIS_PARRY_SWING_MS) / (THAELIS_PARRY_MS - THAELIS_PARRY_SWING_MS));
+        P.ang = to + _twShortAngle(P.ang - to) * t;
+        P.hx = _twLerp(gx, P.hx, t); P.hy = _twLerp(gy, P.hy, t);
+        P.glow = Math.max(baseGlow, 0.9 * (1 - t) + 0.12 * t);
+    }
+}
+
 function _twComputePose(cast, now, enemy) {
     const P = _twPose;
     P.glow = 0.12; P.sweep = 0; P.armOff = 0; P.trail = 0;
     if (cast.kind === 0) {
         P.ang = _TW_IDLE.ang + Math.sin(now / 760) * 0.05;
         P.hx = _TW_IDLE.hx; P.hy = _TW_IDLE.hy + Math.sin(now / 760 + 1) * 0.03;
-        // Penelope's Shroud parry: the axe whips across the line the hit came down, then eases home
-        const age = enemy && enemy._parryAt ? now - enemy._parryAt : 1e9;
-        if (age >= 0 && age < THAELIS_PARRY_MS) {
-            const pa = enemy._parryAngle || 0, from = pa - 1.5, to = pa + 1.1;
-            const gx = Math.cos(pa) * 0.7, gy = Math.sin(pa) * 0.7;
-            if (age < THAELIS_PARRY_SWING_MS) {
-                const t = _twEaseOut(age / THAELIS_PARRY_SWING_MS);
-                P.ang = from + (to - from) * t; P.hx = gx; P.hy = gy;
-                P.trail = Math.min(1.6, (to - from) * t); P.glow = 0.9;
-            } else {
-                const t = _twEaseInOut((age - THAELIS_PARRY_SWING_MS) / (THAELIS_PARRY_MS - THAELIS_PARRY_SWING_MS));
-                P.ang = to + _twShortAngle(P.ang - to) * t;
-                P.hx = _twLerp(gx, P.hx, t); P.hy = _twLerp(gy, P.hy, t);
-                P.glow = 0.9 * (1 - t) + 0.12 * t;
-            }
-        }
+        _twApplyParry(P, enemy, now);
         return P;
     }
     // the chop runs clockwise over the top unless the target sits close to the cocked angle
@@ -409,6 +413,8 @@ function _twComputePose(cast, now, enemy) {
         P.hx = _twLerp(_TW_IDLE.hx, _TW_COCK.hx, t) - sgn * _TW_WINDUP.dx * w + Math.sin(now / 23) * tr;
         P.hy = _twLerp(_TW_IDLE.hy, _TW_COCK.hy, t) - _TW_WINDUP.dy * w + Math.cos(now / 19) * tr;
         P.glow = cast.p; P.armOff = 0.9 + 0.35 * w;
+        // a hit parried while the wave gathers still gets the axe whip, over the pose the gather holds
+        _twApplyParry(P, enemy, now);
     } else if (cast.kind === 2) {
         // the chop starts from the drawn back axe and gathers speed the whole way, so most of the arc is covered in
         // the last part of the swing
