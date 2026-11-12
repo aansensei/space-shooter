@@ -571,7 +571,7 @@
         'great-sage-hit': 0.7,
         'spirit-arc-slash': 1.0,
         'thaelis-wave-charge': 1.0, 'thaelis-wave-sweep': 1.0, 'thaelis-ulysses-slash': 1.0,
-        'thaelis-parry': 1.0, 'thaelis-wave-hit': 0.9, 'thaelis-fall': 1.0, 'thaelis-slain': 1.0, 'thaelis-spawn': 0.9, 'thaelis-wave-fly': 0.45,
+        'thaelis-parry': 1.0, 'thaelis-wave-hit': 0.9, 'thaelis-fall': 1.0, 'thaelis-slain': 1.0, 'thaelis-spawn': 0.9, 'thaelis-wave-fly': 0.45, 'thaelis-reborn': 1.2,
         'thaelis-idle': 0.14, 'thaelis-idle-gear': 0.12, 'thaelis-idle-weapon': 0.1,
         gameover: 1.0, 'new-wave': 1.0,
         'maou-haki': 1.0, 'low-hp': 1.0, 'yog-parry': 1.0,
@@ -1384,6 +1384,7 @@
         _makePool('thaelis-slain', 'assets/audio/sfx/thaelis-slain.mp3', 2);
         _makePool('thaelis-spawn', 'assets/audio/sfx/thaelis-spawn.mp3', 2);
         _makePool('thaelis-wave-fly', 'assets/audio/sfx/thaelis-wave-fly.mp3', 3);
+        _makePool('thaelis-reborn', 'assets/audio/sfx/thaelis-reborn.mp3', 2);
         _makePool('gameover',  'assets/audio/sfx/gameover.mp3',  1);
         _makePool('new-wave',  'assets/audio/sfx/new-wave.mp3',  2);
         _makePool('yog-parry', 'assets/audio/sfx/yog-parry.mp3', 2);

@@ -234,6 +234,8 @@ function _reviveThaelis(cocoon) {
     addExplosion(cocoon.x, cocoon.y, cocoon.size * 1.6, '#22cc55');
     createParticles(cocoon.x, cocoon.y, 40, '#22cc55', 3, 10);
     _setShake(10, 300);
+    // the rebirth is a story beat, so it is heard at full strength wherever the cocoon hatches
+    if (window.AudioMgr) window.AudioMgr.playSfx('thaelis-reborn');
 }
 
 function spawnThaelis() {
