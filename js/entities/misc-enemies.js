@@ -191,7 +191,7 @@ function _thaelisDeathFxAdd(x, y, r, kind) {
         if (typeof _setShake === 'function') _setShake(6, 200);
         createParticles(x, y, 18, '#ffd45a', 3, 9);
     }
-    if (window.AudioMgr) window.AudioMgr.playSfxAt('metal-hit', x, y);
+    if (window.AudioMgr) window.AudioMgr.playSfxAt(kind === 'slain' ? 'thaelis-slain' : 'thaelis-fall', x, y);
 }
 
 // Cocoon survived its full timer: the real Thaelis climbs back out at the
@@ -246,7 +246,7 @@ function spawnThaelis() {
     let hp = Math.ceil(Math.min(3170, 1520 + hpFromTime * 64) * 1.15 * _walpurgisHpMult());
     enemies.push({
         x: Math.random() * (canvas.width - size) + size / 2, y: -size, size: size,
-        speed: (1 + Math.random() * 2) * 0.8 * 0.80 * 0.80,
+        speed: (1 + Math.random() * 2) * 0.8 * 0.80 * 0.80 * 0.92,   // 8% slower than the old default
         hp: hp, maxHp: hp,
         isTargetedByA: false, hitBySkillF: false, laserHit: false, shield: 0,
         type: 'thaelis', shootTimer: 1000, reincarnated: false,
@@ -255,6 +255,7 @@ function spawnThaelis() {
     });
     _enemySnapshotAtk(enemies[enemies.length - 1], 'thaelis');
     _thaelisOrdealInit(enemies[enemies.length - 1], 0);
+    if (window.AudioMgr) window.AudioMgr.playSfx('thaelis-spawn');
 }
 
 function spawnRaphael() {
@@ -394,7 +395,7 @@ function _thaelisParry(enemy, fromX, fromY) {
     const r = enemy.size / 2;
     createParticles(enemy.x + Math.cos(a) * r * 1.5, enemy.y + Math.sin(a) * r * 1.5, 12, '#ffe6d0', 3, 9);
     createParticles(enemy.x + Math.cos(a) * r * 1.5, enemy.y + Math.sin(a) * r * 1.5, 8, '#ff4a3c', 2, 7);
-    if (window.AudioMgr) window.AudioMgr.playSfxAt('metal-hit', enemy.x, enemy.y);
+    if (window.AudioMgr) window.AudioMgr.playSfxAt('thaelis-parry', enemy.x, enemy.y);
 }
 
 function _thaelisOrdealInit(enemy, carryPoints) {
@@ -529,7 +530,23 @@ function _thaelisWaveHits(w, px, py, rad) {
     return t >= w.prevS - THAELIS_WAVE_FRONT - rad && t <= w.s + rad;
 }
 
+// The three idle loops run while a Thaelis stands on the field and stop when none is left.
+let _thaelisIdleOn = false;
+function _thaelisIdleTick() {
+    let alive = false;
+    for (let i = 0; i < enemies.length; i++) { const e = enemies[i]; if (e.type === 'thaelis' && e.hp > 0 && !e._markedForDeath) { alive = true; break; } }
+    if (alive === _thaelisIdleOn) return;
+    _thaelisIdleOn = alive;
+    if (window.AudioMgr) { if (alive) window.AudioMgr.startThaelisIdle(); else window.AudioMgr.stopThaelisIdle(); }
+}
+// a run ending or restarting silences the loops and lets the tick start them again
+function _thaelisAudioReset() {
+    _thaelisIdleOn = false;
+    if (window.AudioMgr) window.AudioMgr.stopThaelisIdle();
+}
+
 function updateThaelisWaves(deltaTime) {
+    _thaelisIdleTick();
     _thaelisClock += deltaTime;
     for (let i = _thaelisDeathFx.length - 1; i >= 0; i--) {
         _thaelisDeathFx[i].age += deltaTime;
@@ -553,6 +570,8 @@ function updateThaelisWaves(deltaTime) {
                 if (window.AudioMgr) window.AudioMgr.playSfxAt('thaelis-wave-sweep', w.ox, w.oy);
                 // the axe chop layers its own hit on top of the sweep, its peak lands as the swing finishes
                 if (window.AudioMgr) window.AudioMgr.playSfxAt('thaelis-ulysses-slash', w.ox, w.oy);
+                // the wave tears through the air for as long as it flies
+                if (window.AudioMgr) window.AudioMgr.playSfxAt('thaelis-wave-fly', w.ox, w.oy);
                 if (typeof _setShake === 'function') _setShake(9, 240);
             }
             continue;
@@ -571,7 +590,7 @@ function updateThaelisWaves(deltaTime) {
             const tp = (player.x - w.ox) * ca + (player.y - w.oy) * sa;
             w.x = w.ox + ca * tp; w.y = w.oy + sa * tp;
             if (typeof _yuushaPierceRedirect !== 'function' || !_yuushaPierceRedirect(THAELIS_WAVE_COEFF[0] * w.atk, false, w)) playerTakesHit(w);
-            if (window.AudioMgr) window.AudioMgr.playSfxAt('metal-hit', player.x, player.y);
+            if (window.AudioMgr) window.AudioMgr.playSfxAt('thaelis-wave-hit', player.x, player.y);
         }
         for (const s of sentinels) {
             if (w.hitEnemies.includes(s) || !_thaelisWaveHits(w, s.x, s.y, s.size)) continue;
@@ -581,7 +600,7 @@ function updateThaelisWaves(deltaTime) {
             dealDamage(s, { damage: w.atk * coeff, _noHitSfx: true, _attackerType: 'thaelis', _capSource: w, _capKind: 'skill' });
             w.hitEnemies.push(s);
             addExplosion(s.x, s.y, 20, '#ffb030');
-            if (window.AudioMgr) window.AudioMgr.playSfxAt('metal-hit', s.x, s.y);
+            if (window.AudioMgr) window.AudioMgr.playSfxAt('thaelis-wave-hit', s.x, s.y);
         }
         w.x = w.ox + ca * w.s; w.y = w.oy + sa * w.s;
         _thaelisWaveCutShots(w);

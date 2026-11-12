@@ -427,6 +427,7 @@ function _endRun(quit) {
         window.AudioMgr.stopSkillGLoop();
         window.AudioMgr.exitGoliathTransformDuck();
         window.AudioMgr.exitTimeDomain();
+        if (typeof _thaelisAudioReset === 'function') _thaelisAudioReset();
         window.AudioMgr.stopBgm();
         window._gameoverVoice = window.AudioMgr.playSfx('gameover');
     }
@@ -3690,6 +3691,7 @@ function startGame() {
     skillAActive = false; skillDCharging = false; skillFState = "ready";
     window._lowHpActive = false;
     window._egregorCrawlActive = false;
+    if (typeof _thaelisAudioReset === 'function') _thaelisAudioReset();
     if (window.AudioMgr) { window.AudioMgr.stopSkillDCharge(); window.AudioMgr.stopSkillFCharge(); window.AudioMgr.stopSkillFFire(); window.AudioMgr.stopDeathStar(); window.AudioMgr.stopMaouHaki(); window.AudioMgr.stopLowHp(); window.AudioMgr.stopCharging(); window.AudioMgr.stopLaser(); window.AudioMgr.stopNullSlashWindup(); window.AudioMgr.stopEgregorCrawl(); window.AudioMgr.stopPhotokrystosIdle(); window.AudioMgr.stopSkillGLoop(); window.AudioMgr.exitGoliathTransformDuck(); }
     // Play Again can fire right after death while the gameover voice is
     // still ringing out - Main Menu already cancels it (index.html's

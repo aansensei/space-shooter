@@ -571,6 +571,8 @@
         'great-sage-hit': 0.7,
         'spirit-arc-slash': 1.0,
         'thaelis-wave-charge': 1.0, 'thaelis-wave-sweep': 1.0, 'thaelis-ulysses-slash': 1.0,
+        'thaelis-parry': 1.0, 'thaelis-wave-hit': 0.9, 'thaelis-fall': 1.0, 'thaelis-slain': 1.0, 'thaelis-spawn': 0.9, 'thaelis-wave-fly': 0.45,
+        'thaelis-idle': 0.14, 'thaelis-idle-gear': 0.12, 'thaelis-idle-weapon': 0.1,
         gameover: 1.0, 'new-wave': 1.0,
         'maou-haki': 1.0, 'low-hp': 1.0, 'yog-parry': 1.0,
         'charged-shot': 1.0, 'wave-clear': 1.0,
@@ -696,6 +698,9 @@
         goliathIdleEl: null, // Goliath True Form ambient breathing/hum, same native gapless loop
         leviathanIdleEl: null, // Leviathan flight ambience (wingbeat whoosh + scrap rattle), same native gapless loop
         ammitIdleEl: null,
+        thaelisIdleEl: null,   // Thaelis idle bed, three native gapless loops layered together: ambience, armour and breath, rattling axe
+        thaelisGearEl: null,
+        thaelisWeaponEl: null,
         urielIdleEl: null,    // Uriel ambient presence (wind hum + wing flap + breath), same native gapless loop
         urielSwordHoverEl: null, // Holy Sword's wind-rush texture while any blade is in flight
         raphaelIdleEl: null,  // Raphael ambient presence (gear-hum + choral drone + platform-rise + breath), same native gapless loop
@@ -765,11 +770,11 @@
     }
 
     function prepareEnemy(type) {
-        const prefixes = { ammit: /^ammit/, egregor: /^(egregor|dimension)/, veilshroud: /^(veilshroud|phantom)/, goliath: /^(goliath|phantom|egregor-null|leviathan-perseverance)/, dargruel: /^dargruel/, leviathan: /^leviathan/, uriel: /^uriel/, raphael: /^raphael/, marchosias: /^metal-hit/, kanade: /^(tut-|kanade|goliath-descend|stack-overflow|timeline-distortion)/ };
+        const prefixes = { ammit: /^ammit/, thaelis: /^thaelis/, egregor: /^(egregor|dimension)/, veilshroud: /^(veilshroud|phantom)/, goliath: /^(goliath|phantom|egregor-null|leviathan-perseverance)/, dargruel: /^dargruel/, leviathan: /^leviathan/, uriel: /^uriel/, raphael: /^raphael/, marchosias: /^metal-hit/, kanade: /^(tut-|kanade|goliath-descend|stack-overflow|timeline-distortion)/ };
         const match = prefixes[type];
         if (!match) return;
         for (const key of Object.keys(state.pool)) if (match.test(key)) _decodeBuffer(state.pool[key].src);
-        const refs = { ammit: ['ammitIdleEl'], egregor: ['crawlEl', 'nullSlashWindupEl'], goliath: ['goliathIdleEl', 'goliathVerdictChargeEl'], leviathan: ['leviathanIdleEl'], uriel: ['urielIdleEl', 'urielSwordHoverEl'], raphael: ['raphaelIdleEl'], kanade: ['kanadeAmbienceEl', 'kanadeCollapseEl', 'kanadeMusicEl'] };
+        const refs = { ammit: ['ammitIdleEl'], thaelis: ['thaelisIdleEl', 'thaelisGearEl', 'thaelisWeaponEl'], egregor: ['crawlEl', 'nullSlashWindupEl'], goliath: ['goliathIdleEl', 'goliathVerdictChargeEl'], leviathan: ['leviathanIdleEl'], uriel: ['urielIdleEl', 'urielSwordHoverEl'], raphael: ['raphaelIdleEl'], kanade: ['kanadeAmbienceEl', 'kanadeCollapseEl', 'kanadeMusicEl'] };
         for (const ref of refs[type] || []) if (state[ref]) state[ref].prepare();
     }
     function prepareGameplay() {
@@ -1044,11 +1049,14 @@
             cancerWhirlpool: !!(state.cancerWhirlpoolEl && !state.cancerWhirlpoolEl.paused),
             leviathanIdle: !!(state.leviathanIdleEl && !state.leviathanIdleEl.paused),
             ammitIdle: !!(state.ammitIdleEl && !state.ammitIdleEl.paused),
+            thaelisIdle: !!(state.thaelisIdleEl && !state.thaelisIdleEl.paused),
+            thaelisGear: !!(state.thaelisGearEl && !state.thaelisGearEl.paused),
+            thaelisWeapon: !!(state.thaelisWeaponEl && !state.thaelisWeaponEl.paused),
             urielIdle: !!(state.urielIdleEl && !state.urielIdleEl.paused),
             urielSwordHover: !!(state.urielSwordHoverEl && !state.urielSwordHoverEl.paused),
             raphaelIdle: !!(state.raphaelIdleEl && !state.raphaelIdleEl.paused),
         };
-        [state.bgmEl, state.ambientEl, state.kanadeAmbienceEl, state.kanadeCollapseEl, state.kanadeMusicEl, state.menuSpaceEl, state.engineEl, state.laserEl, state.chargingEl, state.skillGLoopEl, state.skillDChargeEl, state.skillFChargeEl, state.skillFFireEl, state.blackholeEl, state.maouHakiEl, state.lowHpEl, state.nullSlashWindupEl, state.crawlEl, state.photokrystosIdleEl, state.goliathIdleEl, state.goliathVerdictChargeEl, state.cancerWhirlpoolEl, state.leviathanIdleEl, state.ammitIdleEl, state.urielIdleEl, state.urielSwordHoverEl, state.raphaelIdleEl]
+        [state.bgmEl, state.ambientEl, state.kanadeAmbienceEl, state.kanadeCollapseEl, state.kanadeMusicEl, state.menuSpaceEl, state.engineEl, state.laserEl, state.chargingEl, state.skillGLoopEl, state.skillDChargeEl, state.skillFChargeEl, state.skillFFireEl, state.blackholeEl, state.maouHakiEl, state.lowHpEl, state.nullSlashWindupEl, state.crawlEl, state.photokrystosIdleEl, state.goliathIdleEl, state.goliathVerdictChargeEl, state.cancerWhirlpoolEl, state.leviathanIdleEl, state.ammitIdleEl, state.thaelisIdleEl, state.thaelisGearEl, state.thaelisWeaponEl, state.urielIdleEl, state.urielSwordHoverEl, state.raphaelIdleEl]
             .forEach(el => { if (el) { try { el.pause(); } catch (_) {} } });
     }
     function resumeAll() {
@@ -1078,6 +1086,9 @@
         if (s.cancerWhirlpool && state.cancerWhirlpoolEl) try { state.cancerWhirlpoolEl.play().catch(() => {}); } catch (_) {}
         if (s.leviathanIdle && state.leviathanIdleEl) try { state.leviathanIdleEl.play().catch(() => {}); } catch (_) {}
         if (s.ammitIdle && state.ammitIdleEl) try { state.ammitIdleEl.play().catch(() => {}); } catch (_) {}
+        if (s.thaelisIdle && state.thaelisIdleEl) try { state.thaelisIdleEl.play().catch(() => {}); } catch (_) {}
+        if (s.thaelisGear && state.thaelisGearEl) try { state.thaelisGearEl.play().catch(() => {}); } catch (_) {}
+        if (s.thaelisWeapon && state.thaelisWeaponEl) try { state.thaelisWeaponEl.play().catch(() => {}); } catch (_) {}
         if (s.urielIdle && state.urielIdleEl) try { state.urielIdleEl.play().catch(() => {}); } catch (_) {}
         if (s.urielSwordHover && state.urielSwordHoverEl) try { state.urielSwordHoverEl.play().catch(() => {}); } catch (_) {}
         if (s.raphaelIdle && state.raphaelIdleEl) try { state.raphaelIdleEl.play().catch(() => {}); } catch (_) {}
@@ -1291,6 +1302,9 @@
     // The normalized breathing bed stays below combat impacts.
     function startAmmitIdle() { startLoop('ammitIdleEl', 'ammit-idle'); }
     function stopAmmitIdle() { stopLoop('ammitIdleEl'); }
+    // Thaelis keeps three quiet loops of different lengths under it, so they drift against each other and never repeat as one
+    function startThaelisIdle() { startLoop('thaelisIdleEl', 'thaelis-idle'); startLoop('thaelisGearEl', 'thaelis-idle-gear'); startLoop('thaelisWeaponEl', 'thaelis-idle-weapon'); }
+    function stopThaelisIdle() { stopLoop('thaelisIdleEl'); stopLoop('thaelisGearEl'); stopLoop('thaelisWeaponEl'); }
     function startUrielIdle() { startLoop('urielIdleEl', 'uriel-idle'); }
     function stopUrielIdle()  { stopLoop('urielIdleEl'); }
     function startRaphaelIdle() { startLoop('raphaelIdleEl', 'raphael-idle'); }
@@ -1364,6 +1378,12 @@
         _makePool('thaelis-wave-charge', 'assets/audio/sfx/thaelis-wave-charge.mp3', 3);
         _makePool('thaelis-wave-sweep', 'assets/audio/sfx/thaelis-wave-sweep.mp3', 3);
         _makePool('thaelis-ulysses-slash', 'assets/audio/sfx/thaelis-ulysses-slash.mp3', 3);
+        _makePool('thaelis-parry', 'assets/audio/sfx/thaelis-parry.mp3', 3);
+        _makePool('thaelis-wave-hit', 'assets/audio/sfx/thaelis-wave-hit.mp3', 4);
+        _makePool('thaelis-fall', 'assets/audio/sfx/thaelis-fall.mp3', 2);
+        _makePool('thaelis-slain', 'assets/audio/sfx/thaelis-slain.mp3', 2);
+        _makePool('thaelis-spawn', 'assets/audio/sfx/thaelis-spawn.mp3', 2);
+        _makePool('thaelis-wave-fly', 'assets/audio/sfx/thaelis-wave-fly.mp3', 3);
         _makePool('gameover',  'assets/audio/sfx/gameover.mp3',  1);
         _makePool('new-wave',  'assets/audio/sfx/new-wave.mp3',  2);
         _makePool('yog-parry', 'assets/audio/sfx/yog-parry.mp3', 2);
@@ -1540,6 +1560,12 @@
         state.leviathanIdleEl.setSrc('assets/audio/sfx/leviathan-idle.mp3');
         state.ammitIdleEl = _makeBufferLoop();
         state.ammitIdleEl.setSrc('assets/audio/sfx/ammit-idle.mp3');
+        state.thaelisIdleEl = _makeBufferLoop();
+        state.thaelisIdleEl.setSrc('assets/audio/sfx/thaelis-idle.mp3');
+        state.thaelisGearEl = _makeBufferLoop();
+        state.thaelisGearEl.setSrc('assets/audio/sfx/thaelis-idle-gear.mp3');
+        state.thaelisWeaponEl = _makeBufferLoop();
+        state.thaelisWeaponEl.setSrc('assets/audio/sfx/thaelis-idle-weapon.mp3');
         state.urielIdleEl = _makeBufferLoop();
         state.urielIdleEl.setSrc('assets/audio/sfx/uriel-idle.mp3');
         state.urielSwordHoverEl = _makeBufferLoop();
@@ -1604,6 +1630,7 @@
         startGoliathIdle, stopGoliathIdle,
         startLeviathanIdle, stopLeviathanIdle,
         startAmmitIdle, stopAmmitIdle, stopAmmitCues,
+        startThaelisIdle, stopThaelisIdle,
         startUrielIdle, stopUrielIdle,
         startUrielSwordHover, stopUrielSwordHover,
         startRaphaelIdle, stopRaphaelIdle,
