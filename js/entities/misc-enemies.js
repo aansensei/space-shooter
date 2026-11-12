@@ -500,7 +500,7 @@ function _thaelisWaveCutShots(w) {
             // render draws a Thaelis spark at each cut shot from this list
             if (_thaelisCutFx.length < 24) _thaelisCutFx.push({ x: b.x, y: b.y, angle: w.angle, age: 0 });
             if (_gfxLevel < 2 && window._bulletSlashFx.length < 48) window._bulletSlashFx.push({ x: b.x, y: b.y, angle: w.angle + 0.7, r: Math.max(3, b.size || 6), large: false, age: 0 });
-            if (!_mobPerf) createParticles(b.x, b.y, 2, '#9dffb0', 1, 4);
+            if (!_mobPerf) createParticles(b.x, b.y, 2, '#ffd88a', 1, 4);
             list.splice(j, 1);
         }
     }
@@ -580,7 +580,7 @@ function updateThaelisWaves(deltaTime) {
             const coeff = THAELIS_WAVE_COEFF[Math.min(w.hitEnemies.length, THAELIS_WAVE_COEFF.length - 1)];
             dealDamage(s, { damage: w.atk * coeff, _noHitSfx: true, _attackerType: 'thaelis', _capSource: w, _capKind: 'skill' });
             w.hitEnemies.push(s);
-            addExplosion(s.x, s.y, 20, '#22cc55');
+            addExplosion(s.x, s.y, 20, '#ffb030');
             if (window.AudioMgr) window.AudioMgr.playSfxAt('metal-hit', s.x, s.y);
         }
         w.x = w.ox + ca * w.s; w.y = w.oy + sa * w.s;
@@ -653,7 +653,7 @@ function _thaelisShroudAbsorb(enemy, absorbed) {
     // render reads these to flash the mend: when it happened and how much HP came back
     enemy._shroudMendAt = performance.now();
     enemy._shroudMendAmt = healed;
-    if (!_mobPerf && Math.random() < 0.3) createParticles(enemy.x, enemy.y, 1, '#9dffb0', 1, 4);
+    if (!_mobPerf && Math.random() < 0.3) createParticles(enemy.x, enemy.y, 1, '#ffd88a', 1, 4);
 }
 
 // Per frame: with no shield standing Thaelis recovers 1.5% of its Max HP per second.

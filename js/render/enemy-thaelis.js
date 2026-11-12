@@ -560,7 +560,7 @@ function _drawThaelisShuttle(enemy, r, now) {
     ctx.restore();
 }
 
-// while any heal keeps landing the body glows green and stitches run along its edges, easing in over 150ms and out after the heal stops
+// while any heal keeps landing the body glows gold and stitches run along its edges, easing in over 150ms and out after the heal stops
 function _drawThaelisHeal(enemy, r, now) {
     const isHealing = enemy._shroudHealAt && (now - enemy._shroudHealAt < 250);
     const dt = 16.67;
@@ -575,9 +575,9 @@ function _drawThaelisHeal(enemy, r, now) {
         const auraAlpha = intensity * (noShield ? 0.28 : 0.16);
 
         ctx.save();
-        ctx.fillStyle = `rgba(34, 204, 85, ${auraAlpha})`;
+        ctx.fillStyle = `rgba(255, 176, 48, ${auraAlpha})`;
         if (!_mobPerf && window._fxOpts && window._fxOpts.glow) {
-            ctx.shadowColor = '#22cc55';
+            ctx.shadowColor = '#ffb030';
             ctx.shadowBlur = noShield ? 22 : 14;
         }
         ctx.beginPath();
@@ -585,7 +585,7 @@ function _drawThaelisHeal(enemy, r, now) {
         ctx.fill();
         ctx.shadowBlur = 0;
 
-        ctx.strokeStyle = `rgba(180, 255, 170, ${intensity * 0.85})`;
+        ctx.strokeStyle = `rgba(255, 226, 150, ${intensity * 0.85})`;
         ctx.lineWidth = 1.6;
         ctx.setLineDash([4, 6]);
         ctx.lineDashOffset = -now * 0.05;
@@ -601,7 +601,7 @@ function _drawThaelisHeal(enemy, r, now) {
 
         if (window._fxOpts && window._fxOpts.particles) {
             const moteCount = _twCount(3, 6);
-            ctx.fillStyle = `rgba(160, 255, 180, ${intensity * 0.8})`;
+            ctx.fillStyle = `rgba(255, 214, 120, ${intensity * 0.8})`;
             for (let m = 0; m < moteCount; m++) {
                 const mt = ((now * 0.0008 * (0.8 + m * 0.2) + m * 0.23) % 1);
                 const ma = (m / moteCount) * Math.PI * 2 + now * 0.0005;
@@ -634,7 +634,7 @@ function _drawThaelisMend(enemy, r, now) {
 
     ctx.save();
     ctx.translate(enemy.x, enemy.y);
-    ctx.strokeStyle = `rgba(160, 255, 140, ${(1 - p) * 0.9 * amtFrac})`;
+    ctx.strokeStyle = `rgba(255, 220, 140, ${(1 - p) * 0.9 * amtFrac})`;
     ctx.lineWidth = (1 + amtFrac) * (1 - p * 0.4);
     for (let i = 0; i < threadCount; i++) {
         const a = (i / threadCount) * Math.PI * 2 + now * 0.003;
@@ -664,7 +664,7 @@ function _drawThaelisOverflow(enemy, r, now) {
     if (p < 0.5) {
         const waveP = p / 0.5;
         const waveR = r + waveP * 12;
-        ctx.strokeStyle = `rgba(34, 204, 85, ${(1 - waveP) * 0.7 * amtFrac})`;
+        ctx.strokeStyle = `rgba(255, 176, 48, ${(1 - waveP) * 0.7 * amtFrac})`;
         ctx.lineWidth = 2.5;
         ctx.beginPath();
         ctx.arc(0, 0, waveR, 0, Math.PI * 2);

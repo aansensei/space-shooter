@@ -341,11 +341,36 @@ function _twGetPhantom() {
 
 // ---------- the gear ----------
 
+// Which way the chop turns: true when it swings clockwise from the cocked axe, false when it swings the other way
+// (a target on the left of the cocked axe). The blade hangs off the +y side of the haft, so it leads the swing only
+// when the chop turns clockwise.
+function _twChopClockwise(angle) {
+    let delta = ((angle - _TW_COCK.ang) % _TW_TAU + _TW_TAU) % _TW_TAU;
+    if (delta > Math.PI * 1.25) delta -= _TW_TAU;
+    return delta >= 0;
+}
+
+// The sharp blade always leads the chop and the blunt hammer head trails it. A chop that turns the other way flips the
+// axe over. Returns the vertical scale of the axe: 1 as drawn, -1 turned over, and the squash through 0 in between
+// reads as the axe rolling in the air as it is cocked and again as it settles.
+function _twBladeFlip(cast) {
+    if (cast.kind === 0) return 1;
+    const s = _twChopClockwise(cast.angle) ? 1 : -1;
+    if (s === 1) return 1;
+    if (cast.kind === 1) return _twLerp(1, s, _twEaseInOut(cast.p / 0.6));
+    if (cast.kind === 2) return s;
+    return _twLerp(s, 1, _twEaseInOut((cast.p - 0.25) / 0.75));
+}
+
 function _twShortAngle(a) { a = a % _TW_TAU; if (a > Math.PI) a -= _TW_TAU; else if (a < -Math.PI) a += _TW_TAU; return a; }
 
 // where the hanging axe and its grip sit for the current cast stage, in units of r
 const _TW_IDLE = { ang: -1.2, hx: 1.28, hy: 0.12 };    // hangs upright at the side
 const _TW_COCK = { ang: -2.3, hx: 0.95, hy: -1.15 };   // raised high and cocked back
+// the wind-up: just before the chop the axe draws back further against the swing (back = radians, dx and dy = how far
+// the grip travels, in r), so the chop starts from a longer run and covers a much bigger arc
+const _TW_WINDUP = { back: 0.85, dx: 0.45, dy: 0.2 };
+const _TW_MAX_SMEAR = 3.7;
 function _twComputePose(cast, now, enemy) {
     const P = _twPose;
     P.glow = 0.12; P.sweep = 0; P.armOff = 0; P.trail = 0;
@@ -375,18 +400,23 @@ function _twComputePose(cast, now, enemy) {
     let delta = ((aim - _TW_COCK.ang) % _TW_TAU + _TW_TAU) % _TW_TAU;
     if (delta > Math.PI * 1.25) delta -= _TW_TAU;
     const endHx = 0.9 + Math.cos(aim) * 0.7, endHy = Math.max(-1.1, -0.1 + Math.sin(aim) * 0.7);
+    const sgn = delta >= 0 ? 1 : -1, back = _TW_WINDUP.back;
     if (cast.kind === 1) {
-        const t = _twEaseOut(cast.p * 1.3), tr = 0.015 + 0.04 * cast.p;
-        P.ang = _twLerp(_TW_IDLE.ang, _TW_COCK.ang, t);
-        P.hx = _twLerp(_TW_IDLE.hx, _TW_COCK.hx, t) + Math.sin(now / 23) * tr;
-        P.hy = _twLerp(_TW_IDLE.hy, _TW_COCK.hy, t) + Math.cos(now / 19) * tr;
-        P.glow = cast.p; P.armOff = 0.9;
+        const t = _twEaseOut(cast.p * 1.3), tr = 0.015 + 0.05 * cast.p;
+        // over the last of the gather the axe draws back against the swing and shakes with held power
+        const w = _twEaseInOut((cast.p - 0.6) / 0.4);
+        P.ang = _twLerp(_TW_IDLE.ang, _TW_COCK.ang, t) - sgn * back * w;
+        P.hx = _twLerp(_TW_IDLE.hx, _TW_COCK.hx, t) - sgn * _TW_WINDUP.dx * w + Math.sin(now / 23) * tr;
+        P.hy = _twLerp(_TW_IDLE.hy, _TW_COCK.hy, t) - _TW_WINDUP.dy * w + Math.cos(now / 19) * tr;
+        P.glow = cast.p; P.armOff = 0.9 + 0.35 * w;
     } else if (cast.kind === 2) {
-        const q = cast.p, t = q * q;
-        P.ang = _TW_COCK.ang + delta * t;
-        P.hx = _twLerp(_TW_COCK.hx, endHx, t); P.hy = _twLerp(_TW_COCK.hy, endHy, t);
-        P.glow = 1; P.sweep = q; P.armOff = 0.9 * (1 - t);
-        if (q > 0.05) P.trail = (delta >= 0 ? 1 : -1) * Math.min(Math.abs(delta), 1.5);
+        // the chop starts from the drawn back axe and gathers speed the whole way, so most of the arc is covered in
+        // the last part of the swing
+        const q = cast.p, t = Math.pow(q, 2.4), total = delta + sgn * back;
+        P.ang = (_TW_COCK.ang - sgn * back) + total * t;
+        P.hx = _twLerp(_TW_COCK.hx - sgn * _TW_WINDUP.dx, endHx, t); P.hy = _twLerp(_TW_COCK.hy - _TW_WINDUP.dy, endHy, t);
+        P.glow = 1; P.sweep = q; P.armOff = (0.9 + 0.35) * (1 - t);
+        if (q > 0.05) P.trail = sgn * Math.min(Math.abs(total) * t, _TW_MAX_SMEAR);
     } else {
         const t = _twEaseInOut((cast.p - 0.25) / 0.75);
         P.ang = _twLerp(_TW_COCK.ang + delta, _TW_IDLE.ang, t);
@@ -439,7 +469,7 @@ function _drawThaelisAxe(enemy, r, now, cast) {
         ctx.lineCap = 'round';
         for (let k = 0; k < 3; k++) {
             ctx.strokeStyle = k === 0 ? 'rgba(224, 36, 44, 0.42)' : k === 1 ? 'rgba(255, 110, 70, 0.55)' : 'rgba(255, 240, 210, 0.7)';
-            ctx.lineWidth = r * (0.5 - k * 0.17);
+            ctx.lineWidth = r * (0.66 - k * 0.22);
             ctx.beginPath();
             ctx.arc(P.hx * r, P.hy * r, len * (0.92 + k * 0.04), P.ang - dir * trail, P.ang, dir < 0);
             ctx.stroke();
@@ -452,6 +482,8 @@ function _drawThaelisAxe(enemy, r, now, cast) {
     ctx.save();
     ctx.translate(P.hx * r, P.hy * r);
     ctx.rotate(P.ang);
+    const flip = _twBladeFlip(cast);
+    ctx.scale(1, flip);
     if (_twGlowOn()) { ctx.shadowColor = 'rgba(255, 50, 40, 0.9)'; ctx.shadowBlur = 6 + 14 * P.glow; }
     ctx.drawImage(img || spr.canvas, -A.pivot * aw, -ah / 2, aw, ah);
     ctx.shadowBlur = 0;
@@ -460,7 +492,7 @@ function _drawThaelisAxe(enemy, r, now, cast) {
     // the blades gather red light as the cast builds
     if (P.glow > 0.02) {
         const headD = (A.head - A.pivot) * A.len * r;
-        const hx = P.hx * r + Math.cos(P.ang) * headD - Math.sin(P.ang) * A.bladeOff * r, hy = P.hy * r + Math.sin(P.ang) * headD + Math.cos(P.ang) * A.bladeOff * r;
+        const hx = P.hx * r + Math.cos(P.ang) * headD - Math.sin(P.ang) * A.bladeOff * r * flip, hy = P.hy * r + Math.sin(P.ang) * headD + Math.cos(P.ang) * A.bladeOff * r * flip;
         const g = _getGlowSprite('rgba(255, 60, 44, 0.95)', 48), g2 = _getGlowSprite('rgba(255, 235, 200, 0.95)', 24);
         if (g) {
             const gr = r * (0.3 + 0.75 * P.glow) * (0.92 + 0.08 * Math.sin(now / 38));
@@ -650,10 +682,15 @@ function _drawThaelisPhantom(enemy, r, now, cast) {
     const w = _THAELIS_ART.phantom.widthR * r * scale, h = w * (art ? art.naturalHeight / art.naturalWidth : 1);
     const cx = enemy.x + Math.cos(cast.angle) * lunge, cy = enemy.y + Math.sin(cast.angle) * lunge - rise;
     const flicker = 0.84 + 0.16 * Math.sin(now / 63 + enemy.x);
+    // the shape turns with the chop: it is mirrored when the chop swings the other way, so its axe arm stays on the
+    // side the blade leads from
+    const mir = _twChopClockwise(cast.angle) ? 1 : -1;
     ctx.save();
     ctx.globalCompositeOperation = 'lighter';
     // three copies, the outer two drifting, so the edge shimmers like heat
     const copies = _twCount(1, 3);
+    ctx.save();
+    if (mir < 0) { ctx.translate(cx, 0); ctx.scale(-1, 1); ctx.translate(-cx, 0); }
     for (let i = 0; i < copies; i++) {
         const dx = i === 0 ? 0 : Math.sin(now / 210 + i * 2.1) * r * 0.07 * i;
         const dy = i === 0 ? 0 : Math.cos(now / 170 + i) * r * 0.05 * i;
@@ -661,10 +698,11 @@ function _drawThaelisPhantom(enemy, r, now, cast) {
         ctx.globalAlpha = (i === 0 ? 0.92 : 0.28) * k * flicker;
         ctx.drawImage(src, cx - w * s / 2 + dx, cy - h * s / 2 + dy, w * s, h * s);
     }
+    ctx.restore();
 
     // the phantom's axe arm: shoulder fixed on the shape, the arm trails the axe, the axe follows the real one's angle
     const U = w / 8, A = _THAELIS_ART.axe;
-    const shX = cx + 1.55 * U, shY = cy - 1.2 * U;
+    const shX = cx + mir * 1.55 * U, shY = cy - 1.2 * U;
     const armAng = P.ang + P.armOff;
     const hx = shX + Math.cos(armAng) * 1.5 * U, hy = shY + Math.sin(armAng) * 1.5 * U;
     const gl = 4.6 * U, headD = (A.head - A.pivot) * gl;
@@ -678,7 +716,7 @@ function _drawThaelisPhantom(enemy, r, now, cast) {
     if (cast.kind === 2 && P.sweep > 0.05) {
         let delta = ((cast.angle - _TW_COCK.ang) % _TW_TAU + _TW_TAU) % _TW_TAU;
         if (delta > Math.PI * 1.25) delta -= _TW_TAU;
-        const trail = Math.min(Math.abs(delta) * P.sweep * P.sweep, 1.7), dir = delta >= 0 ? 1 : -1;
+        const trail = Math.min((Math.abs(delta) + _TW_WINDUP.back) * Math.pow(P.sweep, 2.4), _TW_MAX_SMEAR), dir = delta >= 0 ? 1 : -1;
         for (let i = 0; i < 3; i++) {
             ctx.globalAlpha = (i === 0 ? 0.4 : i === 1 ? 0.5 : 0.7) * k;
             ctx.strokeStyle = i === 0 ? 'rgb(200, 24, 34)' : i === 1 ? 'rgb(255, 96, 64)' : 'rgb(255, 236, 210)';
@@ -691,11 +729,13 @@ function _drawThaelisPhantom(enemy, r, now, cast) {
     ctx.save();
     ctx.translate(hx, hy);
     ctx.rotate(P.ang);
+    const flip = _twBladeFlip(cast);
+    ctx.scale(1, flip);
     ctx.globalAlpha = 0.9 * k * flicker;
     ctx.drawImage(g.canvas, -A.pivot * gl - g.pad * gs, -(g.h * gs) / 2 - g.pad * gs, g.canvas.width * gs, g.canvas.height * gs);
     ctx.restore();
     // remember where the ghost blade is for the lightning
-    const off = A.bladeOff * (gl / A.len);
+    const off = A.bladeOff * (gl / A.len) * flip;
     _twGhost.on = true; _twGhost.k = k; _twGhost.hx = hx; _twGhost.hy = hy;
     _twGhost.headX = hx + Math.cos(P.ang) * headD - Math.sin(P.ang) * off;
     _twGhost.headY = hy + Math.sin(P.ang) * headD + Math.cos(P.ang) * off;
