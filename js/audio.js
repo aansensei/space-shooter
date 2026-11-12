@@ -632,6 +632,7 @@
         'ammit-death-roar', 'ammit-enrage', 'ammit-emerge', 'ammit-rift-open', 'ammit-rift-crack',
         'leviathan-death-roar', 'goliath-death-roar', 'egregor-death-roar', 'uriel-death-roar',
         'goliath-death', 'goliath-spawn', 'goliath-transform', 'goliath-unbroken-wave',
+        'thaelis-fall', 'thaelis-slain',
     ]);
     function _distanceGain(x, y) {
         if (typeof player === 'undefined' || typeof canvas === 'undefined') return 1;
