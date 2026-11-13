@@ -506,7 +506,8 @@ function _isEnemyTargetable(enemy) {
 function _isCCImmune(enemy) {
     return enemy.type === 'egregor' || enemy.type === 'dargruel' || enemy.type === 'leviathan'
         || (enemy.type === 'marchosias' && enemy.arcBarrier && enemy.arcBarrier.hp > 0)
-        || (enemy.type === 'raphael' && enemy.raphaelInvulnerable) || !!enemy._urielCCImmune;
+        || (enemy.type === 'raphael' && enemy.raphaelInvulnerable) || !!enemy._urielCCImmune
+        || (enemy._ibCCImmune && enemy.ironBodyHits > 0);
 }
 
 function findClosestEnemy(x, y) {
@@ -1369,10 +1370,36 @@ function dealDamage(enemy, source) {
 
     // Coronation Iron Body perk, 1-hit block on spawned enemy (tu_huyet blade arc bypasses)
     if (!isSentinel && enemy.ironBodyHits > 0 && !source._bypassIronBody) {
-        enemy.ironBodyHits--;
-        enemy._ironBodyHitAt = performance.now(); // Thaelis draws the layer that just broke off
-        createParticles(enemy.x, enemy.y, 6, '#ffd700', 2, 7);
-        return; // 1 hit absorbed
+        if (enemy._ibThrottleMs) {
+            // Marchosias and Thaelis count their layers the way Raphael's Custos Aeternus does: at most one layer per
+            // beat (a burst of near simultaneous hits, such as a Skill A cast, spends one), and a damage over time tick
+            // never spends one. Marchosias wards DoT off completely, Thaelis only keeps its layers and takes the tick.
+            const _ibDot = source.isTeslaDot || source._isDtuDot || source._isNocToiDot || source._isSthDot || source._isSrDot || source._isTyVenomDot;
+            const _ibReal = source.damage > 0 || source.percentDamage > 0;
+            const _ibNow = performance.now();
+            if (_ibDot && enemy._ibDotImmune) {
+                if (!enemy._lastWardSparkAt || _ibNow - enemy._lastWardSparkAt > 200) {
+                    enemy._lastWardSparkAt = _ibNow;
+                    createParticles(enemy.x, enemy.y, 4, '#7fe6ff', 1, 3);
+                }
+                return;
+            }
+            if (_ibReal && !_ibDot) {
+                if (!(enemy._ibLastAt && _ibNow - enemy._ibLastAt < enemy._ibThrottleMs)) {
+                    enemy._ibLastAt = _ibNow;
+                    enemy.ironBodyHits--;
+                    enemy._ironBodyHitAt = _ibNow; // Thaelis draws the layer that just broke off
+                    enemy._ibFlashUntil = _ibNow + 140;
+                    createParticles(enemy.x, enemy.y, 6, '#ffd700', 2, 7);
+                }
+                return; // absorbed whole, counted or not
+            }
+        } else {
+            enemy.ironBodyHits--;
+            enemy._ironBodyHitAt = performance.now(); // Thaelis draws the layer that just broke off
+            createParticles(enemy.x, enemy.y, 6, '#ffd700', 2, 7);
+            return; // 1 hit absorbed
+        }
     }
 
     // Uriel's Covenant King: a granted Uriel Iron Body layer fully negates

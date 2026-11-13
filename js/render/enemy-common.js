@@ -1159,6 +1159,27 @@ function drawEnemy(enemy) {
         ctx.fillText(Math.ceil(enemy.shield), enemy.x, by - 2);
     }
 
+    // Marchosias Iron Body: one pip per layer left above the shield bar, and a short white ring when a layer blocks a hit
+    if (enemy.type === 'marchosias' && enemy.ironBodyHits > 0 && !enemy._deathPhase) {
+        const n = Math.min(6, enemy.ironBodyHits), py = enemy.y - enemy.size / 2 - 27;
+        ctx.save();
+        ctx.fillStyle = '#ffd700';
+        ctx.strokeStyle = 'rgba(0,0,0,0.6)';
+        ctx.lineWidth = 1;
+        for (let k = 0; k < n; k++) {
+            const px = enemy.x + (k - (n - 1) / 2) * 9;
+            ctx.beginPath(); ctx.arc(px, py, 3, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
+        }
+        const _ibNow = performance.now();
+        if (enemy._ibFlashUntil && _ibNow < enemy._ibFlashUntil) {
+            ctx.globalAlpha = (enemy._ibFlashUntil - _ibNow) / 140;
+            ctx.strokeStyle = '#ffffff';
+            ctx.lineWidth = 3;
+            ctx.beginPath(); ctx.arc(enemy.x, enemy.y, enemy.size / 2 + 6, 0, Math.PI * 2); ctx.stroke();
+        }
+        ctx.restore();
+    }
+
     // MARCHOSIAS PARASITE host ring (flavor only - the shield amount itself
     // is just enemy.shield, shown by the bar right above)
     if (enemy._marchosiasParasiteHost && enemy.shield > 0) {

@@ -119,6 +119,36 @@ function _applyArcBarrierBodyHeal(enemy, dmg) {
     }
 }
 
+const MARCH_BREAK_IRON_BODY = 4, MARCH_BREAK_IRON_BODY_LOW = 6, MARCH_IRON_BODY_CAP = 6, MARCH_IRON_BODY_BEAT_MS = 250;
+
+// Breaking the barrier sends out a shockwave: a ship caught close to Marchosias is slowed by 25% for a second.
+const MARCH_SHOCK_RANGE = 420, MARCH_SHOCK_MS = 1000, MARCH_SHOCK_SLOW = 0.75;
+function _marchosiasBreakShock(enemy) {
+    addExplosion(enemy.x, enemy.y, enemy.size * 2.2, '#ff9a3c');
+    createParticles(enemy.x, enemy.y, 16, '#ffb070', 3, 10);
+    if (typeof _setShake === 'function') _setShake(5, 180);
+    if (Math.hypot(player.x - enemy.x, player.y - enemy.y) <= MARCH_SHOCK_RANGE) window._marchosiasShockUntil = performance.now() + MARCH_SHOCK_MS;
+}
+function _marchosiasShockSlowMult() {
+    return performance.now() < (window._marchosiasShockUntil || 0) ? MARCH_SHOCK_SLOW : 1;
+}
+
+// The Pressure Clock: a Marchosias that has gone too long without a Sword in the queue casts one on its own, so the ship
+// cannot leave it alone by never touching the barrier. The wait shortens as its HP falls.
+function _marchosiasPressureInterval(enemy) {
+    const f = enemy.hp / enemy.maxHp;
+    return f <= 0.30 ? 4500 : f <= 0.50 ? 6000 : 8000;
+}
+function _updateMarchosiasPressure(enemy, deltaTime) {
+    if (enemy._thanMenhFrozen || enemy.hp <= 0 || enemy._markedForDeath) return;
+    if (enemy.marchosiasWindups && enemy.marchosiasWindups.length > 0) { enemy._pressureClock = 0; return; }
+    enemy._pressureClock = (enemy._pressureClock || 0) + deltaTime;
+    if (enemy._pressureClock >= _marchosiasPressureInterval(enemy)) {
+        enemy._pressureClock = 0;
+        _tryTriggerMarchosiasCounter(enemy, true);
+    }
+}
+
 function _triggerArcBarrierBreak(enemy) {
     const _fullCycle = (enemy._barrierSwordsThisCycle || 0) >= 4;
     if (_fullCycle) {
@@ -143,7 +173,10 @@ function _triggerArcBarrierBreak(enemy) {
         lifetime: 650, maxLifetime: 650,
     });
     _tryTriggerMarchosiasCounter(enemy);
-    enemy.ironBodyHits = (enemy.ironBodyHits || 0) + 5;
+    _marchosiasBreakShock(enemy);
+    // 4 Iron Body layers (6 when the barrier breaks below 30% HP), never more than 6 at once. They are counted one per
+    // beat and ignore damage over time, see the Iron Body block in dealDamage (entities/core.js)
+    enemy.ironBodyHits = Math.min(MARCH_IRON_BODY_CAP, (enemy.ironBodyHits || 0) + (enemy.hp < enemy.maxHp * 0.30 ? MARCH_BREAK_IRON_BODY_LOW : MARCH_BREAK_IRON_BODY));
     // docs/combat-scaling-rebalance.md Part 3
     const healAmt = Math.ceil(enemy.maxHp * 0.15);
     const newHp = enemy.hp + healAmt;
@@ -161,16 +194,18 @@ function _triggerArcBarrierBreak(enemy) {
     enemy._arcBarrierReviveAt = gameElapsedTime + _reviveDelay;
 }
 
-// Kích hoạt Sword — tối đa 4 lần mỗi barrier cycle, cooldown 650ms giữa các lần
-function _tryTriggerMarchosiasCounter(enemy) {
+// Kích hoạt Sword — tối đa 4 lần mỗi barrier cycle, cooldown 500ms giữa các lần.
+// A free cast (the Pressure Clock) ignores the cycle cap and is not counted in it, so it never shortens the barrier's revive.
+const MARCH_SWORD_COOLDOWN_MS = 500;
+function _tryTriggerMarchosiasCounter(enemy, free) {
     if (enemy._thanMenhFrozen) return; // petrified: no new casts
     const now = performance.now();
     if (enemy.hp <= 0 || enemy._markedForDeath) return;
     if (!enemy.marchosiasWindups) enemy.marchosiasWindups = [];
-    if (enemy.lastSwordTriggerTime && now - enemy.lastSwordTriggerTime < 650) return;
-    if ((enemy._barrierSwordsThisCycle || 0) >= 4) return;
+    if (enemy.lastSwordTriggerTime && now - enemy.lastSwordTriggerTime < MARCH_SWORD_COOLDOWN_MS) return;
+    if (!free && (enemy._barrierSwordsThisCycle || 0) >= 4) return;
     enemy.lastSwordTriggerTime = now;
-    enemy._barrierSwordsThisCycle = (enemy._barrierSwordsThisCycle || 0) + 1;
+    if (!free) enemy._barrierSwordsThisCycle = (enemy._barrierSwordsThisCycle || 0) + 1;
     const _wTx = player.x, _wTy = player.y;
     enemy.marchosiasWindups.push({ timer: 1000, target: { x: _wTx, y: _wTy } });
     if (!enemy._ghostWindups) enemy._ghostWindups = [];
@@ -224,6 +259,7 @@ function spawnMarchosias() {
         size, speed, hp, maxHp: hp,
         isTargetedByA: false, hitBySkillF: false, laserHit: false, shield: 0,
         type: 'marchosias',
+        _ibThrottleMs: MARCH_IRON_BODY_BEAT_MS, _ibDotImmune: true, _ibCCImmune: true,
         shootTimer: 1000,
         DR: 0.45,
         arcBarrier: {
@@ -238,26 +274,56 @@ function spawnMarchosias() {
     _enemySnapshotAtk(enemies[enemies.length - 1], 'marchosias');
 }
 
-function spawnMarchosiasMinion(parentX, parentY, parentMaxHp) {
+// Assimilation: three Minion Robots, and a fourth when the Arc Barrier still stood at the moment of death. Every minion
+// carries a ward (a small barrier worth 20% of the barrier Marchosias had), and the minions spread over the hosts in range.
+const MARCH_MINION_WARD_FRAC = 0.20;
+// A hunting minion runs faster the less HP it has left: +75% of the HP fraction it has lost, capped at +50% speed
+const MARCH_MINION_FRENZY_RATE = 0.75, MARCH_MINION_FRENZY_CAP = 0.50;
+function _marchosiasMinionFrenzy(enemy) {
+    const lost = enemy.maxHp > 0 ? Math.max(0, 1 - enemy.hp / enemy.maxHp) : 0;
+    return 1 + Math.min(MARCH_MINION_FRENZY_CAP, lost * MARCH_MINION_FRENZY_RATE);
+}
+function _marchosiasAssimilate(enemy) {
+    const barrierUp = !!(enemy.arcBarrier && enemy.arcBarrier.hp > 0);
+    const wardHp = Math.ceil((enemy.arcBarrier ? enemy.arcBarrier.maxHp : enemy.maxHp) * MARCH_MINION_WARD_FRAC);
+    const count = barrierUp ? 4 : 3;
+    const taken = new Map();
+    for (let k = 0; k < count; k++) {
+        const a = (Math.PI * 2 / count) * k;
+        spawnMarchosiasMinion(enemy.x + Math.cos(a) * enemy.size * 0.5, enemy.y + Math.sin(a) * enemy.size * 0.5, enemy.maxHp,
+            { wardHp: wardHp, taken: taken, hpPct: k === 3 ? 0.25 : undefined });
+    }
+}
+
+// The host in range that has taken the fewest minions so far, the nearest among equals.
+function _pickMarchosiasHost(x, y, taken) {
+    let best = null, bestN = Infinity, bestD = Infinity;
+    for (let i = 0; i < enemies.length; i++) {
+        const e = enemies[i];
+        if (!e || e.hp <= 0 || e._markedForDeath || e.type === 'marchosias_minion' || e.type === 'marchosias' || e.type === 'veilshroud_echo' ||
+            e.type === 'abyssal_chain' || e.type.startsWith('enemy_bullet')) continue;
+        const d = Math.hypot(e.x - x, e.y - y);
+        if (d >= 170) continue;
+        const n = taken ? (taken.get(e) || 0) : 0;
+        if (n < bestN || (n === bestN && d < bestD)) { best = e; bestN = n; bestD = d; }
+    }
+    return best;
+}
+
+function spawnMarchosiasMinion(parentX, parentY, parentMaxHp, opts) {
+    opts = opts || {};
     const size = 20 + Math.random() * 10;
     const inheritPct = 0.25 + Math.random() * 0.10;
-    const hp = Math.ceil(parentMaxHp * inheritPct * 1.30); // +30% HP
+    const hp = opts.hpPct ? Math.ceil(parentMaxHp * opts.hpPct) : Math.ceil(parentMaxHp * inheritPct * 1.30); // +30% HP
+    const wardHp = opts.wardHp || 0;
 
-    const paraRange = 170;
-    const host = enemies.find(e =>
-        e !== null &&
-        e.type !== 'marchosias_minion' &&
-        e.type !== 'marchosias' &&
-        e.type !== 'veilshroud_echo' &&
-        e.type !== 'abyssal_chain' &&
-        !e.type.startsWith('enemy_bullet') &&
-        Math.hypot(e.x - parentX, e.y - parentY) < paraRange
-    );
+    const host = _pickMarchosiasHost(parentX, parentY, opts.taken);
 
     if (host) {
+        if (opts.taken) opts.taken.set(host, (opts.taken.get(host) || 0) + 1);
         host._marchosiasParasiteHost = true;
-        // docs/combat-scaling-rebalance.md Part 3: capped at 15% host Max HP
-        _addEnemyShield(host, Math.min(hp, 0.15 * host.maxHp));
+        // docs/combat-scaling-rebalance.md Part 3: capped at 15% host Max HP, and the ward adds up to 5% more
+        _addEnemyShield(host, Math.min(hp, 0.15 * host.maxHp) + Math.min(wardHp, 0.05 * host.maxHp));
         createParticles(host.x, host.y, 20, '#00ff88', 2, 6);
         addExplosion(host.x, host.y, host.size * 0.8, '#00ff88');
     } else {
@@ -273,5 +339,10 @@ function spawnMarchosiasMinion(parentX, parentY, parentMaxHp) {
             shootTimer: 1000,
         });
         _enemySnapshotAtk(enemies[enemies.length - 1], 'marchosias_minion');
+        if (wardHp > 0) {
+            // the ward is a shield that follows the minion, drawn as a small arc facing the ship
+            enemies[enemies.length - 1]._miniBarrier = true;
+            _addEnemyShield(enemies[enemies.length - 1], wardHp);
+        }
     }
 }

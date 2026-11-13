@@ -845,6 +845,7 @@ function update(rawDeltaTime) {
     }
 
     if (typeof _thaelisLaneSlowMult === 'function') _dimBreakMult = Math.min(_dimBreakMult, _thaelisLaneSlowMult());
+    if (typeof _marchosiasShockSlowMult === 'function') _dimBreakMult = Math.min(_dimBreakMult, _marchosiasShockSlowMult());
 
     const _xBeforeMove = player.x;
     // A phone's play area is narrow enough that full speed crosses most of
@@ -1473,14 +1474,7 @@ function update(rawDeltaTime) {
                 addExplosion(enemy.x, enemy.y, enemy.size * 1.2, '#00ff88');
                 createParticles(enemy.x, enemy.y, 40, '#00ff88', 2, 8);
                 marchoDeathBursts.push({ x: enemy.x, y: enemy.y, size: enemy.size, lifetime: 900, maxLifetime: 900 });
-                for (let k = 0; k < 3; k++) {
-                    const spawnAngle = (Math.PI * 2 / 3) * k;
-                    spawnMarchosiasMinion(
-                        enemy.x + Math.cos(spawnAngle) * enemy.size * 0.5,
-                        enemy.y + Math.sin(spawnAngle) * enemy.size * 0.5,
-                        enemy.maxHp
-                    );
-                }
+                _marchosiasAssimilate(enemy);
             }
 
             if (!enemy.type.startsWith('enemy_bullet') && enemy.type !== 'embryo' && enemy.type !== 'veilshroud_echo') {
@@ -1907,6 +1901,8 @@ function update(rawDeltaTime) {
                     }
                 }
 
+                _updateMarchosiasPressure(enemy, deltaTime);
+
                 // Counter windups, xử lý nhiều đòn song song, không giới hạn
                 if (!enemy.marchosiasWindups) enemy.marchosiasWindups = [];
                 for (let wi = enemy.marchosiasWindups.length - 1; wi >= 0; wi--) {
@@ -1969,7 +1965,7 @@ function update(rawDeltaTime) {
                 if (_nearHost) {
                     _nearHost._marchosiasParasiteHost = true;
                     // docs/combat-scaling-rebalance.md Part 3: capped at 15% host Max HP
-                    _addEnemyShield(_nearHost, Math.min(enemy.hp, 0.15 * _nearHost.maxHp));
+                    _addEnemyShield(_nearHost, Math.min(enemy.hp, 0.15 * _nearHost.maxHp) + (enemy._miniBarrier ? Math.min(enemy.shield || 0, 0.05 * _nearHost.maxHp) : 0));
                     createParticles(_nearHost.x, _nearHost.y, 12, '#00ff88', 2, 5);
                     enemy.hp = 0;
                     continue;
@@ -1979,7 +1975,7 @@ function update(rawDeltaTime) {
             const mmd = Math.hypot(mmdx, mmdy);
             const _mmRiftSlow = enemy._riftSlow ? 0.65 : 1.0;
             const _mmOrbSlow = (enemy._orbRetaliationSlowEnd || 0) > currentTime ? 0.75 : 1.0;
-            const _mmSlowMul = _mmRiftSlow * _mmOrbSlow;
+            const _mmSlowMul = _mmRiftSlow * _mmOrbSlow * _marchosiasMinionFrenzy(enemy);
             const _mmPhoneMul = window._deviceTier === 'phone' ? 0.88 : 1.0;
             if (mmd > 0) { enemy.x += (mmdx / mmd) * enemy.speed * _mmPhoneMul * dt * _mmSlowMul; enemy.y += (mmdy / mmd) * enemy.speed * _mmPhoneMul * dt * _mmSlowMul; }
             _capHoldBody(enemy, capMoveX, capMoveY);
@@ -2057,12 +2053,7 @@ function update(rawDeltaTime) {
                 addExplosion(enemy.x, enemy.y, enemy.size * 1.2, '#00ff88');
                 createParticles(enemy.x, enemy.y, 40, '#00ff88', 2, 8);
                 marchoDeathBursts.push({ x: enemy.x, y: enemy.y, size: enemy.size, lifetime: 900, maxLifetime: 900 });
-                for (let k = 0; k < 3; k++) {
-                    const spawnAngle = (Math.PI * 2 / 3) * k;
-                    const spawnX = enemy.x + Math.cos(spawnAngle) * enemy.size * 0.5;
-                    const spawnY = enemy.y + Math.sin(spawnAngle) * enemy.size * 0.5;
-                    spawnMarchosiasMinion(spawnX, spawnY, enemy.maxHp);
-                }
+                _marchosiasAssimilate(enemy);
             }
 
             // Egregor, Mind Link: rage stack on nearby death → immediate Tempest
