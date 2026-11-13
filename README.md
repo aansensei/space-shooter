@@ -83,7 +83,7 @@ Everything runs in the browser. These are the techniques the game uses:
 | **Audio** | Web Audio API with decoded buffers, gapless loops, a ducking filter, positional volume that fades with distance, and a BGM playlist you can filter |
 | **Offline and install** | A service worker with a versioned, cache-first store, a precached app shell, optional offline packages from Settings, and a web app manifest so it installs like an app |
 | **Input** | Keyboard and touch controls, vibration feedback on phones, and an automatic pause when the tab is hidden |
-| **Saved data** | Settings and preferences are kept locally in the browser (localStorage). Nothing is sent to a server |
+| **Saved data** | Settings and preferences are kept locally in the browser (localStorage). The only thing sent out is an anonymous visit count to Google Analytics, with its cookies off by default |
 | **Localization** | Full English and Vietnamese text, switched at runtime |
 | **Code layout** | Plain scripts that share one global namespace and load in a fixed order from index.html. One file per boss, per skill and per sigil, so a mechanic can be changed in one place |
 | **Testing** | Headless browser scripts that step the game frame by frame to check combat rules, audio calls and effects, and measure draw cost (kept in `misc/dev-tools`) |

@@ -33,6 +33,16 @@
 
 <head>
     <meta charset="UTF-8">
+    <!-- Google tag: anonymous visit counts. Consent starts denied, so no analytics cookies are set, and local development is never counted. -->
+    <script async src="https://www.googletagmanager.com/gtag/js?id=G-1NGWQ87NE8"></script>
+    <script>
+        if (/^(localhost|127\.0\.0\.1|\[::1\])$/.test(location.hostname)) window['ga-disable-G-1NGWQ87NE8'] = true;
+        window.dataLayer = window.dataLayer || [];
+        function gtag() { dataLayer.push(arguments); }
+        gtag('consent', 'default', { ad_storage: 'denied', ad_user_data: 'denied', ad_personalization: 'denied', analytics_storage: 'denied' });
+        gtag('js', new Date());
+        gtag('config', 'G-1NGWQ87NE8', { allow_google_signals: false, allow_ad_personalization_signals: false });
+    </script>
     <meta name="viewport"
         content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <title>Pisces: Space Journey</title>
