@@ -2,7 +2,14 @@
 
 # Pisces: Space Journey
 
-*One interceptor. A sky full of things that answer to no constellation. Every wave you survive is a heartbeat stolen back from the dark.*
+> *Hark, ye who wake within the Virtual Cosmos!*  
+> *Where numbers once did sing, a darkness gathers.*  
+> *Entities of pure information, spun from the loftiest civilizations of a thousand worlds,*  
+> *have poured through every gate and drowned the stars in silence.*  
+> *One ship remains, the Pisces Interceptor, small against the tide,*  
+> *yet armed with the powers the Zodiac Sigils bestow.*  
+> *Fly, pilot, fly! Let every wave be a breath wrested from the void,*  
+> *and fight, unbowed, until the last second of the last night.*
 
 [![Play now](https://img.shields.io/badge/play-aansensei.dev%2Fspace--shooter-00e5ff?style=flat-square)](https://aansensei.dev/space-shooter/)
 [![License](https://img.shields.io/badge/license-PolyForm%20Noncommercial%201.0.0-ffd700?style=flat-square)](LICENSE)
