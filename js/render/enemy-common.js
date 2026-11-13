@@ -1159,7 +1159,7 @@ function drawEnemy(enemy) {
         ctx.fillText(Math.ceil(enemy.shield), enemy.x, by - 2);
     }
 
-    // Marchosias Iron Body: one pip per layer left above the shield bar, and a short white ring when a layer blocks a hit
+    // marchosias iron body: 1 pip per layer left above the shield bar, white ring when a layer blocks a hit
     if (enemy.type === 'marchosias' && enemy.ironBodyHits > 0 && !enemy._deathPhase) {
         const n = Math.min(7, enemy.ironBodyHits), py = enemy.y - enemy.size / 2 - 27;
         ctx.save();

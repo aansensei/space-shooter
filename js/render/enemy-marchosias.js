@@ -425,7 +425,7 @@ function _drawMarchosiasMinion(enemy) {
     ctx.closePath(); ctx.fill(); ctx.stroke();
     ctx.shadowBlur = 0;
 
-    // the ward: a small arc that keeps facing the ship while the minion's shield stands
+    // ward: small arc facing the ship while the minion shield is up
     if (enemy._miniBarrier && enemy.shield > 0) {
         const wa = Math.atan2(player.y - enemy.y, player.x - enemy.x), wk = Math.min(1, enemy.shield / (enemy.maxHp * 0.5));
         ctx.strokeStyle = `rgba(255, 170, 90, ${0.45 + 0.4 * wk})`;

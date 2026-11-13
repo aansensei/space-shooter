@@ -48,10 +48,10 @@ function _twEaseOut(t) { t = _twClamp01(t); return 1 - (1 - t) * (1 - t) * (1 - 
 function _twEaseInOut(t) { t = _twClamp01(t); return t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2; }
 function _twGlowOn() { return !_mobPerf && window._fxOpts && window._fxOpts.glow; }
 
-// Detail tiers come from the graphics level: 0 full, 1 medium, 2 low, 3 minimum, 4 performance (mobile only).
+// detail tiers from the gfx level: 0 full, 1 medium, 2 low, 3 minimum, 4 performance (mobile only)
 function _twTier() { const g = window._gfxLevel || 0; return g > 4 ? 4 : g; }
-// A count for the current tier. Full and low are given, medium sits halfway between them, minimum is half of low
-// and performance a third of it, never below 1 unless low itself is 0.
+// count for the current tier. full + low are given, medium sits halfway, minimum is half of low,
+// performance a third, never under 1 unless low is 0
 function _twCount(low, full) {
     const t = _twTier();
     if (t === 0) return full;
@@ -341,18 +341,16 @@ function _twGetPhantom() {
 
 // ---------- the gear ----------
 
-// Which way the chop turns: true when it swings clockwise from the cocked axe, false when it swings the other way
-// (a target on the left of the cocked axe). The blade hangs off the +y side of the haft, so it leads the swing only
-// when the chop turns clockwise.
+// which way the chop turns: true = clockwise from the cocked axe. the blade hangs off the +y side of the haft,
+// so it only leads the swing when the chop is clockwise
 function _twChopClockwise(angle) {
     let delta = ((angle - _TW_COCK.ang) % _TW_TAU + _TW_TAU) % _TW_TAU;
     if (delta > Math.PI * 1.25) delta -= _TW_TAU;
     return delta >= 0;
 }
 
-// The sharp blade always leads the chop and the blunt hammer head trails it. A chop that turns the other way flips the
-// axe over. Returns the vertical scale of the axe: 1 as drawn, -1 turned over, and the squash through 0 in between
-// reads as the axe rolling in the air as it is cocked and again as it settles.
+// sharp blade always leads the chop, hammer trails. a chop turning the other way flips the axe over.
+// returns the y scale (1 as drawn, -1 flipped), the squash through 0 reads as the axe rolling in the air
 function _twBladeFlip(cast) {
     if (cast.kind === 0) return 1;
     const s = _twChopClockwise(cast.angle) ? 1 : -1;
@@ -367,12 +365,12 @@ function _twShortAngle(a) { a = a % _TW_TAU; if (a > Math.PI) a -= _TW_TAU; else
 // where the hanging axe and its grip sit for the current cast stage, in units of r
 const _TW_IDLE = { ang: -1.2, hx: 1.28, hy: 0.12 };    // hangs upright at the side
 const _TW_COCK = { ang: -2.3, hx: 0.95, hy: -1.15 };   // raised high and cocked back
-// the wind-up: just before the chop the axe draws back further against the swing (back = radians, dx and dy = how far
-// the grip travels, in r), so the chop starts from a longer run and covers a much bigger arc
+// wind-up: axe draws back against the swing right before the chop (back = rad, dx/dy = grip travel in r),
+// longer run = bigger arc
 const _TW_WINDUP = { back: 1.05, dx: 0.55, dy: 0.26 };
 const _TW_MAX_SMEAR = 3.7;
-// Penelope's Shroud parry: the axe whips across the line the hit came down, then eases back to the pose it held, which is
-// the hanging pose when idle and the gather pose while Ulysses' Return is being gathered
+// penelope's parry: axe whips across the line the hit came down, then eases back to whatever pose it held
+// (hanging when idle, gather pose while ulysses return gathers)
 function _twApplyParry(P, enemy, now) {
     const age = enemy && enemy._parryAt ? now - enemy._parryAt : 1e9;
     if (!(age >= 0 && age < THAELIS_PARRY_MS)) return;
@@ -407,17 +405,17 @@ function _twComputePose(cast, now, enemy) {
     const sgn = delta >= 0 ? 1 : -1, back = _TW_WINDUP.back * (cast.close ? 1.25 : 1);
     if (cast.kind === 1) {
         const t = _twEaseOut(cast.p * 1.3), tr = 0.015 + 0.05 * cast.p;
-        // over the last of the gather the axe draws back against the swing and shakes with held power
+        // last of the gather: axe draws back + shakes with held power
         const w = _twEaseInOut((cast.p - 0.6) / 0.4);
         P.ang = _twLerp(_TW_IDLE.ang, _TW_COCK.ang, t) - sgn * back * w;
         P.hx = _twLerp(_TW_IDLE.hx, _TW_COCK.hx, t) - sgn * _TW_WINDUP.dx * w + Math.sin(now / 23) * tr;
         P.hy = _twLerp(_TW_IDLE.hy, _TW_COCK.hy, t) - _TW_WINDUP.dy * w + Math.cos(now / 19) * tr;
         P.glow = cast.p; P.armOff = 0.9 + 0.35 * w;
-        // a hit parried while the wave gathers still gets the axe whip, over the pose the gather holds
+        // parry while the wave gathers still plays the axe whip over the gather pose
         _twApplyParry(P, enemy, now);
     } else if (cast.kind === 2) {
-        // the chop starts from the drawn back axe and gathers speed the whole way, so most of the arc is covered in
-        // the last part of the swing
+        // chop starts from the drawn back axe and speeds up the whole way, most of the arc is covered at the
+        // end of the swing
         const q = cast.p, t = Math.pow(q, 2.4), total = delta + sgn * back;
         P.ang = (_TW_COCK.ang - sgn * back) + total * t;
         P.hx = _twLerp(_TW_COCK.hx - sgn * _TW_WINDUP.dx, endHx, t); P.hy = _twLerp(_TW_COCK.hy - _TW_WINDUP.dy, endHy, t);
@@ -697,8 +695,8 @@ function _drawThaelisPhantom(enemy, r, now, cast) {
     const w = _THAELIS_ART.phantom.widthR * r * scale, h = w * (art ? art.naturalHeight / art.naturalWidth : 1);
     const cx = enemy.x + Math.cos(cast.angle) * lunge, cy = enemy.y + Math.sin(cast.angle) * lunge - rise;
     const flicker = 0.84 + 0.16 * Math.sin(now / 63 + enemy.x);
-    // the shape turns with the chop: it is mirrored when the chop swings the other way, so its axe arm stays on the
-    // side the blade leads from
+    // shape follows the chop: mirrored when it turns the other way, so the axe arm stays on the side the
+    // blade leads from
     const mir = _twChopClockwise(cast.angle) ? 1 : -1;
     ctx.save();
     ctx.globalCompositeOperation = 'lighter';
@@ -1229,7 +1227,7 @@ function _drawThaelisDeathFx() {
     }
 }
 
-// Aura follows the axe silhouette and is baked once for each image source.
+// aura follows the axe silhouette, baked once per image source
 let _twAxeAura = null, _twAxeAuraSource = null;
 function _drawThaelisAxeAura(source, w, h, pivot, power, now) {
     if (!_twGlowOn()) return;
@@ -1349,7 +1347,7 @@ function _drawThaelisSlashes() {
     }
 }
 
-// Dark flame tongues rise in world space from the axe's cutting edge.
+// dark flame tongues rise in world space from the axe edge
 function _drawThaelisAxeFlames(pose, r, now, cast) {
     if (_twTier() >= 3 || (window._fxOpts && window._fxOpts.particles === false)) return;
     const A = _THAELIS_ART.axe, head = (A.head - A.pivot) * A.len * r;

@@ -3689,8 +3689,8 @@ function startGame() {
     // _returnToMainMenu), Play Again skips that path entirely so it needs
     // its own cancel here.
     if (window._gameoverVoice) { window._gameoverVoice.cancel(); window._gameoverVoice = null; }
-    // the run that just ended stopped the space ambience and the engine hum, so Play Again brings them back
-    // (both are idempotent while they are already playing). The in-game music returns on the first sigil confirm.
+    // the run that ended stopped ambient + engine, so play again restarts them (no-op if already running)
+    // in game music comes back on the first sigil confirm
     if (window.AudioMgr) { window.AudioMgr.startAmbient(); window.AudioMgr.startEngine(); }
     finalDefense = { playerShield: true, boundaryShield: true, playerCooldownEnd: 0, boundaryCooldownEnd: 0 };
 

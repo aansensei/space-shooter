@@ -560,7 +560,7 @@ function _drawThaelisShuttle(enemy, r, now) {
     ctx.restore();
 }
 
-// while any heal keeps landing the body glows gold and stitches run along its edges, easing in over 150ms and out after the heal stops
+// heal glow + stitches along the edge while any heal keeps landing, eases in 150ms, out after it stops
 function _drawThaelisHeal(enemy, r, now) {
     const isHealing = enemy._shroudHealAt && (now - enemy._shroudHealAt < 250);
     const dt = 16.67;

@@ -102,7 +102,7 @@ const THAELIS_COCOON_KILLS_NEEDED_MAX = 16;
 const THAELIS_REVIVE_HP_PCT = 0.40;
 const THAELIS_REVIVE_INVULN_MS = 1000;
 const THAELIS_COCOON_RETRIGGER_COOLDOWN_MS = 12000; // a revived Thaelis can't cocoon again this soon if it dies right away
-// Iron Body counts one layer per beat, like Raphael's Custos but quicker, so a burst spends one layer
+// iron body counts 1 layer per beat like raphael's custos but faster, so a burst only eats one
 const THAELIS_IRON_BODY_BEAT_MS = 200;
 const THAELIS_REVIVE_IRON_BODY = 5; // Iron Body layers (one whole hit each) a Thaelis wears after climbing out of its Cocoon
 
@@ -237,7 +237,7 @@ function _reviveThaelis(cocoon) {
     addExplosion(cocoon.x, cocoon.y, cocoon.size * 1.6, '#22cc55');
     createParticles(cocoon.x, cocoon.y, 40, '#22cc55', 3, 10);
     _setShake(10, 300);
-    // the rebirth is a story beat, so it is heard at full strength wherever the cocoon hatches
+    // rebirth is a story beat, plays at full volume wherever the cocoon hatches
     if (window.AudioMgr) window.AudioMgr.playSfx('thaelis-reborn');
 }
 
@@ -251,7 +251,7 @@ function spawnThaelis() {
     let hp = Math.ceil(Math.min(3170, 1520 + hpFromTime * 64) * 1.15 * _walpurgisHpMult());
     enemies.push({
         x: Math.random() * (canvas.width - size) + size / 2, y: -size, size: size,
-        speed: (1 + Math.random() * 2) * 0.8 * 0.80 * 0.80 * 0.92,   // 8% slower than the old default
+        speed: (1 + Math.random() * 2) * 0.8 * 0.80 * 0.80 * 0.92,   // 8% slower
         hp: hp, maxHp: hp,
         isTargetedByA: false, hitBySkillF: false, laserHit: false, shield: 0,
         type: 'thaelis', shootTimer: 1000, reincarnated: false,
@@ -366,7 +366,7 @@ const THAELIS_CLOSE_RADIUS = 190;
 const THAELIS_SLASH_REACH = 240;
 const THAELIS_SLASH_SPAN = 2.0;
 const THAELIS_CLOSE_MULT = 1.6;
-// Strike time equals THAELIS_WAVE_GATE_MS + render's THAELIS_SWING_MS (240 ms).
+// strike = gate + render's THAELIS_SWING_MS (240ms), keep them equal
 const THAELIS_SLASH_STRIKE_MS = THAELIS_WAVE_GATE_MS + 240;
 const THAELIS_SLASH_FADE_MS = 900;
 const THAELIS_SLASH_MAX = 6;
@@ -387,8 +387,8 @@ const THAELIS_PARRY_CHANCE_SHIELDED = 0.08; // per hit while a Shield stands
 const THAELIS_PARRY_CD_MS = 1200;           // the axe needs this long before it can parry again
 const THAELIS_PARRY_BUSY_MS = 400;          // after a wave's gate closes the axe is still chopping
 
-// Rolls the parry for one hit. Damage over time and the Spirit Laser cannot be parried, nor can anything that
-// passes Iron Body. The axe can parry while Ulysses' Return gathers, but not while it chops.
+// rolls the parry for one hit. no dot, no spirit laser, nothing that passes iron body.
+// can parry while ulysses return gathers, not while it chops
 function _thaelisTryParry(enemy, source) {
     if (enemy.type !== 'thaelis') return false;
     if (!(source.damage > 0 || source.percentDamage > 0) || source._bypassIronBody || source.isSpiritLaser) return false;
@@ -495,14 +495,14 @@ function _castThaelisWave(enemy, forceClose = false) {
             targeted: target === player
         });
     } else {
-        // Tenacity: +3.5% wave speed per 0.5% HP lost, capped at +25%
+        // tenacity: +3.5% wave speed per 0.5% hp lost, cap +25%
         const speedBonus = Math.min(0.25, (1 - enemy.hp / enemy.maxHp) * 7.0);
         _thaelisWaves.push({
             type: 'thaelis_wave', phase: 'gate', timer: THAELIS_WAVE_GATE_MS, dur: THAELIS_WAVE_GATE_MS,
             ox: enemy.x, oy: enemy.y, x: enemy.x, y: enemy.y, angle: angle,
             halfWidth: THAELIS_WAVE_HALF_WIDTH, radius: THAELIS_WAVE_HALF_WIDTH,
             speed: THAELIS_WAVE_SPEED * (1 + speedBonus), s: 0, prevS: 0,
-            // a turned wave goes back to its caster, so the Dau reflect reads the owner and the heading
+            // a turned wave goes back to its caster, so dau reflect reads the owner + heading
             owner: enemy, vx: Math.cos(angle) * THAELIS_WAVE_SPEED * (1 + speedBonus), vy: Math.sin(angle) * THAELIS_WAVE_SPEED * (1 + speedBonus),
             atk: (enemy.type === 'thaelis_cocoon' ? enemy._ordealAtk || 0 : (enemy.atk || 0) * _enemyEnrageMult(enemy)) * (1 + enemy._ordealBonus),
             len: _thaelisLaneLength(enemy.x, enemy.y, angle),
@@ -565,7 +565,7 @@ function _thaelisWaveHits(w, px, py, rad) {
     return t >= w.prevS - THAELIS_WAVE_FRONT - rad && t <= w.s + rad;
 }
 
-// The three idle loops run while a Thaelis stands on the field and stop when none is left.
+// 3 idle loops run while a thaelis is on the field, stop when none is left
 let _thaelisIdleOn = false;
 function _thaelisIdleTick() {
     let alive = false;
@@ -574,13 +574,13 @@ function _thaelisIdleTick() {
     _thaelisIdleOn = alive;
     if (window.AudioMgr) { if (alive) window.AudioMgr.startThaelisIdle(); else window.AudioMgr.stopThaelisIdle(); }
 }
-// a run ending or restarting silences the loops and lets the tick start them again
+// run end / restart silences the loops, the tick starts them again
 function _thaelisAudioReset() {
     _thaelisIdleOn = false;
     if (window.AudioMgr) window.AudioMgr.stopThaelisIdle();
 }
 
-// Circle against a finite sector, including the radial edges and the origin.
+// circle vs a finite sector (radial edges and origin included)
 function _thaelisSlashHits(s, px, py, radius) {
     const dx = px - s.ox, dy = py - s.oy, d = Math.hypot(dx, dy);
     const rad = Math.max(0, radius || 0);
@@ -661,9 +661,9 @@ function updateThaelisWaves(deltaTime) {
                 for (const s of sentinels) if (_thaelisInLane(w, s.x, s.y, s.size)) inLane++;
                 if (inLane < THAELIS_WAVE_FOCUS_TARGETS) { w.focus = true; w.atk *= THAELIS_WAVE_FOCUS_MULT; }
                 if (window.AudioMgr) window.AudioMgr.playSfxAt('thaelis-wave-sweep', w.ox, w.oy);
-                // the axe chop layers its own hit on top of the sweep, its peak lands as the swing finishes
+                // axe chop layers its own hit on top of the sweep, peak lands as the swing ends
                 if (window.AudioMgr) window.AudioMgr.playSfxAt('thaelis-ulysses-slash', w.ox, w.oy);
-                // the wave tears through the air for as long as it flies
+                // wave tears through the air while it flies
                 if (window.AudioMgr) window.AudioMgr.playSfxAt('thaelis-wave-fly', w.ox, w.oy);
                 if (typeof _setShake === 'function') _setShake(9, 240);
             }

@@ -1371,9 +1371,8 @@ function dealDamage(enemy, source) {
     // Coronation Iron Body perk, 1-hit block on spawned enemy (tu_huyet blade arc bypasses)
     if (!isSentinel && enemy.ironBodyHits > 0 && !source._bypassIronBody) {
         if (enemy._ibThrottleMs) {
-            // Marchosias and Thaelis count their layers the way Raphael's Custos Aeternus does: at most one layer per
-            // beat (a burst of near simultaneous hits, such as a Skill A cast, spends one), and a damage over time tick
-            // never spends one. Marchosias wards DoT off completely, Thaelis only keeps its layers and takes the tick.
+            // marchosias + thaelis count layers like raphael's custos: max 1 per beat so a burst (skill a) only eats one,
+            // dot ticks never eat any. marchosias wards dot off fully, thaelis keeps the layers but still takes the tick
             const _ibDot = source.isTeslaDot || source._isDtuDot || source._isNocToiDot || source._isSthDot || source._isSrDot || source._isTyVenomDot;
             const _ibReal = source.damage > 0 || source.percentDamage > 0;
             const _ibNow = performance.now();
@@ -1388,7 +1387,7 @@ function dealDamage(enemy, source) {
                 if (!(enemy._ibLastAt && _ibNow - enemy._ibLastAt < enemy._ibThrottleMs)) {
                     enemy._ibLastAt = _ibNow;
                     enemy.ironBodyHits--;
-                    enemy._ironBodyHitAt = _ibNow; // Thaelis draws the layer that just broke off
+                    enemy._ironBodyHitAt = _ibNow; // thaelis draws the layer that just broke off
                     enemy._ibFlashUntil = _ibNow + 140;
                     createParticles(enemy.x, enemy.y, 6, '#ffd700', 2, 7);
                 }
@@ -1396,7 +1395,7 @@ function dealDamage(enemy, source) {
             }
         } else {
             enemy.ironBodyHits--;
-            enemy._ironBodyHitAt = performance.now(); // Thaelis draws the layer that just broke off
+            enemy._ironBodyHitAt = performance.now(); // thaelis draws the layer that just broke off
             createParticles(enemy.x, enemy.y, 6, '#ffd700', 2, 7);
             return; // 1 hit absorbed
         }

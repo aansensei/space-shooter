@@ -699,7 +699,7 @@
         goliathIdleEl: null, // Goliath True Form ambient breathing/hum, same native gapless loop
         leviathanIdleEl: null, // Leviathan flight ambience (wingbeat whoosh + scrap rattle), same native gapless loop
         ammitIdleEl: null,
-        thaelisIdleEl: null,   // Thaelis idle bed, three native gapless loops layered together: ambience, armour and breath, rattling axe
+        thaelisIdleEl: null,   // thaelis idle bed = 3 gapless loops layered (ambience, armour + breath, axe rattle)
         thaelisGearEl: null,
         thaelisWeaponEl: null,
         urielIdleEl: null,    // Uriel ambient presence (wind hum + wing flap + breath), same native gapless loop
@@ -1303,7 +1303,7 @@
     // The normalized breathing bed stays below combat impacts.
     function startAmmitIdle() { startLoop('ammitIdleEl', 'ammit-idle'); }
     function stopAmmitIdle() { stopLoop('ammitIdleEl'); }
-    // Thaelis keeps three quiet loops of different lengths under it, so they drift against each other and never repeat as one
+    // 3 quiet loops of different lengths so they drift apart and the bed never repeats as one
     function startThaelisIdle() { startLoop('thaelisIdleEl', 'thaelis-idle'); startLoop('thaelisGearEl', 'thaelis-idle-gear'); startLoop('thaelisWeaponEl', 'thaelis-idle-weapon'); }
     function stopThaelisIdle() { stopLoop('thaelisIdleEl'); stopLoop('thaelisGearEl'); stopLoop('thaelisWeaponEl'); }
     function startUrielIdle() { startLoop('urielIdleEl', 'uriel-idle'); }
