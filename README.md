@@ -8,6 +8,7 @@
 [![License](https://img.shields.io/badge/license-PolyForm%20Noncommercial%201.0.0-ffd700?style=flat-square)](LICENSE)
 ![Made with](https://img.shields.io/badge/made%20with-JavaScript%20%C2%B7%20Canvas%20%C2%B7%20WebGL-7c4dff?style=flat-square)
 ![PWA](https://img.shields.io/badge/PWA-installable%20and%20offline-2ea043?style=flat-square)
+[![Commits](https://img.shields.io/badge/commits-900%2B-ff7a45?style=flat-square)](https://github.com/aansensei/space-shooter/commits/main)
 
 **Author:** An Nguyen
 
