@@ -386,6 +386,7 @@ const THAELIS_PARRY_CHANCE = 0.15;          // per hit while no Shield stands
 const THAELIS_PARRY_CHANCE_SHIELDED = 0.08; // per hit while a Shield stands
 const THAELIS_PARRY_CD_MS = 1200;           // the axe needs this long before it can parry again
 const THAELIS_PARRY_BUSY_MS = 400;          // after a wave's gate closes the axe is still chopping
+const THAELIS_PARRY_SWEEP_MS = 130;         // a parry swing cuts every hit that lands in it, keep equal to render's THAELIS_PARRY_SWING_MS
 
 // rolls the parry for one hit. no dot, no spirit laser, nothing that passes iron body.
 // can parry while ulysses return gathers, not while it chops
@@ -393,7 +394,10 @@ function _thaelisTryParry(enemy, source) {
     if (enemy.type !== 'thaelis') return false;
     if (!(source.damage > 0 || source.percentDamage > 0) || source._bypassIronBody || source.isSpiritLaser) return false;
     if (source.isTeslaDot || source._isDtuDot || source._isNocToiDot || source._isSthDot || source._isSrDot || source._isTyVenomDot) return false;
-    if (_thaelisClock - (enemy._parryClock === undefined ? -1e9 : enemy._parryClock) < THAELIS_PARRY_CD_MS) return false;
+    const sinceParry = _thaelisClock - (enemy._parryClock === undefined ? -1e9 : enemy._parryClock);
+    // rest of a volley / follow up hit landing in the same swing: cut too, no roll, no iron body layer spent
+    if (sinceParry >= 0 && sinceParry < THAELIS_PARRY_SWEEP_MS) return true;
+    if (sinceParry < THAELIS_PARRY_CD_MS) return false;
     const castAge = _thaelisClock - (enemy._ordealCastAt === undefined ? -1e9 : enemy._ordealCastAt);
     if (castAge >= THAELIS_WAVE_GATE_MS && castAge < THAELIS_WAVE_GATE_MS + THAELIS_PARRY_BUSY_MS) return false;
     const fromX = Number.isFinite(source.x) ? source.x : player.x;
