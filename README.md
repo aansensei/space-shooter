@@ -96,7 +96,7 @@ There is no build step and nothing to install. Serve the folder with any static 
 npx serve . -l 8123
 ```
 
-Then open `http://localhost:8123`. Use a server rather than opening the file directly, because the service worker and the offline features need `http://localhost` or `https`.
+This will initiate a loopback server that listens on port 8123 and answers only to your own machine, standing guard over the folder until you press Ctrl+C. Then open `http://localhost:8123` and the Virtual Cosmos is yours. Use a server rather than opening the file directly, because the service worker and the offline features need `http://localhost` or `https`.
 
 ## Project structure
 
