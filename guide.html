@@ -1,23 +1,13 @@
 <!DOCTYPE html>
 <!-- Pisces: Space Journey. Copyright (c) 2024 An Nguyen. Licensed under the PolyForm Noncommercial License 1.0.0. -->
 <!--
-  guide.html
+  guide.html. standalone reference page (mechanics, skills, enemies). no engine code loads here, nothing shared with js/.
 
-  Standalone reference page for game mechanics, skill info, and enemy data.
-  Zero game engine code loads here. Nothing is shared with the js folder.
+  tabs are plain html/css/js, no framework. each tab has a live canvas demo with its own requestAnimationFrame loop,
+  all local to this file. demos are drawn from scratch with canvas 2d, no engine code reused.
+  css vars at the top (--cyan, --purple, --gold ...) keep the palette the same everywhere.
 
-  Tab navigation is pure HTML, CSS, and JS with no framework. Each tab renders
-  skill stats or enemy info next to a live canvas demo. Every demo runs its own
-  requestAnimationFrame loop that is entirely local to this file.
-
-  All mini animations are drawn with Canvas 2D from scratch. They show how
-  skills and enemies behave visually without reusing any engine code. CSS vars
-  at the top (--cyan, --purple, --gold etc) keep the neon color palette
-  consistent across all sections.
-
-  Visiting this page auto-pauses the main game bc input.js listens to the
-  document visibilitychange event and sets gamePaused to true whenever the
-  tab goes hidden.
+  opening this page auto pauses the game bc input.js listens to visibilitychange and sets gamePaused when the tab hides.
 -->
 <html lang="en">
 
