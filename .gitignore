@@ -14,3 +14,5 @@ misc/*.md
 docs/
 # Render checks, sheets and clips.
 tmp/
+# Development tools, scratch work and reference material stay on disk, out of the repo.
+misc/
