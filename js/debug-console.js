@@ -425,6 +425,7 @@ window.debugSetYuukiBonus = function () {
     // every Thaelis test action: id, button label, tooltip. The Boss tab section runs them on all Thaelis, a row runs them on its own.
     const THAELIS_DEBUG_ACTIONS = [
         ['fill', 'Fill queue', 'Ulysses\' Return: store the most waves it can hold'],
+        ['slash', 'Close slash', 'Ulysses\' Return: swing the axe at close range now, whatever the distance'],
         ['cast', 'Cast wave', 'Ulysses\' Return: fire a wave now'],
         ['slowlane', 'Arm slow lane', 'Next wave leaves a slowing lane and hits for the most extra damage'],
         ['points', '+3 points', 'Ulysses\' Return: add 3 Ordeal points'],
@@ -1676,6 +1677,7 @@ window.debugSetYuukiBonus = function () {
             if (!e || e.type !== 'thaelis' || !(e.hp > 0)) continue;
             const max = e.maxHp, now = performance.now();
             if (action === 'fill') { e._ordealQueue = THAELIS_ORDEAL_MAX_QUEUE; e._ordealCd = 0; e._ordealCastAt = -1e9; }
+            else if (action === 'slash') { e._ordealQueue = Math.max(1, e._ordealQueue || 0); _castThaelisWave(e, true); }
             else if (action === 'cast') { e._ordealQueue = Math.max(1, e._ordealQueue || 0); e._ordealCd = 0; e._ordealCastAt = -1e9; _castThaelisWave(e); }
             else if (action === 'slowlane') { e._ordealSlowPts = THAELIS_ORDEAL_SLOW_POINTS; e._ordealBonus = THAELIS_ORDEAL_OVER_DMG_MAX; e._ordealQueue = Math.max(1, e._ordealQueue || 0); e._ordealCd = 0; e._ordealCastAt = -1e9; }
             else if (action === 'points') _thaelisOrdealAddPoints(e, 3);

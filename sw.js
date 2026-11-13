@@ -5,7 +5,7 @@
 //
 // One cache, versioned by CACHE_NAME. Bump the version string whenever the
 // CORE_FILES list changes so old clients pick up the new set on next visit.
-const CACHE_VERSION = 'v665';
+const CACHE_VERSION = 'v666';
 const CACHE_NAME = 'pisces-cache-' + CACHE_VERSION;
 
 // App shell — everything needed for the game to boot and run at all.
@@ -108,6 +108,7 @@ const CORE_FILES = [
     'assets/images/game/sigils/great-sage-gem-frame.png',
     'assets/images/game/enemies/marchosias-hexagon-armor.png',
     'assets/images/game/enemies/thaelis-cocoon.png',
+    'assets/images/game/enemies/thaelis-axe.png',
     'assets/images/game/enemies/uriel-divine-core.png',
     'assets/images/game/enemies/uriel-holy-sword.png',
         'assets/images/game/enemies/ammit-pyramid.png',

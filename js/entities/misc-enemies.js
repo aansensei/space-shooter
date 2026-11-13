@@ -362,6 +362,15 @@ const THAELIS_ORDEAL_OVER_DMG = 0.04;   // wave damage added by each such point
 const THAELIS_ORDEAL_OVER_DMG_MAX = 0.20;
 const THAELIS_ORDEAL_SLOW_POINTS = 4;   // such points that make the next wave leave a slowing lane
 const THAELIS_WAVE_GATE_MS = 900;
+const THAELIS_CLOSE_RADIUS = 190;
+const THAELIS_SLASH_REACH = 240;
+const THAELIS_SLASH_SPAN = 2.0;
+const THAELIS_CLOSE_MULT = 1.6;
+// Strike time equals THAELIS_WAVE_GATE_MS + render's THAELIS_SWING_MS (240 ms).
+const THAELIS_SLASH_STRIKE_MS = THAELIS_WAVE_GATE_MS + 240;
+const THAELIS_SLASH_FADE_MS = 900;
+const THAELIS_SLASH_MAX = 6;
+const THAELIS_PARRY_CLOSE_BONUS = 0.20;
 const THAELIS_WAVE_HALF_WIDTH = 100;    // Marchosias's blade has radius 88
 const THAELIS_WAVE_SPEED = 15;
 const THAELIS_WAVE_FRONT = 36;
@@ -381,13 +390,18 @@ const THAELIS_PARRY_BUSY_MS = 400;          // after a wave's gate closes the ax
 // Rolls the parry for one hit. Damage over time and the Spirit Laser cannot be parried, nor can anything that
 // passes Iron Body. The axe can parry while Ulysses' Return gathers, but not while it chops.
 function _thaelisTryParry(enemy, source) {
+    if (enemy.type !== 'thaelis') return false;
     if (!(source.damage > 0 || source.percentDamage > 0) || source._bypassIronBody || source.isSpiritLaser) return false;
     if (source.isTeslaDot || source._isDtuDot || source._isNocToiDot || source._isSthDot || source._isSrDot || source._isTyVenomDot) return false;
     if (_thaelisClock - (enemy._parryClock === undefined ? -1e9 : enemy._parryClock) < THAELIS_PARRY_CD_MS) return false;
     const castAge = _thaelisClock - (enemy._ordealCastAt === undefined ? -1e9 : enemy._ordealCastAt);
     if (castAge >= THAELIS_WAVE_GATE_MS && castAge < THAELIS_WAVE_GATE_MS + THAELIS_PARRY_BUSY_MS) return false;
-    if (Math.random() >= ((enemy.shield || 0) > 0 ? THAELIS_PARRY_CHANCE_SHIELDED : THAELIS_PARRY_CHANCE)) return false;
-    _thaelisParry(enemy, Number.isFinite(source.x) ? source.x : player.x, Number.isFinite(source.y) ? source.y : player.y);
+    const fromX = Number.isFinite(source.x) ? source.x : player.x;
+    const fromY = Number.isFinite(source.y) ? source.y : player.y;
+    const close = Math.hypot(fromX - enemy.x, fromY - enemy.y) <= THAELIS_CLOSE_RADIUS;
+    const chance = ((enemy.shield || 0) > 0 ? THAELIS_PARRY_CHANCE_SHIELDED : THAELIS_PARRY_CHANCE) + (close ? THAELIS_PARRY_CLOSE_BONUS : 0);
+    if (Math.random() >= chance) return false;
+    _thaelisParry(enemy, fromX, fromY);
     return true;
 }
 
@@ -410,6 +424,7 @@ function _thaelisOrdealInit(enemy, carryPoints) {
     enemy._ordealBonus = 0; enemy._ordealSlowPts = 0; enemy._ordealGlow = 0; enemy._ordealCastAt = -1e9;
     // render poses the warrior from the cast time (gather, then chop, then bá khí rising) and aims the chop along the wave
     enemy._ordealCastAngle = Math.PI / 2;
+    enemy._ordealClose = false;
     if (carryPoints > 0) _thaelisOrdealAddPoints(enemy, carryPoints);
 }
 
@@ -464,23 +479,37 @@ function updateThaelisOrdeal(enemy, deltaTime, now) {
     _castThaelisWave(enemy);
 }
 
-function _castThaelisWave(enemy) {
+function _castThaelisWave(enemy, forceClose = false) {
     const target = findClosestSentinelOrPlayer(enemy.x, enemy.y) || player;
     const angle = Math.atan2(target.y - enemy.y, target.x - enemy.x);
-    const slow = enemy._ordealSlowPts >= THAELIS_ORDEAL_SLOW_POINTS;
-    // Tenacity: +3.5% wave speed per 0.5% HP lost, capped at +25%
-    const speedBonus = Math.min(0.25, (1 - enemy.hp / enemy.maxHp) * 7.0);
-    _thaelisWaves.push({
-        type: 'thaelis_wave', phase: 'gate', timer: THAELIS_WAVE_GATE_MS, dur: THAELIS_WAVE_GATE_MS,
-        ox: enemy.x, oy: enemy.y, x: enemy.x, y: enemy.y, angle: angle,
-        halfWidth: THAELIS_WAVE_HALF_WIDTH, radius: THAELIS_WAVE_HALF_WIDTH,
-        speed: THAELIS_WAVE_SPEED * (1 + speedBonus), s: 0, prevS: 0,
-        // a turned wave goes back to its caster, so the Dau reflect reads the owner and the heading
-        owner: enemy, vx: Math.cos(angle) * THAELIS_WAVE_SPEED * (1 + speedBonus), vy: Math.sin(angle) * THAELIS_WAVE_SPEED * (1 + speedBonus),
-        atk: (enemy.type === 'thaelis_cocoon' ? enemy._ordealAtk || 0 : (enemy.atk || 0) * _enemyEnrageMult(enemy)) * (1 + enemy._ordealBonus),
-        len: _thaelisLaneLength(enemy.x, enemy.y, angle),
-        slow: slow, hitPlayer: false, hitEnemies: [], born: _thaelisClock,
-    });
+    const close = enemy.type === 'thaelis' && (forceClose || Math.hypot(target.x - enemy.x, target.y - enemy.y) <= THAELIS_CLOSE_RADIUS);
+    if (close && _thaelisSlashes.length >= THAELIS_SLASH_MAX) return;
+    const slow = !close && enemy._ordealSlowPts >= THAELIS_ORDEAL_SLOW_POINTS;
+    if (close) {
+        _thaelisSlashes.push({
+            type: 'thaelis_slash', phase: 'gate', timer: THAELIS_SLASH_STRIKE_MS,
+            ox: enemy.x, oy: enemy.y, x: enemy.x, y: enemy.y, angle: angle,
+            reach: THAELIS_SLASH_REACH, span: THAELIS_SLASH_SPAN,
+            atk: (enemy.atk || 0) * _enemyEnrageMult(enemy) * (1 + enemy._ordealBonus),
+            owner: enemy, hitPlayer: false, hitEnemies: [], born: _thaelisClock,
+            targeted: target === player
+        });
+    } else {
+        // Tenacity: +3.5% wave speed per 0.5% HP lost, capped at +25%
+        const speedBonus = Math.min(0.25, (1 - enemy.hp / enemy.maxHp) * 7.0);
+        _thaelisWaves.push({
+            type: 'thaelis_wave', phase: 'gate', timer: THAELIS_WAVE_GATE_MS, dur: THAELIS_WAVE_GATE_MS,
+            ox: enemy.x, oy: enemy.y, x: enemy.x, y: enemy.y, angle: angle,
+            halfWidth: THAELIS_WAVE_HALF_WIDTH, radius: THAELIS_WAVE_HALF_WIDTH,
+            speed: THAELIS_WAVE_SPEED * (1 + speedBonus), s: 0, prevS: 0,
+            // a turned wave goes back to its caster, so the Dau reflect reads the owner and the heading
+            owner: enemy, vx: Math.cos(angle) * THAELIS_WAVE_SPEED * (1 + speedBonus), vy: Math.sin(angle) * THAELIS_WAVE_SPEED * (1 + speedBonus),
+            atk: (enemy.type === 'thaelis_cocoon' ? enemy._ordealAtk || 0 : (enemy.atk || 0) * _enemyEnrageMult(enemy)) * (1 + enemy._ordealBonus),
+            len: _thaelisLaneLength(enemy.x, enemy.y, angle),
+            slow: slow, hitPlayer: false, hitEnemies: [], born: _thaelisClock,
+        });
+    }
+    enemy._ordealClose = close;
     enemy._ordealQueue--;
     enemy._ordealCd = THAELIS_ORDEAL_CD;
     enemy._ordealBonus = 0;
@@ -551,9 +580,67 @@ function _thaelisAudioReset() {
     if (window.AudioMgr) window.AudioMgr.stopThaelisIdle();
 }
 
+// Circle against a finite sector, including the radial edges and the origin.
+function _thaelisSlashHits(s, px, py, radius) {
+    const dx = px - s.ox, dy = py - s.oy, d = Math.hypot(dx, dy);
+    const rad = Math.max(0, radius || 0);
+    if (d <= rad) return true;
+    if (d > s.reach + rad) return false;
+    const delta = Math.atan2(Math.sin(Math.atan2(dy, dx) - s.angle), Math.cos(Math.atan2(dy, dx) - s.angle));
+    if (Math.abs(delta) <= s.span / 2) return true;
+    const edge = s.angle + (delta < 0 ? -s.span / 2 : s.span / 2);
+    const along = Math.max(0, Math.min(s.reach, dx * Math.cos(edge) + dy * Math.sin(edge)));
+    return Math.hypot(dx - along * Math.cos(edge), dy - along * Math.sin(edge)) <= rad;
+}
+
+function _thaelisStrikeSlash(s) {
+    if (_thaelisSlashHits(s, player.x, player.y, player.hitRadius)) {
+        s.hitPlayer = true;
+        if (typeof _yuushaPierceRedirect !== 'function' || !_yuushaPierceRedirect(THAELIS_WAVE_COEFF[0] * s.atk, false, s)) playerTakesHit(s);
+        if (window.AudioMgr) window.AudioMgr.playSfxAt('thaelis-wave-hit', player.x, player.y);
+    }
+    for (const target of sentinels) {
+        if (s.hitEnemies.includes(target) || !_thaelisSlashHits(s, target.x, target.y, target.size)) continue;
+        dealDamage(target, { damage: THAELIS_CLOSE_MULT * THAELIS_WAVE_COEFF[0] * s.atk, _noHitSfx: true, _attackerType: 'thaelis', _capSource: s, _capKind: 'skill' });
+        s.hitEnemies.push(target);
+        if (window.AudioMgr) window.AudioMgr.playSfxAt('thaelis-wave-hit', target.x, target.y);
+    }
+    for (let li = 0; li < 2; li++) {
+        const list = li === 0 ? bullets : spiritBullets;
+        for (let j = list.length - 1; j >= 0; j--) {
+            const b = list[j];
+            if (!Number.isFinite(b.x) || !Number.isFinite(b.y) || !_thaelisSlashHits(s, b.x, b.y, (b.size || 6) * 0.5)) continue;
+            if (_thaelisCutFx.length < 24) _thaelisCutFx.push({ x: b.x, y: b.y, angle: s.angle, age: 0 });
+            list.splice(j, 1);
+        }
+    }
+    if (window.AudioMgr) {
+        window.AudioMgr.playSfxAt('thaelis-wave-sweep', s.ox, s.oy);
+        window.AudioMgr.playSfxAt('thaelis-ulysses-slash', s.ox, s.oy);
+    }
+    if (typeof _setShake === 'function') _setShake(14, 320);
+    const now = performance.now();
+    if (!window._kanadeCutscene && !window._tutorialActive && !(window._hitStopUntil > now)) window._hitStopUntil = now + 70;
+}
+
+function updateThaelisSlashes() {
+    for (let i = _thaelisSlashes.length - 1; i >= 0; i--) {
+        const s = _thaelisSlashes[i], age = _thaelisClock - s.born;
+        s.timer = Math.max(0, THAELIS_SLASH_STRIKE_MS - age);
+        if (s.phase === 'gate' && age >= THAELIS_SLASH_STRIKE_MS) {
+            s.phase = 'strike';
+            _thaelisStrikeSlash(s);
+        }
+        if (s.phase === 'strike' && age >= THAELIS_SLASH_STRIKE_MS + 220) s.phase = 'fade';
+        if (age >= THAELIS_WAVE_GATE_MS + 1500 && s.owner._ordealCastAt === s.born) s.owner._ordealClose = false;
+        if (age >= THAELIS_WAVE_GATE_MS + 1500) _thaelisSlashes.splice(i, 1);
+    }
+}
+
 function updateThaelisWaves(deltaTime) {
     _thaelisIdleTick();
     _thaelisClock += deltaTime;
+    updateThaelisSlashes();
     for (let i = _thaelisDeathFx.length - 1; i >= 0; i--) {
         _thaelisDeathFx[i].age += deltaTime;
         if (_thaelisDeathFx[i].age > _thaelisDeathFx[i].dur) _thaelisDeathFx.splice(i, 1);

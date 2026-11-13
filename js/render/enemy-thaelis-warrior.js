@@ -21,7 +21,7 @@ const _THAELIS_ART = {
     // the axe lies along +x, butt on the left, the blade on the right. pivot = grip, as a fraction of the width,
     // len = whole sprite width in r, head = where the blade meets the haft, as a fraction of the width,
     // bladeOff = how far the middle of the blade hangs off the haft, in r (0 for a blade mirrored about the haft)
-    axe: { src: 'assets/images/game/enemies/thaelis-axe.png', len: 2.05, pivot: 0.17, head: 0.86, bladeOff: 0.55 },
+    axe: { src: 'assets/images/game/enemies/thaelis-axe.png', len: 2.49, pivot: 0.17, head: 0.74, bladeOff: 0.5 },
     // chest centre at the image centre, drawn additive (black is invisible). widthR = whole image width in r.
     // body only: the phantom's axe arm is drawn live so it can chop
     phantom: { src: 'assets/images/game/effects/thaelis-bakhi-phantom.png', widthR: 6.9 },
@@ -35,7 +35,7 @@ const THAELIS_SWING_MS = 240;   // the chop, right when the wave's gate closes
 const THAELIS_RELEASE_MS = 1500; // bá khí rising after the chop
 const THAELIS_PARRY_SWING_MS = 130, THAELIS_PARRY_MS = 420; // Penelope's Shroud parry: the cut across the hit, then the whole move
 
-const _twCast = { kind: 0, p: 0, angle: Math.PI / 2 };   // kind: 0 idle, 1 gather, 2 chop, 3 release
+const _twCast = { kind: 0, p: 0, angle: Math.PI / 2, close: false };   // kind: 0 idle, 1 gather, 2 chop, 3 release
 const _twPose = { ang: 0, hx: 0, hy: 0, glow: 0, sweep: 0, armOff: 0, trail: 0 };
 let _twArmorSprite = null, _twAxeSprite = null, _twPhantomSprite = null, _twGhostAxeSprite = null;
 // where the phantom's axe is this frame, for the black lightning that follows it
@@ -76,7 +76,7 @@ function _twRequestArt() {
 // where Ulysses' Return stands, read off the cast time: gather (the wave's gate), chop, release
 function _thaelisCastState(enemy) {
     const c = _twCast;
-    c.kind = 0; c.p = 0;
+    c.kind = 0; c.p = 0; c.close = !!enemy._ordealClose;
     if (enemy._ordealCastAt === undefined) return c;
     const age = _thaelisClock - enemy._ordealCastAt;
     c.angle = enemy._ordealCastAngle === undefined ? Math.PI / 2 : enemy._ordealCastAngle;
@@ -369,7 +369,7 @@ const _TW_IDLE = { ang: -1.2, hx: 1.28, hy: 0.12 };    // hangs upright at the s
 const _TW_COCK = { ang: -2.3, hx: 0.95, hy: -1.15 };   // raised high and cocked back
 // the wind-up: just before the chop the axe draws back further against the swing (back = radians, dx and dy = how far
 // the grip travels, in r), so the chop starts from a longer run and covers a much bigger arc
-const _TW_WINDUP = { back: 0.85, dx: 0.45, dy: 0.2 };
+const _TW_WINDUP = { back: 1.05, dx: 0.55, dy: 0.26 };
 const _TW_MAX_SMEAR = 3.7;
 // Penelope's Shroud parry: the axe whips across the line the hit came down, then eases back to the pose it held, which is
 // the hanging pose when idle and the gather pose while Ulysses' Return is being gathered
@@ -404,7 +404,7 @@ function _twComputePose(cast, now, enemy) {
     let delta = ((aim - _TW_COCK.ang) % _TW_TAU + _TW_TAU) % _TW_TAU;
     if (delta > Math.PI * 1.25) delta -= _TW_TAU;
     const endHx = 0.9 + Math.cos(aim) * 0.7, endHy = Math.max(-1.1, -0.1 + Math.sin(aim) * 0.7);
-    const sgn = delta >= 0 ? 1 : -1, back = _TW_WINDUP.back;
+    const sgn = delta >= 0 ? 1 : -1, back = _TW_WINDUP.back * (cast.close ? 1.25 : 1);
     if (cast.kind === 1) {
         const t = _twEaseOut(cast.p * 1.3), tr = 0.015 + 0.05 * cast.p;
         // over the last of the gather the axe draws back against the swing and shakes with held power
@@ -475,7 +475,7 @@ function _drawThaelisAxe(enemy, r, now, cast) {
         ctx.lineCap = 'round';
         for (let k = 0; k < 3; k++) {
             ctx.strokeStyle = k === 0 ? 'rgba(224, 36, 44, 0.42)' : k === 1 ? 'rgba(255, 110, 70, 0.55)' : 'rgba(255, 240, 210, 0.7)';
-            ctx.lineWidth = r * (0.66 - k * 0.22);
+            ctx.lineWidth = r * (0.66 - k * 0.22) * (cast.close ? 1.4 : 1);
             ctx.beginPath();
             ctx.arc(P.hx * r, P.hy * r, len * (0.92 + k * 0.04), P.ang - dir * trail, P.ang, dir < 0);
             ctx.stroke();
@@ -493,7 +493,11 @@ function _drawThaelisAxe(enemy, r, now, cast) {
     if (_twGlowOn()) { ctx.shadowColor = 'rgba(255, 50, 40, 0.9)'; ctx.shadowBlur = 6 + 14 * P.glow; }
     ctx.drawImage(img || spr.canvas, -A.pivot * aw, -ah / 2, aw, ah);
     ctx.shadowBlur = 0;
+    _drawThaelisAxeAura(img || spr.canvas, aw, ah, A.pivot, P.glow, now);
+    ctx.shadowBlur = 0;
     ctx.restore();
+
+    _drawThaelisAxeFlames(P, r, now, cast);
 
     // the blades gather red light as the cast builds
     if (P.glow > 0.02) {
@@ -651,12 +655,17 @@ function _drawThaelisGroundCracks(enemy, r, now, cast) {
 
 // the phantom's own axe: the same two-headed axe, burnt down to a crimson glow
 function _twGetGhostAxe() {
-    if (_twGhostAxeSprite) return _twGhostAxeSprite;
-    const base = _twGetAxe(), pad = 30;
+    const source = _twImg('axe');
+    const glow = !!_twGlowOn();
+    if (_twGhostAxeSprite && _twGhostAxeSprite.source === source && _twGhostAxeSprite.glow === glow) return _twGhostAxeSprite;
+    const img = _twImg('axe'), fallback = img ? null : _twGetAxe();
+    const bakeWidth = img ? Math.min(512, img.naturalWidth) : 0;
+    const base = img ? { canvas: img, w: bakeWidth, h: Math.round(bakeWidth * img.naturalHeight / img.naturalWidth) } : fallback;
+    const pad = 30;
     const tint = document.createElement('canvas');
     tint.width = base.w; tint.height = base.h;
     const t = tint.getContext('2d');
-    t.drawImage(base.canvas, 0, 0);
+    t.drawImage(base.canvas, 0, 0, base.w, base.h);
     t.globalCompositeOperation = 'source-in';
     const g = t.createLinearGradient(0, 0, base.w, 0);
     g.addColorStop(0, 'rgb(150, 20, 28)'); g.addColorStop(0.7, 'rgb(240, 60, 44)'); g.addColorStop(1, 'rgb(255, 190, 140)');
@@ -664,10 +673,10 @@ function _twGetGhostAxe() {
     const off = document.createElement('canvas');
     off.width = base.w + pad * 2; off.height = base.h + pad * 2;
     const c = off.getContext('2d');
-    c.shadowColor = 'rgba(255, 50, 40, 1)'; c.shadowBlur = 22;
+    c.shadowColor = 'rgba(255, 50, 40, 1)'; c.shadowBlur = glow ? 22 : 0;
     c.globalAlpha = 0.85; c.drawImage(tint, pad, pad);
     c.shadowBlur = 0; c.globalAlpha = 0.5; c.drawImage(tint, pad, pad);
-    _twGhostAxeSprite = { canvas: off, w: base.w, h: base.h, pad: pad };
+    _twGhostAxeSprite = { canvas: off, w: base.w, h: base.h, pad: pad, source: source, glow: glow };
     return _twGhostAxeSprite;
 }
 
@@ -679,7 +688,7 @@ function _drawThaelisPhantom(enemy, r, now, cast) {
     if (cast.kind === 0) return;
     let k, rise = 0, scale = 1, lunge = 0;
     if (cast.kind === 1) { k = _twEaseOut(cast.p * 1.15); scale = 0.74 + 0.26 * k; rise = (1 - k) * 0.35 * r; }
-    else if (cast.kind === 2) { k = 1; scale = 1 + 0.07 * cast.p; lunge = Math.sin(cast.p * Math.PI) * 0.45 * r; }
+    else if (cast.kind === 2) { k = 1; scale = 1 + 0.07 * cast.p; lunge = Math.sin(cast.p * Math.PI) * (cast.close ? 0.85 : 0.45) * r; }
     else { k = Math.pow(1 - cast.p, 1.4); scale = 1.07 + 0.1 * cast.p; rise = -cast.p * 1.3 * r; }
     if (k <= 0.01) return;
     const P = _twComputePose(cast, now, null);
@@ -1023,6 +1032,8 @@ function _twDrawAxeAt(x, y, ang, r, alpha) {
     ctx.rotate(ang);
     ctx.globalAlpha = alpha;
     ctx.drawImage(img || spr.canvas, -A.pivot * aw, -ah / 2, aw, ah);
+    ctx.shadowBlur = 0;
+    _drawThaelisAxeAura(img || spr.canvas, aw, ah, A.pivot, 0.3, performance.now());
     ctx.restore();
 }
 
@@ -1216,4 +1227,154 @@ function _drawThaelisDeathFx() {
         }
         ctx.restore();
     }
+}
+
+// Aura follows the axe silhouette and is baked once for each image source.
+let _twAxeAura = null, _twAxeAuraSource = null;
+function _drawThaelisAxeAura(source, w, h, pivot, power, now) {
+    if (!_twGlowOn()) return;
+    if (_twAxeAuraSource !== source) {
+        _twAxeAuraSource = source;
+        _twAxeAura = document.createElement('canvas');
+        _twAxeAura.width = Math.min(512, source.naturalWidth || source.width);
+        _twAxeAura.height = Math.round(_twAxeAura.width * (source.naturalHeight || source.height) / (source.naturalWidth || source.width));
+        const c = _twAxeAura.getContext('2d');
+        c.drawImage(source, 0, 0, _twAxeAura.width, _twAxeAura.height);
+        c.globalCompositeOperation = 'source-in';
+        c.fillStyle = '#ef2032'; c.fillRect(0, 0, _twAxeAura.width, _twAxeAura.height);
+    }
+    ctx.save(); ctx.globalCompositeOperation = 'lighter';
+    const pulse = 0.85 + 0.15 * Math.sin(now / 85), baseAlpha = ctx.globalAlpha;
+    const copies = _twCount(1, 2);
+    for (let i = 0; i < copies; i++) {
+        const scale = 1.035 + i * 0.035 + power * 0.025;
+        ctx.globalAlpha = baseAlpha * (0.12 + power * 0.19) * pulse / (i + 1);
+        ctx.shadowColor = '#ed182c'; ctx.shadowBlur = 5 + power * 12;
+        ctx.drawImage(_twAxeAura, -pivot * w * scale, -h * scale / 2, w * scale, h * scale);
+    }
+    ctx.restore();
+}
+
+function _drawThaelisSlashes() {
+    if (typeof _thaelisSlashes === 'undefined') return;
+    const now = performance.now(), fo = window._fxOpts || {}, tier = _twTier();
+    for (let j = 0; j < _thaelisSlashes.length; j++) {
+        const s = _thaelisSlashes[j], age = _thaelisClock - s.born;
+        if (age < THAELIS_SLASH_STRIKE_MS) {
+            const p = Math.min(1, age / THAELIS_WAVE_GATE_MS);
+            _drawDangerZone('sector', s.ox, s.oy, s.reach, p, 0.6, now, s.angle, 0, s.span, s.targeted, false);
+            if (tier >= 3) continue;
+            ctx.save(); ctx.translate(s.ox, s.oy); ctx.rotate(s.angle);
+            ctx.strokeStyle = '#e73537'; ctx.lineWidth = 1.5;
+            const rings = _twCount(2, 4);
+            for (let k = 0; k < rings; k++) {
+                const q = (p + k / rings) % 1;
+                ctx.globalAlpha = 0.45 * q;
+                ctx.beginPath(); ctx.arc(0, 0, s.reach * (1 - q), -s.span / 2, s.span / 2); ctx.stroke();
+            }
+            if (fo.particles !== false) {
+                const n = _twCount(4, 12); ctx.fillStyle = '#ffbc83';
+                const pose = _twComputePose(_thaelisCastState(s.owner), now, s.owner), r = s.owner.size / 2;
+                const head = (_THAELIS_ART.axe.head - _THAELIS_ART.axe.pivot) * _THAELIS_ART.axe.len * r;
+                const off = _THAELIS_ART.axe.bladeOff * r * _twBladeFlip(_twCast);
+                const wx = pose.hx * r + Math.cos(pose.ang) * head - Math.sin(pose.ang) * off;
+                const wy = pose.hy * r + Math.sin(pose.ang) * head + Math.cos(pose.ang) * off;
+                const tipX = wx * Math.cos(s.angle) + wy * Math.sin(s.angle), tipY = -wx * Math.sin(s.angle) + wy * Math.cos(s.angle);
+                for (let k = 0; k < n; k++) {
+                    const q = (p * 2 + k / n) % 1, a = -s.span / 2 + s.span * ((k * 0.618) % 1);
+                    const d = s.reach * (1 - q);
+                    ctx.globalAlpha = q * 0.8; ctx.fillRect(Math.cos(a) * d + tipX * q, Math.sin(a) * d + tipY * q, 2, 2);
+                }
+            }
+            ctx.restore(); continue;
+        }
+        const hitAge = age - THAELIS_SLASH_STRIKE_MS;
+        if (hitAge >= THAELIS_SLASH_FADE_MS) continue;
+        const fade = 1 - hitAge / THAELIS_SLASH_FADE_MS, q = Math.min(1, hitAge / 220);
+        if (tier < 3 && fo.screenFlash !== false && hitAge < 90) {
+            ctx.save(); ctx.setTransform(1, 0, 0, 1, 0, 0);
+            ctx.globalAlpha = 0.16 * (1 - hitAge / 90) * (fo.flashIntensity == null ? 1 : fo.flashIntensity / 100);
+            ctx.fillStyle = '#ffe4d0'; ctx.fillRect(0, 0, canvas.width, canvas.height); ctx.restore();
+        }
+        ctx.save(); ctx.translate(s.ox, s.oy); ctx.rotate(s.angle); ctx.lineCap = 'round';
+        ctx.globalCompositeOperation = 'lighter';
+        if (q < 1) {
+            if (_twGlowOn()) { ctx.shadowBlur = 12; ctx.shadowColor = '#ee2537'; }
+            const layers = _twCount(3, 3);
+            for (let k = 0; k < layers; k++) {
+                ctx.globalAlpha = (1 - q) * 0.9;
+                ctx.strokeStyle = k === 0 ? '#941322' : k === 1 ? '#ff7944' : '#fff0d9';
+                ctx.lineWidth = (30 - k * 10) * (1 - q * 0.55);
+                ctx.beginPath(); ctx.arc(0, 0, s.reach * (0.88 + k * 0.035), -s.span / 2, s.span / 2); ctx.stroke();
+            }
+            ctx.shadowBlur = 0;
+        }
+        const shock = Math.min(1, hitAge / 340);
+        if (shock < 1) {
+            ctx.globalAlpha = 0.8 * (1 - shock); ctx.strokeStyle = '#ffba83'; ctx.lineWidth = 3 * (1 - shock) + 1;
+            ctx.beginPath(); ctx.arc(0, 0, s.reach * _twEaseOut(shock), -s.span / 2, s.span / 2); ctx.stroke();
+        }
+        if (tier < 3) {
+            const cracks = _twCount(6, 12);
+            for (let pass = 0; pass < 2; pass++) {
+                ctx.strokeStyle = pass ? '#ffb17c' : '#8e1821'; ctx.lineWidth = pass ? 1.4 : 4;
+                ctx.globalAlpha = fade * (pass ? 0.75 : 0.6);
+                for (let k = 0; k < cracks; k++) {
+                    const a = -s.span / 2 + s.span * (k + 0.5) / cracks, d = s.reach * (0.7 + 0.3 * ((k * 0.618) % 1)) * _twEaseOut(Math.min(1, hitAge / 100));
+                    ctx.beginPath(); ctx.moveTo(0, 0);
+                    ctx.lineTo(Math.cos(a + 0.05) * d * 0.4, Math.sin(a + 0.05) * d * 0.4);
+                    ctx.lineTo(Math.cos(a - 0.07) * d * 0.7, Math.sin(a - 0.07) * d * 0.7);
+                    ctx.lineTo(Math.cos(a) * d, Math.sin(a) * d); ctx.stroke();
+                }
+            }
+            if (fo.trails !== false && q < 1) {
+                const lines = _twCount(3, 8);
+                ctx.strokeStyle = '#ffe5b0'; ctx.lineWidth = 1; ctx.globalAlpha = 0.7 * (1 - q);
+                for (let k = 0; k < lines; k++) {
+                    const a = -s.span / 2 + k / lines * s.span, d = s.reach * (0.6 + q * 0.4);
+                    ctx.beginPath(); ctx.arc(0, 0, d, a, a + 0.2); ctx.stroke();
+                }
+            }
+            if (fo.particles !== false) {
+                const rocks = _twCount(6, 16), t = hitAge / 900;
+                for (let k = 0; k < rocks; k++) {
+                    const a = -s.span / 2 + s.span * ((k * 0.618) % 1), d = s.reach * (0.4 + t * 0.8);
+                    const x = Math.cos(a) * d, y = Math.sin(a) * d - Math.sin(t * Math.PI) * (20 + k % 4 * 8);
+                    ctx.globalAlpha = fade; ctx.fillStyle = k % 2 ? '#ffcc73' : '#6d3030';
+                    ctx.fillRect(x, y, k % 2 ? 2 : 5, k % 2 ? 2 : 4);
+                }
+            }
+        }
+        ctx.restore();
+    }
+}
+
+// Dark flame tongues rise in world space from the axe's cutting edge.
+function _drawThaelisAxeFlames(pose, r, now, cast) {
+    if (_twTier() >= 3 || (window._fxOpts && window._fxOpts.particles === false)) return;
+    const A = _THAELIS_ART.axe, head = (A.head - A.pivot) * A.len * r;
+    const flip = _twBladeFlip(cast), ca = Math.cos(pose.ang), sa = Math.sin(pose.ang);
+    const count = _twCount(3, 8), power = 0.45 + pose.glow * 0.55;
+    ctx.save();
+    ctx.globalCompositeOperation = 'source-over';
+    if (_twGlowOn()) { ctx.shadowColor = '#a90e27'; ctx.shadowBlur = 4 + 4 * power; }
+    for (let i = 0; i < count; i++) {
+        const a = 0.15 + (i + 0.5) / count * 2.85;
+        const ax = head + Math.cos(a) * 0.53 * r, ay = (0.34 + Math.sin(a) * 0.48) * r * flip;
+        const x = pose.hx * r + ca * ax - sa * ay, y = pose.hy * r + sa * ax + ca * ay;
+        const wave = Math.sin(now / 145 + i * 2.3), length = r * (0.13 + 0.1 * (0.5 + 0.5 * wave)) * power;
+        const w = r * (0.032 + 0.015 * (i % 3) / 2), lean = Math.sin(now / 190 + i * 1.7) * w * 1.6;
+        ctx.globalAlpha = 0.75 + 0.15 * power;
+        ctx.fillStyle = '#ad1931';
+        ctx.beginPath(); ctx.moveTo(x - w, y + w * 0.35);
+        ctx.bezierCurveTo(x - w * 1.8, y - length * 0.3, x + lean + w, y - length * 0.55, x + lean, y - length);
+        ctx.bezierCurveTo(x + lean - w * 0.6, y - length * 0.6, x + w * 1.7, y - length * 0.25, x + w, y + w * 0.35);
+        ctx.closePath(); ctx.fill();
+        ctx.fillStyle = '#100914';
+        ctx.beginPath(); ctx.moveTo(x - w * 0.65, y);
+        ctx.bezierCurveTo(x - w * 0.9, y - length * 0.25, x + lean, y - length * 0.45, x + lean * 0.85, y - length * 0.82);
+        ctx.bezierCurveTo(x + lean - w * 0.2, y - length * 0.45, x + w, y - length * 0.2, x + w * 0.65, y);
+        ctx.closePath(); ctx.fill();
+    }
+    ctx.restore();
 }

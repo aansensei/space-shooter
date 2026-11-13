@@ -74,6 +74,7 @@
         'assets/images/game/icons/blood-arrow-stack.png',
         'assets/images/game/enemies/marchosias-hexagon-armor.png',
         'assets/images/game/enemies/thaelis-cocoon.png',
+        'assets/images/game/enemies/thaelis-axe.png',
         'assets/images/game/enemies/uriel-divine-core.png',
         'assets/images/game/enemies/uriel-holy-sword.png',
         'assets/images/game/enemies/ammit-pyramid.png',

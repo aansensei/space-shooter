@@ -3643,7 +3643,7 @@ function startGame() {
     bossShockwaves = [];
     raphaelLasers = [];
     marchosiasBlades = [];
-    _thaelisWaves.length = 0; _thaelisCutFx.length = 0; _thaelisDeathFx.length = 0; _thaelisClock = 0;
+    _thaelisWaves.length = 0; _thaelisSlashes.length = 0; _thaelisCutFx.length = 0; _thaelisDeathFx.length = 0; _thaelisClock = 0;
     window._levDeathLasers = [];
     window._levDeathLaserSoundPending = false;
     window._levPersBeams = [];
