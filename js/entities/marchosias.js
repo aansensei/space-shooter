@@ -119,7 +119,7 @@ function _applyArcBarrierBodyHeal(enemy, dmg) {
     }
 }
 
-const MARCH_BREAK_IRON_BODY = 4, MARCH_BREAK_IRON_BODY_LOW = 6, MARCH_IRON_BODY_CAP = 6, MARCH_IRON_BODY_BEAT_MS = 250;
+const MARCH_BREAK_IRON_BODY = 5, MARCH_BREAK_IRON_BODY_LOW = 7, MARCH_IRON_BODY_CAP = 7, MARCH_IRON_BODY_BEAT_MS = 250;
 
 // Breaking the barrier sends out a shockwave: a ship caught close to Marchosias is slowed by 25% for a second.
 const MARCH_SHOCK_RANGE = 420, MARCH_SHOCK_MS = 1000, MARCH_SHOCK_SLOW = 0.75;
@@ -174,7 +174,7 @@ function _triggerArcBarrierBreak(enemy) {
     });
     _tryTriggerMarchosiasCounter(enemy);
     _marchosiasBreakShock(enemy);
-    // 4 Iron Body layers (6 when the barrier breaks below 30% HP), never more than 6 at once. They are counted one per
+    // 5 Iron Body layers (7 when the barrier breaks below 30% HP), never more than 7 at once. They are counted one per
     // beat and ignore damage over time, see the Iron Body block in dealDamage (entities/core.js)
     enemy.ironBodyHits = Math.min(MARCH_IRON_BODY_CAP, (enemy.ironBodyHits || 0) + (enemy.hp < enemy.maxHp * 0.30 ? MARCH_BREAK_IRON_BODY_LOW : MARCH_BREAK_IRON_BODY));
     // docs/combat-scaling-rebalance.md Part 3

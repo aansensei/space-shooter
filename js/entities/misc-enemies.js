@@ -104,7 +104,7 @@ const THAELIS_REVIVE_INVULN_MS = 1000;
 const THAELIS_COCOON_RETRIGGER_COOLDOWN_MS = 12000; // a revived Thaelis can't cocoon again this soon if it dies right away
 // Iron Body counts one layer per beat, like Raphael's Custos but quicker, so a burst spends one layer
 const THAELIS_IRON_BODY_BEAT_MS = 200;
-const THAELIS_REVIVE_IRON_BODY = 4; // Iron Body layers (one whole hit each) a Thaelis wears after climbing out of its Cocoon
+const THAELIS_REVIVE_IRON_BODY = 5; // Iron Body layers (one whole hit each) a Thaelis wears after climbing out of its Cocoon
 
 // angle is passed when respawning, so the replacement stands where the dead
 // guard stood rather than on top of one that's still alive

@@ -1161,7 +1161,7 @@ function drawEnemy(enemy) {
 
     // Marchosias Iron Body: one pip per layer left above the shield bar, and a short white ring when a layer blocks a hit
     if (enemy.type === 'marchosias' && enemy.ironBodyHits > 0 && !enemy._deathPhase) {
-        const n = Math.min(6, enemy.ironBodyHits), py = enemy.y - enemy.size / 2 - 27;
+        const n = Math.min(7, enemy.ironBodyHits), py = enemy.y - enemy.size / 2 - 27;
         ctx.save();
         ctx.fillStyle = '#ffd700';
         ctx.strokeStyle = 'rgba(0,0,0,0.6)';
