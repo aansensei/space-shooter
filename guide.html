@@ -1,14 +1,5 @@
 <!DOCTYPE html>
 <!-- Pisces: Space Journey. Copyright (c) 2024 An Nguyen. Licensed under the PolyForm Noncommercial License 1.0.0. -->
-<!--
-  guide.html. standalone reference page (mechanics, skills, enemies). no engine code loads here, nothing shared with js/.
-
-  tabs are plain html/css/js, no framework. each tab has a live canvas demo with its own requestAnimationFrame loop,
-  all local to this file. demos are drawn from scratch with canvas 2d, no engine code reused.
-  css vars at the top (--cyan, --purple, --gold ...) keep the palette the same everywhere.
-
-  opening this page auto pauses the game bc input.js listens to visibilitychange and sets gamePaused when the tab hides.
--->
 <html lang="en">
 
 <head>
@@ -16,6 +7,14 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Pisces: Space Journey Guide | Space Shooter Skills, Bosses and Sigils</title>
   <script>
+    // guide.html. standalone reference page (mechanics, skills, enemies). no engine code loads here, nothing shared with js/.
+    //
+    // tabs are plain html/css/js, no framework. each tab has a live canvas demo with its own requestAnimationFrame loop,
+    // all local to this file. demos are drawn from scratch with canvas 2d, no engine code reused.
+    // css vars at the top (--cyan, --purple, --gold ...) keep the palette the same everywhere.
+    //
+    // opening this page auto pauses the game bc input.js listens to visibilitychange and sets gamePaused when the tab hides.
+
     // Play / pause buttons get drawn icons (.ico-play, .ico-pause) with an
     // optional label after them.
     function _setBtnIcon(btn, icon, label) {
