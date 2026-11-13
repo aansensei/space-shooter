@@ -1,26 +1,26 @@
 <!DOCTYPE html>
 <!-- Pisces: Space Journey. Copyright (c) 2024 An Nguyen. Licensed under the PolyForm Noncommercial License 1.0.0. -->
+<!--
+// index.html. entry point + game shell, the title screen and the easter egg overlay live here.
+// all js loads at the bottom in a fixed order (config, entities, skills, render, input, main) bc every module
+// uses globals the previous one set up.
+//
+// star warp = its own star-canvas, perspective trick. each star has x y z, draw divides x and y by z every frame.
+// while isWarping speed ramps with Math.pow and the stars stretch into streaks.
+//
+// hyperjump btn = 3.5s timed seq: stars accelerate, progress bar fills (css cubic-bezier), white flash div fades in,
+// overlay hides, then realStartBtn.click() runs startGame() from the listener in input.js.
+//
+// mobile skill btns in #mc each have a tiny canvas for the cooldown ring, _startCooldownLoop reads lastSkillX +
+// the cooldown consts from config.js every frame. red X on all of them while player._silenced.
+//
+// F3 = debug panel (live fps + console mirror), the fps chip is display only.
+// window._returnToMainMenu brings the overlay back and restarts the star anim.
+-->
 <html lang="en">
 
 <head>
     <meta charset="UTF-8">
-    <script>
-    // index.html. entry point + game shell, the title screen and the easter egg overlay live here.
-    // all js loads at the bottom in a fixed order (config, entities, skills, render, input, main) bc every module
-    // uses globals the previous one set up.
-    //
-    // star warp = its own star-canvas, perspective trick. each star has x y z, draw divides x and y by z every frame.
-    // while isWarping speed ramps with Math.pow and the stars stretch into streaks.
-    //
-    // hyperjump btn = 3.5s timed seq: stars accelerate, progress bar fills (css cubic-bezier), white flash div fades in,
-    // overlay hides, then realStartBtn.click() runs startGame() from the listener in input.js.
-    //
-    // mobile skill btns in #mc each have a tiny canvas for the cooldown ring, _startCooldownLoop reads lastSkillX +
-    // the cooldown consts from config.js every frame. red X on all of them while player._silenced.
-    //
-    // F3 = debug panel (live fps + console mirror), the fps chip is display only.
-    // window._returnToMainMenu brings the overlay back and restarts the star anim.
-    </script>
     <script async src="https://www.googletagmanager.com/gtag/js?id=G-1NGWQ87NE8"></script>
     <script>
         // ga tag. consent denied by default so no cookies, localhost never counted
