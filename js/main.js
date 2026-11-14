@@ -2903,7 +2903,7 @@ function update(rawDeltaTime) {
         if (pa.countdown <= 0) {
             enemies.push({
                 x: pa.x, y: pa.y, size: pa.size,
-                speed: (1 + Math.random() * 2) * 0.8 * 0.8, // -20% vs a normal wave apostle
+                speed: (1 + Math.random() * 2) * 0.8 * 0.9, // 10% slower than a normal wave Apostle
                 hp: pa.hp, maxHp: pa.hp,
                 isTargetedByA: false, hitBySkillF: false, laserHit: false, shield: 0,
                 type: 'apostle', shootTimer: 1000,

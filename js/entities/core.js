@@ -1307,7 +1307,7 @@ function dealDamage(enemy, source) {
         combinedDR += 0.85; // docs/combat-scaling-rebalance.md Part 3
     }
 
-    // Veilshroud: 99% DR trong phantom, 40% base DR bình thường
+    // Veilshroud has 99% Phantom DR, 70% Veil Guard DR and 45% normal DR.
     // Alteration, mỗi đòn trúng có 40% né + kích hoạt phantom ngay lập tức
     if (enemy.type === 'veilshroud') {
         if (!enemy.inPhantom && !enemy.lightningPending && Math.random() < 0.40) {
@@ -1321,7 +1321,7 @@ function dealDamage(enemy, source) {
         if (enemy._veilHealDRExpiry && currentTime < enemy._veilHealDRExpiry) {
             combinedDR += 0.10; // Alteration heal DR buff: +10% for 3s after receiving heal (docs/combat-scaling-rebalance.md Part 3)
         }
-        combinedDR += enemy.inPhantom ? 0.99 : 0.40;
+        combinedDR += enemy.inPhantom ? 0.99 : (gameElapsedTime < (enemy._veilGuardUntil || 0) ? 0.70 : 0.45);
     }
 
     // veilshroud_echo: hoàn toàn bất tử

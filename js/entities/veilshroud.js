@@ -32,9 +32,9 @@ function spawnVeilshroud() {
         lightningTargetX: 0,
         lightningTargetY: 0,
         lightningTargetRef: null,
-        // Normal attack (−20% speed → interval × 1.25)
+        // Normal volley cadence
         shootTimer: 0,
-        shootInterval: 500,
+        shootInterval: 450,
         // Energy Accumulation: tracks damage absorbed during Phantom
         _phantomAbsorb: 0,
     });
@@ -71,6 +71,21 @@ function updateVeilshroud(enemy, deltaTime) {
 
     _capHoldBody(enemy, capX, capY);
 
+    // The exit burst counts simulation time and cancels on Phantom reentry.
+    if (enemy.type === 'veilshroud' && enemy._voidBurstTimer > 0) {
+        if (enemy.hp <= 0 || enemy.inPhantom || !enemies.includes(enemy)) {
+            enemy._voidBurstTimer = 0;
+        } else {
+            enemy._voidBurstTimer = Math.max(0, enemy._voidBurstTimer - deltaTime);
+            if (enemy._voidBurstTimer === 0) {
+                for (let i = 0; i < 10; i++) {
+                    _veilshroudFireBullet(enemy, i * Math.PI * 2 / 10, 4.8 * 0.60);
+                }
+                _phantomCue('phantom-exit', enemy, enemy.x, enemy.y);
+            }
+        }
+    }
+
     // Va chạm người chơi
     if (Math.hypot(enemy.x - player.x, enemy.y - player.y) < enemy.size / 2 + player.hitRadius) {
         playerTakesHit(enemy);
@@ -101,6 +116,10 @@ function updateVeilshroud(enemy, deltaTime) {
             const _eaShield = Math.min(1500, Math.ceil((0.45 * _eaAbsorbed + 240) * 1.15));
             _addEnemyShield(enemy, _eaShield);
             enemy._phantomAbsorb = 0;
+            if (enemy.type === 'veilshroud' && enemy.hp > 0 && enemies.includes(enemy)) {
+                enemy._voidBurstTimer = 400;
+                enemy._veilGuardUntil = gameElapsedTime + 750;
+            }
             _veilshroudBeginLightning(enemy);
         }
     }
@@ -134,7 +153,7 @@ function updateVeilshroud(enemy, deltaTime) {
         }
     }
 
-    // Normal attack: volley 2 viên / 400ms (không bắn khi phantom hoặc đang countdown)
+    // Normal volleys fire every 450ms outside Phantom and the lightning countdown.
     if (!enemy.inPhantom && !enemy.lightningPending) {
         enemy.shootTimer += deltaTime;
         if (enemy.shootTimer >= enemy.shootInterval) {
@@ -216,18 +235,22 @@ function _veilshroudFireVolley(enemy) {
     const baseAngle = Math.atan2(target.y - enemy.y, target.x - enemy.x);
     for (let i = 0; i < 2; i++) {
         const a = baseAngle + (i - 0.5) * 0.22;
-        const bulletHp = Math.max(10, Math.ceil(enemy.maxHp * 0.012));
-        enemies.push({
-            x: enemy.x, y: enemy.y,
-            vx: Math.cos(a) * 4.8, vy: Math.sin(a) * 4.8,
-            // Own-Max-HP category (docs/combat-scaling-rebalance.md Part 2):
-            // damage is a slice of Veilshroud's own bounded Max HP, decoupled
-            // from bulletHp, which stays a pure interception pool.
-            damage: 0.012 * _enemyHs(enemy), size: 9,
-            hp: bulletHp, maxHp: bulletHp,
-            type: 'enemy_bullet', shield: 0, ownerRef: enemy
-        });
+        _veilshroudFireBullet(enemy, a, 5.3);
     }
+}
+
+function _veilshroudFireBullet(enemy, a, speed) {
+    const bulletHp = Math.max(10, Math.ceil(enemy.maxHp * 0.012));
+    enemies.push({
+        x: enemy.x, y: enemy.y,
+        vx: Math.cos(a) * speed, vy: Math.sin(a) * speed,
+        // Own-Max-HP category (docs/combat-scaling-rebalance.md Part 2):
+        // damage is a slice of Veilshroud's own bounded Max HP, decoupled
+        // from bulletHp, which stays a pure interception pool.
+        damage: 0.012 * _enemyHs(enemy), size: 9,
+        hp: bulletHp, maxHp: bulletHp,
+        type: 'enemy_bullet', shield: 0, ownerRef: enemy
+    });
 }
 
 // VEILSHROUD ECHO UPDATE (Phantom Portal)

@@ -446,18 +446,18 @@ Spawns continuously from the start. HP starts between **22–42** and scales up 
 
 **Available after:** Wave 2 | **Spawn rate:** 12% → 25% | **Cap:** 2 on screen | **Score on kill:** HP × 6 points | **Speed:** 2.0 u/s
 
-HP: **1,320–3,300**. Innate **40% Damage Reduction**.
+HP: **1,320–3,300**. Innate **45% Damage Reduction**.
 
 A shifting entity that phases in and out of reality to avoid damage and punish careless positioning.
 
 **Passive — Void Echo (Phantom Portal)** — On death, leaves an **untargetable, immortal Phantom Portal** at the death position. When Veilshroud enters this form, the wave system counts it as dead, so the wave can progress without waiting for the portal to collapse.
 
-- **Seconds 0–3:** the portal births **real Apostles**, 2 every **600ms** (~10 total). Each is telegraphed by a dark patch at its spawn spot for 450ms before it forms. Apostle HP = `max(60, ceil(0.30 × total damage this Veilshroud took while in Phantom over its lifetime))`. Portal Apostles move **20% slower** than a normal wave Apostle.
+- **Seconds 0–3:** the portal births **real Apostles**, 2 every **600ms** (~10 total). Each is telegraphed by a dark patch at its spawn spot for 450ms before it forms. Apostle HP = `max(60, ceil(0.30 × total damage this Veilshroud took while in Phantom over its lifetime))`. Portal Apostles move **10% slower** than a normal wave Apostle.
 - **Second 5:** the portal **collapses**. White core flash, screen shake, and every ally-side projectile (bullets and Arc Blades) within **345px** is erased. A Player inside 345px at the instant of collapse loses **1 life** (the normal save stack still applies: Dream Realm, Great Sage, Yog-Sothoth, Skill A's orb, Final Defense).
 - The collapse leaves a **2-second** damage zone (345px, ticks every 500ms, 4 ticks): **Sentinels take 6% Max HP per tick**; the Player takes no life loss from the zone, only from the collapse itself.
 - The portal is fully immune to all damage and CC for its whole lifetime.
 
-**Normal Attack** — Fires **2 bullets** every **500ms** at the nearest target. Disabled while in Phantom or during a Void Strike countdown.
+**Normal Attack** — Fires **2 bullets** every **450ms** at the nearest target at bullet speed **5.3**. Disabled while in Phantom or during a Void Strike countdown.
 
 **Skill: Alteration — Phase Shift & Void Strike** — A combined passive skill with two linked effects:
 
@@ -465,6 +465,10 @@ A shifting entity that phases in and out of reality to avoid damage and punish c
 - Every incoming hit has an additional **40% chance** to instantly trigger Phantom (the hit is completely negated).
 - On Phantom exit, marks a random Sentinel or Player with a **red targeting reticle**. After a **1.5-second countdown**, a **red lightning bolt** strikes: Player = **1 life lost** (protections apply); Sentinels within **100px** = **18% Max HP** damage.
 - **In normal state only**: incoming healing also grants equal **shield**; incoming shield is boosted by **+20%**. Neither bonus applies while in Phantom. Receiving healing in normal state also grants **+10% DR for 3 seconds**.
+
+**Void Burst:** On Phantom exit, a dark patch gathers around the real Veilshroud for **0.4 seconds**, then releases **10 bullets** spaced **36 degrees** apart from its current position. Speed stays fixed at **2.88**, **60% of the former 4.8 bullet speed**, independently of the normal volley speed of 5.3. Damage, HP and size use the normal bullet formula. Death, removal or Phantom reentry cancels the burst. Yog-Sothoth clears these bullets through the usual enemy bullet rule. The warning remains visible at every graphics tier and the release reuses a Phantom sound.
+
+**Veil Guard:** For the first **0.75 seconds** after Phantom exit, normal state base DR is **70%** instead of 45%, shown by a faint violet rim. The timer uses game time, preserving pauses and time slowing. Other DR remains additive: the healing bonus brings it to **80%**, subject to the existing **85%** normal enemy cap. Outside Veil Guard, the healing bonus brings normal DR to **55%**. Energy Accumulation is unchanged. Neither buff applies to Goliath's Joker copy, Endless Echo or the Phantom Portal. Goliath's Veilshroud Joker copies only Phantom and lightning, not the real Veilshroud's normal bullet volley.
 
 **Passive: Energy Accumulation** — While in **Phantom** state, Veilshroud records all damage it absorbs. On Phantom exit, the accumulated absorption is converted into a shield: **min(1500, ⌈(45% × absorbed + 240) × 1.15⌉)**. The base 240 guarantees a minimum shield of **276** even if no damage was absorbed. Resets each time Phantom is entered.
 

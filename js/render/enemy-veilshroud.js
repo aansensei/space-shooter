@@ -388,6 +388,41 @@ function _drawVeilshroudEcho(enemy) {
     ctx.fillText(`ECHO ${(timeLeft / 1000).toFixed(1)}s`, enemy.x, by - 1);
 }
 
+// Exit warnings stay visible at every graphics tier.
+function _drawVeilshroudExitWarning(enemy) {
+    if (enemy.type !== 'veilshroud' || enemy.inPhantom) return;
+    const burst = enemy._voidBurstTimer || 0;
+    const guard = Math.max(0, (enemy._veilGuardUntil || 0) - gameElapsedTime);
+    if (burst <= 0 && guard <= 0) return;
+    const r = enemy.size / 2;
+    ctx.save();
+    ctx.translate(enemy.x, enemy.y);
+    if (burst > 0) {
+        const prog = 1 - burst / 400;
+        const rr = r * (1.5 - prog * 0.4);
+        ctx.fillStyle = `rgba(10,0,24,${0.25 + prog * 0.25})`;
+        ctx.beginPath(); ctx.arc(0, 0, rr, 0, Math.PI * 2); ctx.fill();
+        ctx.strokeStyle = '#bb77ee'; ctx.lineWidth = 1.5 + prog;
+        ctx.beginPath(); ctx.arc(0, 0, rr, 0, Math.PI * 2); ctx.stroke();
+        if (_gfxLevel < 3) {
+            const count = _twCount(5, 10);
+            if (!_mobPerf) { ctx.shadowColor = '#9922dd'; ctx.shadowBlur = 8; }
+            ctx.fillStyle = '#d3a2ff';
+            for (let i = 0; i < count; i++) {
+                const a = i * Math.PI * 2 / count + prog * 0.4;
+                ctx.beginPath(); ctx.arc(Math.cos(a) * rr, Math.sin(a) * rr, 1.5, 0, Math.PI * 2); ctx.fill();
+            }
+            ctx.shadowBlur = 0;
+        }
+    }
+    if (guard > 0) {
+        ctx.strokeStyle = `rgba(185,145,255,${0.15 + 0.25 * Math.min(1, guard / 200)})`;
+        ctx.lineWidth = 2;
+        ctx.beginPath(); ctx.arc(0, 0, r * 1.08, 0, Math.PI * 2); ctx.stroke();
+    }
+    ctx.restore();
+}
+
 // VEILSHROUD EFFECTS: lightning + explosion zones
 function _drawVeilshroudEffects() {
     const now = performance.now();
@@ -395,6 +430,7 @@ function _drawVeilshroudEffects() {
     // Pending Void Strike rings (host đã chết nhưng sét chưa ra)
     for (const e of enemies) {
         if (e.hp <= 0) continue;
+        if (e.type === 'veilshroud') _drawVeilshroudExitWarning(e);
         if (e.type === 'veilshroud' && e.lightningPending) _drawDangerZone('circle', e.lightningTargetX, e.lightningTargetY, 100, e.lightningCountdown / e.lightningCountdownDuration, 0.3, now);
         if (e.type === 'veilshroud_echo' && e.echoTimer >= 3000) _drawDangerZone('circle', e.x, e.y, VEIL_ECHO_BLAST_RADIUS, (e.echoTimer - 3000) / 2000, 0.6, now);
     }
