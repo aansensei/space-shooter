@@ -3320,9 +3320,26 @@
     const _togBtn = document.getElementById('togDetail');
     _togBtn.addEventListener('click', () => {
       _playParentClickSfx();
+      // the card at the top of the view keeps its place while its text grows or shrinks, so the reader stays on the same row
+      const gTop = G.getBoundingClientRect().top;
+      let anchor = null, frac = 0, off = 0;
+      for (const c of G.querySelectorAll('.card')) {
+        if (!c.getClientRects().length) continue;
+        const r = c.getBoundingClientRect();
+        if (r.bottom <= gTop + 1) continue;
+        anchor = c; off = r.top - gTop;
+        frac = off < 0 && r.height > 0 ? -off / r.height : 0;
+        break;
+      }
       const isShort = G.classList.toggle('shortened');
       _togBtn.textContent = isShort ? 'Shortened' : 'Detailed';
       _togBtn.classList.toggle('shortened', isShort);
+      if (anchor) {
+        const h = anchor.getBoundingClientRect().height;
+        const want = off < 0 ? -frac * h : off;
+        // instant, because the body scrolls smoothly by default and the correction must not be seen
+        G.scrollTo({ top: G.scrollTop + anchor.getBoundingClientRect().top - G.getBoundingClientRect().top - want, behavior: 'instant' });
+      }
     });
 
     // Open/Close
