@@ -1312,16 +1312,8 @@ function dealDamage(enemy, source) {
     }
 
     // Veilshroud has 99% Phantom DR, 70% Veil Guard DR and 45% normal DR.
-    // Alteration, mỗi đòn trúng có 40% né + kích hoạt phantom ngay lập tức
+    // Phantom comes only from its own cycle, so a hit never sends it into Phantom.
     if (enemy.type === 'veilshroud') {
-        if (!enemy.inPhantom && !enemy.lightningPending && Math.random() < 0.40) {
-            enemy.inPhantom = true;
-            enemy.phantomTimer = 0;
-            enemy.phantomCheckTimer = 0;
-            enemy._phantomAbsorb = 0;
-            createParticles(enemy.x, enemy.y, 12, '#00e5cc', 2, 7);
-            return; // đòn bị né hoàn toàn
-        }
         if (enemy._veilHealDRExpiry && currentTime < enemy._veilHealDRExpiry) {
             combinedDR += 0.10; // Alteration heal DR buff: +10% for 3s after receiving heal (docs/combat-scaling-rebalance.md Part 3)
         }

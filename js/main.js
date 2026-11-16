@@ -1392,6 +1392,8 @@ function update(rawDeltaTime) {
                     originX: enemy.x, originY: enemy.y,
                     targetX: enemy.lightningTargetX,
                     targetY: enemy.lightningTargetY,
+                    targetX2: enemy.lightningTarget2X,
+                    targetY2: enemy.lightningTarget2Y,
                     atk: enemy.atk,
                 });
             }
@@ -2888,7 +2890,7 @@ function update(rawDeltaTime) {
     if (window._veilshroudPendingStrikes.length) window._veilshroudPendingStrikes = window._veilshroudPendingStrikes.filter(ps => {
         ps.countdown += deltaTime;
         if (ps.countdown >= ps.duration) {
-            _veilshroudStrike({ x: ps.originX, y: ps.originY, type: 'veilshroud', lightningTargetX: ps.targetX, lightningTargetY: ps.targetY, atk: ps.atk });
+            _veilshroudStrike({ x: ps.originX, y: ps.originY, type: 'veilshroud', lightningTargetX: ps.targetX, lightningTargetY: ps.targetY, lightningTarget2X: ps.targetX2, lightningTarget2Y: ps.targetY2, atk: ps.atk });
             return false;
         }
         return true;

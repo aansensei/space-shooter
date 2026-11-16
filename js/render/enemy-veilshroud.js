@@ -393,7 +393,11 @@ function _drawVeilshroudExitWarning(enemy) {
     if (enemy.type !== 'veilshroud' || enemy.inPhantom) return;
     const burst = enemy._voidBurstTimer || 0;
     const guard = Math.max(0, (enemy._veilGuardUntil || 0) - gameElapsedTime);
-    if (burst <= 0 && guard <= 0) return;
+    const field = Math.max(0, (enemy._staticVeilEnd || 0) - gameElapsedTime);
+    // a ring closes in on the body for the last half second before Phantom starts
+    const entry = enemy.lightningPending ? 0 : enemy.phantomCheckInterval - enemy.phantomCheckTimer;
+    const entering = entry > 0 && entry <= 500;
+    if (burst <= 0 && guard <= 0 && field <= 0 && !entering) return;
     const r = enemy.size / 2;
     ctx.save();
     ctx.translate(enemy.x, enemy.y);
@@ -420,6 +424,38 @@ function _drawVeilshroudExitWarning(enemy) {
         ctx.lineWidth = 2;
         ctx.beginPath(); ctx.arc(0, 0, r * 1.08, 0, Math.PI * 2); ctx.stroke();
     }
+    // Static Veil: a dashed violet rim and a faint inner haze mark where ally projectiles get scrambled
+    if (field > 0) {
+        const now = performance.now(), R = STATIC_VEIL_RADIUS;
+        ctx.globalAlpha = Math.min(1, field / 400);
+        const haze = ctx.createRadialGradient(0, 0, R * 0.55, 0, 0, R);
+        haze.addColorStop(0, 'rgba(120,70,200,0)');
+        haze.addColorStop(1, 'rgba(150,100,240,0.16)');
+        ctx.fillStyle = haze;
+        ctx.beginPath(); ctx.arc(0, 0, R, 0, Math.PI * 2); ctx.fill();
+        ctx.strokeStyle = 'rgba(190,150,255,0.55)'; ctx.lineWidth = 2;
+        ctx.setLineDash([10, 8]); ctx.lineDashOffset = -now / 40;
+        ctx.beginPath(); ctx.arc(0, 0, R, 0, Math.PI * 2); ctx.stroke();
+        ctx.setLineDash([]);
+        if (_gfxLevel < 3) {
+            const count = _twCount(6, 12);
+            ctx.strokeStyle = '#d3a2ff'; ctx.lineWidth = 1.5;
+            for (let i = 0; i < count; i++) {
+                const a = i / count * Math.PI * 2 + now / 900;
+                ctx.globalAlpha = Math.min(1, field / 400) * (0.3 + 0.5 * Math.abs(Math.sin(now / 70 + i * 1.9)));
+                ctx.beginPath();
+                ctx.moveTo(Math.cos(a) * (R - 12), Math.sin(a) * (R - 12));
+                ctx.lineTo(Math.cos(a) * (R + 4), Math.sin(a) * (R + 4));
+                ctx.stroke();
+            }
+        }
+        ctx.globalAlpha = 1;
+    }
+    if (entering) {
+        const p = 1 - entry / 500;
+        ctx.strokeStyle = `rgba(200,170,255,${0.2 + 0.5 * p})`; ctx.lineWidth = 1.5 + 2 * p;
+        ctx.beginPath(); ctx.arc(0, 0, r * (2.2 - 1.1 * p), 0, Math.PI * 2); ctx.stroke();
+    }
     ctx.restore();
 }
 
@@ -431,11 +467,15 @@ function _drawVeilshroudEffects() {
     for (const e of enemies) {
         if (e.hp <= 0) continue;
         if (e.type === 'veilshroud') _drawVeilshroudExitWarning(e);
-        if (e.type === 'veilshroud' && e.lightningPending) _drawDangerZone('circle', e.lightningTargetX, e.lightningTargetY, 100, e.lightningCountdown / e.lightningCountdownDuration, 0.3, now);
+        if (e.type === 'veilshroud' && e.lightningPending) {
+            _drawDangerZone('circle', e.lightningTargetX, e.lightningTargetY, 100, e.lightningCountdown / e.lightningCountdownDuration, 0.3, now);
+            if (e.lightningTarget2X !== undefined) _drawDangerZone('circle', e.lightningTarget2X, e.lightningTarget2Y, 100, e.lightningCountdown / e.lightningCountdownDuration, 0.3, now);
+        }
         if (e.type === 'veilshroud_echo' && e.echoTimer >= 3000) _drawDangerZone('circle', e.x, e.y, VEIL_ECHO_BLAST_RADIUS, (e.echoTimer - 3000) / 2000, 0.6, now);
     }
     if (window._veilshroudPendingStrikes) for (const ps of window._veilshroudPendingStrikes) {
         _drawDangerZone('circle', ps.targetX, ps.targetY, 100, ps.countdown / ps.duration, 0.3, now);
+        if (ps.targetX2 !== undefined) _drawDangerZone('circle', ps.targetX2, ps.targetY2, 100, ps.countdown / ps.duration, 0.3, now);
     }
 
     // Apostle spawn telegraphs: a solid dark patch pooling at the exact

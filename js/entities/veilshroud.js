@@ -9,6 +9,20 @@ const VEIL_ECHO_BLAST_RADIUS = 345;
 // Flat armor Veilshroud adds on top of its % DR, in the shared flat armor pool of dealDamage.
 const VEILSHROUD_FLAT_DR = 30;
 
+// Phantom Cycle: the next Phantom starts this long after the last one ended. It never rolls and never answers a hit.
+const VEILSHROUD_CYCLE_MS = 3500;
+const VEILSHROUD_FIRST_PHANTOM_MS = 2500;
+// Veil Thresholds: HP fractions that each force one extra Phantom the first time it drops under them.
+const VEILSHROUD_THRESHOLDS = [0.75, 0.50, 0.25];
+// Static Veil: after each Phantom a field around Veilshroud scrambles incoming ally projectiles.
+// Each projectile is rolled once, the first moment it is inside the field.
+const STATIC_VEIL_MS = 3000;
+const STATIC_VEIL_RADIUS = 170;
+const STATIC_VEIL_SHOT_ERASE = 0.50;   // ship, Sentinel and spirit shots
+const STATIC_VEIL_OTHER_ERASE = 0.15;  // every other ally projectile, such as Arc Blades
+// Void Strike hits two columns: the first mark and one this far to its side.
+const VEIL_STRIKE_SIDE_MIN = 200, VEIL_STRIKE_SIDE_SPAN = 80, VEIL_STRIKE_EDGE = 70;
+
 function spawnVeilshroud() {
     const baseSize = 20 + Math.random() * 10;
     const size = baseSize * 5; // ~100–150px, bằng Thaelis
@@ -26,8 +40,8 @@ function spawnVeilshroud() {
         inPhantom: false,
         phantomTimer: 0,
         phantomDuration: 1500,
-        phantomCheckTimer: 0,
-        phantomCheckInterval: 450,
+        phantomCheckTimer: VEILSHROUD_CYCLE_MS - VEILSHROUD_FIRST_PHANTOM_MS,
+        phantomCheckInterval: VEILSHROUD_CYCLE_MS,
         // Lightning after phantom exit
         lightningPending: false,
         lightningCountdown: 0,
@@ -94,18 +108,34 @@ function updateVeilshroud(enemy, deltaTime) {
         playerTakesHit(enemy);
     }
 
-    // Phantom check (chỉ khi không pending lightning)
-    if (!enemy.inPhantom && !enemy.lightningPending) {
+    // Phantom Cycle: the clock runs from the end of the last Phantom, and the next one waits for any lightning countdown to finish.
+    if (!enemy.inPhantom) {
         enemy.phantomCheckTimer += deltaTime;
-        if (enemy.phantomCheckTimer >= enemy.phantomCheckInterval) {
+        if (enemy.phantomCheckTimer >= enemy.phantomCheckInterval && !enemy.lightningPending) {
             enemy.phantomCheckTimer = 0;
-            if (Math.random() < 0.40) {
-                enemy.inPhantom = true;
-                enemy.phantomTimer = 0;
-                enemy._phantomAbsorb = 0;
-            }
+            enemy.inPhantom = true;
+            enemy.phantomTimer = 0;
+            enemy._phantomAbsorb = 0;
         }
     }
+    // Veil Thresholds: dropping under each HP mark forces one Phantom, as soon as no lightning countdown is running.
+    if (enemy.type === 'veilshroud' && enemy.hp > 0) {
+        const frac = enemy.hp / enemy.maxHp;
+        for (let i = 0; i < VEILSHROUD_THRESHOLDS.length; i++) {
+            if (frac <= VEILSHROUD_THRESHOLDS[i] && !(enemy._veilThrDone & (1 << i))) {
+                enemy._veilThrDone = (enemy._veilThrDone | (1 << i));
+                enemy._veilThrPending = true;
+            }
+        }
+        if (enemy._veilThrPending && !enemy.inPhantom && !enemy.lightningPending) {
+            enemy._veilThrPending = false;
+            enemy.phantomCheckTimer = 0;
+            enemy.inPhantom = true;
+            enemy.phantomTimer = 0;
+            enemy._phantomAbsorb = 0;
+        }
+    }
+    if (enemy.type === 'veilshroud') _staticVeilErase(enemy);
 
     // Phantom state duration
     if (enemy.inPhantom) {
@@ -122,12 +152,14 @@ function updateVeilshroud(enemy, deltaTime) {
             if (enemy.type === 'veilshroud' && enemy.hp > 0 && enemies.includes(enemy)) {
                 enemy._voidBurstTimer = 400;
                 enemy._veilGuardUntil = gameElapsedTime + 750;
+                enemy._staticVeilEnd = gameElapsedTime + STATIC_VEIL_MS;
+                enemy._staticVeilId = (window._staticVeilSeq = (window._staticVeilSeq || 0) + 1);
             }
             _veilshroudBeginLightning(enemy);
         }
     }
 
-    // Cues follow the state, so both ways into Phantom (the timed roll above and the on-hit dodge in dealDamage) are covered
+    // Cues follow the state, so every way into Phantom is covered
     if (enemy.inPhantom && !enemy._phCued) {
         enemy._phCued = true;
         _phantomCue('phantom-enter', enemy, enemy.x, enemy.y);
@@ -176,13 +208,44 @@ function _veilshroudBeginLightning(enemy) {
     enemy.lightningTargetRef = target;
     enemy.lightningTargetX = target.x;
     enemy.lightningTargetY = target.y;
+    // the second mark sits to the side of the first, so a gap between the two columns always stays open
+    const side = Math.random() < 0.5 ? -1 : 1, step = VEIL_STRIKE_SIDE_MIN + Math.random() * VEIL_STRIKE_SIDE_SPAN;
+    let x2 = target.x + side * step;
+    if (x2 < VEIL_STRIKE_EDGE || x2 > canvas.width - VEIL_STRIKE_EDGE) x2 = target.x - side * step;
+    enemy.lightningTarget2X = Math.max(VEIL_STRIKE_EDGE, Math.min(canvas.width - VEIL_STRIKE_EDGE, x2));
+    enemy.lightningTarget2Y = target.y;
     _phantomCue('phantom-lock', enemy, target.x, target.y);
     enemy._phChargeVoice = _phantomCue('phantom-charge', enemy, target.x, target.y);
 }
 
+// Void Strike lands on both marked columns together.
 function _veilshroudStrike(enemy) {
-    const tx = enemy.lightningTargetX;
-    const ty = enemy.lightningTargetY;
+    _veilshroudStrikeAt(enemy, enemy.lightningTargetX, enemy.lightningTargetY);
+    if (enemy.lightningTarget2X !== undefined) _veilshroudStrikeAt(enemy, enemy.lightningTarget2X, enemy.lightningTarget2Y);
+}
+
+// Static Veil: ally projectiles inside the field are rolled once and erased on a hit of the dice.
+function _staticVeilErase(enemy) {
+    if (!(gameElapsedTime < (enemy._staticVeilEnd || 0)) || !(enemy.hp > 0)) return;
+    const id = enemy._staticVeilId, r2 = STATIC_VEIL_RADIUS * STATIC_VEIL_RADIUS, ex = enemy.x, ey = enemy.y;
+    const lists = [[bullets, STATIC_VEIL_SHOT_ERASE], [spiritBullets, STATIC_VEIL_SHOT_ERASE],
+        [bladeArcProjectiles, STATIC_VEIL_OTHER_ERASE], [scatteredProjectiles, STATIC_VEIL_OTHER_ERASE]];
+    for (let li = 0; li < lists.length; li++) {
+        const list = lists[li][0], chance = lists[li][1];
+        for (let j = list.length - 1; j >= 0; j--) {
+            const b = list[j];
+            if (b._staticVeilId === id || !Number.isFinite(b.x) || !Number.isFinite(b.y)) continue;
+            const dx = b.x - ex, dy = b.y - ey;
+            if (dx * dx + dy * dy > r2) continue;
+            b._staticVeilId = id;
+            if (Math.random() >= chance) continue;
+            if (!_mobPerf && Math.random() < 0.6) createParticles(b.x, b.y, 2, '#b78cff', 1, 4);
+            list.splice(j, 1);
+        }
+    }
+}
+
+function _veilshroudStrikeAt(enemy, tx, ty) {
     // Lưu vị trí sét cuối để render vòng đỏ lưu lại sau khi đánh
     enemy._lastLightningX = tx;
     enemy._lastLightningY = ty;
