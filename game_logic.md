@@ -796,7 +796,7 @@ On top of the base evade, crossing each of the **75%, 50%, and 25%** HP mileston
 
 Every 1 second, recounts every living player-side unit on the map right now (the player always counts as 1, plus every real Sentinel, plus the Remembrance Spirit if summoned — Yuusha Party squad members deliberately don't count, since their attacks already eat the heavier of the two flat DR brackets in this section) and refreshes 3 defensive stats off that count (N), rather than compounding tick over tick:
 
-- **Flat armor:** `200 + 340 × (1 + 5% × min(N, 12))` (the 200 is Goliath's own standing flat DR and stays outside the ally-count multiplier) — subtracted after the % DR above, same shared flat DR pool Tempered Resolve (below) and Walpurgis add into.
+- **Flat DR:** `200 + 340 × (1 + 5% × min(N, 12))` (the 200 is Goliath's own standing flat DR and stays outside the ally-count multiplier) — subtracted after the % DR above, same shared flat DR pool Tempered Resolve (below) and Walpurgis add into.
 - **Healing/shield effectiveness:** `+2% per ally, capped at +20%` — stacks with every other heal/shield bonus Goliath has.
 - **Shield top-up:** every second, grants a Shield worth `0.25% of Hentry × min(N, 8)`, drawn from the shared shield budget.
 
@@ -923,8 +923,8 @@ One paired anomaly per boss fight, rolled when the wave starts. Each pair has on
 | Sun Lion's burn | Player | 3 |
 | Spirit bounce damage | Player | 3 |
 | Walpurgis heal/shield scaling | Enemy | +30% |
-| Walpurgis flat armour | Enemy | 100 |
-| Egregor Mind Link rage armour | Enemy | 25% |
+| Walpurgis flat DR | Enemy | 100 |
+| Egregor Mind Link rage DR | Enemy | 25% |
 
 The result is a speed contest: kill the boss fast and the uncapped stacks are yours, drag it out and they belong to him.
 
