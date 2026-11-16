@@ -878,11 +878,18 @@ function _drawThaelisDouqi(enemy, r, now, hpPct, cast) {
     if (enemy.reincarnated) qi = Math.max(qi, 0.25);
     let burst = 0;
     if (enemy._shieldGrantAt) { const a = now - enemy._shieldGrantAt; if (a >= 0 && a < 900) burst = 1 - a / 900; }
-    if (qi < 0.04 && burst <= 0 && cast.kind === 0) return;
+    // the Ulysses' Return boon powers the whole aura: it flares as the boon lands, then burns larger and brighter until it runs out
+    let boon = 0, flare = 0;
+    if ((enemy._returnBoonEnd || 0) > _thaelisClock) {
+        boon = (0.6 + 0.2 * (enemy._returnBoonTier || 0)) * Math.min(1, (enemy._returnBoonEnd - _thaelisClock) / 400);
+        const fa = _thaelisClock - (enemy._returnBoonAt || 0);
+        if (fa >= 0 && fa < 700) flare = 1 - fa / 700;
+    }
+    if (qi < 0.04 && burst <= 0 && cast.kind === 0 && boon <= 0) return;
     // gathering Ulysses' Return turns the aura crimson and drives it to full: the đấu khí that feeds the chop
     const gather = cast.kind === 1 ? _twEaseOut(cast.p * 1.2) : cast.kind === 2 ? 1 : cast.kind === 3 ? 1 - cast.p : 0;
-    const lvl = Math.min(1, Math.max(qi + burst * 0.6, gather));
-    const hue = 48 - 26 * lvl - 20 * gather;
+    const lvl = Math.min(1, Math.max(qi + burst * 0.6, gather, boon));
+    const hue = 48 - 26 * lvl - 20 * gather + 20 * boon * (1 - gather);
     const n = _twCount(7, 13);
 
     ctx.save();
@@ -891,8 +898,8 @@ function _drawThaelisDouqi(enemy, r, now, hpPct, cast) {
 
     const g = _getGlowSprite('rgba(255, 170, 40, 0.6)', 64);
     if (g) {
-        const gr = r * (1.55 + 0.55 * lvl + 0.5 * gather);
-        ctx.globalAlpha = 0.24 + 0.4 * lvl;
+        const gr = r * (1.55 + 0.55 * lvl + 0.5 * gather + 0.4 * boon + 0.5 * flare);
+        ctx.globalAlpha = Math.min(1, 0.24 + 0.4 * lvl + 0.2 * boon);
         ctx.drawImage(g, -gr, -gr, gr * 2, gr * 2);
     }
 
@@ -903,14 +910,14 @@ function _drawThaelisDouqi(enemy, r, now, hpPct, cast) {
         let dx = ox * 0.38, dy = oy * 0.38 - 0.62;
         const dl = Math.hypot(dx, dy); dx /= dl; dy /= dl;
         const flick = 0.72 + 0.28 * Math.sin(now / 95 + i * 2.3);
-        const L = r * (0.5 + 0.95 * lvl) * flick * (0.62 + 0.38 * -oy) * (1 + burst * 0.5 + gather * 0.75);
+        const L = r * (0.5 + 0.95 * lvl) * flick * (0.62 + 0.38 * -oy) * (1 + burst * 0.5 + gather * 0.75 + boon * 0.5 + flare * 0.6);
         const w = r * (0.13 + 0.09 * lvl);
         const bx = ox * r * 1.02, by = oy * r * 1.02;
         const px = -dy, py = dx;
         const sway = Math.sin(now / 130 + i * 1.7) * L * 0.18;
         const mx = bx + dx * L * 0.5 + px * sway * 0.5, my = by + dy * L * 0.5 + py * sway * 0.5;
         const tx = bx + dx * L + px * sway, ty = by + dy * L + py * sway;
-        ctx.fillStyle = `hsla(${hue}, 100%, 55%, ${0.36 + 0.26 * lvl})`;
+        ctx.fillStyle = `hsla(${hue}, 100%, ${55 + 12 * boon}%, ${0.36 + 0.26 * lvl})`;
         ctx.beginPath();
         ctx.moveTo(bx + px * w, by + py * w);
         ctx.quadraticCurveTo(mx + px * w * 0.55, my + py * w * 0.55, tx, ty);
@@ -943,6 +950,13 @@ function _drawThaelisDouqi(enemy, r, now, hpPct, cast) {
         ctx.strokeStyle = '#fff0b0';
         ctx.lineWidth = 2.6 * burst + 0.6;
         ctx.beginPath(); ctx.arc(0, 0, r * (1 + 1.3 * (1 - burst)), 0, _TW_TAU); ctx.stroke();
+    }
+    // the boon landing sends one bright ring out through the aura
+    if (flare > 0) {
+        ctx.globalAlpha = flare * 0.9;
+        ctx.strokeStyle = '#fff6d0';
+        ctx.lineWidth = 3 * flare + 0.8;
+        ctx.beginPath(); ctx.arc(0, 0, r * (1.1 + 1.6 * (1 - flare)), 0, _TW_TAU); ctx.stroke();
     }
     ctx.restore();
 }

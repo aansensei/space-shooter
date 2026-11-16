@@ -446,7 +446,7 @@ Spawns continuously from the start. HP starts between **22–42** and scales up 
 
 **Available after:** Wave 2 | **Spawn rate:** 12% → 25% | **Cap:** 2 on screen | **Score on kill:** HP × 6 points | **Speed:** 2.0 u/s
 
-HP: **1,320–3,300**. Innate **45% Damage Reduction**.
+HP: **1,320–3,300**. Innate **45% Damage Reduction** and **30 flat DR**, plus **2 percentage points** of evade on top of the Abnormal tier.
 
 A shifting entity that phases in and out of reality to avoid damage and punish careless positioning.
 
@@ -470,7 +470,7 @@ A shifting entity that phases in and out of reality to avoid damage and punish c
 
 **Veil Guard:** For the first **0.75 seconds** after Phantom exit, normal state base DR is **70%** instead of 45%, shown by a faint violet rim. The timer uses game time, preserving pauses and time slowing. Other DR remains additive: the healing bonus brings it to **80%**, subject to the existing **85%** normal enemy cap. Outside Veil Guard, the healing bonus brings normal DR to **55%**. Energy Accumulation is unchanged. Neither buff applies to Goliath's Joker copy, Endless Echo or the Phantom Portal. Goliath's Veilshroud Joker copies only Phantom and lightning, not the real Veilshroud's normal bullet volley.
 
-**Passive: Energy Accumulation** — While in **Phantom** state, Veilshroud records all damage it absorbs. On Phantom exit, the accumulated absorption is converted into a shield: **min(1500, ⌈(45% × absorbed + 240) × 1.15⌉)**. The base 240 guarantees a minimum shield of **276** even if no damage was absorbed. Resets each time Phantom is entered.
+**Passive: Energy Accumulation** — While in **Phantom** state, Veilshroud records all damage it absorbs. On Phantom exit, the accumulated absorption is converted into a shield: **min(1500, ⌈(50% × absorbed + 280) × 1.15⌉)**. The base 280 guarantees a minimum shield of **322** even if no damage was absorbed. Resets each time Phantom is entered.
 
 ---
 
@@ -518,6 +518,8 @@ Thaelis has no normal attack. Its attack is **Ulysses' Return**:
 - Every time Thaelis loses **30% of its Max HP** (at 70%, 40%, and 10% HP thresholds), it generates a **Shield** worth **35% MaxHP + 10% HP lost + 100**: it must be fully destroyed before any damage (normal or piercing) reaches Thaelis's body. Displayed as a pulsing gold ring. The sole exception is **Spirit Laser**, which bypasses it; even true damage from other sources must destroy the Shield first.
 
 **Passive: Penelope's Shroud:** Damage its Shield soaks heals Thaelis for **38%** of the amount soaked. With no Shield standing it recovers **1.5% of its Max HP per second**. Its healing and Shield effectiveness is **+35%** while it has no Shield and **+10%** while one stands; this covers Tenacity Shields and the heals and Shields it receives from Raphael. Soul Reaver cuts its healing by 40%. Healing past its Max HP is not lost: **55%** of the excess becomes Shield. **Axe parry:** every hit has a **15%** chance (**8%** while a Shield stands) to be cut out of the air by Thaelis's axe, which blocks that hit whole and spends no Iron Body layer. Hits originating within **190 px**, measured from Thaelis to the source (or the ship if source coordinates are unavailable), add **20 percentage points**: **35%** without Shield and **28%** with Shield. The swing is quick, and every hit that lands inside it (the rest of a volley, a follow up hit) is cut by the same sweep and spends no Iron Body layer. The axe needs **1.2 seconds** between parries, cannot parry damage over time or the Spirit Laser, and can parry while Ulysses' Return gathers, but not while it chops.
+
+**Ulysses' Return boon:** a flying wave or close slash that lands empowers its living Thaelis for **1.25 seconds** (the Cocoon gets nothing). The tier follows how many targets, Sentinels and the ship, that one strike has hit so far: **1**, **3**, then **4 or more**. Healing and Shield effectiveness rises by **+10% / +15% / +20%** (added to the Penelope's Shroud bonus), Thaelis heals **10% / 15% / 17% Max HP** at once, and its evade rises by **+10% / +12% / +14%**. The instant heal goes through Penelope's Shroud effectiveness, Soul Reaver and the overheal rule. Reaching a higher tier during the same strike refreshes the 1.25 seconds and pays only the step up in healing, and each wave or slash counts its own targets. Thaelis's flame aura swells, brightens and sends out a bright ring while the boon lasts.
 
 **Reincarnation:** At 0 HP, Thaelis collapses into an untargetable **Cocoon**.
 

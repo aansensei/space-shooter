@@ -601,12 +601,14 @@ function _thaelisStrikeSlash(s) {
     if (_thaelisSlashHits(s, player.x, player.y, player.hitRadius)) {
         s.hitPlayer = true;
         if (typeof _yuushaPierceRedirect !== 'function' || !_yuushaPierceRedirect(THAELIS_WAVE_COEFF[0] * s.atk, false, s)) playerTakesHit(s);
+        _thaelisReturnBoon(s);
         if (window.AudioMgr) window.AudioMgr.playSfxAt('thaelis-wave-hit', player.x, player.y);
     }
     for (const target of sentinels) {
         if (s.hitEnemies.includes(target) || !_thaelisSlashHits(s, target.x, target.y, target.size)) continue;
         dealDamage(target, { damage: THAELIS_CLOSE_MULT * THAELIS_WAVE_COEFF[0] * s.atk, _noHitSfx: true, _attackerType: 'thaelis', _capSource: s, _capKind: 'skill' });
         s.hitEnemies.push(target);
+        _thaelisReturnBoon(s);
         if (window.AudioMgr) window.AudioMgr.playSfxAt('thaelis-wave-hit', target.x, target.y);
     }
     for (let li = 0; li < 2; li++) {
@@ -687,6 +689,7 @@ function updateThaelisWaves(deltaTime) {
             const tp = (player.x - w.ox) * ca + (player.y - w.oy) * sa;
             w.x = w.ox + ca * tp; w.y = w.oy + sa * tp;
             if (typeof _yuushaPierceRedirect !== 'function' || !_yuushaPierceRedirect(THAELIS_WAVE_COEFF[0] * w.atk, false, w)) playerTakesHit(w);
+            _thaelisReturnBoon(w);
             if (window.AudioMgr) window.AudioMgr.playSfxAt('thaelis-wave-hit', player.x, player.y);
         }
         for (const s of sentinels) {
@@ -696,6 +699,7 @@ function updateThaelisWaves(deltaTime) {
             const coeff = THAELIS_WAVE_COEFF[Math.min(w.hitEnemies.length, THAELIS_WAVE_COEFF.length - 1)];
             dealDamage(s, { damage: w.atk * coeff, _noHitSfx: true, _attackerType: 'thaelis', _capSource: w, _capKind: 'skill' });
             w.hitEnemies.push(s);
+            _thaelisReturnBoon(w);
             addExplosion(s.x, s.y, 20, '#ffb030');
             if (window.AudioMgr) window.AudioMgr.playSfxAt('thaelis-wave-hit', s.x, s.y);
         }
@@ -734,7 +738,41 @@ const THAELIS_SHROUD_OVERHEAL_SHIELD = 0.55; // share of any healing past its Ma
 
 // Multiplier for every heal and shield Thaelis receives, read from its shield at that moment.
 function _thaelisSustainMult(enemy) {
-    return 1 + ((enemy.shield || 0) > 0 ? THAELIS_SHROUD_WARDED_BONUS : THAELIS_SHROUD_BARE_BONUS);
+    return 1 + ((enemy.shield || 0) > 0 ? THAELIS_SHROUD_WARDED_BONUS : THAELIS_SHROUD_BARE_BONUS) + _thaelisReturnBoonSustain(enemy);
+}
+
+// Ulysses' Return boon. A wave or close slash that lands on targets empowers its living Thaelis for 1.25 seconds:
+// more healing and shield effectiveness, an instant heal and extra evade. The tier follows how many targets
+// (Sentinels and the ship) that one strike has hit so far: 1, 3, then 4 or more.
+const THAELIS_RETURN_BOON_MS = 1250;
+const THAELIS_RETURN_BOON_TIERS = [
+    { hits: 1, sustain: 0.10, heal: 0.10, evade: 0.10 },
+    { hits: 3, sustain: 0.15, heal: 0.15, evade: 0.12 },
+    { hits: 4, sustain: 0.20, heal: 0.17, evade: 0.14 },
+];
+function _thaelisReturnBoonActive(enemy) { return (enemy._returnBoonEnd || 0) > _thaelisClock; }
+function _thaelisReturnBoonSustain(enemy) { return _thaelisReturnBoonActive(enemy) ? enemy._returnBoonSustain : 0; }
+function _thaelisReturnBoonEvade(enemy) { return _thaelisReturnBoonActive(enemy) ? enemy._returnBoonEvade : 0; }
+
+// Called right after a wave or slash adds a target to its hit list. Reaching a higher tier refreshes the 1.25 seconds
+// and pays the instant heal only for the step up from what that strike already gave.
+function _thaelisReturnBoon(strike) {
+    const enemy = strike.owner;
+    if (!enemy || enemy.type !== 'thaelis' || !(enemy.hp > 0) || enemy._markedForDeath) return;
+    const hits = (strike.hitPlayer ? 1 : 0) + strike.hitEnemies.length;
+    let tier = -1;
+    for (let i = 0; i < THAELIS_RETURN_BOON_TIERS.length; i++) if (hits >= THAELIS_RETURN_BOON_TIERS[i].hits) tier = i;
+    if (tier <= (strike._boonTier === undefined ? -1 : strike._boonTier)) return;
+    const t = THAELIS_RETURN_BOON_TIERS[tier], paid = strike._boonHeal || 0;
+    strike._boonTier = tier; strike._boonHeal = t.heal;
+    const live = _thaelisReturnBoonActive(enemy);
+    enemy._returnBoonSustain = Math.max(live ? enemy._returnBoonSustain : 0, t.sustain);
+    enemy._returnBoonEvade = Math.max(live ? enemy._returnBoonEvade : 0, t.evade);
+    enemy._returnBoonTier = Math.max(live ? (enemy._returnBoonTier || 0) : 0, tier);
+    enemy._returnBoonEnd = _thaelisClock + THAELIS_RETURN_BOON_MS;
+    // render reads this to flare the aura the moment the boon lands
+    enemy._returnBoonAt = _thaelisClock;
+    _thaelisShroudHeal(enemy, enemy.maxHp * (t.heal - paid));
 }
 
 // Heals Thaelis by amount after effectiveness; returns the HP actually restored.

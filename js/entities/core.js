@@ -911,6 +911,10 @@ function dealDamage(enemy, source) {
         // Walpurgis (Huyết Dạ): +5% evade per stack, applies on top of every
         // enemy's own tier/type evade (including types with 0 base evade).
         _evade += _walpurgisEvadeBonus();
+        // Veilshroud keeps a small evade edge over the abnormal tier.
+        if (enemy.type === 'veilshroud') _evade += 0.02;
+        // Thaelis: evade from the Ulysses' Return boon while it lasts.
+        if (enemy.type === 'thaelis') _evade += _thaelisReturnBoonEvade(enemy);
         // SKILL D Mark & Annihilate: -10% evade for 2s. Evade can never go
         // negative, so any reduction past the enemy's current evade converts
         // 1:1 into bonus damage taken on this hit instead of being wasted.
@@ -1522,6 +1526,8 @@ function dealDamage(enemy, source) {
         if (enemy.type === 'thaelis_guard') _flatArmor += THAELIS_COCOON_GUARD_FLAT_DR;
         // A revived Thaelis also gets flat armor on top of its extra 10% DR above.
         if (enemy.type === 'thaelis') _flatArmor += enemy.reincarnated ? 150 : 60;
+        // Veilshroud carries a little flat armor on top of its % DR.
+        if (enemy.type === 'veilshroud') _flatArmor += VEILSHROUD_FLAT_DR;
         // Unified Front (Goliath True Form): flat armor recomputed every 1s
         // off the current ally count, same base and rate against both
         // normal and %MaxHP-scaling hits now. The leading 200 is Goliath's own

@@ -6,6 +6,9 @@
 // Blast radius of the Phantom Portal's final collapse (was 300, +15%).
 const VEIL_ECHO_BLAST_RADIUS = 345;
 
+// Flat armor Veilshroud adds on top of its % DR, in the shared flat armor pool of dealDamage.
+const VEILSHROUD_FLAT_DR = 30;
+
 function spawnVeilshroud() {
     const baseSize = 20 + Math.random() * 10;
     const size = baseSize * 5; // ~100–150px, bằng Thaelis
@@ -113,7 +116,7 @@ function updateVeilshroud(enemy, deltaTime) {
             enemy.phantomFadeTimer = 400;
             // Energy Accumulation: convert absorbed damage into shield
             const _eaAbsorbed = enemy._phantomAbsorb || 0;
-            const _eaShield = Math.min(1500, Math.ceil((0.45 * _eaAbsorbed + 240) * 1.15));
+            const _eaShield = Math.min(1500, Math.ceil((0.50 * _eaAbsorbed + 280) * 1.15));
             _addEnemyShield(enemy, _eaShield);
             enemy._phantomAbsorb = 0;
             if (enemy.type === 'veilshroud' && enemy.hp > 0 && enemies.includes(enemy)) {
