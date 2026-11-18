@@ -1369,7 +1369,13 @@
                             <span class="gm-check" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg></span>
                             <span class="gm-info"><b class="gm-title" data-i18n="mode.tutorial">Tutorial</b><span class="gm-desc" data-i18n="mode.tutorial.desc">Learn to dodge and use your skills.</span></span>
                         </button>
-                        <button type="button" class="gm-card" data-mode="custom" role="radio" aria-checked="false" style="--i:2">
+                        <button type="button" class="gm-card" data-mode="showdown" role="radio" aria-checked="false" style="--i:2">
+                            <canvas class="gm-art" aria-hidden="true"></canvas><span class="gm-scrim"></span>
+                            <span class="gm-tag gm-tag-soon" data-i18n="mode.soon">Soon</span>
+                            <span class="gm-check" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg></span>
+                            <span class="gm-info"><b class="gm-title" data-i18n="mode.showdown">Showdown Voyage</b><span class="gm-desc" data-i18n="mode.showdown.desc">A tale is being written. Stay tuned.</span></span>
+                        </button>
+                        <button type="button" class="gm-card" data-mode="custom" role="radio" aria-checked="false" style="--i:3">
                             <canvas class="gm-art" aria-hidden="true"></canvas><span class="gm-scrim"></span>
                             <span class="gm-tag gm-tag-dev" data-i18n="mode.dev">Dev</span>
                             <span class="gm-check" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg></span>
@@ -2701,6 +2707,8 @@
                         'mode.tutorial.desc': 'Learn to dodge and use your skills.',
                         'mode.custom': 'Custom Voyage',
                         'mode.custom.desc': 'Debug sandbox with an empty field and the console.',
+                        'mode.showdown': 'Showdown Voyage',
+                        'mode.showdown.desc': 'A tale is being written. Stay tuned.',
                         'mode.soon': 'Soon',
                         'mode.dev': 'Dev',
                         'mode.comingSoon': 'Coming soon',
@@ -2796,6 +2804,8 @@
                         'mode.tutorial.desc': 'Học cách né đòn và dùng kỹ năng.',
                         'mode.custom': 'Hành Trình Tùy Chỉnh',
                         'mode.custom.desc': 'Sân thử rỗng cùng bảng debug.',
+                        'mode.showdown': 'Quyết Chiến',
+                        'mode.showdown.desc': 'Một câu chuyện đang được viết. Hãy đón chờ nhé.',
                         'mode.soon': 'Sắp Có',
                         'mode.dev': 'Dev',
                         'mode.comingSoon': 'Sắp ra mắt',
@@ -4388,9 +4398,11 @@
             const GAME_MODES = {
                 endless: { ready: true, persist: true, img: '' },
                 tutorial: { ready: true, persist: true, img: '' },
-                custom: { ready: true, persist: false, img: '' }
+                custom: { ready: true, persist: false, img: '' },
+                // a teaser card: the mode is not built yet, so it stays locked until a build sets ready to true
+                showdown: { ready: false, persist: false, img: '' }
             };
-            const KEY = { endless: 'mode.endless', tutorial: 'mode.tutorial', custom: 'mode.custom' };
+            const KEY = { endless: 'mode.endless', tutorial: 'mode.tutorial', custom: 'mode.custom', showdown: 'mode.showdown' };
             const $ = (id) => document.getElementById(id);
             const tr = (k) => (typeof window._t === 'function' ? window._t(k) : k);
             // the sandbox needs the debug console, which only loads on a local host
@@ -4556,7 +4568,88 @@
                         px(g, x0, y, x1 - x0, 1, '#1b3a52'); px(g, x0, y, kx - x0, 1, '#00e5ff'); px(g, kx - 1, y - 1, 3, 3, '#e6fdff');
                     }
                 }
-            }const PAINT = { endless: artEndless, tutorial: artTutorial, custom: artCustom };
+            }
+
+            // Showdown Voyage: a cracked rock giant with a burning core, a glowing ring and drifting crystals, and one small ship facing it
+            // scanline fill of a closed polygon
+            function poly(g, pts, c) {
+                let y0 = Infinity, y1 = -Infinity;
+                for (let i = 0; i < pts.length; i++) { y0 = Math.min(y0, pts[i][1]); y1 = Math.max(y1, pts[i][1]); }
+                for (let y = Math.floor(y0); y <= Math.ceil(y1); y++) {
+                    const xs = [];
+                    for (let i = 0; i < pts.length; i++) {
+                        const p = pts[i], q = pts[(i + 1) % pts.length];
+                        if ((p[1] <= y + 0.5 && q[1] > y + 0.5) || (q[1] <= y + 0.5 && p[1] > y + 0.5)) xs.push(p[0] + (y + 0.5 - p[1]) / (q[1] - p[1]) * (q[0] - p[0]));
+                    }
+                    xs.sort(function (m, n) { return m - n; });
+                    for (let i = 0; i + 1 < xs.length; i += 2) px(g, xs[i], y, xs[i + 1] - xs[i], 1, c);
+                }
+            }
+            function ln(g, x0, y0, x1, y1, c) {
+                const n = Math.max(1, Math.round(Math.max(Math.abs(x1 - x0), Math.abs(y1 - y0))));
+                for (let i = 0; i <= n; i++) px(g, x0 + (x1 - x0) * i / n, y0 + (y1 - y0) * i / n, 1, 1, c);
+            }
+            function gem(g, x, y, c, lit) { px(g, x, y - 1, 1, 3, c); px(g, x - 1, y, 3, 1, c); px(g, x, y, 1, 1, lit || '#ffffff'); }
+            // one of the giant's two detached fists: three jagged lumps of dark rock with hot edges and a crack of light
+            function rockArm(g, ax, ay, r, seed) {
+                const q = rng(seed);
+                for (let k = 0; k < 3; k++) {
+                    const ox = ax + (k - 1) * r * 0.55, oy = ay + (k % 2 ? 1 : -1) * r * 0.25, n = 8, pts = [];
+                    for (let i = 0; i < n; i++) { const an = i / n * Math.PI * 2 + q() * 0.4, rad = r * (0.5 + q() * 0.35); pts.push([ox + Math.cos(an) * rad, oy + Math.sin(an) * rad * 0.9]); }
+                    poly(g, pts, '#150c12');
+                    poly(g, [[ox, oy], pts[0], pts[1]], '#241613'); poly(g, [[ox, oy], pts[4], pts[5]], '#1c1010');
+                    for (let i = 0; i < n; i++) ln(g, pts[i][0], pts[i][1], pts[(i + 1) % n][0], pts[(i + 1) % n][1], i % 3 === 0 ? '#ffb02a' : '#c24e14');
+                    ln(g, ox, oy, ox + (q() - 0.5) * r * 1.2, oy + (q() - 0.5) * r * 1.2, '#ff9a2a');
+                }
+            }
+            function artShowdown(g, w, h, f) {
+                sky(g, w, h, ['#05021a', '#0b0630', '#160a4a', '#220c5e', '#2b1170'], 41, Math.round(w * h / 50));
+                const cx = f.cx, cy = f.cy, R = Math.max(6, Math.min(f.R * 0.74, (w * 0.5 - 1) / 2.65)), rr = rng(21);
+                blob(g, w * 0.18, h * 0.3, w * 0.24, h * 0.12, '#3a1b7e'); blob(g, w * 0.9, h * 0.58, w * 0.22, h * 0.14, '#123a7a'); blob(g, w * 0.72, h * 0.1, w * 0.18, h * 0.07, '#4b1d8f');
+                // the ring is a tilted ellipse: its far half is drawn behind the mass, its near half over it
+                const ringPt = function (t) { const x = Math.cos(t) * R * 1.75, y = Math.sin(t) * R * 0.62, an = -0.35; return [cx + x * Math.cos(an) - y * Math.sin(an), cy + x * Math.sin(an) + y * Math.cos(an)]; };
+                for (let i = 0; i < 140; i++) { const t = i / 140 * Math.PI * 2; if (Math.sin(t) < 0) { const p = ringPt(t); px(g, p[0], p[1], 1, 1, '#a64a1a'); } }
+                blob(g, cx, cy, R * 1.75, R * 1.55, '#4a160c'); blob(g, cx, cy, R * 1.5, R * 1.35, '#7a260c');
+                // the two fists hang out to either side of the body, the right one a little lower
+                const armDx = R * 2.05, fr = R * 0.55;
+                blob(g, cx - armDx, cy + R * 0.7, fr * 1.5, fr * 1.3, '#6a210c'); blob(g, cx + armDx, cy + R * 1.0, fr * 1.5, fr * 1.3, '#6a210c');
+                ln(g, cx - R * 1.1, cy + R * 0.3, cx - armDx + fr * 0.6, cy + R * 0.6, '#c24e14'); ln(g, cx + R * 1.1, cy + R * 0.45, cx + armDx - fr * 0.6, cy + R * 0.9, '#c24e14');
+                rockArm(g, cx - armDx, cy + R * 0.7, fr, 71); rockArm(g, cx + armDx, cy + R * 1.0, fr, 73);
+                // the mass: a ragged dark body split into facets, with a hot rim
+                const N = 11, pts = [];
+                for (let i = 0; i < N; i++) { const an = i / N * Math.PI * 2 + 0.2, r = R * (1.0 + rr() * 0.35); pts.push([cx + Math.cos(an) * r, cy + Math.sin(an) * r * 0.95]); }
+                poly(g, pts, '#150c12');
+                for (let i = 0; i < 5; i++) poly(g, [[cx, cy], pts[(i * 2) % N], pts[(i * 2 + 1) % N]], i % 2 ? '#241613' : '#1c1010');
+                for (let i = 0; i < N; i++) ln(g, pts[i][0], pts[i][1], pts[(i + 1) % N][0], pts[(i + 1) % N][1], i % 3 === 0 ? '#ffb02a' : '#e8641a');
+                for (let k = 0; k < 12; k++) {
+                    const an = rr() * Math.PI * 2, len = R * (0.65 + rr() * 0.6);
+                    ln(g, cx + Math.cos(an) * R * 0.3, cy + Math.sin(an) * R * 0.3, cx + Math.cos(an) * len, cy + Math.sin(an) * len, '#ff9a2a');
+                    ln(g, cx + Math.cos(an) * R * 0.3, cy + Math.sin(an) * R * 0.3, cx + Math.cos(an) * R * 0.6, cy + Math.sin(an) * R * 0.6, '#ffe08a');
+                }
+                gem(g, cx + R * 0.28, cy - R * 0.55, '#3dffb0'); gem(g, cx - R * 0.58, cy + R * 0.12, '#b061ff'); gem(g, cx + R * 0.52, cy + R * 0.38, '#ffc34a');
+                disc(g, cx, cy, Math.max(2, Math.round(R * 0.36)), '#ff7a1a'); disc(g, cx, cy, Math.max(2, Math.round(R * 0.27)), '#ffb02a'); disc(g, cx, cy, Math.max(1, Math.round(R * 0.16)), '#fff1b0');
+                ring(g, cx, cy, Math.round(R * 0.47), '#ffd27a');
+                for (let i = 0; i < 140; i++) { const t = i / 140 * Math.PI * 2; if (Math.sin(t) >= 0) { const p = ringPt(t); px(g, p[0], p[1], 1, 2, i % 4 ? '#ffe9b0' : '#ff9a2a'); } }
+                // drifting rock, each piece with a hot edge, and loose crystals
+                for (let i = 0; i < 7; i++) {
+                    const an = rr() * Math.PI * 2, d = R * (1.5 + rr() * 0.9), x = cx + Math.cos(an) * d, y = cy + Math.sin(an) * d * 0.9, k = 1 + rr() * 2;
+                    poly(g, [[x - k, y], [x, y - k], [x + k, y + 0.5], [x, y + k]], '#1a0f12');
+                    px(g, x - k, y, 1, 1, '#e8641a');
+                }
+                gem(g, w * 0.12, h * 0.52, '#b061ff'); gem(g, w * 0.88, h * 0.3, '#3dffb0'); gem(g, w * 0.62, h * 0.62, '#b061ff', '#e8d0ff'); gem(g, w * 0.08, h * 0.14, '#ffc34a');
+                // one small ship with a cyan trail, facing the giant
+                if (f.kind !== 'thumb') {
+                    const sx = f.kind === 'strip' ? cx - R * 3.2 : w * 0.3, sy = f.kind === 'strip' ? cy + R * 0.5 : cy + R * 2.7, TR = ['#e8fcff', '#9ff4ff', '#00e5ff', '#0aa5d0', '#1a6a9a'];
+                    blob(g, sx, sy, 7, 5, '#0d3a66'); blob(g, sx, sy, 4, 3, '#1b6aa0');
+                    for (let i = 1; i <= 14; i++) px(g, sx - 4 - i * 1.4, sy + i * 0.45, 1, i < 6 ? 2 : 1, TR[Math.min(TR.length - 1, Math.floor(i / 3))]);
+                    sprite(g, sx, sy, SHIP, SHIP_PAL);
+                }
+                const re = rng(5);
+                for (let i = 0; i < Math.round(w * h / 150); i++) px(g, re() * w, h * 0.3 + re() * h * 0.5, 1, 1, '#ff7a1a');
+                if (w >= 40) star8(g, w * 0.9, h * 0.1, '#c9b8ff');
+            }
+
+            const PAINT = { endless: artEndless, tutorial: artTutorial, custom: artCustom, showdown: artShowdown };
             const imgs = {};
             function modeImage(m) {
                 const src = GAME_MODES[m].img;
@@ -4607,8 +4700,8 @@
                 if (panel) panel.classList.toggle('gm-vi', vi);
                 if (name) { name.dataset.i18n = KEY[mode]; name.textContent = tr(KEY[mode]); }
                 if (soon) soon.hidden = GAME_MODES[mode].ready;
-                const soonTag = document.querySelector('#modeGrid .gm-tag-soon');
-                if (soonTag) soonTag.hidden = GAME_MODES.tutorial.ready;
+                const soonTags = document.querySelectorAll('#modeGrid .gm-card .gm-tag-soon');
+                for (let i = 0; i < soonTags.length; i++) soonTags[i].hidden = GAME_MODES[soonTags[i].parentNode.dataset.mode].ready;
                 const cards = document.querySelectorAll('#modeGrid .gm-card');
                 for (let i = 0; i < cards.length; i++) {
                     const m = cards[i].dataset.mode, on = m === mode;
