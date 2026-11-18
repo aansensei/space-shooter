@@ -22,6 +22,29 @@ const STATIC_VEIL_SHOT_ERASE = 0.50;   // ship, Sentinel and spirit shots
 const STATIC_VEIL_OTHER_ERASE = 0.15;  // every other ally projectile, such as Arc Blades
 // Void Strike hits two columns: the first mark and one this far to its side.
 const VEIL_STRIKE_SIDE_MIN = 200, VEIL_STRIKE_SIDE_SPAN = 80, VEIL_STRIKE_EDGE = 70;
+// A Sentinel at least this far from the ship's mark is preferred for the second bolt.
+const VEIL_STRIKE_SPLIT = 140;
+// Echo Mantle: enemies inside a live Phantom Portal's blast radius, or inside the zone it leaves, take this much less damage.
+const VEIL_ECHO_MANTLE_DR = 0.10;
+
+// True while the enemy stands in a Phantom Portal's radius or in the zone left by its collapse.
+function _veilEchoMantle(enemy) {
+    if (!enemy || enemy.type === 'enemy_bullet' || enemy.type === 'veilshroud_echo') return false;
+    const zones = window._veilshroudExplosions;
+    if (zones) for (let i = 0; i < zones.length; i++) {
+        const z = zones[i];
+        if (z.life > 0 && Math.hypot(enemy.x - z.x, enemy.y - z.y) < z.radius) return true;
+    }
+    const portals = window._veilPortals;
+    if (portals && portals.length) {
+        for (let i = portals.length - 1; i >= 0; i--) {
+            const p = portals[i];
+            if (!(p.hp > 0) || p.echoExplosionDone || !enemies.includes(p)) { portals.splice(i, 1); continue; }
+            if (Math.hypot(enemy.x - p.x, enemy.y - p.y) < VEIL_ECHO_BLAST_RADIUS) return true;
+        }
+    }
+    return false;
+}
 
 function spawnVeilshroud() {
     const baseSize = 20 + Math.random() * 10;
@@ -217,29 +240,40 @@ function updateVeilshroud(enemy, deltaTime) {
 }
 
 function _veilshroudBeginLightning(enemy) {
-    // Chọn target ngẫu nhiên từ sentinels + player
-    const pool = [...sentinels];
-    pool.push(player);
-    const target = pool[Math.floor(Math.random() * pool.length)];
+    // Two bolts: the first is marked on the ship, the second on a Sentinel.
+    const target = player;
     enemy.lightningPending = true;
     enemy.lightningCountdown = 0;
     enemy.lightningTargetRef = target;
     enemy.lightningTargetX = target.x;
     enemy.lightningTargetY = target.y;
-    // the second mark sits to the side of the first, so a gap between the two columns always stays open
-    const side = Math.random() < 0.5 ? -1 : 1, step = VEIL_STRIKE_SIDE_MIN + Math.random() * VEIL_STRIKE_SIDE_SPAN;
-    let x2 = target.x + side * step;
-    if (x2 < VEIL_STRIKE_EDGE || x2 > canvas.width - VEIL_STRIKE_EDGE) x2 = target.x - side * step;
-    enemy.lightningTarget2X = Math.max(VEIL_STRIKE_EDGE, Math.min(canvas.width - VEIL_STRIKE_EDGE, x2));
-    enemy.lightningTarget2Y = target.y;
+    enemy.lightningTargetKind = 'player';
+    // a Sentinel standing clear of the ship's mark is preferred, so the two bolts do not stack on one spot
+    const alive = sentinels.filter(s => s.hp > 0);
+    let pool = alive.filter(s => Math.hypot(s.x - target.x, s.y - target.y) >= VEIL_STRIKE_SPLIT);
+    if (!pool.length) pool = alive;
+    if (pool.length) {
+        const sen = pool[Math.floor(Math.random() * pool.length)];
+        enemy.lightningTarget2X = sen.x;
+        enemy.lightningTarget2Y = sen.y;
+        enemy.lightningTarget2Kind = 'sentinel';
+    } else {
+        // no Sentinel standing: the second bolt falls on a column to the side of the ship, leaving a gap between them
+        const side = Math.random() < 0.5 ? -1 : 1, step = VEIL_STRIKE_SIDE_MIN + Math.random() * VEIL_STRIKE_SIDE_SPAN;
+        let x2 = target.x + side * step;
+        if (x2 < VEIL_STRIKE_EDGE || x2 > canvas.width - VEIL_STRIKE_EDGE) x2 = target.x - side * step;
+        enemy.lightningTarget2X = Math.max(VEIL_STRIKE_EDGE, Math.min(canvas.width - VEIL_STRIKE_EDGE, x2));
+        enemy.lightningTarget2Y = target.y;
+        enemy.lightningTarget2Kind = 'column';
+    }
     _phantomCue('phantom-lock', enemy, target.x, target.y);
     enemy._phChargeVoice = _phantomCue('phantom-charge', enemy, target.x, target.y);
 }
 
-// Void Strike lands on both marked columns together.
+// Void Strike lands on both marked spots together.
 function _veilshroudStrike(enemy) {
-    _veilshroudStrikeAt(enemy, enemy.lightningTargetX, enemy.lightningTargetY);
-    if (enemy.lightningTarget2X !== undefined) _veilshroudStrikeAt(enemy, enemy.lightningTarget2X, enemy.lightningTarget2Y);
+    _veilshroudStrikeAt(enemy, enemy.lightningTargetX, enemy.lightningTargetY, enemy.lightningTargetKind || 'player');
+    if (enemy.lightningTarget2X !== undefined) _veilshroudStrikeAt(enemy, enemy.lightningTarget2X, enemy.lightningTarget2Y, enemy.lightningTarget2Kind || 'column');
 }
 
 // Static Veil: ally projectiles inside the field are rolled once and erased on a hit of the dice.
@@ -268,7 +302,7 @@ function _staticVeilErase(enemy) {
     }
 }
 
-function _veilshroudStrikeAt(enemy, tx, ty) {
+function _veilshroudStrikeAt(enemy, tx, ty, kind) {
     // Lưu vị trí sét cuối để render vòng đỏ lưu lại sau khi đánh
     enemy._lastLightningX = tx;
     enemy._lastLightningY = ty;
@@ -278,6 +312,7 @@ function _veilshroudStrikeAt(enemy, tx, ty) {
     if (!window._veilshroudLightnings) window._veilshroudLightnings = [];
     const _lt = {
         x: tx, y: ty, ownerRef: enemy,
+        kind: kind || 'player',   // render tints the bolt: red for the ship's mark, violet for a Sentinel's
         life: 700, maxLife: 700,
         strikeRadius: 100,
         hitSentinelPositions: [],  // {x,y} mỗi sentinel bị trúng

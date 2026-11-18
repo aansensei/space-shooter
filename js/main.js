@@ -1394,6 +1394,7 @@ function update(rawDeltaTime) {
                     targetY: enemy.lightningTargetY,
                     targetX2: enemy.lightningTarget2X,
                     targetY2: enemy.lightningTarget2Y,
+                    kind1: enemy.lightningTargetKind, kind2: enemy.lightningTarget2Kind,
                     atk: enemy.atk,
                 });
             }
@@ -1401,7 +1402,7 @@ function update(rawDeltaTime) {
             // VEILSHROUD: Void Echo, để lại bóng ma khi chết
             if (enemy.type === 'veilshroud' && !enemy._echoSpawned) {
                 enemy._echoSpawned = true;
-                enemies.push({
+                const _portal = {
                     x: enemy.x, y: enemy.y,
                     size: enemy.size,
                     hp: 9999, maxHp: 9999,
@@ -1415,7 +1416,10 @@ function update(rawDeltaTime) {
                     echoPhantomDmg: enemy._totalPhantomDamageReceived || 0,
                     echoExplosionDone: false,
                     atk: enemy.atk, _h0: enemy._h0, // snapshot of the original host's own offense, not a fresh roll
-                });
+                };
+                enemies.push(_portal);
+                // Echo Mantle reads live portals from this list
+                (window._veilPortals || (window._veilPortals = [])).push(_portal);
             }
 
             // VEILSHROUD ECHO: đã xử lý explosion trong updateVeilshroudEcho, chỉ cần xóa entity
@@ -2890,7 +2894,7 @@ function update(rawDeltaTime) {
     if (window._veilshroudPendingStrikes.length) window._veilshroudPendingStrikes = window._veilshroudPendingStrikes.filter(ps => {
         ps.countdown += deltaTime;
         if (ps.countdown >= ps.duration) {
-            _veilshroudStrike({ x: ps.originX, y: ps.originY, type: 'veilshroud', lightningTargetX: ps.targetX, lightningTargetY: ps.targetY, lightningTarget2X: ps.targetX2, lightningTarget2Y: ps.targetY2, atk: ps.atk });
+            _veilshroudStrike({ x: ps.originX, y: ps.originY, type: 'veilshroud', lightningTargetX: ps.targetX, lightningTargetY: ps.targetY, lightningTarget2X: ps.targetX2, lightningTarget2Y: ps.targetY2, lightningTargetKind: ps.kind1, lightningTarget2Kind: ps.kind2, atk: ps.atk });
             return false;
         }
         return true;
@@ -2931,7 +2935,8 @@ function update(rawDeltaTime) {
             // Damage ticks: sentinels
             for (const s of sentinels) {
                 if (Math.hypot(s.x - ez.x, s.y - ez.y) < ez.radius && !_capBlocksSource(ez, s, 'area')) {
-                    const dmg = 0.006 * (ez.hs || 0);
+                    // 1.5% of the host's scaled HP per tick, about 6% of a Sentinel's Max HP early in a run
+                    const dmg = 0.015 * (ez.hs || 0);
                     dealDamage(s, { damage: dmg, percentDamage: 0, _vanguardTag: 'veil_echo_expl', _capSource: ez, _capKind: 'area' });
                     createParticles(s.x, s.y, 6, '#cc44ff', 1, 4);
                 }

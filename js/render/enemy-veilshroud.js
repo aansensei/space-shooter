@@ -543,6 +543,24 @@ function _drawVeilshroudExitWarning(enemy) {
     ctx.restore();
 }
 
+// Lightning path: the segment from the start to the end is split in half `depth` times and every new midpoint is
+// pushed sideways, by less each round, which gives long straight runs broken by sharp kinks.
+function _veilBoltPoints(x1, y1, x2, y2, jitter, depth) {
+    let pts = [[x1, y1], [x2, y2]];
+    for (let d = 0; d < depth; d++) {
+        const next = [pts[0]];
+        for (let i = 1; i < pts.length; i++) {
+            const a = pts[i - 1], b = pts[i];
+            const dx = b[0] - a[0], dy = b[1] - a[1], len = Math.hypot(dx, dy) || 1;
+            const off = (Math.random() - 0.5) * jitter;
+            next.push([(a[0] + b[0]) / 2 - dy / len * off, (a[1] + b[1]) / 2 + dx / len * off], b);
+        }
+        pts = next;
+        jitter *= 0.55;
+    }
+    return pts;
+}
+
 // Phase Purge: a cyan ring spreads out of the body as Phantom starts, and the Vulnerability marks it wiped dissolve outward.
 function _drawVeilshroudPurge(enemy) {
     if (enemy.type !== 'veilshroud' || enemy._purgeAt === undefined) return;
@@ -565,6 +583,18 @@ function _drawVeilshroudPurge(enemy) {
 // VEILSHROUD EFFECTS: lightning + explosion zones
 function _drawVeilshroudEffects() {
     const now = performance.now();
+
+    // Echo Mantle: a dashed violet ring marks each enemy standing inside a portal's radius or its collapse zone
+    if ((window._veilshroudExplosions && window._veilshroudExplosions.length) || (window._veilPortals && window._veilPortals.length)) {
+        ctx.save();
+        ctx.strokeStyle = 'rgba(190,150,255,0.6)'; ctx.lineWidth = 1.5;
+        ctx.setLineDash([4, 5]); ctx.lineDashOffset = -now / 80;
+        for (const e of enemies) {
+            if (e.hp <= 0 || e.type === 'enemy_bullet' || e.type === 'veilshroud_echo' || !_veilEchoMantle(e)) continue;
+            ctx.beginPath(); ctx.arc(e.x, e.y, (e.size || 30) * 0.62 + 4, 0, Math.PI * 2); ctx.stroke();
+        }
+        ctx.restore();
+    }
 
     // Static Veil: a small ring flashes where a projectile was scrambled away
     if (window._staticVeilRipples && window._staticVeilRipples.length) {
@@ -590,10 +620,11 @@ function _drawVeilshroudEffects() {
             // a dashed line from the top of the screen shows each column the bolts will fall down
             const lp = e.lightningCountdown / e.lightningCountdownDuration;
             ctx.save();
-            ctx.strokeStyle = `rgba(255,70,95,${0.1 + 0.35 * lp})`; ctx.lineWidth = 1.5;
+            ctx.lineWidth = 1.5;
             ctx.setLineDash([6, 9]); ctx.lineDashOffset = -now / 30;
-            for (const [lx, ly] of [[e.lightningTargetX, e.lightningTargetY], [e.lightningTarget2X, e.lightningTarget2Y]]) {
+            for (const [lx, ly, lk] of [[e.lightningTargetX, e.lightningTargetY, e.lightningTargetKind], [e.lightningTarget2X, e.lightningTarget2Y, e.lightningTarget2Kind]]) {
                 if (lx === undefined) continue;
+                ctx.strokeStyle = lk === 'sentinel' ? `rgba(176,96,255,${0.1 + 0.35 * lp})` : `rgba(255,70,95,${0.1 + 0.35 * lp})`;
                 ctx.beginPath(); ctx.moveTo(lx, 0); ctx.lineTo(lx, ly); ctx.stroke();
             }
             ctx.restore();
@@ -643,8 +674,12 @@ function _drawVeilshroudEffects() {
             const alpha = prog;
 
             // Main bolt re-randomizes every frame → flickering lightning (matches guide behavior)
-            const _ltMain  = _genBoltPoints(lt.x, 0, lt.x, lt.y, 7, 32);
-            const _ltOuter = _genBoltPoints(lt.x, 0, lt.x, lt.y, 5, 42);
+            // the bolt is split in halves a few times, each half pushed sideways a little less, so it kinks like real lightning
+            const _boltDepth = _mobPerf ? 3 : 4;
+            const _ltMain  = _veilBoltPoints(lt.x, 0, lt.x, lt.y, 46, _boltDepth);
+            const _ltOuter = _veilBoltPoints(lt.x, 0, lt.x, lt.y, 60, _boltDepth);
+            // the ship's bolt is red, a Sentinel's bolt is violet
+            const _vk = lt.kind === 'sentinel' ? { glow: '#b060ff', rgb: '176,96,255' } : { glow: '#ff2233', rgb: '255,30,50' };
             // Sub-bolt paths to locked target positions: cached (no need to re-random)
             if (!lt._paths) {
                 lt._paths = {
@@ -662,47 +697,81 @@ function _drawVeilshroudEffects() {
 
             _capClipEnemyDraw(ctx, lt.ownerRef ? lt.ownerRef.x : lt.x, lt.ownerRef ? lt.ownerRef.y : 0, lt);
 
+            // The first instant of the strike lights the whole column with a pale flash
+            const flash = Math.max(0, (prog - 0.7) / 0.3);
+            if (flash > 0) {
+                // a tall soft ellipse around the bolt, so the glow has no hard edge anywhere
+                ctx.save();
+                ctx.translate(lt.x, lt.y * 0.55);
+                ctx.scale(80, lt.y * 0.55);
+                const fg = ctx.createRadialGradient(0, 0, 0, 0, 0, 1);
+                fg.addColorStop(0, `rgba(255,235,240,${0.4 * flash})`);
+                fg.addColorStop(0.55, `rgba(${_vk.rgb},${0.16 * flash})`);
+                fg.addColorStop(1, `rgba(${_vk.rgb},0)`);
+                ctx.globalAlpha = 1;
+                ctx.fillStyle = fg;
+                ctx.fillRect(-1, -1, 2, 2);
+                ctx.restore();
+            }
+
             // Outer shockwave circle
             const waveR = lt.strikeRadius * (1.3 - prog * 0.3);
             ctx.globalAlpha = alpha * 0.5;
-            ctx.strokeStyle = '#ff2233';
+            ctx.strokeStyle = _vk.glow;
             ctx.lineWidth = 3 + prog * 5;
-            if (!_mobPerf) { ctx.shadowColor = '#ff0022'; ctx.shadowBlur = 20; }
+            if (!_mobPerf) { ctx.shadowColor = _vk.glow; ctx.shadowBlur = 20; }
             ctx.beginPath(); ctx.arc(lt.x, lt.y, waveR, 0, Math.PI * 2); ctx.stroke();
 
-            // Main white bolt (re-randomized each frame → flickers)
-            ctx.globalAlpha = alpha;
-            ctx.strokeStyle = '#ffffff';
-            ctx.lineWidth = 3 * prog;
-            if (!_mobPerf) { ctx.shadowColor = '#ff2233'; ctx.shadowBlur = 22; }
-            _strokeBoltPath(ctx, _ltMain);
+            // a wide soft glow under the bolt
+            if (!_mobPerf) {
+                ctx.globalAlpha = alpha * 0.2;
+                ctx.strokeStyle = _vk.glow;
+                ctx.lineWidth = 18 * prog;
+                _strokeBoltPath(ctx, _ltOuter);
+            }
 
-            // Outer red bolt (re-randomized each frame → flickers)
-            ctx.strokeStyle = `rgba(255,30,50,${alpha * 0.65})`;
+            // Outer coloured bolt (re-randomized each frame → flickers)
+            ctx.globalAlpha = alpha;
+            ctx.strokeStyle = `rgba(${_vk.rgb},${alpha * 0.7})`;
             ctx.lineWidth = 7 * prog;
+            if (!_mobPerf) { ctx.shadowColor = _vk.glow; ctx.shadowBlur = 22; }
             _strokeBoltPath(ctx, _ltOuter);
 
+            // Main white bolt, hot core (re-randomized each frame → flickers)
+            ctx.strokeStyle = '#ffffff';
+            ctx.lineWidth = 3 * prog;
+            _strokeBoltPath(ctx, _ltMain);
+
             // Branch bolts off main bolt (HIGH quality, adds visual richness)
-            if (!_mobPerf && _gfxLevel < 1 && alpha > 0.25) {
-                ctx.shadowColor = '#ff4444'; ctx.shadowBlur = 10;
-                for (let _b = 0; _b < 4; _b++) {
-                    const _bSrc = _ltMain[1 + Math.floor((_ltMain.length - 2) * (_b + 0.5) / 4)];
+            if (!_mobPerf && _gfxLevel < 2 && alpha > 0.25) {
+                ctx.shadowColor = _vk.glow; ctx.shadowBlur = 10;
+                const forks = _gfxLevel < 1 ? 5 : 3;
+                for (let _b = 0; _b < forks; _b++) {
+                    const _bSrc = _ltMain[1 + Math.floor((_ltMain.length - 2) * (_b + 0.5) / forks)];
                     const _bSide = (_b % 2 === 0 ? 1 : -1);
-                    const _bAng  = Math.PI * 0.5 + _bSide * (0.35 + Math.random() * 0.55);
-                    const _bLen  = (20 + Math.random() * 35) * prog;
-                    ctx.strokeStyle = `rgba(255,${50 + _b * 25},${60 + _b * 15},${alpha * 0.55})`;
-                    ctx.lineWidth = (2.2 - _b * 0.3) * prog;
-                    ctx.beginPath(); ctx.moveTo(_bSrc[0], _bSrc[1]);
-                    let _bx = _bSrc[0], _by = _bSrc[1];
-                    for (let _s = 0; _s < 3; _s++) {
-                        const _sAng = _bAng + (Math.random() - 0.5) * 0.6;
-                        _bx += Math.cos(_sAng) * _bLen / 3;
-                        _by += Math.sin(_sAng) * _bLen / 3;
-                        ctx.lineTo(_bx, _by);
-                    }
-                    ctx.stroke();
+                    const _bAng  = Math.PI * 0.5 + _bSide * (0.3 + Math.random() * 0.6);
+                    const _bLen  = (40 + Math.random() * 60) * prog;
+                    const _fork = _veilBoltPoints(_bSrc[0], _bSrc[1], _bSrc[0] + Math.cos(_bAng) * _bLen, _bSrc[1] + Math.sin(_bAng) * _bLen, 14, 2);
+                    ctx.strokeStyle = `rgba(${_vk.rgb},${alpha * 0.65})`;
+                    ctx.lineWidth = (2.4 - _b * 0.25) * prog;
+                    _strokeBoltPath(ctx, _fork);
                 }
                 ctx.shadowBlur = 0;
+            }
+
+            // Sparks thrown out of the point of impact
+            if (!_mobPerf && _gfxLevel < 2) {
+                if (lt._sparkSeed === undefined) lt._sparkSeed = Math.random() * Math.PI * 2;
+                const sparks = _twCount(8, 14), r0 = 14 + (1 - prog) * 70;
+                ctx.globalAlpha = alpha * 0.85;
+                ctx.strokeStyle = '#fff0f4'; ctx.lineWidth = 1.6;
+                for (let i = 0; i < sparks; i++) {
+                    const a = lt._sparkSeed + i / sparks * Math.PI * 2 + Math.sin(i * 3.1) * 0.12;
+                    ctx.beginPath();
+                    ctx.moveTo(lt.x + Math.cos(a) * r0, lt.y + Math.sin(a) * r0);
+                    ctx.lineTo(lt.x + Math.cos(a) * (r0 + 5 + 11 * prog), lt.y + Math.sin(a) * (r0 + 5 + 11 * prog));
+                    ctx.stroke();
+                }
             }
 
             // Secondary bolts & impact rings at hit targets

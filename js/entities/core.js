@@ -1323,6 +1323,9 @@ function dealDamage(enemy, source) {
         combinedDR += enemy.inPhantom ? 0.99 : (gameElapsedTime < (enemy._veilGuardUntil || 0) ? 0.70 : 0.45);
     }
 
+    // Echo Mantle: an enemy inside a Phantom Portal's radius, or the zone it leaves, takes 10% less damage.
+    if (!isSentinel && typeof _veilEchoMantle === 'function' && _veilEchoMantle(enemy)) combinedDR += VEIL_ECHO_MANTLE_DR;
+
     // veilshroud_echo: hoàn toàn bất tử
     if (enemy.type === 'veilshroud_echo') return;
 
