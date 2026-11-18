@@ -1418,6 +1418,8 @@ function update(rawDeltaTime) {
                     atk: enemy.atk, _h0: enemy._h0, // snapshot of the original host's own offense, not a fresh roll
                 };
                 enemies.push(_portal);
+                // render folds the body into its core as the portal opens
+                (window._veilshroudDeathFx || (window._veilshroudDeathFx = [])).push({ x: enemy.x, y: enemy.y, size: enemy.size, born: gameElapsedTime });
                 // Echo Mantle reads live portals from this list
                 (window._veilPortals || (window._veilPortals = [])).push(_portal);
             }

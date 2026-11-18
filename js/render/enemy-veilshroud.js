@@ -13,9 +13,16 @@
 // live regardless, so caching just the 2 rings was a small win for the
 // risk. Left as plain original code for guaranteed pixel-for-pixel fidelity.
 
+// 1 right after Veilshroud takes a hit, fading to 0 over 200ms (dealDamage stamps _hitAt)
+function _veilHit(enemy) {
+    const age = gameElapsedTime - (enemy._hitAt === undefined ? -1e9 : enemy._hitAt);
+    return age >= 0 && age < 200 ? 1 - age / 200 : 0;
+}
+
 function _drawVeilshroud(enemy) {
     const now = performance.now();
     const r = enemy.size / 2; // hitbox radius
+    const hit = _veilHit(enemy);
 
     // Lerp màu: Normal = Deep Violet, Phantom = Ghostly Cyan
     // inPhantom: fade in (0→1) via phantomTimer, after phantom: fade out (1→0) via phantomFadeTimer
@@ -38,6 +45,8 @@ function _drawVeilshroud(enemy) {
     if (enemy.inPhantom && Math.random() < 0.25) {
         ctx.translate((Math.random() - 0.5) * 14 * t, (Math.random() - 0.5) * 9 * t);
     }
+    // a hit makes the whole body shudder for an instant
+    if (hit > 0) ctx.translate((Math.random() - 0.5) * 4 * hit, (Math.random() - 0.5) * 3 * hit);
 
     // Hazy/dreamlike look while cloaked used to be a real ctx.filter blur
     // here, measured directly as the single biggest FPS cost on this enemy
@@ -78,6 +87,9 @@ function _drawVeilshroud(enemy) {
 
     // 2. VOID RIBBONS (áo choàng năng lượng uốn lượn)
     const numRibbons = _mobPerf ? 3 : 5;
+    // the ribbons add their light to what is behind them, and shed bright motes along their length
+    const _ribAdd = !_mobPerf && _gfxLevel < 2;
+    if (_ribAdd) ctx.globalCompositeOperation = 'lighter';
     if (!_mobPerf) { ctx.shadowColor = mainColor; ctx.shadowBlur = 14; }
     for (let i = 0; i < numRibbons; i++) {
         ctx.save();
@@ -99,8 +111,18 @@ function _drawVeilshroud(enemy) {
         ctx.fill();
         ctx.strokeStyle = `rgba(255,255,255,${0.08 + t * 0.18})`;
         ctx.lineWidth = 1; ctx.stroke();
+        if (_ribAdd) {
+            ctx.fillStyle = '#f3e5f5';
+            for (let k = 0; k < 2; k++) {
+                const s = (now / 1900 + i * 0.37 + k * 0.5) % 1, u = 1 - s;
+                ctx.globalAlpha = baseAlpha * 0.9 * u;
+                ctx.beginPath(); ctx.arc(2 * u * s * wave, -(2 * u * s * ribLen * 0.5 + s * s * ribLen), 1.4, 0, Math.PI * 2); ctx.fill();
+            }
+            ctx.globalAlpha = baseAlpha;
+        }
         ctx.restore();
     }
+    ctx.globalCompositeOperation = 'source-over';
     ctx.shadowBlur = 0;
 
     // 3. ARMILLARY RINGS
@@ -120,7 +142,14 @@ function _drawVeilshroud(enemy) {
         ctx.shadowColor = mainColor; ctx.shadowBlur = 8;
         for (let k = 0; k < 3; k++) {
             const a = now / 1400 + k * Math.PI * 2 / 3;
-            ctx.beginPath(); ctx.arc(r * 1.05 * Math.cos(a), r * 0.38 * Math.sin(a), 2.2, 0, Math.PI * 2); ctx.fill();
+            ctx.beginPath(); ctx.arc(r * 1.05 * Math.cos(a), r * 0.38 * Math.sin(a), 1.8, 0, Math.PI * 2); ctx.fill();
+        }
+        // a brighter satellite with a short trail runs along the same ellipse, easy for the eye to follow
+        ctx.shadowColor = '#E056FD'; ctx.shadowBlur = 10;
+        for (let k = 3; k >= 0; k--) {
+            const a = -now / 900 - k * 0.2;
+            ctx.fillStyle = k === 0 ? '#ffffff' : `rgba(243,229,245,${0.14 * (4 - k)})`;
+            ctx.beginPath(); ctx.arc(r * 1.05 * Math.cos(a), r * 0.38 * Math.sin(a), k === 0 ? 3.2 : 2.6 - k * 0.4, 0, Math.PI * 2); ctx.fill();
         }
         ctx.shadowBlur = 0;
         ctx.restore();
@@ -163,7 +192,8 @@ function _drawVeilshroud(enemy) {
 
     // 4. FLOATING ARMOR SHARDS (skip on mobile)
     if (!_mobPerf) {
-        const shardOffset = t * 35;
+        // the wings breathe in and out a couple of pixels, out of step with the ribbons behind them
+        const shardOffset = t * 35 + Math.sin(now / 900) * 2.5;
         const shardAlpha = 1 - t * 0.82;
         ctx.fillStyle = `rgba(10,5,20,${shardAlpha})`;
         ctx.strokeStyle = `rgba(${curR},${curG},${curB},${0.8 + t * 0.2})`;
@@ -176,13 +206,24 @@ function _drawVeilshroud(enemy) {
         ];
         const _shardOutline = ctx.strokeStyle;
         armorShards.forEach(pts => {
+            // each wing is split down its axis: one face catches the light, the other stays dark
+            if (t < 0.88) {
+                ctx.fillStyle = `rgba(42,21,77,${shardAlpha})`;
+                ctx.beginPath(); ctx.moveTo(pts[0][0], pts[0][1]); ctx.lineTo(pts[1][0], pts[1][1]); ctx.lineTo(pts[2][0], pts[2][1]); ctx.closePath(); ctx.fill();
+                ctx.fillStyle = `rgba(18,9,36,${shardAlpha})`;
+                ctx.beginPath(); ctx.moveTo(pts[0][0], pts[0][1]); ctx.lineTo(pts[2][0], pts[2][1]); ctx.lineTo(pts[3][0], pts[3][1]); ctx.closePath(); ctx.fill();
+            }
             ctx.strokeStyle = _shardOutline; ctx.lineWidth = 1.5;
             ctx.beginPath();
             ctx.moveTo(pts[0][0], pts[0][1]);
             for (let p = 1; p < pts.length; p++) ctx.lineTo(pts[p][0], pts[p][1]);
             ctx.closePath();
-            if (t < 0.88) ctx.fill();
             ctx.stroke();
+            // a thin neon rim along the two outer edges, and a faint ridge down the axis
+            ctx.strokeStyle = `rgba(224,86,253,${0.7 * shardAlpha})`; ctx.lineWidth = 1.2;
+            ctx.beginPath(); ctx.moveTo(pts[1][0], pts[1][1]); ctx.lineTo(pts[0][0], pts[0][1]); ctx.lineTo(pts[3][0], pts[3][1]); ctx.stroke();
+            ctx.strokeStyle = `rgba(243,229,245,${0.16 * shardAlpha})`; ctx.lineWidth = 1;
+            ctx.beginPath(); ctx.moveTo(pts[0][0], pts[0][1]); ctx.lineTo(pts[2][0], pts[2][1]); ctx.stroke();
             // a fainter inset outline gives each shard a bevelled, crystalline edge
             const cx = (pts[0][0] + pts[1][0] + pts[2][0] + pts[3][0]) / 4, cy = (pts[0][1] + pts[1][1] + pts[2][1] + pts[3][1]) / 4;
             ctx.strokeStyle = `rgba(255,255,255,${0.14 * shardAlpha})`; ctx.lineWidth = 1;
@@ -192,7 +233,27 @@ function _drawVeilshroud(enemy) {
                 if (p === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
             }
             ctx.closePath(); ctx.stroke();
+            // a small lit stud floats between the core and the wing's base, so the wing seems held up by the core's field
+            const tl = Math.hypot(pts[0][0], pts[0][1]) || 1;
+            ctx.fillStyle = `rgba(243,229,245,${0.9 * shardAlpha})`;
+            ctx.shadowColor = '#E056FD'; ctx.shadowBlur = 6;
+            ctx.beginPath(); ctx.arc(pts[0][0] / tl * r * 0.5, pts[0][1] / tl * r * 0.5, 2, 0, Math.PI * 2); ctx.fill();
+            ctx.shadowBlur = 0;
         });
+        // on a hit the wing edges split into red and blue copies for an instant
+        if (hit > 0) {
+            ctx.globalCompositeOperation = 'screen';
+            ctx.lineWidth = 1.2;
+            for (const [col, off] of [['rgba(255,60,90,', -3], ['rgba(60,120,255,', 3]]) {
+                ctx.strokeStyle = col + (0.5 * hit) + ')';
+                armorShards.forEach(pts => {
+                    ctx.beginPath();
+                    ctx.moveTo(pts[1][0] + off * hit, pts[1][1]); ctx.lineTo(pts[0][0] + off * hit, pts[0][1]); ctx.lineTo(pts[3][0] + off * hit, pts[3][1]);
+                    ctx.stroke();
+                });
+            }
+            ctx.globalCompositeOperation = 'source-over';
+        }
     }
 
     // 5. SINGULARITY CORE
@@ -212,6 +273,12 @@ function _drawVeilshroud(enemy) {
     ctx.beginPath(); ctx.arc(0, 0, coreR * 1.03, 0, Math.PI * 2); ctx.stroke();
     ctx.strokeStyle = mainColor; ctx.lineWidth = 2;
     ctx.beginPath(); ctx.arc(0, 0, coreR * 1.03, now / 700, now / 700 + 0.9); ctx.stroke();
+    // two thin arcs, electric cyan and magenta, turn against the outer ring around the accretion disk
+    ctx.lineWidth = 1.6;
+    ctx.strokeStyle = 'rgba(0,229,255,0.85)';
+    ctx.beginPath(); ctx.arc(0, 0, coreR * 1.22, now / 600, now / 600 + 1.15); ctx.stroke();
+    ctx.strokeStyle = 'rgba(224,86,253,0.85)';
+    ctx.beginPath(); ctx.arc(0, 0, coreR * 1.4, now / 1100 + 2.4, now / 1100 + 3.4); ctx.stroke();
     // Iris / khe nứt không gian
     ctx.fillStyle = t > 0.5 ? '#ffffff' : mainColor;
     if (!_mobPerf) { ctx.shadowColor = mainColor; ctx.shadowBlur = 14; }
@@ -235,6 +302,21 @@ function _drawVeilshroud(enemy) {
         ctx.globalCompositeOperation = 'source-over';
     }
 
+    // the hit itself: a soft flash over the body and a ripple running out, cyan if the hit passed through Phantom
+    if (hit > 0) {
+        const hc = enemy._hitPhantom ? '0,229,255' : '255,235,255';
+        ctx.globalCompositeOperation = 'lighter';
+        const hg = ctx.createRadialGradient(0, 0, 0, 0, 0, r * 1.3);
+        hg.addColorStop(0, `rgba(${hc},${0.5 * hit})`);
+        hg.addColorStop(1, `rgba(${hc},0)`);
+        ctx.fillStyle = hg;
+        ctx.beginPath(); ctx.arc(0, 0, r * 1.3, 0, Math.PI * 2); ctx.fill();
+        ctx.globalCompositeOperation = 'source-over';
+        ctx.strokeStyle = enemy._hitPhantom ? `rgba(0,229,255,${0.7 * hit})` : `rgba(224,86,253,${0.7 * hit})`;
+        ctx.lineWidth = 2 * hit + 0.5;
+        ctx.beginPath(); ctx.arc(0, 0, r * (1.05 + 0.8 * (1 - hit)), 0, Math.PI * 2); ctx.stroke();
+    }
+
     ctx.restore();
 
     // HP bar
@@ -243,7 +325,7 @@ function _drawVeilshroud(enemy) {
     ctx.fillStyle = '#330033'; ctx.fillRect(bx, by, bw, bh);
     ctx.fillStyle = enemy.inPhantom ? '#00e5cc' : '#cc22ff';
     ctx.fillRect(bx, by, bw * Math.max(0, enemy.hp / enemy.maxHp), bh);
-    ctx.strokeStyle = `rgba(${curR},${curG},${curB},0.8)`; ctx.lineWidth = 0.8;
+    ctx.strokeStyle = hit > 0.3 ? 'rgba(255,255,255,0.95)' : `rgba(${curR},${curG},${curB},0.8)`; ctx.lineWidth = 0.8 + hit;
     ctx.strokeRect(bx, by, bw, bh);
 
     // HP number
@@ -311,6 +393,24 @@ function _drawVeilshroudEcho(enemy) {
     ctx.save();
     ctx.translate(enemy.x, enemy.y);
 
+    // the portal opens out of the point the body folded into: a ring bursts out, then the vortex grows from a small, faint core
+    if (echoT < 600) {
+        const q = echoT / 600;
+        ctx.save();
+        ctx.strokeStyle = `rgba(224,170,255,${0.8 * (1 - q)})`;
+        ctx.lineWidth = 5 * (1 - q) + 1;
+        ctx.beginPath(); ctx.arc(0, 0, r * (0.6 + 3.4 * q), 0, Math.PI * 2); ctx.stroke();
+        ctx.restore();
+    }
+    const _born = Math.min(1, echoT / 700);
+    // while it charges the whole vortex is drawn in toward its core, tightest in the last 0.3s before it blows
+    let _sc = 1 - 0.5 * chargeProg * chargeProg - 0.25 * Math.max(0, (echoT - 4700) / 300);
+    if (_born < 1) {
+        _sc *= 0.15 + 0.85 * (1 - Math.pow(1 - _born, 3));
+        ctx.globalAlpha = 0.25 + 0.75 * _born;
+    }
+    if (_sc !== 1) ctx.scale(_sc, _sc);
+
     // Gravitational lens glow, out to the blast radius, breathing gently
     if (_gfxLevel < 2) {
         const _lensA = _gfxLevel < 1 ? 1.0 : 0.40;
@@ -358,7 +458,7 @@ function _drawVeilshroudEcho(enemy) {
     if (_gfxLevel < 1) {
         if (!_mobPerf) { ctx.shadowColor = '#e0aaff'; ctx.shadowBlur = 6; }
         for (let i = 0; i < 16; i++) {
-            const phase = ((now / 1400 + i / 16) % 1 + 1) % 1;
+            const phase = ((now / 1400 + chargeProg * chargeProg * 2 + i / 16) % 1 + 1) % 1;
             const dist = r * 1.2 + (outerR - r * 1.2) * (1 - phase);
             const pAngle = (i / 16) * Math.PI * 2 + phase * 4.5;
             const px = Math.cos(pAngle) * dist;
@@ -410,6 +510,17 @@ function _drawVeilshroudEcho(enemy) {
         if (!_mobPerf) { ctx.shadowColor = echoColor; ctx.shadowBlur = _gfxLevel < 1 ? 20 : 10; }
         ctx.beginPath(); ctx.arc(0, 0, r * 1.05, 0, Math.PI * 2); ctx.fill();
         ctx.shadowBlur = 0;
+    }
+
+    // the stored energy turns the core white-hot as the collapse nears
+    if (chargeProg > 0.5) {
+        const heat = (chargeProg - 0.5) / 0.5, hr = r * (1.1 + 0.9 * heat);
+        const hg = ctx.createRadialGradient(0, 0, 0, 0, 0, hr);
+        hg.addColorStop(0, `rgba(255,255,255,${0.85 * heat})`);
+        hg.addColorStop(0.45, `rgba(255,140,170,${0.4 * heat})`);
+        hg.addColorStop(1, 'rgba(255,60,120,0)');
+        ctx.fillStyle = hg;
+        ctx.beginPath(); ctx.arc(0, 0, hr, 0, Math.PI * 2); ctx.fill();
     }
 
     ctx.restore();
@@ -521,7 +632,7 @@ function _drawVeilshroudExitWarning(enemy) {
     // Phase Shell: the Phantom shield is a violet ring that unwinds as it is worn down, with a white notch at the broken end
     if (shell > 0) {
         const sweep = Math.PI * 2 * shell, a0 = -Math.PI / 2;
-        ctx.strokeStyle = `rgba(190,150,255,${0.45 + 0.35 * shell})`;
+        ctx.strokeStyle = `rgba(${190 + Math.round(65 * _veilHit(enemy))},${150 + Math.round(105 * _veilHit(enemy))},255,${Math.min(1, 0.45 + 0.35 * shell + 0.4 * _veilHit(enemy))})`;
         ctx.lineWidth = 2 + 3 * Math.min(1, enemy.shield / (enemy.maxHp * 0.25));
         ctx.beginPath(); ctx.arc(0, 0, r * 1.45, a0, a0 + sweep); ctx.stroke();
         ctx.fillStyle = '#ffffff';
@@ -561,6 +672,64 @@ function _veilBoltPoints(x1, y1, x2, y2, jitter, depth) {
     return pts;
 }
 
+// The body folds into its own core as the Phantom Portal opens in the same spot: the wings and ribbons are drawn in,
+// the rings shrink, the core swells and flashes, and one last ring bursts out.
+function _drawVeilshroudDeath(now) {
+    const list = window._veilshroudDeathFx;
+    if (!list || !list.length) return;
+    const live = [];
+    for (const d of list) {
+        const age = gameElapsedTime - d.born;
+        if (age < 0 || age >= 560) continue;
+        live.push(d);
+        const p = age / 560, e = p * p * (3 - 2 * p), k = 1 - e, r = d.size / 2, fade = 1 - p;
+        ctx.save();
+        ctx.translate(d.x, d.y);
+        ctx.globalCompositeOperation = 'lighter';
+        ctx.lineCap = 'round';
+        for (let i = 0; i < 5; i++) {
+            const a = i / 5 * Math.PI * 2 + e * 2.6, L = r * 2.4 * k;
+            ctx.strokeStyle = `rgba(190,90,255,${0.55 * fade})`;
+            ctx.lineWidth = 6 * k + 1;
+            ctx.beginPath(); ctx.moveTo(Math.cos(a) * L, Math.sin(a) * L); ctx.lineTo(Math.cos(a) * L * 0.3, Math.sin(a) * L * 0.3); ctx.stroke();
+        }
+        ctx.globalCompositeOperation = 'source-over';
+        ctx.rotate(e * 1.3);
+        for (let w = 0; w < 4; w++) {
+            ctx.save();
+            ctx.rotate(w * Math.PI / 2);
+            ctx.fillStyle = `rgba(42,21,77,${fade})`;
+            ctx.beginPath();
+            ctx.moveTo(0, -r * 1.55 * k); ctx.lineTo(r * 0.48 * k, -r * 0.58 * k); ctx.lineTo(0, -r * 0.38 * k); ctx.lineTo(-r * 0.48 * k, -r * 0.58 * k);
+            ctx.closePath(); ctx.fill();
+            ctx.strokeStyle = `rgba(224,86,253,${0.9 * fade})`; ctx.lineWidth = 1.4; ctx.stroke();
+            ctx.restore();
+        }
+        ctx.rotate(-e * 1.3);
+        ctx.strokeStyle = `rgba(190,120,255,${0.8 * fade})`; ctx.lineWidth = 2;
+        ctx.beginPath(); ctx.ellipse(0, 0, r * 1.05 * k + 1, r * 0.38 * k + 1, now / 1000, 0, Math.PI * 2); ctx.stroke();
+        ctx.strokeStyle = `rgba(255,255,255,${0.6 * fade})`; ctx.setLineDash([9, 13]);
+        ctx.beginPath(); ctx.ellipse(0, 0, r * 1.25 * k + 1, r * 0.48 * k + 1, -now / 800 + Math.PI / 4, 0, Math.PI * 2); ctx.stroke();
+        ctx.setLineDash([]);
+        const coreR = r * (0.38 + 0.5 * e), halo = coreR * (1.6 + 1.4 * e);
+        const hg = ctx.createRadialGradient(0, 0, coreR * 0.6, 0, 0, halo);
+        hg.addColorStop(0, `rgba(255,255,255,${0.2 + 0.6 * e})`);
+        hg.addColorStop(0.5, `rgba(190,80,255,${0.4 * fade})`);
+        hg.addColorStop(1, 'rgba(120,0,200,0)');
+        ctx.fillStyle = hg;
+        ctx.beginPath(); ctx.arc(0, 0, halo, 0, Math.PI * 2); ctx.fill();
+        ctx.fillStyle = '#000000';
+        ctx.beginPath(); ctx.arc(0, 0, coreR, 0, Math.PI * 2); ctx.fill();
+        if (p > 0.7) {
+            const q = (p - 0.7) / 0.3;
+            ctx.strokeStyle = `rgba(255,255,255,${0.9 * (1 - q)})`; ctx.lineWidth = 5 * (1 - q) + 1;
+            ctx.beginPath(); ctx.arc(0, 0, r * (0.8 + 3.2 * q), 0, Math.PI * 2); ctx.stroke();
+        }
+        ctx.restore();
+    }
+    window._veilshroudDeathFx = live;
+}
+
 // Phase Purge: a cyan ring spreads out of the body as Phantom starts, and the Vulnerability marks it wiped dissolve outward.
 function _drawVeilshroudPurge(enemy) {
     if (enemy.type !== 'veilshroud' || enemy._purgeAt === undefined) return;
@@ -595,6 +764,8 @@ function _drawVeilshroudEffects() {
         }
         ctx.restore();
     }
+
+    _drawVeilshroudDeath(now);
 
     // Static Veil: a small ring flashes where a projectile was scrambled away
     if (window._staticVeilRipples && window._staticVeilRipples.length) {
@@ -848,12 +1019,63 @@ function _drawVeilshroudEffects() {
             ctx.setLineDash([]);
             ctx.lineDashOffset = 0;
 
+            // a faint haze fills the zone, a second ring turns inside it, and motes drift in toward the centre
+            if (!_mobPerf) {
+                const hz = ctx.createRadialGradient(ez.x, ez.y, ez.radius * 0.3, ez.x, ez.y, ez.radius);
+                hz.addColorStop(0, 'rgba(120,50,200,0)');
+                hz.addColorStop(1, `rgba(160,70,255,${0.14 * prog})`);
+                ctx.globalAlpha = 1;
+                ctx.fillStyle = hz;
+                ctx.beginPath(); ctx.arc(ez.x, ez.y, ez.radius, 0, Math.PI * 2); ctx.fill();
+            }
+            ctx.globalAlpha = prog * 0.4;
+            ctx.strokeStyle = 'rgba(224,170,255,0.8)'; ctx.lineWidth = 1;
+            ctx.setLineDash([4, 12]); ctx.lineDashOffset = (now / 50) % 16;
+            ctx.beginPath(); ctx.arc(ez.x, ez.y, ez.radius * 0.68, 0, Math.PI * 2); ctx.stroke();
+            ctx.setLineDash([]); ctx.lineDashOffset = 0;
+            if (!_mobPerf && _gfxLevel < 2) {
+                ctx.fillStyle = '#e4cfff';
+                const motes = _twCount(8, 14);
+                for (let i = 0; i < motes; i++) {
+                    const ph = (now / 1300 + i / motes) % 1, ang = i * 2.1 + ph * 2.2, d = ez.radius * (1 - ph * 0.85);
+                    ctx.globalAlpha = prog * 0.7 * (1 - ph * 0.4);
+                    ctx.beginPath(); ctx.arc(ez.x + Math.cos(ang) * d, ez.y + Math.sin(ang) * d, 1.6, 0, Math.PI * 2); ctx.fill();
+                }
+            }
+
             ctx.restore();
 
             // Shockwave from the collapse: a fast white flash ring right at
             // the moment of the burst, followed by a slower, bigger violet
             // ring that outruns the zone's own boundary before fading.
             const swAge = ez._shockwaveAge || 0;
+            // supernova: a hot core flash and a burst of rays thrown outward, one gradient and one path
+            if (swAge < 450) {
+                const sp = swAge / 450;
+                ctx.save();
+                ctx.globalCompositeOperation = 'lighter';
+                if (swAge < 300) {
+                    const fr = ez.radius * (0.15 + 0.4 * (swAge / 300));
+                    const fg = ctx.createRadialGradient(ez.x, ez.y, 0, ez.x, ez.y, fr);
+                    fg.addColorStop(0, `rgba(255,255,255,${1 - swAge / 300})`);
+                    fg.addColorStop(0.5, `rgba(230,150,255,${0.6 * (1 - swAge / 300)})`);
+                    fg.addColorStop(1, 'rgba(160,60,255,0)');
+                    ctx.fillStyle = fg;
+                    ctx.beginPath(); ctx.arc(ez.x, ez.y, fr, 0, Math.PI * 2); ctx.fill();
+                }
+                ctx.strokeStyle = `rgba(255,240,255,${0.85 * (1 - sp)})`;
+                ctx.lineWidth = 3 * (1 - sp) + 1; ctx.lineCap = 'round';
+                const rays = _mobPerf ? 8 : 14;
+                ctx.beginPath();
+                for (let i = 0; i < rays; i++) {
+                    const a = i / rays * Math.PI * 2 + 0.3 * Math.sin(i * 5.3);
+                    const r0 = ez.radius * (0.1 + 0.55 * sp), r1 = r0 + ez.radius * (0.16 + 0.1 * ((i * 7) % 3) / 2) * (1 - sp * 0.5);
+                    ctx.moveTo(ez.x + Math.cos(a) * r0, ez.y + Math.sin(a) * r0);
+                    ctx.lineTo(ez.x + Math.cos(a) * r1, ez.y + Math.sin(a) * r1);
+                }
+                ctx.stroke();
+                ctx.restore();
+            }
             if (swAge < 250) {
                 const flashT = swAge / 250;
                 ctx.save();

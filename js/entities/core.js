@@ -1317,6 +1317,12 @@ function dealDamage(enemy, source) {
     // Veilshroud has 99% Phantom DR, 70% Veil Guard DR and 45% normal DR.
     // Phantom comes only from its own cycle, so a hit never sends it into Phantom.
     if (enemy.type === 'veilshroud') {
+        // render reads these to shudder, flash and ripple the body: cyan when the hit passed through a Phantom
+        enemy._hitAt = gameElapsedTime;
+        enemy._hitPhantom = !!enemy.inPhantom;
+        if (!_mobPerf && Math.random() < 0.3) {
+            createParticles(enemy.x + (Math.random() - 0.5) * enemy.size * 0.6, enemy.y + (Math.random() - 0.5) * enemy.size * 0.6, 2, enemy.inPhantom ? '#00e5ff' : '#c58bff', 1.5, 5);
+        }
         if (enemy._veilHealDRExpiry && currentTime < enemy._veilHealDRExpiry) {
             combinedDR += 0.10; // Alteration heal DR buff: +10% for 3s after receiving heal (docs/combat-scaling-rebalance.md Part 3)
         }

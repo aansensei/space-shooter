@@ -1270,7 +1270,8 @@ function drawEnemy(enemy) {
     // hp text: goliath alpha/transforming is invuln so hp=1 always, show
     // damagePull instead. hidden during death sequence (hp pinned=1, "1"
     // is misleading) and during true_form (has its own boss bar readout)
-    if (!enemy._amScarab && enemy.type !== 'veilshroud_echo' && !(enemy.type === 'ammit' && typeof _ammitAbsorbHit === 'function' && _ammitAbsorbHit(enemy)) && !(enemy.type === 'goliath' && (enemy._deathPhase || enemy.phase === 'true_form'))) {
+    // Veilshroud keeps its HP above the body, so the core stays clear
+    if (!enemy._amScarab && enemy.type !== 'veilshroud_echo' && enemy.type !== 'veilshroud' && !(enemy.type === 'ammit' && typeof _ammitAbsorbHit === 'function' && _ammitAbsorbHit(enemy)) && !(enemy.type === 'goliath' && (enemy._deathPhase || enemy.phase === 'true_form'))) {
         ctx.save();
         ctx.fillStyle = "white"; ctx.font = "14px Arial";
         if (enemy.type === 'enemy_bullet_small') ctx.font = "10px Arial";
