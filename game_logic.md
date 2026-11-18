@@ -25,7 +25,7 @@ Settings opens from the pause screen and applies live. **Restore Defaults** puts
 
 **Percentage damage** is calculated against the target's raw **Max HP** alone, never its current Shield — a big shield doesn't make percentage-based hits land harder. It still hits the shield first before reaching body HP, same as all other damage.
 
-**True damage** bypasses all **Shields** and **Barriers** entirely and is applied directly to HP. It does not bypass Damage Reduction, per-hit damage caps, or Iron Body invulnerability.
+**True damage** bypasses all **Shields** and **Barriers** entirely and is applied directly to HP. It also skips Damage Reduction and flat DR. It does not bypass per-hit damage caps or Iron Body invulnerability.
 
 **Evade** is a base stat shared by all enemy tiers that gives a percentage chance to completely negate any incoming hit (dodge, no damage dealt). It scales linearly from a minimum to a maximum over the first **3 minutes** of game time, then stays at maximum. When an evade procs, a light-blue flash appears on the enemy. Evade applies before all other damage resolution.
 
@@ -420,6 +420,8 @@ Element: Venomancy.
 
 *All enemies have a hidden +15% HP bonus applied to their base stats.*
 
+Kill score is **Max HP × k**, where k is **4** on wave 1 and eases down to **3** by wave 10. A Goliath kill is worth at most **500,000**. An enemy that leaves on its own, such as Uriel after 90 seconds, awards nothing.
+
 **Danger zone warnings** — every strong enemy's area attack (Lumen Nova, Void Strike, Holy Sword, Null Slash, Perseverance, Psychic Tempest and the big Goliath attacks) shows the same warning: a bright red zone with a bright rim and a soft glow, a band of light inside the edge, a fill that grows toward the hit, a closing ring and a tick clock that lights up as the attack nears. Smaller attacks get a lighter warning, and none of them ever covers the whole screen. Settings has a **Red danger warning** switch under Gameplay: when it is off the red fill and glow go away, but the neutral boundary, ring and ticks stay so the attack can still be read.
 
 ---
@@ -428,7 +430,7 @@ Element: Venomancy.
 
 Spawns continuously from the start. HP starts between **22–42** and scales up over time (capped at **330 HP**). Fires 1 bullet per second — the bullet's HP equals the enemy's HP at the moment of firing.
 
-**Score on kill:** HP × 6 points
+**Score on kill:** Max HP × k points
 
 **Passive: Coronation (Đăng Cơ)** — Each Apostle on screen has a chance every second to undergo a transformation into a higher-tier enemy:
 
@@ -444,7 +446,7 @@ Spawns continuously from the start. HP starts between **22–42** and scales up 
 
 ### Veilshroud (Abnormal)
 
-**Available after:** Wave 2 | **Spawn rate:** 12% → 25% | **Cap:** 2 on screen | **Score on kill:** HP × 6 points | **Speed:** 2.0 u/s
+**Available after:** Wave 2 | **Spawn rate:** 12% → 25% | **Cap:** 2 on screen | **Score on kill:** Max HP × k points | **Speed:** 2.0 u/s
 
 HP: **1,320–3,300**. Innate **45% Damage Reduction** and **30 flat DR**, plus **2 percentage points** of evade on top of the Abnormal tier.
 
@@ -458,7 +460,7 @@ A shifting entity that phases in and out of reality to avoid damage and punish c
 - The portal is fully immune to all damage and CC for its whole lifetime. It is drawn beneath every bullet, ship and enemy, and shows no HP number. When Veilshroud dies its body folds into its core over about half a second as the portal opens out of the same spot. During the last 2 seconds the vortex is drawn in toward its core and the core turns white-hot, and the collapse is a flash with rays thrown outward before the zone settles.
 - **Echo Mantle:** every enemy standing inside the portal's **345 px** radius while it lives, and inside the damage zone for the **2 seconds** after the collapse, takes **10% less damage**, added to its other DR and subject to the usual cap. Bullets, Sentinels and the portal itself are not covered. A dashed violet ring marks each enemy it covers.
 
-**Normal Attack** — Fires **2 bullets** every **450ms** at the nearest target at bullet speed **5.3**. Disabled while in Phantom or during a Void Strike countdown.
+**Normal Attack** — Fires **2 bullets** every **450ms** at the nearest target at bullet speed **5.3**. Every third volley, one of the two bullets flies dead on the aim line while the other stays **0.11 rad** off it; each Veilshroud starts at a random point of that cycle, so two of them do not fire aimed bullets together. Disabled while in Phantom or during a Void Strike countdown.
 
 **Skill: Alteration (Phantom Cycle and Void Strike):** A passive skill that runs Veilshroud's whole rhythm:
 
@@ -501,7 +503,7 @@ A herald-boss that never attacks the player directly. It patrols the **upper hal
 
 ### Thaelis (Abnormal)
 
-**Available after:** Wave 2 | **Spawn rate:** 12% → 25% | **Cap:** 2 on screen | **Score on kill:** HP × 6 points | **Speed:** 1.4 u/s
+**Available after:** Wave 2 | **Spawn rate:** 12% → 25% | **Cap:** 2 on screen | **Score on kill:** Max HP × k points | **Speed:** 1.4 u/s
 
 HP: **1,520–3,170**. It carries **60 flat DR** from the start.
 
@@ -536,9 +538,9 @@ Thaelis has no normal attack. Its attack is **Ulysses' Return**:
 
 ### Heavenly Raphael (Elite)
 
-**Available after:** Wave 2 | **Spawn rate:** 6% → 14% | **Cap:** 2 on screen | **Score on kill:** HP × 6 points | **Speed:** 1.65 u/s
+**Available after:** Wave 2 | **Spawn rate:** 6% → 14% | **Cap:** 2 on screen | **Score on kill:** Max HP × k points | **Speed:** 1.65 u/s
 
-HP: **2,376–4,118**. Permanent **50% Damage Reduction** at all times.
+HP: **2,500–4,500**. Permanent **50% Damage Reduction** at all times.
 
 **Custos Aeternus** — Spawns with an **Iron Body shield**: the **first 20 hits** it receives from any source — including Death Stars and Skill F — are completely nullified. Each hit triggers a white flash, and hit-counting is throttled to at most 1 per ~175ms so a single burst of near-simultaneous attacks (e.g. Skill A's Thunder Orbs) can't blow through the whole pool in one cast. After the 20th hit the shield breaks and Raphael takes damage normally. **While Custos is active, Raphael is CC Immune** — immune to Death Star pull, Tesla slow, Dimensional Rift slow, and Orb slow — and takes **zero damage from any DoT tick** (Tesla Coil, Dimensional Rift's Soul Devourer, Solar Flare, Yog-Sothoth's tick, Soul Reaver) while the shield is up, sparking a small cyan flicker instead of counting toward the 20. After Iron Body expires, **Support Aura gains +35% heal efficiency** permanently for the rest of the encounter. When Custos breaks, Raphael also gets a one-time Shield based on how many allies were inside its aura at that moment: 0 allies → +8% Max HP, 1 ally → +10%, 2 → +15%, 3 → +20%, 4+ → +25%.
 
@@ -561,7 +563,7 @@ HP: **2,376–4,118**. Permanent **50% Damage Reduction** at all times.
 
 ### Marchosias (Elite)
 
-**Available after:** Wave 2 | **Spawn rate:** 5% → 13% | **Cap:** 2 on screen | **Score on kill:** HP × 6 points | **Speed:** ~1.6 u/s
+**Available after:** Wave 2 | **Spawn rate:** 5% → 13% | **Cap:** 2 on screen | **Score on kill:** Max HP × k points | **Speed:** ~1.6 u/s
 
 HP: **2,112–4,092**. Permanent **45% Damage Reduction** on its body at all times.
 
@@ -613,7 +615,7 @@ Each minion scans within **170px** for a valid host (excluding other Marchosias)
 
 ### Egregor (Elite)
 
-**Available after:** Wave 2 | **Spawn rate:** 3.5% → 12% | **Cap:** 1 on screen | **Score on kill:** HP × 6 points | **Speed:** 0.8 u/s
+**Available after:** Wave 2 | **Spawn rate:** 3.5% → 12% | **Cap:** 1 on screen | **Score on kill:** Max HP × k points | **Speed:** 0.8 u/s
 
 HP: **2,530–5,980**. No single hit takes more than **15% of its Max HP** (its own Vessel backlash excepted). Permanent **40% Damage Reduction** on its body at all times. **Permanent CC Immunity** — immune to all crowd control including Tesla slow, Dimensional Rift slow, Orb Sacrifice slow, and Death Star pull. A massive psychic entity with 10 waving tentacles, an organic pulsing body, and 4 eyes that track the player at all times. Descends toward the player, then holds position in the upper screen while cycling between Null Slash and Psychic Tempest.
 
@@ -631,7 +633,7 @@ HP: **2,530–5,980**. No single hit takes more than **15% of its Max HP** (its 
 
 ### Dargruel (Dominator)
 
-**Available after:** Wave 3 | **Spawn rate:** 4% → 13% | **Cap:** 1 on screen | **Score on kill:** HP × 6 points | **Speed:** ~1.6 u/s
+**Available after:** Wave 3 | **Spawn rate:** 4% → 13% | **Cap:** 1 on screen | **Score on kill:** Max HP × k points | **Speed:** ~1.6 u/s
 
 HP: **6,200–16,000**. DR is fully dynamic — see Passive below. **Permanent CC Immunity** — immune to all crowd control including Tesla slow, Dimensional Rift slow, Orb Sacrifice slow, and Death Star pull.
 
@@ -648,8 +650,9 @@ HP: **6,200–16,000**. DR is fully dynamic — see Passive below. **Permanent C
 
 **Passive: Maître Suprême** — Dargruel's Damage Reduction scales dynamically with Sentinels:
 
-- **50% base DR** at all times.
-- **+2.5% DR per active Sentinel** on screen. Capped at **60% total DR**.
+- **45% base DR** at all times.
+- **+1% DR per active Sentinel** on screen. Capped at **55% total DR**.
+- Below **60% of its Max HP** it gains **+0.75% DR for every 1% of HP lost under that line**, up to **+30%**.
 - **+5% normal attack speed per active Sentinel**, capped at **+20%**.
 
 **Skill: Abyssal Chains (Xiềng xích hắc ám)** — Every **2.1 seconds**, fires **4 dark chains** (−10% speed vs prior) in a fan aimed at the player. Chains are **piercing** — immune to all player and ally attacks: bullets, Skill A orbs, Skill F sweep, Death Star, Yog-Sothoth Domain, spirit blade arcs, spirit finale, Overload Laser, and Tesla DoT. Chains cannot be targeted by Skill A or Sentinel AI.
@@ -668,13 +671,13 @@ HP: **6,200–16,000**. DR is fully dynamic — see Passive below. **Permanent C
 
 ### Leviathan (Dominator)
 
-**Available after:** Wave 3 | **Spawn rate:** 2% → 6% | **Cap:** 1 on screen | **Respawn cooldown:** 8s after kill | **Score on kill:** HP × 6 points | **Speed:** ~1.5 u/s
+**Available after:** Wave 3 | **Spawn rate:** 2% → 6% | **Cap:** 1 on screen | **Respawn cooldown:** 8s after kill | **Score on kill:** Max HP × k points | **Speed:** ~1.5 u/s
 
 HP: **8,820–15,435**. A massive armored entity with 9 segmented wing-plates surrounding a black-hole core with a living eye that tracks the player at all times.
 
 **Passive: Inevitable** — Leviathan's core resilience mechanics:
 
-- **60% base Damage Reduction** at all times (active once the All for One shield breaks).
+- **55% base Damage Reduction** and **150 flat DR** at all times (active once the All for One shield breaks). For **1 second** right after that shield breaks, its DR is at least **90%**.
 - When any single hit would exceed **20% of Leviathan's Max HP** (after DR), activates a **3-second protection window**: all damage is capped at **10% of Max HP per hit**. The protection has a **2-second cooldown** after the window ends before it can activate again.
 - The instant Leviathan's HP first crosses **50%**, this protection window activates immediately and unconditionally — regardless of the triggering hit's size or the normal cooldown. This can only happen once per Leviathan.
 - Leviathan's own bullets destroy **player auto bullets**, **Sentinel bullets**, and **both Remembrance Spirit and Phōtokrystos bullets** on contact — even ones that would normally pierce straight through. No other friendly projectile types are affected.
@@ -712,7 +715,7 @@ When Leviathan's HP reaches **1** — by any source, including Death Star and Sk
 
 **Normal Attack**
 
-Always active. Every **0.75 seconds**, fires 3 bullets in a slight spread at the nearest player or Sentinel. Each bullet's HP equals **2% of Leviathan's Max HP**.
+Active only once the All for One shield has broken. Every **0.75 seconds**, fires 3 bullets in a slight spread at the nearest player or Sentinel. Each bullet's HP equals **2% of Leviathan's Max HP**.
 
 **Skill: Perseverance**
 
@@ -850,11 +853,13 @@ Enemies are divided into six tiers of power.
 | Class | Examples |
 |---|---|
 | **Normal** | Apostles |
-| **Abnormal** | Thaelis, Veilshroud |
-| **Elite** | Marchosias, Heavenly Raphael, Egregor |
+| **Abnormal** | Thaelis, Veilshroud, Uriel |
+| **Elite** | Marchosias, Heavenly Raphael, Egregor, Ammit |
 | **Dominator** | Dargruel, Leviathan |
 | **Digiform** (testbed) | Goliath |
 | **Administrator** | Kanade of the Endless Nights |
+
+The wave spawner does not follow these labels exactly. Its Abnormal pool is Marchosias, Veilshroud and Uriel, its Elite pool is Thaelis, Heavenly Raphael, Egregor and Ammit, and its Dominator pool is Dargruel and Leviathan. Evade follows the labels in this table.
 
 **Cap (individual, on-screen simultaneously):** Marchosias 2 · Veilshroud 2 · Thaelis 3 · Raphael 2 · Egregor 1 · Dargruel 2 · Leviathan 1 · Goliath 1 (spawns once on every wave 5/10/15/20...). A single wave can have more of a given type than its cap — new ones simply wait until a slot opens. There is no combined cap across tiers.
 

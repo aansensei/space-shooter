@@ -75,6 +75,8 @@ function spawnVeilshroud() {
         // Normal volley cadence
         shootTimer: 0,
         shootInterval: 450,
+        // each one starts at a random point of the three volley cycle, so two Veilshrouds do not aim together
+        _volleyCount: Math.floor(Math.random() * 3),
         // Energy Accumulation: tracks damage absorbed during Phantom
         _phantomAbsorb: 0,
     });
@@ -357,8 +359,11 @@ function _veilshroudFireVolley(enemy) {
     const target = findClosestSentinelOrPlayer(enemy.x, enemy.y);
     if (!target) return;
     const baseAngle = Math.atan2(target.y - enemy.y, target.x - enemy.x);
+    // every third volley one of the two flies dead on the aim line, so a ship standing still in front of it is no longer safe
+    enemy._volleyCount = (enemy._volleyCount || 0) + 1;
+    const deadOn = enemy._volleyCount % 3 === 0;
     for (let i = 0; i < 2; i++) {
-        const a = baseAngle + (i - 0.5) * 0.22;
+        const a = deadOn && i === 1 ? baseAngle : baseAngle + (i - 0.5) * 0.22;
         _veilshroudFireBullet(enemy, a, 5.3);
     }
 }
