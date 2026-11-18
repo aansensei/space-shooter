@@ -2495,6 +2495,8 @@ function draw(deltaTime) {
         if (typeof _drawThaelisWaves === 'function') _drawThaelisWaves();
         scatteredProjectiles.forEach(drawScatteredProjectile);
         _drawDimensionalRiftsCtx(); // always on ctx, drawn before enemies so rift appears behind them
+        // A Phantom Portal is scenery: it sits under every bullet, ship and enemy
+        enemies.forEach(e => { if (e.type === 'veilshroud_echo') drawEnemy(e); });
 
         teslaCoils.forEach(drawTeslaCoil);
         energyOrbs.forEach(drawEnergyOrb);
@@ -2522,7 +2524,7 @@ function draw(deltaTime) {
         // Draw non-bullet enemies first (background layer) — Goliath vẽ RIÊNG
         // sau cùng (sau cả Sigil HUD) vì Goliath giờ hay lượn gần viền trên
         // màn hình, dễ bị icon Sigil HUD đè lên nếu vẽ chung ở đây.
-        enemies.forEach(e => { if (!e.type.startsWith('enemy_bullet') && e.type !== 'abyssal_chain' && e.type !== 'goliath') drawEnemy(e); });
+        enemies.forEach(e => { if (!e.type.startsWith('enemy_bullet') && e.type !== 'abyssal_chain' && e.type !== 'goliath' && e.type !== 'veilshroud_echo') drawEnemy(e); });
         _drawSentinelSpearFx();  // spear impacts and the twelve Sentinel volley lock on, above the enemies they hit
         // Blood Arrow's impact bloom draws AFTER enemies so it sits layered
         // on top of whatever it just hit, instead of hiding underneath it.
