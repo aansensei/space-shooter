@@ -135,6 +135,22 @@ function updateVeilshroud(enemy, deltaTime) {
             enemy._phantomAbsorb = 0;
         }
     }
+    // Phase Purge: while phased, Veilshroud sheds every Vulnerability stack and its true damage window,
+    // and applyVulnerability refuses new ones.
+    if (enemy.type === 'veilshroud') {
+        if (enemy.inPhantom) {
+            if (!enemy._phPurged) {
+                enemy._phPurged = true;
+                enemy._purgeStacks = enemy.vulnStacks || 0;
+                enemy._purgeAt = gameElapsedTime;
+            }
+            enemy.vulnStacks = 0;
+            enemy.vulnEndTime = 0;
+            enemy.vulnTrueDmgEnd = 0;
+        } else {
+            enemy._phPurged = false;
+        }
+    }
     if (enemy.type === 'veilshroud') _staticVeilErase(enemy);
 
     // Phantom state duration
@@ -148,6 +164,8 @@ function updateVeilshroud(enemy, deltaTime) {
             const _eaAbsorbed = enemy._phantomAbsorb || 0;
             const _eaShield = Math.min(1500, Math.ceil((0.50 * _eaAbsorbed + 280) * 1.15));
             _addEnemyShield(enemy, _eaShield);
+            // render draws the shield ring unwinding against this starting value
+            enemy._shellPeak = enemy.shield || 0;
             enemy._phantomAbsorb = 0;
             if (enemy.type === 'veilshroud' && enemy.hp > 0 && enemies.includes(enemy)) {
                 enemy._voidBurstTimer = 400;
@@ -240,6 +258,11 @@ function _staticVeilErase(enemy) {
             b._staticVeilId = id;
             if (Math.random() >= chance) continue;
             if (!_mobPerf && Math.random() < 0.6) createParticles(b.x, b.y, 2, '#b78cff', 1, 4);
+            // render flashes a small ring here
+            if (_gfxLevel < 3) {
+                const ripples = window._staticVeilRipples || (window._staticVeilRipples = []);
+                if (ripples.length < 24) ripples.push({ x: b.x, y: b.y, born: gameElapsedTime });
+            }
             list.splice(j, 1);
         }
     }

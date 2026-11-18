@@ -64,6 +64,17 @@ function _drawVeilshroud(enemy) {
         ctx.restore();
     }
     ctx.beginPath(); ctx.arc(0, 0, auraR, 0, Math.PI * 2); ctx.fill();
+    // faint motes drift out of the aura and fade
+    if (!_mobPerf && _gfxLevel < 2) {
+        ctx.fillStyle = mainColor;
+        const motes = _twCount(5, 9);
+        for (let i = 0; i < motes; i++) {
+            const ph = (now / 2600 + i / motes) % 1, ang = i * 2.4 + now / 5200, d = r * (1.0 + 1.9 * ph);
+            ctx.globalAlpha = baseAlpha * 0.55 * (1 - ph);
+            ctx.beginPath(); ctx.arc(Math.cos(ang) * d, Math.sin(ang) * d, 1.8 * (1 - ph) + 0.4, 0, Math.PI * 2); ctx.fill();
+        }
+        ctx.globalAlpha = baseAlpha;
+    }
 
     // 2. VOID RIBBONS (áo choàng năng lượng uốn lượn)
     const numRibbons = _mobPerf ? 3 : 5;
@@ -93,11 +104,27 @@ function _drawVeilshroud(enemy) {
     ctx.shadowBlur = 0;
 
     // 3. ARMILLARY RINGS
-    ctx.lineWidth = 2 + t * 1.5;
+    // the rings turn a little faster and thicken for the last half second before Phantom starts
+    const _entry = (enemy.lightningPending || enemy.inPhantom) ? 0 : enemy.phantomCheckInterval - enemy.phantomCheckTimer;
+    const _breath = _entry > 0 && _entry <= 500 ? 1 - _entry / 500 : 0;
+    ctx.lineWidth = 2 + t * 1.5 + _breath * 1.5;
     ctx.strokeStyle = `rgba(${curR},${curG},${curB},0.8)`;
     ctx.beginPath();
-    ctx.ellipse(0, 0, r * 1.05, r * 0.38, now / 1000, 0, Math.PI * 2);
+    ctx.ellipse(0, 0, r * 1.05, r * 0.38, now / 1000 + _breath * 1.4, 0, Math.PI * 2);
     ctx.stroke();
+    // three bright nodes ride the inner ring
+    if (!_mobPerf) {
+        ctx.save();
+        ctx.rotate(now / 1000 + _breath * 1.4);
+        ctx.fillStyle = `rgba(255,255,255,${0.75 + t * 0.2})`;
+        ctx.shadowColor = mainColor; ctx.shadowBlur = 8;
+        for (let k = 0; k < 3; k++) {
+            const a = now / 1400 + k * Math.PI * 2 / 3;
+            ctx.beginPath(); ctx.arc(r * 1.05 * Math.cos(a), r * 0.38 * Math.sin(a), 2.2, 0, Math.PI * 2); ctx.fill();
+        }
+        ctx.shadowBlur = 0;
+        ctx.restore();
+    }
     // Bumped up from a bare 0.35 base alpha/no glow - too thin and faint to
     // read against the rest of a busy real fight (particles, other enemies,
     // bullets), even though it was always technically rendering.
@@ -106,7 +133,7 @@ function _drawVeilshroud(enemy) {
     if (!_mobPerf) { ctx.shadowColor = '#ffffff'; ctx.shadowBlur = 6; }
     ctx.setLineDash([9, 13]);
     ctx.beginPath();
-    ctx.ellipse(0, 0, r * 1.25, r * 0.48, -now / 800 + Math.PI / 4, 0, Math.PI * 2);
+    ctx.ellipse(0, 0, r * 1.25, r * 0.48, -now / 800 + Math.PI / 4 - _breath * 1.4, 0, Math.PI * 2);
     ctx.stroke();
     ctx.setLineDash([]);
     ctx.shadowBlur = 0;
@@ -147,13 +174,24 @@ function _drawVeilshroud(enemy) {
             [[-r * 1.25 - shardOffset, 0], [-r * 0.48, -r * 0.28], [-r * 0.28, 0], [-r * 0.48, r * 0.28]],
             [[r * 1.25 + shardOffset, 0], [r * 0.48, -r * 0.28], [r * 0.28, 0], [r * 0.48, r * 0.28]],
         ];
+        const _shardOutline = ctx.strokeStyle;
         armorShards.forEach(pts => {
+            ctx.strokeStyle = _shardOutline; ctx.lineWidth = 1.5;
             ctx.beginPath();
             ctx.moveTo(pts[0][0], pts[0][1]);
             for (let p = 1; p < pts.length; p++) ctx.lineTo(pts[p][0], pts[p][1]);
             ctx.closePath();
             if (t < 0.88) ctx.fill();
             ctx.stroke();
+            // a fainter inset outline gives each shard a bevelled, crystalline edge
+            const cx = (pts[0][0] + pts[1][0] + pts[2][0] + pts[3][0]) / 4, cy = (pts[0][1] + pts[1][1] + pts[2][1] + pts[3][1]) / 4;
+            ctx.strokeStyle = `rgba(255,255,255,${0.14 * shardAlpha})`; ctx.lineWidth = 1;
+            ctx.beginPath();
+            for (let p = 0; p < pts.length; p++) {
+                const x = cx + (pts[p][0] - cx) * 0.68, y = cy + (pts[p][1] - cy) * 0.68;
+                if (p === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
+            }
+            ctx.closePath(); ctx.stroke();
         });
     }
 
@@ -169,6 +207,11 @@ function _drawVeilshroud(enemy) {
     // Event Horizon (black hole)
     ctx.fillStyle = '#000000';
     ctx.beginPath(); ctx.arc(0, 0, coreR, 0, Math.PI * 2); ctx.fill();
+    // a thin lit rim on the horizon, with a brighter arc sweeping round it
+    ctx.strokeStyle = 'rgba(255,255,255,0.32)'; ctx.lineWidth = 1;
+    ctx.beginPath(); ctx.arc(0, 0, coreR * 1.03, 0, Math.PI * 2); ctx.stroke();
+    ctx.strokeStyle = mainColor; ctx.lineWidth = 2;
+    ctx.beginPath(); ctx.arc(0, 0, coreR * 1.03, now / 700, now / 700 + 0.9); ctx.stroke();
     // Iris / khe nứt không gian
     ctx.fillStyle = t > 0.5 ? '#ffffff' : mainColor;
     if (!_mobPerf) { ctx.shadowColor = mainColor; ctx.shadowBlur = 14; }
@@ -397,7 +440,8 @@ function _drawVeilshroudExitWarning(enemy) {
     // a ring closes in on the body for the last half second before Phantom starts
     const entry = enemy.lightningPending ? 0 : enemy.phantomCheckInterval - enemy.phantomCheckTimer;
     const entering = entry > 0 && entry <= 500;
-    if (burst <= 0 && guard <= 0 && field <= 0 && !entering) return;
+    const shell = enemy.shield > 0 && enemy._shellPeak > 0 ? Math.min(1, enemy.shield / enemy._shellPeak) : 0;
+    if (burst <= 0 && guard <= 0 && field <= 0 && !entering && shell <= 0) return;
     const r = enemy.size / 2;
     ctx.save();
     ctx.translate(enemy.x, enemy.y);
@@ -408,6 +452,12 @@ function _drawVeilshroudExitWarning(enemy) {
         ctx.beginPath(); ctx.arc(0, 0, rr, 0, Math.PI * 2); ctx.fill();
         ctx.strokeStyle = '#bb77ee'; ctx.lineWidth = 1.5 + prog;
         ctx.beginPath(); ctx.arc(0, 0, rr, 0, Math.PI * 2); ctx.stroke();
+        // ten spokes show the directions the bullets will leave in
+        ctx.strokeStyle = `rgba(211,162,255,${0.7 * prog})`; ctx.lineWidth = 1.5;
+        for (let i = 0; i < 10; i++) {
+            const a = i * Math.PI / 5, e0 = rr, e1 = rr + 8 + 16 * prog;
+            ctx.beginPath(); ctx.moveTo(Math.cos(a) * e0, Math.sin(a) * e0); ctx.lineTo(Math.cos(a) * e1, Math.sin(a) * e1); ctx.stroke();
+        }
         if (_gfxLevel < 3) {
             const count = _twCount(5, 10);
             if (!_mobPerf) { ctx.shadowColor = '#9922dd'; ctx.shadowBlur = 8; }
@@ -437,6 +487,23 @@ function _drawVeilshroudExitWarning(enemy) {
         ctx.setLineDash([10, 8]); ctx.lineDashOffset = -now / 40;
         ctx.beginPath(); ctx.arc(0, 0, R, 0, Math.PI * 2); ctx.stroke();
         ctx.setLineDash([]);
+        // a second, fainter ring turns the other way inside the rim
+        ctx.strokeStyle = 'rgba(190,150,255,0.22)'; ctx.lineWidth = 1;
+        ctx.setLineDash([3, 11]); ctx.lineDashOffset = now / 55;
+        ctx.beginPath(); ctx.arc(0, 0, R * 0.72, 0, Math.PI * 2); ctx.stroke();
+        ctx.setLineDash([]);
+        if (_gfxLevel < 3) {
+            // static: specks that jump to a new place every 90ms
+            const seed = Math.floor(now / 90), specks = _twCount(8, 18);
+            ctx.fillStyle = '#e4cfff';
+            for (let i = 0; i < specks; i++) {
+                const h1 = Math.abs(Math.sin(seed * 12.9898 + i * 78.233) * 43758.5453) % 1;
+                const h2 = Math.abs(Math.sin(seed * 39.346 + i * 11.135) * 24634.6345) % 1;
+                ctx.globalAlpha = Math.min(1, field / 400) * (0.25 + 0.4 * ((h1 * 7) % 1));
+                ctx.fillRect(Math.cos(h1 * Math.PI * 2) * R * (0.3 + 0.68 * h2), Math.sin(h1 * Math.PI * 2) * R * (0.3 + 0.68 * h2), 2, 1);
+            }
+            ctx.globalAlpha = Math.min(1, field / 400);
+        }
         if (_gfxLevel < 3) {
             const count = _twCount(6, 12);
             ctx.strokeStyle = '#d3a2ff'; ctx.lineWidth = 1.5;
@@ -451,6 +518,23 @@ function _drawVeilshroudExitWarning(enemy) {
         }
         ctx.globalAlpha = 1;
     }
+    // Phase Shell: the Phantom shield is a violet ring that unwinds as it is worn down, with a white notch at the broken end
+    if (shell > 0) {
+        const sweep = Math.PI * 2 * shell, a0 = -Math.PI / 2;
+        ctx.strokeStyle = `rgba(190,150,255,${0.45 + 0.35 * shell})`;
+        ctx.lineWidth = 2 + 3 * Math.min(1, enemy.shield / (enemy.maxHp * 0.25));
+        ctx.beginPath(); ctx.arc(0, 0, r * 1.45, a0, a0 + sweep); ctx.stroke();
+        ctx.fillStyle = '#ffffff';
+        ctx.beginPath(); ctx.arc(Math.cos(a0 + sweep) * r * 1.45, Math.sin(a0 + sweep) * r * 1.45, 2.6, 0, Math.PI * 2); ctx.fill();
+        if (shell < 0.999 && _gfxLevel < 3) {
+            const a = a0 + sweep;
+            ctx.strokeStyle = '#ffffff'; ctx.lineWidth = 1.5;
+            ctx.beginPath();
+            ctx.moveTo(Math.cos(a) * r * 1.36, Math.sin(a) * r * 1.36);
+            ctx.lineTo(Math.cos(a) * r * 1.54, Math.sin(a) * r * 1.54);
+            ctx.stroke();
+        }
+    }
     if (entering) {
         const p = 1 - entry / 500;
         ctx.strokeStyle = `rgba(200,170,255,${0.2 + 0.5 * p})`; ctx.lineWidth = 1.5 + 2 * p;
@@ -459,15 +543,60 @@ function _drawVeilshroudExitWarning(enemy) {
     ctx.restore();
 }
 
+// Phase Purge: a cyan ring spreads out of the body as Phantom starts, and the Vulnerability marks it wiped dissolve outward.
+function _drawVeilshroudPurge(enemy) {
+    if (enemy.type !== 'veilshroud' || enemy._purgeAt === undefined) return;
+    const age = gameElapsedTime - enemy._purgeAt;
+    if (age < 0 || age >= 600) return;
+    const p = age / 600, r = enemy.size / 2, n = enemy._purgeStacks | 0;
+    ctx.save();
+    ctx.translate(enemy.x, enemy.y);
+    ctx.strokeStyle = `rgba(80,240,220,${0.85 * (1 - p)})`;
+    ctx.lineWidth = 3 * (1 - p) + 1;
+    ctx.beginPath(); ctx.arc(0, 0, r * (1 + 1.8 * p), 0, Math.PI * 2); ctx.stroke();
+    ctx.fillStyle = `rgba(255,90,120,${1 - p})`;
+    for (let i = 0; i < n; i++) {
+        const a = i / n * Math.PI * 2 + 0.6, d = r * (1.1 + 1.6 * p);
+        ctx.beginPath(); ctx.arc(Math.cos(a) * d, Math.sin(a) * d, 3 * (1 - p) + 1, 0, Math.PI * 2); ctx.fill();
+    }
+    ctx.restore();
+}
+
 // VEILSHROUD EFFECTS: lightning + explosion zones
 function _drawVeilshroudEffects() {
     const now = performance.now();
 
+    // Static Veil: a small ring flashes where a projectile was scrambled away
+    if (window._staticVeilRipples && window._staticVeilRipples.length) {
+        const live = [];
+        ctx.save(); ctx.lineWidth = 1.5;
+        for (const rp of window._staticVeilRipples) {
+            const age = gameElapsedTime - rp.born;
+            if (age < 0 || age >= 260) continue;
+            live.push(rp);
+            const p = age / 260;
+            ctx.strokeStyle = `rgba(211,162,255,${0.8 * (1 - p)})`;
+            ctx.beginPath(); ctx.arc(rp.x, rp.y, 3 + 13 * p, 0, Math.PI * 2); ctx.stroke();
+        }
+        ctx.restore();
+        window._staticVeilRipples = live;
+    }
+
     // Pending Void Strike rings (host đã chết nhưng sét chưa ra)
     for (const e of enemies) {
         if (e.hp <= 0) continue;
-        if (e.type === 'veilshroud') _drawVeilshroudExitWarning(e);
+        if (e.type === 'veilshroud') { _drawVeilshroudExitWarning(e); _drawVeilshroudPurge(e); }
         if (e.type === 'veilshroud' && e.lightningPending) {
+            // a dashed line from the top of the screen shows each column the bolts will fall down
+            const lp = e.lightningCountdown / e.lightningCountdownDuration;
+            ctx.save();
+            ctx.strokeStyle = `rgba(255,70,95,${0.1 + 0.35 * lp})`; ctx.lineWidth = 1.5;
+            ctx.setLineDash([6, 9]); ctx.lineDashOffset = -now / 30;
+            for (const [lx, ly] of [[e.lightningTargetX, e.lightningTargetY], [e.lightningTarget2X, e.lightningTarget2Y]]) {
+                if (lx === undefined) continue;
+                ctx.beginPath(); ctx.moveTo(lx, 0); ctx.lineTo(lx, ly); ctx.stroke();
+            }
+            ctx.restore();
             _drawDangerZone('circle', e.lightningTargetX, e.lightningTargetY, 100, e.lightningCountdown / e.lightningCountdownDuration, 0.3, now);
             if (e.lightningTarget2X !== undefined) _drawDangerZone('circle', e.lightningTarget2X, e.lightningTarget2Y, 100, e.lightningCountdown / e.lightningCountdownDuration, 0.3, now);
         }

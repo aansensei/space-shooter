@@ -50,11 +50,14 @@ function applyVulnerability(enemy) {
     // this one has an immediate side effect (the 20% shield shave below), so
     // it has to be stopped here rather than cleaned up a frame later.
     if (_goliathDebuffImmune(enemy)) return;
+    // Phase Purge: a phased Veilshroud refuses new stacks.
+    if (enemy.type === 'veilshroud' && enemy.inPhantom) return;
     const now = performance.now();
     const stacks = (enemy.vulnStacks || 0);
     if (stacks < _stackCap('vulnerability')) {
         // Lập tức giảm 20% khiên hiện tại (docs/combat-scaling-rebalance.md Part 3)
-        if (enemy.shield > 0) {
+        // Veilshroud's Phantom shield is not shaved.
+        if (enemy.shield > 0 && enemy.type !== 'veilshroud') {
             enemy.shield = Math.max(0, Math.floor(enemy.shield * 0.80));
         }
         enemy.vulnStacks = stacks + 1;
