@@ -2014,7 +2014,7 @@
             }
         }
 
-        releaseShift(teleported = false) {
+        releaseShift() {
             if (!this.shiftActive) return;
             this.shiftActive = false;
             const heldRatio = Math.max(0, Math.min(1, this.shiftElapsed / SHIFT_MAX_DURATION_SEC));
@@ -2029,10 +2029,8 @@
                 const py = typeof player !== 'undefined' ? player.y : 660;
                 const radius = typeof canvas !== 'undefined' ? Math.min(canvas.width, canvas.height) * 0.45 : 324;
                 this._cancelBulletsInRadius(px, py, radius);
-                if (!teleported) {
-                    window._domainCloseBursts ||= [];
-                    window._domainCloseBursts.push({ x: px, y: py, spawnAt: performance.now(), duration: 300 });
-                }
+                window._domainCloseBursts ||= [];
+                window._domainCloseBursts.push({ x: px, y: py, spawnAt: performance.now(), duration: 300 });
                 if (window.AudioMgr) {
                     window.AudioMgr.exitTimeDomain();
                 }
@@ -2060,7 +2058,6 @@
             }
             if (typeof _setShake === 'function' && window._screenShakeEnabled !== false && !window._fxOpts?.reducedMotion) _setShake(10, 200);
             if (window.AudioMgr) window.AudioMgr.playSfx('shift-teleport');
-            this.releaseShift(true);
         }
 
         renderCombat(ctx) {
