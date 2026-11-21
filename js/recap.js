@@ -212,7 +212,9 @@ function t(key, lang, vars) {
 // time its language opens the recap.
 const RC_FONTS = {
   en: { title: "'Cinzel', Georgia, serif", ui: "'Orbitron', 'Segoe UI', sans-serif", italic: "'Playfair Display', Georgia, serif" },
-  vi: { title: "'Playfair Display', Georgia, serif", ui: "'Be Vietnam Pro', 'Segoe UI', sans-serif", italic: "'Cormorant Garamond', Georgia, serif" }
+  // The Vietnamese stacks fall back to Times New Roman, which draws stacked marks such as ố correctly; Georgia
+  // detaches the accent when the web faces are offline or blocked
+  vi: { title: "'Playfair Display', 'Times New Roman', Times, serif", ui: "'Be Vietnam Pro', 'Segoe UI', sans-serif", italic: "'Cormorant Garamond', 'Times New Roman', Times, serif" }
 };
 const RC_FONT_URL = {
   en: "https://fonts.googleapis.com/css2?family=Orbitron:wght@600;700&family=Playfair+Display:ital@1&display=swap",
@@ -220,7 +222,7 @@ const RC_FONT_URL = {
 };
 const RC_FONT_FACES = {
   en: ["700 16px Cinzel", "700 16px Orbitron", "italic 16px 'Playfair Display'"],
-  vi: ["700 16px 'Playfair Display'", "italic 600 16px 'Cormorant Garamond'", "600 16px 'Be Vietnam Pro'", "700 16px 'Be Vietnam Pro'"]
+  vi: ["700 16px 'Playfair Display'", "italic 400 16px 'Cormorant Garamond'", "italic 500 16px 'Cormorant Garamond'", "italic 600 16px 'Cormorant Garamond'", "600 16px 'Be Vietnam Pro'", "700 16px 'Be Vietnam Pro'"]
 };
 let _rcF = RC_FONTS.en;
 const _rcFontPromise = {};
@@ -236,7 +238,9 @@ function _rcLoadFonts(lang) {
   document.head.appendChild(link);
   _rcFontPromise[key] = sheet.then(function() {
     if (!document.fonts || !document.fonts.load) return null;
-    return Promise.all(RC_FONT_FACES[key].map(function(f) { return document.fonts.load(f, "ĐẾNỘ Ãi"); }));
+    // The canvas picks a face by the weight it asks for, and a face only gets its Vietnamese glyphs once text that
+    // needs them has been loaded for it, so every weight in use is loaded with stacked mark sample text
+    return Promise.all(RC_FONT_FACES[key].map(function(f) { return document.fonts.load(f, "ĐẾNỘ Ãi ốếềểỗợữứừ ĂÂÊÔƠƯ"); }));
   }).catch(function() {});
   return _rcFontPromise[key];
 }
