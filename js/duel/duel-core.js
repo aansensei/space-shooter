@@ -2379,7 +2379,7 @@
             ctx.restore();
         }
 
-        _renderBoss(ctx, pos, opening = null) {
+        _renderBoss(ctx, pos, opening = null, auraContext = ctx) {
             const gfxLvl = (typeof _gfxLevel !== 'undefined') ? _gfxLevel : 0;
             const now = opening ? 0 : this.attacks.elapsed;
 
@@ -2481,6 +2481,8 @@
                         (this.state === 'spell_transition' && this._layerFreeze > 0 ? this._layerFreezeAt : undefined),
                     phase: targetPhase,
                     phaseMorph: opening ? 0 : this.bossPhaseMorph,
+                    auraStrength: opening ? 0.59 : 1,
+                    auraContext,
                     eyeSamples: this._bossEyeSamples,
                     playerX: _px,
                     playerY: _py,

@@ -1379,7 +1379,7 @@
         if (layer.width !== w || layer.height !== h) { layer.width = w; layer.height = h; }
         const g = layer.getContext('2d');
         g.setTransform(1, 0, 0, 1, 0, 0); g.clearRect(0, 0, w, h);
-        session._renderBoss(g, pos);
+        session._renderBoss(g, pos, null, ctx);
         const flash = ease(1 - time / .3);
         const left = Math.max(0, Math.floor(pos.x - 340)), top = Math.max(0, Math.floor(pos.y - 230));
         const right = Math.min(w, Math.ceil(pos.x + 340)), bottom = Math.min(h, Math.ceil(pos.y + 340));

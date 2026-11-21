@@ -2298,17 +2298,225 @@ function _bakeDuelLimb(phase) {
     return sprite;
 }
 
-function _bakeDuelAtmosphere(phase) {
-    const sprite = document.createElement('canvas');
-    sprite.width = sprite.height = 256;
-    const ctx = sprite.getContext('2d');
-    const rgb = ['69,175,187', '165,96,240', '246,109,87'][phase - 1];
-    const g = ctx.createRadialGradient(128, 128, 12, 128, 128, 128);
-    g.addColorStop(0, 'rgba(' + rgb + ',0.36)');
-    g.addColorStop(0.56, 'rgba(' + rgb + ',0.13)');
-    g.addColorStop(1, 'rgba(' + rgb + ',0)');
-    ctx.fillStyle = g; ctx.fillRect(0, 0, 256, 256);
-    return sprite;
+const _DUEL_AURA_FORMS = [
+    {rx:185, ry:133, lift:13, period:3.95, rays:6, spin:0.04, breath:0.85, ring:0.26, drift:0.24, haze:'#347cad'},
+    {rx:228, ry:155, lift:21, period:3.28, rays:10, spin:-0.08, breath:1.4, ring:0.31, drift:0.31, haze:'#7031c2'},
+    {rx:280, ry:172, lift:32, period:2.65, rays:12, spin:0.13, breath:2.45, ring:0.37, drift:0.43, haze:'#e94333'}
+];
+const _DUEL_AURA_PARTICLES = Array.from({length:24}, (_, i) => {
+    const angle = i * 2.399963;
+    return {x:Math.cos(angle), y:Math.sin(angle), start:(i * 0.618034) % 1};
+});
+const _DUEL_AURA_TAU = Math.PI * 2;
+const _DUEL_DEFAULT_FX = {};
+
+function _bakeDuelAura(phase) {
+    const palette = DuelFX.getPhasePalette(phase);
+    const form = _DUEL_AURA_FORMS[phase - 1];
+    const haze = document.createElement('canvas');
+    const rays = document.createElement('canvas');
+    haze.width = 384; haze.height = 256;
+    rays.width = rays.height = 320;
+    const light = haze.getContext('2d');
+    light.translate(192, 128);
+    light.scale(1, 2 / 3);
+    const outer = light.createRadialGradient(0, 0, 15, 0, 0, 192);
+    outer.addColorStop(0, form.haze + '42');
+    outer.addColorStop(0.45, form.haze + '3a');
+    outer.addColorStop(0.68, form.haze + '2c');
+    outer.addColorStop(1, form.haze + '00');
+    light.fillStyle = outer;
+    light.fillRect(-192, -192, 384, 384);
+    const inner = light.createRadialGradient(0, -6, 9, 0, 0, 154);
+    inner.addColorStop(0, palette.rim + '37');
+    inner.addColorStop(0.35, (phase === 3 ? palette.rim : palette.glow) + '32');
+    inner.addColorStop(0.68, (phase === 3 ? form.haze : palette.glow) + '27');
+    inner.addColorStop(1, palette.glow + '00');
+    light.fillStyle = inner;
+    light.fillRect(-192, -192, 384, 384);
+
+    const beam = rays.getContext('2d');
+    beam.translate(160, 160);
+    const shaft = beam.createLinearGradient(0, 0, 0, -155);
+    shaft.addColorStop(0, palette.rim + '00');
+    shaft.addColorStop(0.35, palette.glow + '10');
+    shaft.addColorStop(0.62, palette.glow + (phase === 1 ? '42' : '72'));
+    shaft.addColorStop(0.77, palette.rim + (phase === 3 ? '65' : '46'));
+    shaft.addColorStop(1, palette.glow + '00');
+    for (let i = 0; i < form.rays; i++) {
+        const angle = i * _DUEL_AURA_TAU / form.rays + Math.sin(i * 4.8) * 0.17;
+        const reach = 130 + i % 3 * 9;
+        const spread = phase === 1 ? 11 + i % 4 * 2 : 8 + i % 3 * 3;
+        beam.save();
+        beam.rotate(angle);
+        beam.fillStyle = shaft;
+        beam.beginPath();
+        beam.moveTo(-2, -29);
+        beam.quadraticCurveTo(-spread, -reach * 0.67, 1, -reach);
+        beam.quadraticCurveTo(spread, -reach * 0.68, 2, -29);
+        beam.fill();
+        if (phase > 1) {
+            beam.strokeStyle = shaft;
+            beam.lineWidth = phase === 2 ? 1.5 : 2;
+            beam.beginPath();
+            beam.moveTo(0, -reach * 0.47);
+            beam.lineTo(-3, -reach * 0.65);
+            beam.lineTo(phase === 2 ? 8 : 5, -reach * 0.78);
+            beam.stroke();
+        }
+        beam.restore();
+    }
+    return {haze, rays, palette, form};
+}
+
+function _bakeDuelRim(sprite, color) {
+    const layer = document.createElement('canvas');
+    layer.width = sprite.width; layer.height = sprite.height;
+    const g = layer.getContext('2d');
+    g.drawImage(sprite, -1.4, -1.8);
+    g.drawImage(sprite, 1.35, -0.6);
+    g.globalCompositeOperation = 'source-in';
+    g.fillStyle = color + '82';
+    g.fillRect(0, 0, layer.width, layer.height);
+    g.globalCompositeOperation = 'destination-out';
+    g.drawImage(sprite, 0, 0);
+    g.globalCompositeOperation = 'destination-over';
+    g.drawImage(sprite, 0, 0);
+    g.globalCompositeOperation = 'source-over';
+    return layer;
+}
+
+function _duelBlend(first, second, mix) {
+    return first + (second - first) * mix;
+}
+
+function _drawDuelAuraParticles(ctx, first, second, mix, rx, ry, phaseMorph, time, alpha, low) {
+    const drift = _duelBlend(first.form.drift, second.form.drift, mix);
+    const count = low ? 10 : _DUEL_AURA_PARTICLES.length;
+    for (let band = 0; band < 3; band++) {
+        ctx.beginPath();
+        for (let i = band; i < count; i += 3) {
+            const seed = _DUEL_AURA_PARTICLES[i];
+            const life = (time * 0.3 + seed.start) % 1;
+            const progress = life + (drift - 0.3) * Math.sin(life * Math.PI);
+            const radius = 0.34 + 0.66 * progress;
+            const x = seed.x * rx * radius + Math.sin(i + life * 4) * 7;
+            const y = seed.y * ry * radius - (9 + 15 * phaseMorph) * life;
+            const size = (0.85 + i % 4 * 0.29) * Math.sin(life * Math.PI);
+            const wide = size * (1 - 0.22 * phaseMorph);
+            const high = size * (1 + phaseMorph * 0.67);
+            if (phaseMorph < 0.35) {
+                ctx.moveTo(x + wide, y);
+                ctx.ellipse(x, y, wide, high, 0, 0, _DUEL_AURA_TAU);
+            } else {
+                const slant = high * Math.max(0, phaseMorph - 0.8) * seed.x * 0.57;
+                ctx.moveTo(x + slant, y - high);
+                ctx.lineTo(x + wide, y);
+                ctx.lineTo(x - slant, y + high);
+                ctx.lineTo(x - wide, y);
+                ctx.closePath();
+            }
+        }
+        const opacity = alpha * (0.46 + band * 0.12);
+        ctx.fillStyle = band === 1 ? first.palette.vein : first.palette.rim;
+        ctx.globalAlpha = opacity * (1 - mix);
+        ctx.fill();
+        if (mix > 0) {
+            ctx.fillStyle = band === 1 ? second.palette.vein : second.palette.rim;
+            ctx.globalAlpha = opacity * mix;
+            ctx.fill();
+        }
+    }
+}
+
+function _strokeDuelAuraRing(ctx, first, second, mix, time, slot, period, rx, ry, charge, fire, alpha) {
+    if (alpha < 0.004) return;
+    const age = (time / period + 0.23 + slot * 0.5) % 1;
+    const surge = age + charge * age * (1 - age) * 0.43;
+    const radius = 0.4 + surge * 0.53 + fire * 0.045;
+    const opacity = alpha * Math.sin(age * Math.PI) ** 2;
+    ctx.beginPath();
+    ctx.ellipse(0, 0, rx * radius, ry * radius * 0.83, 0, 0, _DUEL_AURA_TAU);
+    ctx.strokeStyle = first.palette.rim;
+    ctx.globalAlpha = opacity * (1 - mix);
+    ctx.stroke();
+    if (mix > 0) {
+        ctx.strokeStyle = second.palette.rim;
+        ctx.globalAlpha = opacity * mix;
+        ctx.stroke();
+    }
+}
+
+function _drawDuelAura(ctx, first, second, mix, phaseMorph, time, fx, low, alpha, charge, fire, lowerScale) {
+    const glow = fx.glow !== false;
+    const particles = fx.particles !== false;
+    if (alpha < 0.003 || (!glow && !particles)) return;
+    const motion = !fx.reducedMotion;
+    const a = first.form, b = second.form;
+    const t = motion ? time : 0;
+    const breathing = _duelBlend(Math.sin(t * a.breath), Math.sin(t * b.breath), mix);
+    const deepBreath = 0.5 + 0.5 * breathing;
+    const heartbeat = Math.max(0, Math.sin(t * 2.56)) ** 6;
+    const beat = motion ? _duelBlend(deepBreath, heartbeat, Math.max(0, phaseMorph - 1)) : 0.42;
+    const outward = motion ? fire : 0;
+    const energy = motion ? charge : 0;
+    const swell = 1 + beat * 0.06 + outward * 0.09;
+    const rx = _duelBlend(a.rx, b.rx, mix) * swell;
+    const ry = _duelBlend(a.ry, b.ry, mix) * swell;
+    const strength = alpha * Math.min(1, 0.73 + beat * 0.17 + energy * 0.2 + outward * 0.09);
+    ctx.save();
+    ctx.translate(0, -_duelBlend(a.lift, b.lift, mix));
+    ctx.scale(1, lowerScale);
+    if (glow) {
+        ctx.globalCompositeOperation = 'source-over';
+        ctx.globalAlpha = strength * (1 - mix);
+        ctx.drawImage(first.haze, -rx, -ry, rx * 2, ry * 2);
+        if (mix > 0) {
+            ctx.globalAlpha = strength * mix;
+            ctx.drawImage(second.haze, -rx, -ry, rx * 2, ry * 2);
+        }
+    }
+    if (glow && !low) {
+        ctx.save();
+        ctx.globalCompositeOperation = 'source-over';
+        ctx.scale(1, ry / rx);
+        ctx.rotate(t * a.spin);
+        const rayAlpha = strength * (0.38 + phaseMorph * 0.12);
+        ctx.globalAlpha = rayAlpha * (1 - mix);
+        ctx.drawImage(first.rays, -rx, -rx, rx * 2, rx * 2);
+        if (mix > 0) {
+            ctx.rotate(t * (b.spin - a.spin));
+            ctx.globalAlpha = rayAlpha * mix;
+            ctx.drawImage(second.rays, -rx, -rx, rx * 2, rx * 2);
+        }
+        ctx.restore();
+    }
+    if (glow && motion) {
+        ctx.globalCompositeOperation = 'lighter';
+        ctx.lineWidth = 0.75 + phaseMorph * 0.22 + outward * 0.45;
+        if (low) {
+            _strokeDuelAuraRing(ctx, first, second, mix, t, 0, 3.55, rx, ry, energy, outward,
+                strength * _duelBlend(a.ring, b.ring, mix));
+        } else {
+            _strokeDuelAuraRing(ctx, first, first, 0, t, 0, a.period, rx, ry, energy, outward, strength * a.ring * (1 - mix));
+            _strokeDuelAuraRing(ctx, first, first, 0, t, 1, a.period, rx, ry, energy, outward, strength * a.ring * Math.max(0, 1 - 2 * mix));
+            if (mix > 0) {
+                _strokeDuelAuraRing(ctx, second, second, 0, t, 0, b.period, rx, ry, energy, outward, strength * b.ring * mix);
+                _strokeDuelAuraRing(ctx, second, second, 0, t, 1, b.period, rx, ry, energy, outward, strength * b.ring * Math.max(0, 2 * mix - 1));
+            }
+        }
+    }
+    if (particles) {
+        ctx.globalCompositeOperation = 'source-over';
+        _drawDuelAuraParticles(ctx, first, second, mix, rx, ry, phaseMorph, t, strength, low);
+    }
+    ctx.restore();
+}
+
+function _transformDuelBody(ctx, x, y, tilt, scaleX, scaleY) {
+    ctx.translate(x, y);
+    if (tilt) ctx.rotate(tilt);
+    ctx.scale(scaleX, scaleY);
 }
 
 function _bakeDuelCrown(phase) {
@@ -2425,12 +2633,17 @@ function bakeDuelBossAssets() {
         wing3: _gradeDuelSprite(_bakeProceduralWing(3), 0.39, 23),
         p3Ring: _bakePhase3RuneRing(),
         limbs: [_bakeDuelLimb(1), ...[2, 3].map(phase => _gradeDuelSprite(_bakeDuelLimb(phase), 0.389, 25))],
-        atmospheres: [1, 2, 3].map(_bakeDuelAtmosphere),
+        auras: [1, 2, 3].map(_bakeDuelAura),
         crowns: [2, 3].map(phase => _gradeDuelSprite(_bakeDuelCrown(phase), 0.33, 24)),
         eyes: [1, 2, 3].map(_bakeDuelEyeArt),
         armor: [1, 2, 3].map(phase => _gradeDuelSprite(_bakeDuelMantleArmor(phase), 0.47, 15))
     };
-    return _duelBossAssets;
+    const assets = _duelBossAssets;
+    assets.carapaces = [assets.carapace1, assets.carapace2, assets.carapace3];
+    const edge = (sprite, i) => _bakeDuelRim(sprite, assets.auras[i].palette.rim);
+    assets.rimCarapaces = assets.carapaces.map(edge);
+    assets.rimLimbs = assets.limbs.map(edge);
+    return assets;
 }
 
 function _drawDetailedBossEye(ctx, ex, ey, rx, ry, lookX, lookY, pal, blinkAmt, eyes, side = 1, minor = false) {
@@ -2527,25 +2740,6 @@ function drawDuelEgregor(ctx, x, y, state) {
     const assets = bakeDuelBossAssets();
     const st = state || {};
     const hit = st.hitFlash || 0;
-    if (hit > 0.02 && !st.silhouettePass && typeof document !== 'undefined') {
-        if (!_duelHitSurface) {
-            _duelHitSurface = document.createElement('canvas');
-            _duelHitSurface.width = 1000; _duelHitSurface.height = 660;
-        }
-        const g = _duelHitSurface.getContext('2d');
-        g.setTransform(1, 0, 0, 1, 0, 0); g.clearRect(0, 0, 1000, 660);
-        const dir = st.hitDir || { x: 0, y: -1 }, recoil = hit * 3.2;
-        drawDuelEgregor(g, 500, 300, Object.assign({}, st, { silhouettePass: true, hitFlash: 0,
-            playerX: (st.playerX ?? x) - x + 500, playerY: (st.playerY ?? y + 400) - y + 300,
-            eyeSamples: null }));
-        const pal = DuelFX.getPhasePalette(st.phase || 1);
-        g.save(); g.globalCompositeOperation = 'source-atop'; g.globalAlpha = hit * 0.35; g.fillStyle = pal.rim; g.fillRect(0, 0, 1000, 660); g.restore();
-        // The glow stays behind the body untinted, so a hit flashes the body without the halo blinking off
-        g.save(); g.globalCompositeOperation = 'destination-over';
-        drawDuelEgregor(g, 500, 300, Object.assign({}, st, { auraOnly: true, hitFlash: 0 }));
-        g.restore();
-        ctx.save(); ctx.drawImage(_duelHitSurface, x - 500 + dir.x * recoil, y - 300 + dir.y * recoil); ctx.restore(); return;
-    }
     const phaseMorph = typeof st.phaseMorph === 'number'
         ? Math.max(0, Math.min(2, st.phaseMorph))
         : Math.max(0, Math.min(2, (st.phase || 1) - 1));
@@ -2553,7 +2747,7 @@ function drawDuelEgregor(ctx, x, y, state) {
     const upper = Math.min(3, phase + 1);
     const mix = phaseMorph % 1;
     const t = typeof st.time === 'number' ? st.time : performance.now() * 0.001;
-    const fx = window._fxOpts || {};
+    const fx = window._fxOpts || _DUEL_DEFAULT_FX;
     const low = typeof _gfxLevel !== 'undefined' && _gfxLevel >= 2;
     const moving = !fx.reducedMotion;
     const cue = st.cue, wind = cue?.wind || 0, fire = cue?.fire || 0;
@@ -2575,22 +2769,51 @@ function drawDuelEgregor(ctx, x, y, state) {
     const lookX = (gazeBias && gazeBias.lock) ? ((st.playerX ?? x) - x) : (cue ? cue.dirX * 400 : (st.playerX ?? x) - x) + (gazeBias ? gazeBias.x * 110 : 0);
     const lookY = (gazeBias && gazeBias.lock) ? ((st.playerY ?? y + 300) - y) : (cue ? cue.dirY * 400 : (st.playerY ?? y + 300) - y) + (gazeBias ? gazeBias.y * 110 : 0);
     const blink = i => moving ? Math.max(0, (Math.sin(t * 1.43 + i * 2.17) - 0.982) * 49) : 0;
-    const auraSize = 246 + phaseMorph * 50;
     const rim = mix > 0.5 ? nextPal.rim : pal.rim;
     const eyeArt = assets.eyes[phase - 1];
     const particleClock = moving ? t : 0;
-    ctx.save();
-    ctx.translate(x - (cue?.dirX || 0) * fire * 5, y - (cue?.dirY || 0) * fire * 5);
-    if (moving && gest && gest.bodyTilt) ctx.rotate(gest.bodyTilt);
-    const sqX = (moving && gest && gest.squashX) ? gest.squashX : 1;
-    const sqY = (moving && gest && gest.squashY) ? gest.squashY : 1;
-    // The whole body breathes and shifts weight with the active gesture
-    ctx.scale(scale * sqX * (1 + flail * 0.012), scale * sqY * (1 - flail * 0.009));
-    if (st.auraOnly) {
-        if (fx.glow !== false) crossfade(assets.atmospheres[phase - 1], assets.atmospheres[upper - 1], -auraSize / 2, -auraSize / 2, auraSize, auraSize);
-        ctx.restore();
+    const tilt = moving ? gest?.bodyTilt || 0 : 0;
+    const sqX = moving ? gest?.squashX || 1 : 1;
+    const sqY = moving ? gest?.squashY || 1 : 1;
+    const scaleX = scale * sqX * (1 + flail * 0.012);
+    const scaleY = scale * sqY * (1 - flail * 0.009);
+    const hasHit = hit > 0.02 && !st.silhouettePass;
+    const recoil = hasHit ? hit * 3.2 : 0;
+    const kickX = (cue?.dirX || 0) * fire * 5;
+    const kickY = (cue?.dirY || 0) * fire * 5;
+    const rimLit = st.auraStrength > 0 && fx.glow !== false;
+    if (st.auraStrength > 0 && !st.silhouettePass && (fx.glow !== false || fx.particles !== false)) {
+        const auraCtx = st.auraContext || ctx;
+        const first = assets.auras[phase - 1], second = assets.auras[upper - 1];
+        const centerX = x - kickX + (st.hitDir?.x || 0) * recoil;
+        const centerY = y - kickY + (st.hitDir?.y ?? -1) * recoil;
+        const radiusX = _duelBlend(first.form.rx, second.form.rx, mix);
+        const radiusY = _duelBlend(first.form.ry, second.form.ry, mix);
+        const lowReach = auraCtx.canvas.height * 0.66 - centerY - Math.abs(Math.sin(tilt)) * radiusX * scaleX;
+        const lowerScale = Math.max(0.34, Math.min(1, lowReach / (radiusY * 1.13 * scaleY)));
+        const fade = auraCtx.globalAlpha * st.auraStrength * (1 - (st.collapseProgress || 0)) ** 2;
+        auraCtx.save();
+        _transformDuelBody(auraCtx, centerX, centerY, tilt, scaleX, scaleY);
+        _drawDuelAura(auraCtx, first, second, mix, phaseMorph, t, fx, low, fade, light, fire, lowerScale);
+        auraCtx.restore();
+    }
+    if (hasHit) {
+        if (!_duelHitSurface) {
+            _duelHitSurface = document.createElement('canvas');
+            _duelHitSurface.width = 1000; _duelHitSurface.height = 660;
+        }
+        const g = _duelHitSurface.getContext('2d');
+        g.setTransform(1, 0, 0, 1, 0, 0); g.clearRect(0, 0, 1000, 660);
+        drawDuelEgregor(g, 500, 300, { ...st, time: t, silhouettePass: true, hitFlash: 0,
+            playerX: (st.playerX ?? x) - x + 500, playerY: (st.playerY ?? y + 400) - y + 300,
+            eyeSamples: null });
+        g.save(); g.globalCompositeOperation = 'source-atop'; g.globalAlpha = hit * 0.35;
+        g.fillStyle = DuelFX.getPhasePalette(st.phase || 1).rim; g.fillRect(0, 0, 1000, 660); g.restore();
+        ctx.drawImage(_duelHitSurface, x - 500 + (st.hitDir?.x || 0) * recoil, y - 300 + (st.hitDir?.y ?? -1) * recoil);
         return;
     }
+    ctx.save();
+    _transformDuelBody(ctx, x - kickX, y - kickY, tilt, scaleX, scaleY);
     ctx.globalCompositeOperation = 'source-over';
 
     function crossfade(first, second, x, y, w, h, alpha = 1) {
@@ -2604,9 +2827,6 @@ function drawDuelEgregor(ctx, x, y, state) {
         ctx.globalAlpha = 1;
     }
 
-    if (!st.silhouettePass && fx.glow !== false) {
-        crossfade(assets.atmospheres[phase - 1], assets.atmospheres[upper - 1], -auraSize / 2, -auraSize / 2, auraSize, auraSize);
-    }
     if (growth3 > 0) {
         const r = 145 + growth3 * 28;
         ctx.save(); ctx.rotate(particleClock * 0.19); ctx.globalAlpha = growth3 * 0.68;
@@ -2638,9 +2858,10 @@ function drawDuelEgregor(ctx, x, y, state) {
     }
     // A limb is drawn as thin slices, each turned a little more than the one before it, so the whole arm bends as one smooth curve
     const LIMB_SLICES = low ? 6 : 9;
+    const limbs = rimLit ? assets.rimLimbs : assets.limbs;
     function bendLimb(bx, by, w, h, alpha, turnAt) {
         const n = LIMB_SLICES, overlap = 2;
-        const imgs = [assets.limbs[phase - 1], mix > 0 ? assets.limbs[upper - 1] : null];
+        const imgs = [limbs[phase - 1], mix > 0 ? limbs[upper - 1] : null];
         ctx.save();
         ctx.translate(0, by);
         for (let s = 0; s < n; s++) {
@@ -2694,7 +2915,7 @@ function drawDuelEgregor(ctx, x, y, state) {
         crossfade(assets.crowns[0], assets.crowns[1], -crownW / 2 * growth2, -crownH * 0.84 * growth2, crownW * growth2, crownH * growth2, growth2);
     }
     const bodyW = 174 + phaseMorph * 22, bodyH = 174 + phaseMorph * 17;
-    const carapaces = [assets.carapace1, assets.carapace2, assets.carapace3];
+    const carapaces = rimLit ? assets.rimCarapaces : assets.carapaces;
     crossfade(carapaces[phase - 1], carapaces[upper - 1], -bodyW / 2, -bodyH * 0.57, bodyW, bodyH);
 
     const armorW = 129 + phaseMorph * 17;
