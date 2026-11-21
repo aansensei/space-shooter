@@ -165,7 +165,7 @@ const DEAL_STAGGER = 110, DEAL_FLY_DUR = 260, DEAL_FLIP_DUR = 220;
 function drawSigilPicker() {
     const p = window._sigilPicker;
     if (!p) return;
-    const now = performance.now();
+    const now = p.tutorialPausedAt ?? performance.now();
 
     if (p.phase === 'deal') {
         const elapsed = now - p.startTime;
@@ -1454,6 +1454,7 @@ const MOBILE_SLIDE_DUR = 220;
 // out and the new one in instead of snapping instantly (the instant swap
 // was the "chưa mượt" jank reported after the first pass).
 function _mobileGoTo(p, newIndex) {
+    if (p.tutorialPausedAt !== undefined) return;
     newIndex = Math.max(0, Math.min(p.options.length - 1, newIndex));
     if (newIndex === p.mobileIndex) return;
     if (p.mobileTransStart && performance.now() - p.mobileTransStart < MOBILE_SLIDE_DUR) return;
@@ -1462,12 +1463,17 @@ function _mobileGoTo(p, newIndex) {
     p.mobileTransStart = performance.now();
     p.mobileIndex = newIndex;
     p.selectedSigil = p.options[newIndex];
-    if (window.AudioMgr) window.AudioMgr.playSfx('hover');
+    _sigilPickerCue('select', 'hover');
+}
+
+function _sigilPickerCue(key, existing) {
+    if (window._tutorialActive) window.AudioMgr?.playTutorialSfx('tut-sigil-' + key);
+    else window.AudioMgr?.playSfx(existing);
 }
 
 function _handleSigilPickerClick(ex, ey) {
     const p = window._sigilPicker;
-    if (!p || p.phase !== 'choosing_sigil') return;
+    if (!p || p.tutorialPausedAt !== undefined || p.phase !== 'choosing_sigil') return;
 
     const L = _pickerLayout();
 
@@ -1486,7 +1492,7 @@ function _handleSigilPickerClick(ex, ey) {
         if (idx >= 0 && idx < p.options.length) {
             p.hoveredSigil = p.options[idx];
             p.selectedSigil = p.options[idx];
-            if (window.AudioMgr) window.AudioMgr.playSfx('click');
+            _sigilPickerCue('select', 'click');
             return;
         }
     }
@@ -1500,7 +1506,7 @@ function _handleSigilPickerClick(ex, ey) {
             p.selectedSigil = L.isMob ? (p.options[0] || null) : null;
             p.hoveredSigil = null;
             p.rerollFlash = performance.now();
-            if (window.AudioMgr) window.AudioMgr.playSfx('sigil-confirm');
+            _sigilPickerCue('reroll', 'sigil-confirm');
             return;
         }
     }
@@ -1511,14 +1517,14 @@ function _handleSigilPickerClick(ex, ey) {
             p.phase = 'fly_in';
             p.flyStart = performance.now();
             p.flyParticles = [];
-            if (window.AudioMgr) window.AudioMgr.playSfx('sigil-confirm');
+            _sigilPickerCue('confirm', 'sigil-confirm');
         }
     }
 }
 
 function _handleSigilPickerMouseMove(ex, ey) {
     const p = window._sigilPicker;
-    if (!p || p.phase !== 'choosing_sigil') return;
+    if (!p || p.tutorialPausedAt !== undefined || p.phase !== 'choosing_sigil') return;
 
     const L = _pickerLayout();
     const prevSigil = p.hoveredSigil;
@@ -1544,7 +1550,7 @@ function _handleSigilPickerMouseMove(ex, ey) {
     const confirmEntered = p.hoveredConfirm && !prevConfirm;
     const rerollEntered  = p.hoveredReroll  && !prevReroll;
     if ((sigilChanged || confirmEntered || rerollEntered) && window.AudioMgr) {
-        window.AudioMgr.playSfx('hover');
+        _sigilPickerCue('hover', 'hover');
     }
 }
 

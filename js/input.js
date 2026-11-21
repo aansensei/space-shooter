@@ -137,6 +137,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const pauseTitle = document.getElementById("pause-title");
     const pauseSubtitle = document.getElementById("pause-subtitle");
     const pauseMainBtns = document.getElementById("pause-main-btns");
+    let pauseEpoch = 0;
 
     startBtn.addEventListener("click", () => {
         startGame();
@@ -174,6 +175,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // showPauseScreen cần pauseOverlay nên vẫn ở trong DOMContentLoaded, expose ra window để main.js gọi được
     window.showPauseScreen = function showPauseScreen() {
+        pauseEpoch++;
         if (positionPeekOverlay) positionPeekOverlay.style.display = "none";
         pauseOverlay.style.display = "flex";
         if (pauseMainBtns) pauseMainBtns.style.display = "flex";
@@ -187,10 +189,15 @@ document.addEventListener('DOMContentLoaded', () => {
         // and suspend the audio context while the pause overlay is up, so
         // the game is silent until the player resumes (the reboot animation
         // completes) or leaves for the menu.
-        if (window.AudioMgr) window.AudioMgr.pauseAll(true);
+        window._tutorialPause?.();
+        if (window.AudioMgr) {
+            window.AudioMgr.pauseAll(!window._tutorialActive);
+            if (window._tutorialActive && !document.hidden) window.AudioMgr.playTutorialSfx('tut-pause');
+        }
     }
 
     resumeBtn.addEventListener("click", () => {
+        if (!gamePaused || progressContainer.style.display === 'block') return;
         if (pauseMainBtns) pauseMainBtns.style.display = "none";
         pauseSubtitle.style.display = "none";
         pauseTitle.innerText = "REBOOTING SYSTEMS...";
@@ -206,8 +213,10 @@ document.addEventListener('DOMContentLoaded', () => {
 
         const DURATION_MS = 500;
         const startTime = performance.now();
+        const epoch = pauseEpoch;
 
         function animateLoading(currentTime) {
+            if (epoch !== pauseEpoch || !gamePaused || gameState !== 'playing') return;
             const progress = Math.min(1, (currentTime - startTime) / DURATION_MS);
             progressBar.style.width = (progress * 100) + "%";
 
@@ -219,6 +228,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 gamePaused = false;
                 window._bgPaused = false;
                 lastTimeStamp = performance.now(); // reset or pause duration becomes a giant deltaTime spike next frame
+                window._tutorialResume?.();
             }
         }
 
@@ -300,7 +310,8 @@ document.addEventListener('DOMContentLoaded', () => {
                 skillShiftChargeStart = performance.now();
                 if (window.AudioMgr) {
                     window.AudioMgr.enterTimeDomain();
-                    window.AudioMgr.playSfx('shift-hold');
+                    if (window._tutorialActive) window.AudioMgr.playTutorialSfx('tut-shift-hold');
+                    else window.AudioMgr.playSfx('shift-hold');
                 }
                 // docs/combat-scaling-rebalance.md Part 5: 2.5s immunity
                 // (was 3s), and a shared 6s minimum retrigger interval so
@@ -369,7 +380,7 @@ document.addEventListener('DOMContentLoaded', () => {
         // "works any time, doesn't touch the normal skill's own state" shape as
         // Great Sage's gem release. Each fresh press releases one, Cancer
         // first, then Leo; key repeat from holding Space never releases the second.
-        if (e.code === "Space" && (window._tidalSurgeReady || window._leoFateReady || window._capricornReady)
+        if (e.code === "Space" && !window._tutorialLocked?.('SPC') && (window._tidalSurgeReady || window._leoFateReady || window._capricornReady)
             && !(typeof player !== 'undefined' && player._silenced)) {
             if (!e.repeat) _releaseReadySpaceSigil();
             e.preventDefault();
@@ -407,6 +418,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 if (!duelShiftKeys.size) window._duelReleaseShift?.();
                 return;
             }
+            if (window._tutorialActive && skillShiftActive) window.AudioMgr?.playTutorialSfx('tut-shift-release');
             cancelSkillShift();
         }
 
@@ -435,6 +447,7 @@ document.addEventListener('DOMContentLoaded', () => {
         ctx.imageSmoothingQuality = "high"; // resizing the canvas resets context state, including this
         player.y = canvas.height - 60;
         skillASensorRadius = Math.min(canvas.width, canvas.height) * 0.9;
+        window._tutorialResize?.();
     });
     // Tự động pause khi chuyển tab
     document.addEventListener('visibilitychange', () => {

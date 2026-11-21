@@ -14,6 +14,7 @@
         stamp: ['CALIBRATED', 'ĐÃ HIỆU CHUẨN'],
         begin: ['Begin Endless Voyage', 'Bắt Đầu Hành Trình Vô Tận'],
         menu: ['Main menu', 'Menu chính'],
+        close: ['Close', 'Đóng'],
         save: ['Save image', 'Lưu ảnh'],
         name: ['Pilot name', 'Tên phi công'],
         saving: ['Preparing image', 'Đang tạo ảnh'],
@@ -32,7 +33,7 @@
     function clean(raw) { return Array.from(String(raw || '').normalize('NFC').replace(/[\u0000-\u001f\u007f-\u009f\u200b-\u200f\u202a-\u202e\u2060-\u206f]/g, '').replace(/\s+/g, ' ').trim()).slice(0, 16).join(''); }
     function get(key) { try { return localStorage.getItem(key); } catch (_) { return null; } }
     function put(key, value) { try { localStorage.setItem(key, value); } catch (_) {} }
-    function sfx(key) { if (window.AudioMgr && window.AudioMgr.playSfx) window.AudioMgr.playSfx(key); }
+    function sfx(key) { window.AudioMgr?.playTutorialSfx(key); }
     function count(value, fallback, max) { return Number.isFinite(value) ? Math.max(0, Math.min(max, Math.floor(value))) : fallback; }
     function stats(raw) {
         raw = raw || {};
@@ -44,10 +45,10 @@
         const rank = first === 5 && hits === 0 ? 'S' : first >= 3 && hits <= 3 ? 'A' : first >= 1 && hits <= 10 ? 'B' : 'C';
         return { total, first, hits, rank, time: Math.round(count(raw.timeMs, 0, 86400000) / 1000), skills: SLOTS.filter(function (k) { return skills.includes(k); }) };
     }
-    function identity() {
+    function identity(reprint) {
         let old;
         try { old = JSON.parse(get('pisces_license')); } catch (_) {}
-        if (old && /^PSC-\d{4}[A-Z0-9]{4}$/.test(old.number) && Number.isFinite(Date.parse(old.issued))) return { number: old.number, issued: old.issued, reissued: true };
+        if (old && /^PSC-\d{4}[A-Z0-9]{4}$/.test(old.number) && Number.isFinite(Date.parse(old.issued))) return { number: old.number, issued: old.issued, reissued: reprint ? !!old.reissued : true };
         const issued = new Date().toISOString();
         let hash = 2166136261;
         const seed = name + issued;
@@ -89,24 +90,28 @@
         text(g, label, x, y, 22, fonts.ui, '#c3add8', width);
         text(g, value, x, y + 36, 27, fonts.ui, '#fff0cd', width);
     }
-    function bake() {
+    function bake(resolution = 1) {
         portrait = innerHeight > innerWidth;
         W = portrait ? 720 : 1000; H = portrait ? 1000 : 650;
         fonts.title = vi ? '"Playfair Display",Georgia,serif' : 'Cinzel,Georgia,serif';
         fonts.ui = vi ? '"Be Vietnam Pro","Segoe UI",sans-serif' : 'Orbitron,"Segoe UI",sans-serif';
         fonts.script = '"Cormorant Garamond",Georgia,serif';
         if (!base) { base = document.createElement('canvas'); stamp = document.createElement('canvas'); seal = document.createElement('canvas'); }
-        base.width = W * 2; base.height = H * 2;
-        const g = base.getContext('2d'); g.scale(2, 2);
+        base.width = W * resolution; base.height = H * resolution;
+        const g = base.getContext('2d'); g.scale(resolution, resolution);
         cut(g, 3, 3, W - 6, H - 6, 26); g.fillStyle = '#100d22'; g.fill(); g.strokeStyle = '#6fc3cf'; g.lineWidth = 2; g.stroke();
         cut(g, 17, 17, W - 34, H - 34, 18); g.strokeStyle = '#99764b'; g.lineWidth = 1; g.stroke();
         g.save(); cut(g, 22, 22, W - 44, H - 44, 14); g.clip();
         g.strokeStyle = '#73558a'; g.globalAlpha = .18; g.lineWidth = .8;
-        for (let row = 0; row < 17; row++) {
+        for (let row = 0; row < 12; row++) {
             g.beginPath();
-            for (let x = 20; x < W; x += 4) { const y = H * .48 + row * 9 + Math.sin(x * .017 + row * .36) * 95; if (x === 20) g.moveTo(x, y); else g.lineTo(x, y); } g.stroke();
+            for (let x = 20; x < W; x += 8) { const y = H * .48 + row * 13 + Math.sin(x * .017 + row * .36) * 95; if (x === 20) g.moveTo(x, y); else g.lineTo(x, y); } g.stroke();
         }
         g.restore();
+        g.strokeStyle = '#cfab77'; g.lineWidth = 1.5;
+        for (const [x, y, dx, dy] of [[30,31,1,1],[W-30,31,-1,1],[30,H-32,1,-1],[W-30,H-32,-1,-1]]) {
+            g.beginPath(); g.moveTo(x + 28 * dx, y); g.lineTo(x + 9 * dx, y); g.lineTo(x, y + 9 * dy); g.lineTo(x, y + 28 * dy); g.stroke();
+        }
         g.fillStyle = '#f0cb7c'; star(g, 51, 58, 16);
         text(g, 'PISCES: SPACE JOURNEY', 80, 66, 24, fonts.ui, '#cdbbdf', W - 140);
         text(g, word('title'), 46, portrait ? 121 : 121, portrait ? 34 : 38, fonts.title, '#f4dcac', W - 92);
@@ -127,7 +132,6 @@
         const rx = portrait ? 314 : 342, rw = W - rx - 49;
         nameRect.x = rx; nameRect.y = 238; nameRect.w = rw;
         text(g, word('holder'), rx, 220, 22, fonts.ui, '#c3add8', rw);
-        text(g, name || (vi ? 'PHI CÔNG' : 'PILOT'), rx, 274, portrait ? 30 : 36, /[^\x20-\x7e]/.test(name) ? '"Be Vietnam Pro","Segoe UI",sans-serif' : fonts.ui, '#fff0cd', rw);
         g.strokeStyle = '#8e7569'; g.lineWidth = 1; g.beginPath(); g.moveTo(rx, 288); g.lineTo(W - 49, 288); g.stroke();
         const date = new Date(record.issued).toLocaleDateString(vi ? 'vi-VN' : 'en-GB');
         field(g, word('number'), record.number, rx, 324, rw);
@@ -165,8 +169,6 @@
         seal.width = seal.height = 200; const sg = seal.getContext('2d'); sg.scale(2, 2);
         sg.fillStyle = '#b68c4d'; star(sg, 50, 50, 48); sg.fillStyle = '#f0d48b'; star(sg, 50, 50, 39);
         sg.fillStyle = '#39284e'; sg.beginPath(); sg.arc(50, 50, 24, 0, Math.PI * 2); sg.fill(); sg.fillStyle = '#bfe5e5'; star(sg, 50, 50, 20);
-        const mrz = 'PSC<<' + (name || 'PILOT').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toUpperCase().replace(/[^A-Z0-9]/g, '<') + '<<' + record.number.replace(/-/g, '<') + '<<<<I';
-        text(g, mrz, 48, H - 29, 22, 'monospace', '#8e879f', W - 95);
         const rows = [192, 296, 378, cy - 23, metricsY - 24, portrait ? 708 : H - 51, H - 51], heights = [98, 76, 76, 98, 85, portrait ? 245 : 30, 30];
         for (let i = 0; i < 7; i++) { printRows[i] = rows[i]; printH[i] = heights[i]; }
         resize();
@@ -183,6 +185,9 @@
     function render(ms, target) {
         const g = target || view.getContext('2d'), c = g.canvas;
         g.setTransform(c.width / W, 0, 0, c.height / H, 0, 0); g.clearRect(0, 0, W, H); g.drawImage(base, 0, 0, W, H);
+        text(g, name || (vi ? 'PHI CÔNG' : 'PILOT'), nameRect.x, 274, portrait ? 30 : 36, /[^\x20-\x7e]/.test(name) ? '"Be Vietnam Pro","Segoe UI",sans-serif' : fonts.ui, '#fff0cd', nameRect.w);
+        const mrz = 'PSC<<' + (name || 'PILOT').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toUpperCase().replace(/Đ/g, 'D').replace(/[^A-Z0-9]/g, '<') + '<<' + record.number.replace(/-/g, '<') + '<<<<I';
+        text(g, mrz, 48, H - 29, 22, 'monospace', '#a5a0b4', W - 95);
         if (ms < 1800) {
             g.fillStyle = '#100d22';
             for (let i = 0; i < 7; i++) if (ms < 450 + i * 220) { const y = printRows[i]; if (i < 3) g.fillRect(nameRect.x - 2, y, nameRect.w + 4, printH[i]); else g.fillRect(40, y, W - 80, printH[i]); }
@@ -193,6 +198,11 @@
         if (ms >= 2550) {
             g.globalAlpha = Math.min(1, (ms - 2550) / 400); g.drawImage(seal, sealX - 50, sealY - 50, 100, 100); g.globalAlpha = 1;
             const glow = !window._fxOpts || window._fxOpts.glow !== false;
+            if (glow && !reduced && ms < 3000 && (window._gfxLevel || 0) < 2) {
+                const p = (ms - 2550) / 450;
+                g.save(); g.globalAlpha = (1 - p) * .65; g.strokeStyle = '#e2bc75'; g.lineWidth = 2;
+                g.beginPath(); g.arc(sealX, sealY, 46 + p * 45, 0, Math.PI * 2); g.stroke(); g.restore();
+            }
             if (glow && (window._gfxLevel || 0) < 2) { g.save(); g.translate(48 + (portrait ? 236 : 255) - 34, 203 + (portrait ? 236 : 255) - 34); g.rotate(reduced ? 0 : Math.sin(ms * .0007) * .18); g.globalAlpha = .35; g.fillStyle = '#80f2f0'; star(g, 0, 0, 28); g.restore(); }
         }
     }
@@ -203,11 +213,12 @@
         if (elapsed >= 2000 && cue < 2) { cue = 2; sfx('tut-stamp'); }
         if (elapsed >= 2550 && cue < 3) { cue = 3; sfx('tut-seal'); }
         render(elapsed);
-        if (elapsed < 3000 || (!reduced && (window._gfxLevel || 0) < 2 && !(typeof _mobPerf !== 'undefined' && _mobPerf))) raf = requestAnimationFrame(animate);
+        if (elapsed < 3000) raf = requestAnimationFrame(animate);
         else raf = 0;
     }
     function skip() { elapsed = 3200; cue = 3; card.style.animation = 'none'; card.style.opacity = '1'; card.style.transform = ''; render(elapsed); }
     function close() {
+        if (!active) return;
         active = false; generation++; cancelAnimationFrame(raf); raf = 0;
         if (window.AudioMgr && window.AudioMgr.stopTutorialSfx) window.AudioMgr.stopTutorialSfx();
         document.removeEventListener('keydown', onKey, true); window.removeEventListener('resize', onResize);
@@ -215,12 +226,13 @@
         overlay = card = view = input = status = null; base = stamp = seal = null;
         if (focusReturn && focusReturn.isConnected) focusReturn.focus(); focusReturn = null;
     }
-    function begin() { sfx('click'); close(); if (window._prepareGameMode) window._prepareGameMode('endless'); if (typeof startGame === 'function') startGame(); }
-    function menu() { sfx('click'); close(); if (window._goToMenuImmediate) window._goToMenuImmediate(); }
+    function begin() { close(); if (window._prepareGameMode) window._prepareGameMode('endless'); if (typeof startGame === 'function') startGame(); sfx('tut-license-voyage'); }
+    function menu() { close(); if (window._goToMenuImmediate) window._goToMenuImmediate(); sfx('tut-license-menu'); }
+    function closeFromMenu() { close(); sfx('tut-license-close'); }
     function onResize() { resize(); render(elapsed); }
     function onKey(e) {
-        if (e.key === 'Escape') { e.preventDefault(); e.stopImmediatePropagation(); menu(); }
-        else if (e.key === 'Enter' && e.target !== input && e.target.tagName !== 'BUTTON') { e.preventDefault(); e.stopImmediatePropagation(); begin(); }
+        if (e.key === 'Escape') { e.preventDefault(); e.stopImmediatePropagation(); if (gameState === 'start') closeFromMenu(); else menu(); }
+        else if (e.key === 'Enter' && e.target !== input && e.target.tagName !== 'BUTTON') { e.preventDefault(); e.stopImmediatePropagation(); if (gameState === 'start') closeFromMenu(); else begin(); }
         else if (e.key === 'Enter' && e.target === input) { e.preventDefault(); input.blur(); }
         else if (e.key === 'Tab') {
             const nodes = overlay.querySelectorAll('input,button'), first = nodes[0], last = nodes[nodes.length - 1];
@@ -235,7 +247,10 @@
         parts.push(bytes.subarray(33)); return new Blob(parts, { type: 'image/png' });
     }
     async function save() {
-        const session = generation; sfx('click'); skip(); status.textContent = word('saving');
+        const button = overlay.querySelector('[data-license-save]');
+        if (button.disabled) return;
+        button.disabled = true;
+        const session = generation; sfx('tut-license-save'); skip(); status.textContent = word('saving');
         try {
             const c = document.createElement('canvas'), k = Math.min(2 * scale, 2048 / W, 2048 / H);
             c.width = Math.round(W * k); c.height = Math.round(H * k); render(4000, c.getContext('2d'));
@@ -243,16 +258,18 @@
             const blob = tagPng(new Uint8Array(await png.arrayBuffer()));
             if (!active || session !== generation) return;
             const file = new File([blob], record.number + '.png', { type: 'image/png' });
-            if (navigator.canShare && navigator.canShare({ files: [file] })) { try { await navigator.share({ files: [file], title: word('title') }); } catch (e) { if (e.name === 'AbortError') return; download(blob); } }
+            if (navigator.canShare && navigator.canShare({ files: [file] })) { try { await navigator.share({ files: [file], title: word('title') }); } catch (e) { if (!active || session !== generation) return; if (e.name === 'AbortError') { status.textContent = ''; return; } download(blob); } }
             else download(blob);
             if (active && session === generation) status.textContent = word('saved');
         } catch (_) { if (active && session === generation) status.textContent = word('error'); }
+        finally { if (active && session === generation) button.disabled = false; }
     }
     function download(blob) { const url = URL.createObjectURL(blob), a = document.createElement('a'); a.href = url; a.download = record.number + '.png'; a.click(); setTimeout(function () { URL.revokeObjectURL(url); }, 10000); }
-    function open(raw) {
+    function open(raw, reprint = false) {
         if (active) close();
-        vi = window._lang === 'vi'; data = stats(raw); name = clean(get('pisces_pilot_name')); record = identity();
-        reduced = matchMedia('(prefers-reduced-motion: reduce)').matches; active = true; generation++; elapsed = 0; cue = 0; focusReturn = document.activeElement;
+        vi = window._lang === 'vi'; data = stats(raw); name = clean(get('pisces_pilot_name')); record = identity(reprint);
+        if (!reprint) put('pisces_license', JSON.stringify(record));
+        reduced = !!window._fxOpts?.reducedMotion || matchMedia('(prefers-reduced-motion: reduce)').matches; active = true; generation++; elapsed = 0; cue = 0; focusReturn = document.activeElement;
         if (!document.getElementById('licenseStyle')) {
             const st = document.createElement('style'); st.id = 'licenseStyle';
             st.textContent = '#licenseOverlay{position:fixed;inset:0;z-index:99999996;background:rgba(4,5,16,.96);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;padding:12px;box-sizing:border-box;color:#e7dcf7;font-family:"Be Vietnam Pro","Segoe UI",sans-serif;backdrop-filter:blur(8px)}@keyframes license-enter{from{opacity:0;transform:perspective(1000px) translateY(35px) rotateX(7deg)}to{opacity:1;transform:none}}@keyframes license-fade{from{opacity:0}to{opacity:1}}#licenseOverlay .license-card{position:relative;flex:none;cursor:pointer}#licenseOverlay canvas{width:100%;height:100%;display:block}#licenseOverlay input{position:absolute;box-sizing:border-box;border:0;border-bottom:1px solid transparent;background:transparent;color:transparent;caret-color:#8ae6ee;font-family:"Be Vietnam Pro","Segoe UI",sans-serif;outline:none}#licenseOverlay input::placeholder{color:transparent}#licenseOverlay input:focus::placeholder{color:#afa2bf}#licenseOverlay input:focus{color:#fff0cd;background:#171026;border-color:#80e9ef}#licenseOverlay nav{display:flex;gap:8px;flex-wrap:wrap;justify-content:center}#licenseOverlay button{min-height:44px;border:1px solid #7a627f;background:#181329;color:#e6d9ef;padding:8px 16px;font:600 12px "Be Vietnam Pro","Segoe UI",sans-serif;cursor:pointer;border-radius:3px}#licenseOverlay button:first-child{color:#f7dfa8;border-color:#b89b65;background:#292035}#licenseOverlay button:focus-visible,#licenseOverlay input:focus-visible{outline:2px solid #83e6e9;outline-offset:3px}#licenseOverlay button:hover{background:#302342}#licenseOverlay .license-status{font-size:11px;min-height:16px;margin:0;color:#afa2bf}@media(max-height:500px){#licenseOverlay{gap:5px;padding:7px}#licenseOverlay button{padding:6px 12px;font-size:11px}}';
@@ -261,23 +278,43 @@
         overlay = document.createElement('section'); overlay.id = 'licenseOverlay'; overlay.setAttribute('role', 'dialog'); overlay.setAttribute('aria-modal', 'true'); overlay.setAttribute('aria-label', word('title'));
         card = document.createElement('div'); card.className = 'license-card'; view = document.createElement('canvas'); view.setAttribute('role', 'img'); view.setAttribute('aria-label', word('title') + ', ' + record.number + ', ' + data.rank); card.appendChild(view);
         input = document.createElement('input'); input.value = name; input.maxLength = 40; input.placeholder = vi ? 'PHI CÔNG' : 'PILOT'; input.autocomplete = 'nickname'; input.setAttribute('aria-label', word('name')); card.appendChild(input);
-        input.addEventListener('input', function () { name = clean(input.value); put('pisces_pilot_name', name); bake(); skip(); });
+        input.addEventListener('input', function () { name = clean(input.value); put('pisces_pilot_name', name); sfx('tut-license-name'); skip(); });
         input.addEventListener('blur', function () { input.value = name; }); input.addEventListener('pointerdown', function (e) { e.stopPropagation(); skip(); });
         card.addEventListener('pointerdown', skip); overlay.appendChild(card);
         const nav = document.createElement('nav');
-        for (const pair of [['begin', begin], ['menu', menu], ['save', save]]) { const button = document.createElement('button'); button.type = 'button'; button.textContent = word(pair[0]); button.addEventListener('click', pair[1]); button.addEventListener('pointerenter', function () { sfx('hover'); }); nav.appendChild(button); }
+        const actions = reprint ? [['close', closeFromMenu], ['save', save]] : [['begin', begin], ['menu', menu], ['save', save]];
+        for (const [key, action] of actions) {
+            const button = document.createElement('button'); button.type = 'button'; button.textContent = word(key);
+            if (key === 'save') button.dataset.licenseSave = '';
+            button.addEventListener('click', action); nav.appendChild(button);
+        }
         overlay.appendChild(nav); status = document.createElement('p'); status.className = 'license-status'; status.setAttribute('aria-live', 'polite'); overlay.appendChild(status); document.body.appendChild(overlay);
-        bake(); loadFonts(); card.style.animation = reduced ? 'license-fade .45s both' : 'license-enter .45s both'; opened = performance.now(); sfx('tut-license-open'); raf = requestAnimationFrame(animate);
+        bake(); loadFonts(); opened = performance.now(); sfx('tut-license-open');
+        if (reprint) skip();
+        else {
+            card.style.animation = reduced ? 'license-fade .45s both' : 'license-enter .45s both';
+            if (record.reissued) sfx('tut-license-reissue');
+            raf = requestAnimationFrame(animate);
+        }
         document.addEventListener('keydown', onKey, true); window.addEventListener('resize', onResize); nav.firstChild.focus();
     }
+    let lastResult = null;
+    function recentResult() {
+        if (lastResult) return lastResult;
+        try { return JSON.parse(get('pisces_license_result')); } catch (_) { return null; }
+    }
+    window._tutorialHasLicense = function () { return !!recentResult(); };
+    window._tutorialReviewLicense = function () { const result = recentResult(); if (result && gameState === 'start' && !active) open(result, true); };
+    window._tutorialCloseLicense = close;
     window._tutorialEnd = function (raw) {
         try {
             if (window._tutorialAbort) window._tutorialAbort(); window._tutorialActive = false;
             gameState = 'gameover'; gamePaused = false; window._bgPaused = false; window._lowHpActive = false;
             const a = window.AudioMgr;
-            if (a) { if (a.setTimeFrozen) a.setTimeFrozen(false, false); for (let i = 0; i < STOP.length; i++) if (typeof a[STOP[i]] === 'function') a[STOP[i]](); if (a.prepareEnemy) a.prepareEnemy('kanade'); }
+            if (a) { if (a.setTimeFrozen) a.setTimeFrozen(false, false); for (let i = 0; i < STOP.length; i++) if (typeof a[STOP[i]] === 'function') a[STOP[i]](); }
             const pause = document.getElementById('pause-overlay'); if (pause) pause.style.display = 'none';
-            open(raw);
+            lastResult = raw || {}; put('pisces_license_result', JSON.stringify(lastResult));
+            sfx('tut-license-transition'); open(lastResult);
         } catch (_) { close(); if (window._goToMenuImmediate) window._goToMenuImmediate(); }
     };
 })();

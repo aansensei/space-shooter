@@ -264,7 +264,11 @@ function _updateSkillReadySfx(now) {
     const r = window._sfxReady;
     if (!r) return;
     const check = (key, isReady) => {
-        if (isReady && !r[key]) window.AudioMgr.playSfx('skill-ready');
+        const slot = key === 'Shift' ? 'SH' : key === 'Laser' ? 'SPC' : key;
+        if (isReady && !r[key] && !window._tutorialLocked?.(slot)) {
+            if (window._tutorialActive) window.AudioMgr.playTutorialSfx('tut-skill-ready');
+            else window.AudioMgr.playSfx('skill-ready');
+        }
         r[key] = isReady;
     };
     // Charged skills use activation timestamp + fixed cooldown constants.
@@ -281,7 +285,7 @@ function _updateSkillReadySfx(now) {
         const primevalFull = (typeof primevalEnergy !== 'undefined') && primevalEnergy >= 100;
         const teslaFull    = (typeof skillGCharge    !== 'undefined') && skillGCharge    >= 100;
         if (primevalFull && !u.primeval) window.AudioMgr.playSfx('skill-unlocked');
-        if (teslaFull    && !u.tesla)    window.AudioMgr.playSfx('skill-unlocked');
+        if (teslaFull && !u.tesla && !window._tutorialLocked?.('G')) window.AudioMgr.playSfx('skill-unlocked');
         u.primeval = primevalFull;
         u.tesla    = teslaFull;
     }
@@ -351,6 +355,7 @@ function _queryEnemyGrid(grid, x, y, out) {
 }
 
 function _activateOverloadLaser(currentTime) {
+    if (window._tutorialActive) window._tutorialChargeFired?.();
     charging = false;
     laserActive = true; laserStartTime = currentTime;
     lastLaserTick = 0;
@@ -376,6 +381,7 @@ function _endRun(quit) {
     if (quit && window._tutorialActive) {
         if (typeof window._tutorialAbort === 'function') window._tutorialAbort();
         if (typeof window._goToMenuImmediate === 'function') window._goToMenuImmediate();
+        window.AudioMgr?.playTutorialSfx('tut-exit');
         return;
     }
     _ammitReset();
@@ -1740,6 +1746,8 @@ function update(rawDeltaTime) {
             enemy.y += enemy.speed * _phoneSpeedMul * dt * teslaSpeedMultiplier * raphaelSpeedMultiplier * _coronaSlow * _riftSlowMul * _orbSlowMul * _thanMenhMul * _dtuSlowMul * _cucHanMul * _rootMul * _vineSlowMul * _teslaBoltSlowMul;
             _capHoldBody(enemy, capMoveX, capMoveY);
 
+            if (enemy._tut) enemy.y = Math.min(enemy.y, player.y - Math.max(64, enemy.size * 2));
+
             if (!enemy.inCoronation && Math.hypot(enemy.x - player.x, enemy.y - player.y) < enemy.size / 2 + player.hitRadius) {
                 playerTakesHit(enemy);
                 if (enemy.type === 'dargruel' || enemy.type === 'thaelis') {
@@ -1842,7 +1850,7 @@ function update(rawDeltaTime) {
                 }
             }
 
-            if (enemy.type === 'apostle') {
+            if (enemy.type === 'apostle' && !enemy._tut) {
                 // Coronation passive, runs every frame, handles its own 1s tick
                 updateApostleCoronation(enemy, deltaTime);
 
@@ -3610,6 +3618,7 @@ function gameLoop(timeStamp) {
 function startGame() {
     document.body.classList.remove('menu-open');
     if (typeof window._prepareGameMode === 'function') window._prepareGameMode(window._debugSessionActive ? 'custom' : window._tutorialActive ? 'tutorial' : window._inGame ? (window._runGameMode || window._gameMode || 'endless') : (window._gameMode || window._runGameMode || 'endless'));
+    if (window._tutorialActive) { lastSkillShift = -Infinity; window.AudioMgr?.prepareTutorialSfx(); }
     if (window.AudioMgr && window.AudioMgr.prepareGameplay) window.AudioMgr.prepareGameplay();
     _updateAllyScratch.length = 0;
     if (window._timelineDistortion && window._timelineDistortion.id !== 'stack_overflow') _clearTimelineDistortion();

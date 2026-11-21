@@ -2584,7 +2584,11 @@ function draw(deltaTime) {
         // Draw non-bullet enemies first (background layer) : Goliath vẽ RIÊNG
         // sau cùng (sau cả Sigil HUD) vì Goliath giờ hay lượn gần viền trên
         // màn hình, dễ bị icon Sigil HUD đè lên nếu vẽ chung ở đây.
-        enemies.forEach(e => { if (!e.type.startsWith('enemy_bullet') && e.type !== 'abyssal_chain' && e.type !== 'goliath' && e.type !== 'veilshroud_echo') drawEnemy(e); });
+        enemies.forEach(e => {
+            if (e.type.startsWith('enemy_bullet') || e.type === 'abyssal_chain' || e.type === 'goliath' || e.type === 'veilshroud_echo') return;
+            if (e._tut && window._tutorialActive) window._drawTutorialTarget(e);
+            else drawEnemy(e);
+        });
         _drawSentinelSpearFx();  // spear impacts and the twelve Sentinel volley lock on, above the enemies they hit
         if (window._runGameMode === 'showdown' && typeof window._duelRenderCombat === 'function') window._duelRenderCombat(ctx);
         // Blood Arrow's impact bloom draws AFTER enemies so it sits layered
@@ -2719,7 +2723,7 @@ function draw(deltaTime) {
         // under everything drawn above (enemies, particles, explosions,
         // skill effects) - Uriel's Holy Sword and Raphael's Wisdom Orb.
         // Both must stay readable no matter how much else is on screen.
-        enemies.forEach(e => { if (e.type.startsWith('enemy_bullet') || e.type === 'abyssal_chain') drawEnemy(e); });
+        enemies.forEach(e => { if ((e.type.startsWith('enemy_bullet') && !(e._tut && window._tutorialActive)) || e.type === 'abyssal_chain') drawEnemy(e); });
         if (typeof _drawUrielHolySwords === 'function') _drawUrielHolySwords();
         _drawRaphaelWisdomOrbs();
         if (_camZoom !== 1) ctx.restore();

@@ -83,18 +83,18 @@
             });
         }
     }
-    function _decodeBuffer(src) {
+    function _decodeBuffer(src, optional = false) {
         if (!actx) return Promise.resolve(null);
         if (_bufferCache[src]) return _bufferCache[src];
         const p = _queueDecode(() => fetch(src)
-            .then(r => { if (!r.ok) throw Error('Audio unavailable'); return r.arrayBuffer(); })
-            .then(ab => actx.decodeAudioData(ab)))
+            .then(r => { if (!r.ok) { if (optional) return null; throw Error('Audio unavailable'); } return r.arrayBuffer(); })
+            .then(ab => ab && actx.decodeAudioData(ab)))
             .then(buf => {
                 if (buf && _bufferCache[src] === p) _decodedBuffers[src] = buf;
                 // Failed loads retain their settled promise until the next page load.
                 return buf;
             })
-            .catch(e => { console.warn('[Audio] buffer decode failed for ' + src, e); return null; });
+            .catch(e => { if (!optional) console.warn('[Audio] buffer decode failed for ' + src, e); return null; });
         _bufferCache[src] = p;
         return p;
     }
@@ -494,6 +494,63 @@
     // "true 100%" at their default , this map is a 1.0 passthrough, kept as
     // a hook for future per-clip tweaks rather than a real attenuation table.
     // Values 0..1, multiplied by sfx * global.
+    const TUTORIAL_OPTIONAL = {
+        'tut-menu-select': { gain: 0.32, group: 'menu', optional: true, fallback: 'click' },
+        'tut-run-start': { gain: 0.58, group: 'menu', optional: true },
+        'tut-sigil-hover': { gain: 0.24, group: 'menu', optional: true, fallback: 'hover' },
+        'tut-sigil-select': { gain: 0.42, group: 'menu', optional: true, fallback: 'click' },
+        'tut-sigil-confirm': { gain: 0.62, group: 'menu', optional: true, fallback: 'sigil-confirm' },
+        'tut-sigil-reroll': { gain: 0.46, group: 'menu', optional: true, fallback: 'sigil-confirm' },
+        'tut-kanade-step': { gain: 0.32, group: 'kanade', optional: true },
+        'tut-kanade-breath': { gain: 0.22, group: 'kanade', optional: true },
+        'tut-gate-close': { gain: 0.67, group: 'kanade', optional: true },
+        'tut-expression': { gain: 0.23, group: 'kanade', optional: true },
+        'tut-speech-close': { gain: 0.34, group: 'dialogue', optional: true },
+        'tut-line-skip': { gain: 0.26, group: 'dialogue', optional: true },
+        'tut-toast-close': { gain: 0.26, group: 'dialogue', optional: true },
+        'tut-reveal-a': { gain: 0.62, group: 'skills', optional: true, fallback: 'tut-reveal' },
+        'tut-reveal-s': { gain: 0.57, group: 'skills', optional: true, fallback: 'tut-reveal' },
+        'tut-reveal-d': { gain: 0.67, group: 'skills', optional: true, fallback: 'tut-reveal' },
+        'tut-reveal-f': { gain: 0.68, group: 'skills', optional: true, fallback: 'tut-reveal' },
+        'tut-reveal-g': { gain: 0.59, group: 'skills', optional: true, fallback: 'tut-reveal' },
+        'tut-reveal-shift': { gain: 0.67, group: 'skills', optional: true, fallback: 'tut-reveal' },
+        'tut-reveal-space': { gain: 0.61, group: 'skills', optional: true, fallback: 'tut-reveal' },
+        'tut-skill-ready': { gain: 0.33, group: 'skills', optional: true, fallback: 'skill-ready' },
+        'tut-shift-hold': { gain: 0.66, group: 'skills', optional: true, fallback: 'shift-hold' },
+        'tut-shift-release': { gain: 0.44, group: 'skills', optional: true },
+        'tut-steer-left': { gain: 0.25, group: 'skills', optional: true },
+        'tut-steer-right': { gain: 0.25, group: 'skills', optional: true },
+        'tut-target-form': { gain: 0.48, group: 'targets', optional: true },
+        'tut-target-hit': { gain: 0.34, group: 'targets', optional: true },
+        'tut-target-break': { gain: 0.6, group: 'targets', optional: true },
+        'tut-warn-bullets': { gain: 0.48, group: 'spells', optional: true },
+        'tut-warn-strip': { gain: 0.56, group: 'spells', optional: true, fallback: 'tut-warn' },
+        'tut-warn-circle': { gain: 0.57, group: 'spells', optional: true, fallback: 'tut-warn' },
+        'tut-warn-sector': { gain: 0.57, group: 'spells', optional: true, fallback: 'tut-warn' },
+        'tut-warn-shift': { gain: 0.64, group: 'spells', optional: true, fallback: 'tut-warn' },
+        'tut-fade-bullets': { gain: 0.29, group: 'spells', optional: true },
+        'tut-fade-strip': { gain: 0.34, group: 'spells', optional: true },
+        'tut-fade-circle': { gain: 0.35, group: 'spells', optional: true },
+        'tut-fade-sector': { gain: 0.36, group: 'spells', optional: true },
+        'tut-fade-shift': { gain: 0.45, group: 'spells', optional: true },
+        'tut-near-miss': { gain: 0.42, group: 'feedback', optional: true },
+        'tut-retry': { gain: 0.46, group: 'feedback', optional: true },
+        'tut-hint': { gain: 0.34, group: 'feedback', optional: true },
+        'tut-wait': { gain: 0.32, group: 'feedback', optional: true },
+        'tut-skip': { gain: 0.43, group: 'feedback', optional: true },
+        'tut-lesson-clear': { gain: 0.51, group: 'feedback', optional: true },
+        'tut-license-transition': { gain: 0.63, group: 'license', optional: true },
+        'tut-license-name': { gain: 0.24, group: 'license', optional: true },
+        'tut-license-save': { gain: 0.48, group: 'license', optional: true, fallback: 'click' },
+        'tut-license-reissue': { gain: 0.46, group: 'license', optional: true },
+        'tut-license-close': { gain: 0.44, group: 'license', optional: true, fallback: 'click' },
+        'tut-license-menu': { gain: 0.42, group: 'license', optional: true, fallback: 'click' },
+        'tut-license-voyage': { gain: 0.48, group: 'license', optional: true, fallback: 'click' },
+        'tut-pause': { gain: 0.39, group: 'system', optional: true },
+        'tut-resume': { gain: 0.43, group: 'system', optional: true },
+        'tut-exit': { gain: 0.44, group: 'system', optional: true },
+    };
+    const TUTORIAL_KANADE = ['kanade-gate-open', 'kanade-emerge', 'kanade-depart', 'kanade-summon'];
     const SFX_BASE = {
         'tut-type-a': 0.45,
         'tut-type-b': 0.45,
@@ -757,6 +814,8 @@
     // ambient loops, and getting drowned out by a low SFX setting undercuts
     // the moment. Mute and the global slider still apply.
     const FORCE_FULL_SFX = new Set(['goliath-spawn', 'goliath-transform']);
+    for (const [key, sound] of Object.entries(TUTORIAL_OPTIONAL)) SFX_BASE[key] = sound.gain;
+
     function sfxGain(k) {
         if (state.muted) return 0;
         if (FORCE_FULL_SFX.has(k)) return state.vol.global;
@@ -823,7 +882,7 @@
         if (!p) return;
         const g = sfxGain(key);
         if (g <= 0) return;
-        if (key.startsWith('tut-')) return _playAmmitCue(p.src, g, true, false, true);
+        if (key.startsWith('tut-')) return _playAmmitCue(p.src, g, true, true, { group: 'scene', key });
         if (key.startsWith('ammit-')) return _playAmmitCue(p.src, g, p.bypass, true);
         return _playVoice(p.src, g, p.bypass);
     }
@@ -928,17 +987,22 @@
         node.onended = function () { if (slot.node === node && !slot.paused) _ammitStopCue(slot); };
         node.start(0, Math.min(slot.offset, Math.max(0, slot.buffer.duration - .001)));
     }
-    function _playAmmitCue(src, volume, bypass, capped, tutorial = false) {
+    function _playAmmitCue(src, volume, bypass, capped, tutorial = null) {
         if (!actx) return;
         let slot = null;
         for (let i = 0; i < _ammitCues.length; i++) if (!_ammitCues[i].active) { slot = _ammitCues[i]; break; }
         if (!slot && bypass) { slot = _ammitCues[0]; _ammitStopCue(slot); }
         if (!slot) return;
-        slot.active = true; slot.paused = false; slot.offset = 0; slot.volume = volume; slot.bypass = bypass; slot.capped = capped; slot.tutorial = tutorial;
+        slot.active = true; slot.paused = false; slot.offset = 0; slot.volume = volume; slot.bypass = bypass; slot.capped = capped; slot.tutorial = !!tutorial;
+        slot.tutorialGroup = tutorial?.group; slot.tutorialKey = tutorial?.key;
         const serial = slot.serial = ++_ammitCueSerial;
         const ready = _decodedBuffers[src];
         if (ready) { slot.buffer = ready; _ammitStartCue(slot); }
-        else _decodeBuffer(src).then(function (buffer) { if (slot.active && slot.serial === serial) { slot.buffer = buffer; _ammitStartCue(slot); } });
+        else _decodeBuffer(src).then(function (buffer) {
+            if (!slot.active || slot.serial !== serial) return;
+            if (!buffer) { _ammitStopCue(slot); return; }
+            slot.buffer = buffer; _ammitStartCue(slot);
+        });
         return { cancel() { if (slot.serial === serial) _ammitStopCue(slot); } };
     }
     function _pauseAmmitCues() {
@@ -1249,6 +1313,7 @@
 
     function playSfx(key) {
         if (_duelSounds[key] || _duelFamilies[key]) return playDuelSfx(key);
+        if (key.startsWith('tut-')) return playTutorialSfx(key);
         if (key === 'evolve-reveal') key = 'egregor-tempest-portal';
         if (_timeFrozen) return;
         const p = state.pool[key];
@@ -1256,22 +1321,45 @@
         if (_sfxTooSoon(key)) return;
         const g = sfxGain(key);
         if (g <= 0) return;
-        if (key.startsWith('tut-')) return _playAmmitCue(p.src, g, true, false, true);
         if (key.startsWith('ammit-')) return _playAmmitCue(p.src, g, p.bypass, true);
         return _playVoice(p.src, g, p.bypass);
     }
 
-    // Positional variant: scales the base gain by distance from the player
-    // ship (x, y in world/canvas coordinates), so explosions and events near
-    // the player read louder than ones happening far up the screen.
+    const tutorialLast = new Map();
+    let tutorialGeneration = 0;
+    function prepareTutorialSfx() {
+        for (const key of Object.keys(state.pool)) if (key.startsWith('tut-') || TUTORIAL_KANADE.includes(key)) _decodeBuffer(state.pool[key].src);
+    }
+
     function playTutorialSfx(key) {
-        const p = state.pool[key];
-        if (!p || _timeFrozen || _sfxTooSoon(key)) return;
-        const gain = sfxGain(key);
-        if (gain > 0) return _playAmmitCue(p.src, gain, true, false, true);
+        if (!actx || _timeFrozen || _hardPaused || state.muted) return;
+        const spec = TUTORIAL_OPTIONAL[key], group = spec?.group || (key.startsWith('tut-type-') ? 'type' : 'scene');
+        const src = spec ? 'assets/audio/sfx/' + key + '.mp3' : state.pool[key]?.src;
+        if (!src) return;
+        const now = actx.currentTime, elapsed = now - (tutorialLast.get(key) ?? -Infinity);
+        const minimum = group === 'type' ? .035 : group === 'targets' || group === 'menu' ? .11 : .07;
+        if (elapsed < minimum) return;
+        tutorialLast.set(key, now);
+        const generation = tutorialGeneration;
+        function start(sound) {
+            if (!sound || generation !== tutorialGeneration || _timeFrozen || _hardPaused) return;
+            let total = 0, inGroup = 0;
+            for (const slot of _ammitCues) if (slot.active && slot.tutorial) { total++; if (slot.tutorialGroup === group) inGroup++; }
+            const limit = group === 'type' || group === 'dialogue' ? 2 : group === 'scene' ? 5 : 3;
+            const gain = sfxGain(key);
+            if (gain <= 0 || total >= 8 || inGroup >= limit) return;
+            return _playAmmitCue(sound, gain, true, true, { group, key });
+        }
+        if (!spec?.optional || _decodedBuffers[src]) return start(src);
+        const requestedAt = performance.now();
+        _decodeBuffer(src, true).then(buffer => {
+            if (performance.now() - requestedAt <= 300) start(buffer ? src : state.pool[spec.fallback]?.src);
+        });
     }
     function stopTutorialSfx() {
+        tutorialGeneration++;
         for (let i = 0; i < _ammitCues.length; i++) if (_ammitCues[i].tutorial) _ammitStopCue(_ammitCues[i]);
+        tutorialLast.clear();
     }
 
     function playSfxAt(key, x, y, phase) {
@@ -1643,6 +1731,10 @@
     // so their .volume setter throws for anything outside [0,1] - a boosted
     // gain like ambient's 1.1 would otherwise crash this on every slider move.
     function refreshVolumes() {
+        for (const slot of _ammitCues) if (slot.active && slot.tutorial && slot.tutorialKey) {
+            slot.volume = sfxGain(slot.tutorialKey);
+            if (slot.gain) slot.gain.gain.value = slot.volume;
+        }
         for (const slot of _duelLoops.values()) _duelLoopVolume(slot);
         if (state.bgmEl)     state.bgmEl.volume     = Math.min(1, bgmGain());
         if (state.ambientEl) state.ambientEl.volume = Math.min(1, sfxGain('ambient'));
@@ -2089,7 +2181,7 @@
         getSelectedBgmIds, isBgmSelected, toggleBgmSelection,
 
         // SFX
-        playSfx, playSfxAt, playTutorialSfx, stopTutorialSfx,
+        playSfx, playSfxAt, playTutorialSfx, stopTutorialSfx, prepareTutorialSfx,
         enterDuelEvolutionDuck: () => enterDuck('duelEvolution'),
         exitDuelEvolutionDuck: () => exitDuck('duelEvolution'),
         wakeAudio: _wakeAudio,

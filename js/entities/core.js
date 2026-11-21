@@ -333,6 +333,7 @@ function fireAutoShot() {
 }
 
 function fireChargedBullet(multiplier) {
+    if (window._tutorialActive) window._tutorialChargeFired?.();
     if (window.AudioMgr) window.AudioMgr.playSfx('charged-shot');
     const baseSize = 5;
     bullets.push({
