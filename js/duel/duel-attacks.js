@@ -290,24 +290,24 @@
     }
 
     const ATTACK_DEFS = {
-        1: { id: 1, key: 'duel.attack.1', name: 'Tendril Probe', phase: 1, duration: 16.0, baseHp: 420 },
-        2: { id: 2, key: 'duel.attack.2', name: 'Locked Thought', phase: 1, duration: 24.0, baseHp: 620 },
-        3: { id: 3, key: 'duel.attack.3', name: 'Eye Lines', phase: 1, duration: 18.0, baseHp: 470 },
-        4: { id: 4, key: 'duel.attack.4', name: 'Ripple of Dimensions', phase: 1, duration: 26.0, baseHp: 670 },
-        5: { id: 5, key: 'duel.attack.5', name: 'Whisper Rain', phase: 1, duration: 18.0, baseHp: 470 },
-        6: { id: 6, key: 'duel.attack.6', name: 'Mirror Mind', phase: 1, duration: 26.0, baseHp: 680 },
-        7: { id: 7, key: 'duel.attack.7', name: 'Ten Voices', phase: 2, duration: 18.0, baseHp: 480 },
-        8: { id: 8, key: 'duel.attack.8', name: 'Collective Mind', phase: 2, duration: 28.0, baseHp: 730 },
-        9: { id: 9, key: 'duel.attack.9', name: 'Null Prelude', phase: 2, duration: 18.0, baseHp: 480 },
-        10: { id: 10, key: 'duel.attack.10', name: 'Null Slash', phase: 2, duration: 28.0, baseHp: 740 },
-        11: { id: 11, key: 'duel.attack.11', name: 'Mind Link Pulse', phase: 2, duration: 18.0, baseHp: 480 },
-        12: { id: 12, key: 'duel.attack.12', name: 'Boon and Bane', phase: 2, duration: 28.0, baseHp: 730 },
-        13: { id: 13, key: 'duel.attack.13', name: 'Dimension Break', phase: 2, duration: 30.0, baseHp: 780 },
-        14: { id: 14, key: 'duel.attack.14', name: 'Overmind Chorus', phase: 3, duration: 20.0, baseHp: 530 },
-        15: { id: 15, key: 'duel.attack.15', name: 'Psychic Tempest Maelstrom', phase: 3, duration: 28.0, baseHp: 740 },
-        16: { id: 16, key: 'duel.attack.16', name: 'Echo of Ten', phase: 3, duration: 28.0, baseHp: 740 },
-        17: { id: 17, key: 'duel.attack.17', name: 'Rage of the Collective', phase: 3, duration: 32.0, baseHp: 840 },
-        18: { id: 18, key: 'duel.attack.18', name: 'Ten Minds, One Voice', phase: 3, duration: 40.0, baseHp: 1040 }
+        1: { id: 1, key: 'duel.attack.1', name: 'Tendril Probe', phase: 1, duration: 16.0, baseHp: 440 },
+        2: { id: 2, key: 'duel.attack.2', name: 'Locked Thought', phase: 1, duration: 24.0, baseHp: 650 },
+        3: { id: 3, key: 'duel.attack.3', name: 'Eye Lines', phase: 1, duration: 18.0, baseHp: 495 },
+        4: { id: 4, key: 'duel.attack.4', name: 'Ripple of Dimensions', phase: 1, duration: 26.0, baseHp: 705 },
+        5: { id: 5, key: 'duel.attack.5', name: 'Whisper Rain', phase: 1, duration: 18.0, baseHp: 495 },
+        6: { id: 6, key: 'duel.attack.6', name: 'Mirror Mind', phase: 1, duration: 26.0, baseHp: 715 },
+        7: { id: 7, key: 'duel.attack.7', name: 'Ten Voices', phase: 2, duration: 18.0, baseHp: 505 },
+        8: { id: 8, key: 'duel.attack.8', name: 'Collective Mind', phase: 2, duration: 28.0, baseHp: 765 },
+        9: { id: 9, key: 'duel.attack.9', name: 'Null Prelude', phase: 2, duration: 18.0, baseHp: 505 },
+        10: { id: 10, key: 'duel.attack.10', name: 'Null Slash', phase: 2, duration: 28.0, baseHp: 775 },
+        11: { id: 11, key: 'duel.attack.11', name: 'Mind Link Pulse', phase: 2, duration: 18.0, baseHp: 505 },
+        12: { id: 12, key: 'duel.attack.12', name: 'Boon and Bane', phase: 2, duration: 28.0, baseHp: 765 },
+        13: { id: 13, key: 'duel.attack.13', name: 'Dimension Break', phase: 2, duration: 30.0, baseHp: 820 },
+        14: { id: 14, key: 'duel.attack.14', name: 'Overmind Chorus', phase: 3, duration: 20.0, baseHp: 555 },
+        15: { id: 15, key: 'duel.attack.15', name: 'Psychic Tempest Maelstrom', phase: 3, duration: 28.0, baseHp: 775 },
+        16: { id: 16, key: 'duel.attack.16', name: 'Echo of Ten', phase: 3, duration: 28.0, baseHp: 775 },
+        17: { id: 17, key: 'duel.attack.17', name: 'Rage of the Collective', phase: 3, duration: 32.0, baseHp: 880 },
+        18: { id: 18, key: 'duel.attack.18', name: 'Ten Minds, One Voice', phase: 3, duration: 40.0, baseHp: 1090 }
     };
 
     let _totalMatchHp = 0;
