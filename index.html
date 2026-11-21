@@ -2721,12 +2721,12 @@
                         'pause.peekHint': 'Click/Tap anywhere or press Esc to return',
                         'confirmMenu.message': 'Abort the voyage? Your flight log will be sealed here.',
                         'whatsNew.title': "What's New",
-                        'whatsNew.release': 'v7.0.0 · Kanade\u0027s Calibration',
-                        'whatsNew.i1': "<b>Kanade's Tutorial:</b> pick Tutorial on the Voyage bar. She teaches every skill, then you dodge her real attacks.",
-                        'whatsNew.i2': "<b>Dodge lessons:</b> a lesson passes only on a clean dodge. Failed lessons repeat with longer warnings, and Kanade hints after three failures.",
-                        'whatsNew.i3': "<b>Pilot Licence:</b> the Tutorial ends with a licence you can rename and save as an image.",
-                        'whatsNew.i4': "<b>Kanade:</b> new expressions and hand gestures, plus 22 new sounds.",
-                        'whatsNew.i5': "<b>Voyage picker:</b> choose Endless Voyage or Tutorial from the Voyage bar on the main menu.",
+                        'whatsNew.release': 'v7.1.5 · Showdown Voyage',
+                        'whatsNew.i1': "<b>Showdown Voyage:</b> a boss duel against Egregor the Overmind, with five sacred relics and 18 attacks. It is tagged High difficulty and plays on a computer.",
+                        'whatsNew.i2': "<b>Voyage picker:</b> Showdown Voyage now sits right after Endless Voyage. It shows Soon and stays locked on the Mobile tab.",
+                        'whatsNew.i3': "<b>New music:</b> \"Ruler of the Violet Domain\", the Egregor battle theme, joins the Music Archive.",
+                        'whatsNew.i4': "<b>Guide:</b> the Basics tab has a new Voyages card that explains every Voyage.",
+                        'whatsNew.i5': "<b>Smoother effects:</b> Annihilation Sweep and the Yog-Sothoth Domain take less work to draw.",
                         'whatsNew.log': 'Full Update Log',
                         'whatsNew.ok': 'Got It',
                         'confirmMenu.yes': 'YES',
@@ -2744,7 +2744,6 @@
                         'mode.dev': 'Dev',
                         'mode.hard': 'High difficulty',
                         'mode.comingSoon': 'Coming soon',
-                        'mode.desktopOnly': 'Not available yet',
                         'mode.desktopOnly.desc': 'Showdown is not available on phones and tablets yet. Please play it on a computer.',
                         'confirmMenu.no': 'NO',
                     },
@@ -2821,12 +2820,12 @@
                         'pause.peekHint': 'Click/Chạm vào bất kỳ đâu hoặc nhấn Esc để quay lại',
                         'confirmMenu.message': 'Dừng chuyến bay tại đây? Nhật ký chuyến bay sẽ khép lại.',
                         'whatsNew.title': 'Có Gì Mới',
-                        'whatsNew.release': 'v7.0.0 · Kanade\u0027s Calibration',
-                        'whatsNew.i1': "<b>Hướng Dẫn của Kanade:</b> chọn Hướng Dẫn ở thanh Hành Trình. Cô chỉ từng kỹ năng, rồi bạn né những đòn tấn công thật.",
-                        'whatsNew.i2': "<b>Bài né:</b> chỉ né sạch mới qua bài. Bài thất bại sẽ lặp lại với thời gian cảnh báo dài hơn, và sau ba lần Kanade sẽ gợi ý.",
-                        'whatsNew.i3': "<b>Giấy Phép Phi Công:</b> Hướng Dẫn kết thúc bằng một giấy phép, bạn có thể đổi tên và lưu thành ảnh.",
-                        'whatsNew.i4': "<b>Kanade:</b> có thêm biểu cảm và cử chỉ tay, cùng 22 âm thanh mới.",
-                        'whatsNew.i5': "<b>Chọn Hành Trình:</b> thanh Hành Trình ở menu chính cho bạn chọn Hành Trình Vô Tận hoặc Hướng Dẫn.",
+                        'whatsNew.release': 'v7.1.5 · Showdown Voyage',
+                        'whatsNew.i1': "<b>Quyết Chiến:</b> trận đấu tay đôi với Egregor the Overmind, có năm thánh di vật và 18 đòn tấn công. Chế độ mang tag Độ khó cao và chơi trên máy tính.",
+                        'whatsNew.i2': "<b>Chọn Hành Trình:</b> Quyết Chiến giờ nằm ngay sau Hành Trình Vô Tận. Chế độ này hiện Soon và bị khóa ở thẻ Mobile.",
+                        'whatsNew.i3': "<b>Nhạc mới:</b> \"Ruler of the Violet Domain\", nhạc trận đấu với Egregor, đã có trong Lưu Trữ Nhạc.",
+                        'whatsNew.i4': "<b>Hướng dẫn:</b> tab Cơ Bản có thẻ Các Chuyến Bay mới giải thích từng Hành Trình.",
+                        'whatsNew.i5': "<b>Hiệu ứng mượt hơn:</b> Thiên Ý Trảm và Lãnh Địa Yog-Sothoth tốn ít công vẽ hơn.",
                         'whatsNew.log': 'Xem Chi Tiết',
                         'whatsNew.ok': 'Đã Hiểu',
                         'confirmMenu.yes': 'CÓ',
@@ -2844,7 +2843,6 @@
                         'mode.dev': 'Dev',
                         'mode.hard': 'Độ khó cao',
                         'mode.comingSoon': 'Sắp ra mắt',
-                        'mode.desktopOnly': 'Chưa khả dụng',
                         'mode.desktopOnly.desc': 'Quyết Chiến chưa khả dụng trên điện thoại và máy tính bảng. Hãy chơi trên máy tính nhé.',
                         'confirmMenu.no': 'KHÔNG',
                     },
@@ -4444,7 +4442,8 @@
             }
             function showdownLockedOnThisDevice() {
                 const lockedSwitch = typeof window.SHOWDOWN_MOBILE_LOCKED === 'boolean' ? window.SHOWDOWN_MOBILE_LOCKED : SHOWDOWN_MOBILE_LOCKED;
-                return lockedSwitch && isCoarsePointer();
+                // the Mobile tab on the title screen locks it, and so does a touch screen as the main input
+                return window._platform === 'mobile' || (lockedSwitch && isCoarsePointer());
             }
             window.showdownLockedOnThisDevice = showdownLockedOnThisDevice;
 
@@ -4474,11 +4473,10 @@
                 endless: { ready: true, persist: true, img: '' },
                 tutorial: { ready: true, persist: true, img: '' },
                 custom: { ready: true, persist: false, img: '' },
-                // a teaser card: the mode is not built yet, so it stays locked until a build sets ready to true
+                // Showdown plays on a computer and stays locked while the Mobile tab is chosen or the screen is touch only
                 showdown: {
                     get ready() {
-                        const isLocal = typeof location !== 'undefined' && (location.hostname === 'localhost' || location.hostname === '127.0.0.1');
-                        return isLocal && !showdownLockedOnThisDevice();
+                        return !showdownLockedOnThisDevice();
                     },
                     persist: false,
                     img: ''
@@ -4789,16 +4787,13 @@
                     const sTag = showdownCard.querySelector('.gm-tag');
                     if (sTag) {
                         const sDesc = showdownCard.querySelector('.gm-desc');
-                        if (showdownLockedOnThisDevice()) {
-                            sTag.hidden = false;
-                            sTag.dataset.i18n = 'mode.desktopOnly';
-                            sTag.textContent = tr('mode.desktopOnly');
-                            if (sDesc) { sDesc.dataset.i18n = 'mode.desktopOnly.desc'; sDesc.textContent = tr('mode.desktopOnly.desc'); }
-                        } else {
-                            sTag.dataset.i18n = 'mode.soon';
-                            sTag.textContent = tr('mode.soon');
-                            sTag.hidden = GAME_MODES.showdown.ready;
-                            if (sDesc) { sDesc.dataset.i18n = 'mode.showdown.desc'; sDesc.textContent = tr('mode.showdown.desc'); }
+                        const lockedHere = showdownLockedOnThisDevice();
+                        sTag.dataset.i18n = 'mode.soon';
+                        sTag.textContent = tr('mode.soon');
+                        sTag.hidden = !lockedHere;
+                        if (sDesc) {
+                            const key = lockedHere ? 'mode.desktopOnly.desc' : 'mode.showdown.desc';
+                            sDesc.dataset.i18n = key; sDesc.textContent = tr(key);
                         }
                     }
                 }
@@ -4816,9 +4811,6 @@
             window._refreshGameModeUI = updateUI;
 
             window.selectGameMode = function (m) {
-                if (m === 'showdown' && showdownLockedOnThisDevice()) {
-                    m = 'endless';
-                }
                 if (!GAME_MODES[m]) m = 'endless';
                 if (m === 'custom' && !customAvailable()) {
                     // on the live site the debug console is fetched on first use, then Custom is chosen
@@ -4898,12 +4890,6 @@
                 const card = e.target.closest ? e.target.closest('.gm-card') : null;
                 if (!card || card.hidden) return;
                 const m = card.dataset.mode;
-                if (m === 'showdown' && showdownLockedOnThisDevice()) {
-                    card.classList.remove('gm-locked-shake');
-                    void card.offsetWidth;
-                    card.classList.add('gm-locked-shake');
-                    return;
-                }
                 window.selectGameMode(m);
                 window.closeModePicker(true);
             });
@@ -5699,6 +5685,7 @@
                 if (p !== 'mobile') window._hudScale = 1;
                 _syncDeviceTier(p);
                 try { localStorage.setItem('pisces_platform', p); } catch (_) { }
+                if (typeof window._refreshGameModeUI === 'function') window._refreshGameModeUI();
                 document.getElementById('btn-pc').classList.toggle('pf-active', p === 'pc');
                 document.getElementById('btn-mobile').classList.toggle('pf-active', p === 'mobile');
                 // Correct background.js's initial touch-detection guess (made
@@ -6716,7 +6703,7 @@
     <script>
         (function () {
             // Bump with each update log entry that should greet returning players.
-            const RELEASE = '7.0.0';
+            const RELEASE = '7.1.5';
             const ITEMS = 5;
             function show() {
                 const ov = document.createElement('div');

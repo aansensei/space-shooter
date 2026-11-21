@@ -2,8 +2,8 @@
 
 Showdown (Quyết Chiến) is the boss duel mode: one ship against Egregor the Overmind across 18 attacks in three forms.
 It is a separate system from the Voyage code. It owns its own state machine, bullet pool, weapons, HUD, recap and audio
-cues, and it only borrows the canvas, the player ship drawing and the audio manager. The mode is desktop only, locked on
-touch devices, and the live site shows its card as a locked teaser. It runs on localhost.
+cues, and it only borrows the canvas, the player ship drawing and the audio manager. The mode is desktop only: it is locked
+while the Mobile tab of the title screen is chosen and on touch screens.
 
 The full rules and numbers live in the Showdown sections of [game_logic.md](../../game_logic.md). This file is a map of
 the code.
@@ -37,7 +37,7 @@ Every file is a plain global script loaded from `index.html` after the Voyage co
 ## Running the mode
 
 Serve the repo root (for example `npx serve . -l 8123`), open it on localhost, pick **Showdown Voyage** in the Voyage picker, then an opponent
-and a weapon. Press F4 for the debug panel. The mode refuses to start on touch devices and on the live site.
+and a weapon. Press F4 for the debug panel. The mode refuses to start while the Mobile tab is chosen and on touch devices.
 
 ```powershell
 node js/duel/duel-solver.cjs
