@@ -1218,6 +1218,16 @@ function drawShareCard(canvas, data, lang, format) {
   const shipImg = getShipDrawable();
   const sigils = data.sigils || [];
 
+  // A Showdown card also carries its rank as a fourth figure, counts attacks as cleared out of the total and
+  // closes with its own ending line (a victory is never "shot down")
+  const sdCard = !!(data && data.variant === "showdown");
+  const cardRank = sdCard && data.rank ? String(data.rank) : "";
+  const cardRankColor = RC_RANK_COLOR[cardRank] || "#F2D98B";
+  const sdTotal = (data.attacks && data.attacks.length) || 18;
+  const cardEpitaph = sdCard && data.epitaphHtml
+    ? String(data.epitaphHtml).replace(/<[^>]*>/g, "").replace(/s+/g, " ").trim()
+    : (data.quit ? t("rcQuitLine", lang) : t("rcEpitaphPrefix", lang) + " " + label(data.cause || "Unknown", lang));
+
   if (!isLandscape) {
     // Portrait 1080x1350 layout
     ctx.textAlign = "center";
@@ -1237,18 +1247,19 @@ function drawShareCard(canvas, data, lang, format) {
 
     // 3 Big Metrics Cards
     const cardY = 430, cardH = 148, gap = 22;
-    const cardW = (W - 120 - gap * 2) / 3;
     const mItems = [
       { label: t("rcScore", lang), val: formatNumber(data.score || 0), col: "#00E5FF" },
-      { label: t("rcWave", lang), val: "WAVE " + (data.wave || 1), col: "#DCE8F5" },
+      { label: t("rcWave", lang), val: sdCard ? (data.wave || 0) + "/" + sdTotal : "WAVE " + (data.wave || 1), col: "#DCE8F5" },
       { label: t("rcTime", lang), val: formatTimeMs(data.timeMs || 0), col: "#DCE8F5" }
     ];
-    for (let i = 0; i < 3; i++) {
+    if (cardRank) mItems.push({ label: t("rcRank", lang), val: cardRank, col: cardRankColor, rank: true });
+    const cardW = (W - 120 - gap * (mItems.length - 1)) / mItems.length;
+    for (let i = 0; i < mItems.length; i++) {
       const bx = 60 + i * (cardW + gap);
       ctx.fillStyle = "rgba(11, 42, 91, 0.65)";
       ctx.fillRect(bx, cardY, cardW, cardH);
-      ctx.strokeStyle = i === 0 ? "#E8C46A" : "rgba(0, 229, 255, 0.45)";
-      ctx.lineWidth = 2;
+      ctx.strokeStyle = mItems[i].rank ? cardRankColor : (i === 0 ? "#E8C46A" : "rgba(0, 229, 255, 0.45)");
+      ctx.lineWidth = mItems[i].rank ? 3 : 2;
       ctx.strokeRect(bx, cardY, cardW, cardH);
 
       ctx.fillStyle = "#3FA9F5";
@@ -1256,8 +1267,10 @@ function drawShareCard(canvas, data, lang, format) {
       ctx.fillText(mItems[i].label.toUpperCase(), bx + cardW * 0.5, cardY + 46);
 
       ctx.fillStyle = mItems[i].col;
-      ctx.font = "700 40px " + _rcF.title;
-      ctx.fillText(mItems[i].val, bx + cardW * 0.5, cardY + 108);
+      if (mItems[i].rank) { ctx.shadowColor = cardRankColor; ctx.shadowBlur = 22; }
+      ctx.font = "700 " + (mItems[i].rank ? 78 : 40) + "px " + _rcF.title;
+      ctx.fillText(mItems[i].val, bx + cardW * 0.5, cardY + (mItems[i].rank ? 124 : 108));
+      ctx.shadowBlur = 0; ctx.shadowColor = "transparent";
     }
 
     // Engraved Cause of Fall Banner
@@ -1270,8 +1283,7 @@ function drawShareCard(canvas, data, lang, format) {
 
     ctx.font = "italic 24px " + _rcF.italic;
     ctx.fillStyle = "#DCE8F5";
-    const epTxt = (data.quit ? t("rcQuitLine", lang) : t("rcEpitaphPrefix", lang) + " " + label(data.cause || "Unknown", lang));
-    ctx.fillText(epTxt, W * 0.5, epY + 43);
+    ctx.fillText(cardEpitaph, W * 0.5, epY + 43);
 
     // Sigil Constellation Box
     const sigY = 698, sigH = 195;
@@ -1372,28 +1384,35 @@ function drawShareCard(canvas, data, lang, format) {
     }
 
     // 3 Metrics Row on Left
-    const mW = 160, mH = 98, mGap = 14, mY = 148;
+    const mH = 98, mGap = 14, mY = 148;
     const mList = [
       { label: t("rcScore", lang), val: formatNumber(data.score || 0), col: "#00E5FF" },
-      { label: t("rcWave", lang), val: "W" + (data.wave || 1), col: "#DCE8F5" },
+      { label: t("rcWave", lang), val: sdCard ? (data.wave || 0) + "/" + sdTotal : "W" + (data.wave || 1), col: "#DCE8F5" },
       { label: t("rcTime", lang), val: formatTimeMs(data.timeMs || 0), col: "#DCE8F5" }
     ];
+    if (cardRank) mList.push({ label: t("rcRank", lang), val: cardRank, col: cardRankColor, rank: true });
+    const mW = (508 - mGap * (mList.length - 1)) / mList.length;
     ctx.textAlign = "center";
-    for (let i = 0; i < 3; i++) {
+    for (let i = 0; i < mList.length; i++) {
       const bx = 56 + i * (mW + mGap);
       ctx.fillStyle = "rgba(11, 42, 91, 0.7)";
       ctx.fillRect(bx, mY, mW, mH);
-      ctx.strokeStyle = i === 0 ? "#E8C46A" : "rgba(0, 229, 255, 0.45)";
-      ctx.lineWidth = 1.5;
+      ctx.strokeStyle = mList[i].rank ? cardRankColor : (i === 0 ? "#E8C46A" : "rgba(0, 229, 255, 0.45)");
+      ctx.lineWidth = mList[i].rank ? 2.5 : 1.5;
       ctx.strokeRect(bx, mY, mW, mH);
 
       ctx.fillStyle = "#3FA9F5";
-      ctx.font = "700 11px " + _rcF.ui;
-      ctx.fillText(mList[i].label.toUpperCase(), bx + mW * 0.5, mY + 30);
+      const mLabel = mList[i].label.toUpperCase();
+      let mLabelPx = mList.length > 3 ? 10 : 11;
+      ctx.font = "700 " + mLabelPx + "px " + _rcF.ui;
+      while (mLabelPx > 7 && ctx.measureText(mLabel).width > mW - 14) { mLabelPx--; ctx.font = "700 " + mLabelPx + "px " + _rcF.ui; }
+      ctx.fillText(mLabel, bx + mW * 0.5, mY + 30);
 
       ctx.fillStyle = mList[i].col;
-      ctx.font = "700 24px " + _rcF.title;
-      ctx.fillText(mList[i].val, bx + mW * 0.5, mY + 72);
+      if (mList[i].rank) { ctx.shadowColor = cardRankColor; ctx.shadowBlur = 16; }
+      ctx.font = "700 " + (mList[i].rank ? 52 : 24) + "px " + _rcF.title;
+      ctx.fillText(mList[i].val, bx + mW * 0.5, mY + (mList[i].rank ? 82 : 72));
+      ctx.shadowBlur = 0; ctx.shadowColor = "transparent";
     }
 
     // Epitaph Cause Box on Left
@@ -1404,7 +1423,7 @@ function drawShareCard(canvas, data, lang, format) {
     ctx.strokeRect(56, epY, epW, epH);
     ctx.fillStyle = "#DCE8F5";
     ctx.font = "italic 18px " + _rcF.italic;
-    ctx.fillText((data.quit ? t("rcQuitLine", lang) : t("rcEpitaphPrefix", lang) + " " + label(data.cause || "Unknown", lang)), 56 + epW * 0.5, epY + 34);
+    ctx.fillText(cardEpitaph, 56 + epW * 0.5, epY + 34);
 
     // Sigil Constellation Box on Bottom-Left
     const sigY = 336, sigW = 508, sigH = 196;
