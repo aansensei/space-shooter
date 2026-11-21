@@ -1,5 +1,40 @@
 // Pisces: Space Journey. Copyright (c) 2024 An Nguyen. Licensed under the PolyForm Noncommercial License 1.0.0.
-// render/skill-f.js — extracted from render.js (Annihilation Sweep).
+// render/skill-f.js: extracted from render.js (Annihilation Sweep).
+
+let _fHexCanvas = null;
+let _fHexW = 0, _fHexH = 0, _fHexGfx = -1;
+
+function _getFHexCanvas(w, h, gfx) {
+    if (typeof document === 'undefined') return null;
+    if (!_fHexCanvas || _fHexW !== w || _fHexH !== h || _fHexGfx !== gfx) {
+        _fHexW = w; _fHexH = h; _fHexGfx = gfx;
+        _fHexCanvas = document.createElement('canvas');
+        _fHexCanvas.width = w;
+        _fHexCanvas.height = h;
+        const hCtx = _fHexCanvas.getContext('2d');
+        const hR = gfx < 1 ? 28 : 44;
+        const hW = hR * Math.sqrt(3), hH = hR * 2;
+        hCtx.strokeStyle = 'rgba(0,200,100,0.12)';
+        hCtx.lineWidth = 0.8;
+        const hCols = Math.ceil(w / hW) + 2;
+        const hRows = Math.ceil(h / (hH * 0.75)) + 2;
+        hCtx.beginPath();
+        for (let r = -1; r < hRows; r++) {
+            for (let c = -1; c < hCols; c++) {
+                const hx = c * hW + (r % 2 === 0 ? 0 : hW * 0.5);
+                const hy = r * hH * 0.75;
+                for (let i = 0; i < 6; i++) {
+                    const a = (i / 6) * Math.PI * 2 - Math.PI / 6;
+                    if (i === 0) hCtx.moveTo(hx + Math.cos(a) * hR, hy + Math.sin(a) * hR);
+                    else hCtx.lineTo(hx + Math.cos(a) * hR, hy + Math.sin(a) * hR);
+                }
+                hCtx.closePath();
+            }
+        }
+        hCtx.stroke();
+    }
+    return _fHexCanvas;
+}
 
 // Inward-pulling charge particles: persist across frames (module scope,
 // not local to drawSkillF) since they travel over multiple draw calls.
@@ -11,6 +46,10 @@ let _skillFChargeParticles = [];
 // the angle they were stamped and just fade out over ~300ms.
 let _skillFScorchMarks = [];
 let _skillFLastScorchStamp = 0;
+let _fCachedCoreGrad = null;
+let _fCachedCoreRadius = 0;
+let _fCachedScorchGrad = null;
+let _fCachedScorchRadius = 0;
 
 // Great Sage sigil: draws the Ruyi Jingu Bang as an actual iron-and-gold rod
 // (ambient glow, dark shaft gradient, a white-hot core seam, 2 gold bands
@@ -209,12 +248,12 @@ function drawSkillF() {
 
     // CHARGING phase
     if (skillFState === "charging") {
-        const p = Math.min((now - skillFChargeStart) / 1500, 1);
+        const p = Math.max(0, Math.min(((now - (skillFChargeStart || now)) / 1500) || 0, 1));
 
         // Inward-swirling energy particles: spawn at the screen edge and
         // spiral toward the player as charge builds (radial pull + tangential
         // curl, like a vortex drawing in energy) instead of moving in dead-
-        // straight lines — the anime "gathering power" look needs motion
+        // straight lines : the anime "gathering power" look needs motion
         // that curves, not a mechanical radial grid.
         {
             const maxParticles = _gfx < 1 ? 60 : _gfx < 2 ? 25 : 0;
@@ -237,7 +276,7 @@ function drawSkillF() {
             for (let i = _skillFChargeParticles.length - 1; i >= 0; i--) {
                 const pt = _skillFChargeParticles[i];
                 pt.dist  -= pullSpeed;
-                // curl tightens as the particle nears the core — a lazy
+                // curl tightens as the particle nears the core : a lazy
                 // outer spiral that whips faster right before it vanishes
                 pt.angle += pt.spin * (1 + (1 - Math.min(1, pt.dist / 400)) * 3);
                 if (pt.dist < 10) { _skillFChargeParticles.splice(i, 1); continue; }
@@ -260,7 +299,7 @@ function drawSkillF() {
             ctx.restore();
         }
 
-        // Player ship aura — grows and pulses brighter as charge builds,
+        // Player ship aura : grows and pulses brighter as charge builds,
         // culminating in a near-blinding flash right as the charge
         // completes ("tụ năng lượng → người chơi sáng lên → phóng"), which
         // hands off smoothly into the sweep phase's own impact flash.
@@ -270,9 +309,10 @@ function drawSkillF() {
             // sized off the arena, not the player sprite) rather than the
             // base skill's more modest ship-relative glow.
             const pulse = 0.85 + 0.15 * Math.sin(now / (_greatSage ? 40 : 90));
-            const auraR = _greatSage
+            const baseAuraR = _greatSage
                 ? (60 + p * 220) * pulse
-                : (player.width * 1.4 + p * player.width * 2.6) * pulse;
+                : ((player.width || 40) * 1.4 + p * (player.width || 40) * 2.6) * pulse;
+            const auraR = Math.max(1, isFinite(baseAuraR) ? baseAuraR : 40);
             ctx.save();
             const auraGrad = ctx.createRadialGradient(player.x, player.y, 0, player.x, player.y, auraR);
             if (_greatSage) {
@@ -287,22 +327,23 @@ function drawSkillF() {
             ctx.fillStyle = auraGrad;
             ctx.beginPath(); ctx.arc(player.x, player.y, auraR, 0, Math.PI * 2); ctx.fill();
 
-            // final whiteout in the last stretch of charge — the "sáng lên"
+            // final whiteout in the last stretch of charge : the "sáng lên"
             // beat right before release, blending straight into sweep's
             // own sp<0.15 flash so the two feel like one continuous burst.
             if (p > 0.88) {
                 const flashT = (p - 0.88) / 0.12;
-                const wg = ctx.createRadialGradient(player.x, player.y, 0, player.x, player.y, auraR * 1.6);
+                const wgR = Math.max(1, auraR * 1.6);
+                const wg = ctx.createRadialGradient(player.x, player.y, 0, player.x, player.y, wgR);
                 wg.addColorStop(0, `rgba(255,255,255,${flashT * 0.7})`);
                 wg.addColorStop(1, 'rgba(255,255,255,0)');
                 ctx.fillStyle = wg;
-                ctx.beginPath(); ctx.arc(player.x, player.y, auraR * 1.6, 0, Math.PI * 2); ctx.fill();
+                ctx.beginPath(); ctx.arc(player.x, player.y, wgR, 0, Math.PI * 2); ctx.fill();
             }
             ctx.restore();
         }
 
         if (!_greatSage) {
-        // half-plane glow (charging side preview) — dialed back a touch now
+        // half-plane glow (charging side preview) : dialed back a touch now
         // that the particle vortex + player aura carry most of the "gathering
         // energy" read; this stays as a soft ambient wash, not the focal point.
         ctx.save();
@@ -324,14 +365,14 @@ function drawSkillF() {
         }
         ctx.restore();
         } else {
-        // GREAT SAGE — the staff itself extends outward as charge builds,
+        // GREAT SAGE : the staff itself extends outward as charge builds,
         // pointing at the sweep's start angle, instead of the base skill's
         // cyan half-plane wash. Ported directly from the reference demo.
         const e_p = Math.pow(p, 2.5);
         _drawRuyiStaff(radius * e_p, 35 * (0.2 + 0.8 * e_p), skillFDirection === 1 ? -Math.PI : 0, e_p, { richGlow: true });
         }
 
-        // TARGET LOCK on every enemy — Great Sage swaps this for the Kim
+        // TARGET LOCK on every enemy : Great Sage swaps this for the Kim
         // Cô binding circlet; everyone else keeps the base cyan reticle.
         ctx.save();
         enemies.forEach(enemy => {
@@ -420,7 +461,7 @@ function drawSkillF() {
             ctx.beginPath(); ctx.arc(0, 0, ringR - 2, 0, Math.PI * 2); ctx.stroke();
 
             // double-spiral "ruyi cloud" scroll fixed at the crown (undo the
-            // band's own rotation first so it doesn't spin around with it) —
+            // band's own rotation first so it doesn't spin around with it) :
             // 2 mirrored brushed-gold hooks meeting at a center stud, matching
             // the real Kim Cô circlet's own cloud-scroll clasp motif instead
             // of a plain gem.
@@ -449,7 +490,7 @@ function drawSkillF() {
             ctx.beginPath(); ctx.arc(0, -ringR, 1.3, 0, Math.PI * 2); ctx.fill();
             ctx.restore();
 
-            // drifting incantation glyphs around the rim — the binding
+            // drifting incantation glyphs around the rim : the binding
             // chant, not just a static shape. Skipped at LOW, thinned at MEDIUM.
             if (!_mobPerf) {
                 const glyphs = ['緊', '箍', '咒'];
@@ -464,7 +505,7 @@ function drawSkillF() {
                 }
             }
 
-            // snap-flash the instant the band fully closes — 4 short energy
+            // snap-flash the instant the band fully closes : 4 short energy
             // cracks radiating outward, gone within a blink.
             if (settle > 0.92) {
                 const snapT = (settle - 0.92) / 0.08;
@@ -483,7 +524,7 @@ function drawSkillF() {
                 ctx.restore();
             }
 
-            // fine inner ring, tight against the target — the "snug fit" line
+            // fine inner ring, tight against the target : the "snug fit" line
             ctx.strokeStyle = `rgba(255,247,214,${0.6 + 0.3 * pulse})`;
             ctx.lineWidth = 1;
             ctx.beginPath(); ctx.arc(enemy.x, enemy.y, er - 1, 0, Math.PI * 2); ctx.stroke();
@@ -532,7 +573,7 @@ function drawSkillF() {
                 ctx.font = 'italic 13px monospace';
                 ctx.fillStyle = _greatSage ? '#ffe9a8' : '#aaffff';
                 if (!_mobPerf) ctx.shadowBlur = 8;
-                ctx.fillText(_greatSage ? '— Đấu Chiến Thắng Phật —' : '— Thiên Ý Trảm —', player.x, player.y - 96);
+                ctx.fillText(_greatSage ? ': Đấu Chiến Thắng Phật :' : ': Thiên Ý Trảm :', player.x, player.y - 96);
                 ctx.restore();
             }
         }
@@ -578,25 +619,30 @@ function drawSkillF() {
         const currentAngle = startAngle + skillFDirection * Math.PI * sp;
 
         if (!_greatSage) {
-        // MATRIX RAIN inside the swept area
+        // Swept area sector overlay: combined single clip for hex grid, matrix rain, and scan lines
         ctx.save();
-        // clip to the already-swept cone sector
         ctx.beginPath();
         ctx.moveTo(player.x, player.y);
         ctx.arc(player.x, player.y, radius, startAngle, currentAngle, skillFDirection === -1);
         ctx.closePath();
         ctx.clip();
 
-        // matrix digital rain columns — column width (density) scales by tier
-        const colW = _gfx < 1 ? 18 : _gfx < 2 ? 26 : 36;
+        // 1. Hex grid overlay in swept area (cached offscreen canvas blit)
+        if (_gfx < 2) {
+            const hexCv = _getFHexCanvas(canvas.width, canvas.height, _gfx);
+            if (hexCv) ctx.drawImage(hexCv, 0, 0);
+        }
+
+        // 2. Matrix digital rain columns (density tuned for smooth 140+ FPS performance)
+        const colW = _gfx < 1 ? 44 : _gfx < 2 ? 56 : 68;
         const cols = Math.ceil(canvas.width / colW) + 1;
         ctx.font = 'bold 11px monospace';
         ctx.textAlign = 'center';
         for (let c = 0; c < cols; c++) {
             const cx2 = c * colW;
-            const dropCount = 4 + (c % 3);
+            const dropCount = 2;
             for (let d = 0; d < dropCount; d++) {
-                const charT = ((now / (120 + c * 7) + d * 0.28 + c * 0.11) % 1);
+                const charT = ((now / (120 + c * 7) + d * 0.45 + c * 0.11) % 1);
                 const cy2 = charT * canvas.height;
                 const ch = String.fromCharCode(0x30A0 + ((Math.floor(now / 90) + c * 3 + d * 7) % 96));
                 const bright = d === 0 ? 1 : 0.35 + 0.3 * Math.sin(charT * Math.PI);
@@ -606,12 +652,18 @@ function drawSkillF() {
                 ctx.fillText(ch, cx2, cy2);
             }
         }
+
+        // 3. Matrix scan lines overlay
+        const scanLine = (now / 3) % canvas.height;
+        ctx.fillStyle = 'rgba(0,255,120,0.06)';
+        ctx.fillRect(0, scanLine, canvas.width, 3);
+        ctx.fillRect(0, scanLine - canvas.height * 0.5, canvas.width, 2);
+
         ctx.restore();
 
-        // Afterimage ghost blades — trail count scales by tier instead of a
-        // binary HIGH-only on/off, so MEDIUM still gets a lighter version.
+        // Afterimage ghost blades: trail count scales by tier
         {
-            const ghostCount = _gfx < 1 ? 5 : _gfx < 2 ? 2 : 0;
+            const ghostCount = _gfx < 1 ? 3 : _gfx < 2 ? 1 : 0;
             for (let trail = 1; trail <= ghostCount; trail++) {
                 const ghostAngle = currentAngle - skillFDirection * trail * 0.10;
                 ctx.save();
@@ -626,12 +678,12 @@ function drawSkillF() {
             }
         }
 
-        // SCORCH AFTERGLOW — burn marks stamped along the path the blade
+        // SCORCH AFTERGLOW : burn marks stamped along the path the blade
         // has already swept, fixed in place (unlike the ghost trail, which
         // moves with the blade) and fading out over ~300ms. Skipped at LOW.
         // Color matches the blade's cyan/violet/white palette (was an
         // unrelated orange-red "fire" tint) and each mark's edges are baked
-        // with a one-time random wobble at stamp time — a jagged, organic
+        // with a one-time random wobble at stamp time : a jagged, organic
         // silhouette instead of a perfectly straight geometric wedge.
         if (_gfx < 2) {
             const scorchLife = 300;
@@ -651,19 +703,22 @@ function drawSkillF() {
             for (let i = _skillFScorchMarks.length - 1; i >= 0; i--) {
                 if (now - _skillFScorchMarks[i].time > scorchLife) _skillFScorchMarks.splice(i, 1);
             }
+            if (!_fCachedScorchGrad || _fCachedScorchRadius !== radius) {
+                _fCachedScorchRadius = radius;
+                _fCachedScorchGrad = ctx.createLinearGradient(0, 0, radius, 0);
+                _fCachedScorchGrad.addColorStop(0,   'rgba(220,255,255,0.9)');
+                _fCachedScorchGrad.addColorStop(0.5, 'rgba(120,220,255,0.6)');
+                _fCachedScorchGrad.addColorStop(1,   'rgba(150,90,255,0.35)');
+            }
             ctx.save();
+            ctx.translate(player.x, player.y);
+            ctx.scale(1, skillFDirection);
             for (const mark of _skillFScorchMarks) {
                 const a = Math.max(0, 1 - (now - mark.time) / scorchLife);
                 ctx.save();
-                ctx.translate(player.x, player.y);
                 ctx.rotate(mark.angle);
-                ctx.scale(1, skillFDirection);
                 ctx.globalAlpha = a * 0.45;
-                const sg = ctx.createLinearGradient(0, 0, radius, 0);
-                sg.addColorStop(0,   'rgba(220,255,255,0.9)');
-                sg.addColorStop(0.5, 'rgba(120,220,255,0.6)');
-                sg.addColorStop(1,   'rgba(150,90,255,0.35)');
-                ctx.fillStyle = sg;
+                ctx.fillStyle = _fCachedScorchGrad;
                 ctx.beginPath();
                 ctx.moveTo(mark.upper[0][0], mark.upper[0][1]);
                 for (let i = 1; i < mark.upper.length; i++) ctx.lineTo(mark.upper[i][0], mark.upper[i][1]);
@@ -674,7 +729,7 @@ function drawSkillF() {
             ctx.restore();
         }
 
-        // SHOCKWAVE RING — expanding burst at the origin the instant the
+        // SHOCKWAVE RING : expanding burst at the origin the instant the
         // sweep begins, giving an immediate "impact" beat distinct from the
         // blade itself (no screen shake, per design).
         if (sp < 0.25) {
@@ -685,16 +740,18 @@ function drawSkillF() {
             ctx.translate(player.x, player.y);
             ctx.strokeStyle = `rgba(160,240,255,${ringA})`;
             ctx.lineWidth = 6 * (1 - ringT) + 1;
-            if (!_mobPerf) { ctx.shadowColor = 'cyan'; ctx.shadowBlur = 20; }
+            ctx.beginPath(); ctx.arc(0, 0, ringR, 0, Math.PI * 2); ctx.stroke();
+            ctx.strokeStyle = `rgba(0,255,255,${ringA * 0.35})`;
+            ctx.lineWidth = (6 * (1 - ringT) + 1) * 2.4;
             ctx.beginPath(); ctx.arc(0, 0, ringR, 0, Math.PI * 2); ctx.stroke();
             ctx.restore();
         }
 
-        // SWEEP BLADE — curved katana silhouette (was a straight triangle
+        // SWEEP BLADE : curved katana silhouette (was a straight triangle
         // cone) with a much thicker white-hot core and a white→cyan→violet
         // gradient along its length for a heavier, more forceful slash,
         // plus a brief impact flash at the moment of the swing (no screen
-        // shake — just a fast-fading radial burst at the origin).
+        // shake : just a fast-fading radial burst at the origin).
         ctx.save();
         ctx.translate(player.x, player.y);
 
@@ -721,57 +778,51 @@ function drawSkillF() {
             ctx.closePath();
         }
 
-        // Layered blade — each ring gets its own visible rim stroke so the
-        // layers read as distinct plates of energy instead of one soft
-        // blended blob (the previous version stacked flat nested fills with
-        // no edges between them, which is what read as "monotonous").
+        // Layered blade: layered concentric alpha glows without software shadowBlur
+        // on hot path for high-performance 140+ FPS rendering while retaining full beauty.
+
+        // diffuse outer aura cone
+        _bladePath(88, bow * 1.45);
+        ctx.fillStyle = 'rgba(0,255,255,0.06)';
+        ctx.fill();
 
         // wide outer glow cone
         _bladePath(70, bow * 1.3);
-        ctx.fillStyle = 'rgba(0,255,255,0.16)';
-        if (!_mobPerf) ctx.shadowColor = 'cyan'; if (!_mobPerf) ctx.shadowBlur = 40;
+        ctx.fillStyle = 'rgba(0,255,255,0.18)';
         ctx.fill();
 
         // violet outer flank + bright rim edge
         _bladePath(55, bow * 1.1);
         ctx.fillStyle = 'rgba(140,80,255,0.55)';
-        if (!_mobPerf) ctx.shadowBlur = 30;
         ctx.fill();
-        ctx.shadowBlur = 0;
         ctx.strokeStyle = 'rgba(200,150,255,0.55)'; ctx.lineWidth = 1.5; ctx.stroke();
 
         // cyan flank + bright rim edge
         _bladePath(42, bow);
         ctx.fillStyle = 'rgba(0,255,255,0.72)';
-        if (!_mobPerf) ctx.shadowBlur = 28;
         ctx.fill();
-        ctx.shadowBlur = 0;
         ctx.strokeStyle = 'rgba(180,255,255,0.7)'; ctx.lineWidth = 1.5; ctx.stroke();
 
-        // electric-blue mid band — extra layer between the flank and the
-        // white core so there's a clear step in tone, not just a smooth
-        // fade from cyan straight to white.
+        // electric-blue mid band: extra layer between the flank and the
+        // white core so there's a clear step in tone
         _bladePath(30, bow * 0.75);
         ctx.fillStyle = 'rgba(80,180,255,0.8)';
-        if (!_mobPerf) ctx.shadowColor = '#50b4ff'; if (!_mobPerf) ctx.shadowBlur = 20;
         ctx.fill();
-        ctx.shadowBlur = 0;
 
-        // massive white-hot core — much thicker than before (18→40) with a
-        // lengthwise gradient (blinding near the player, cooling to cyan at
-        // the tip) instead of one flat color, for real visual weight.
+        // massive white-hot core: cached lengthwise gradient
         _bladePath(40, bow * 0.6);
-        const coreGrad = ctx.createLinearGradient(0, 0, radius, 0);
-        coreGrad.addColorStop(0,   'rgba(255,255,255,1)');
-        coreGrad.addColorStop(0.5, 'rgba(220,255,255,0.95)');
-        coreGrad.addColorStop(1,   'rgba(120,220,255,0.85)');
-        ctx.fillStyle = coreGrad;
-        if (!_mobPerf) ctx.shadowColor = 'cyan'; if (!_mobPerf) ctx.shadowBlur = 55;
+        if (!_fCachedCoreGrad || _fCachedCoreRadius !== radius) {
+            _fCachedCoreRadius = radius;
+            _fCachedCoreGrad = ctx.createLinearGradient(0, 0, radius, 0);
+            _fCachedCoreGrad.addColorStop(0,   'rgba(255,255,255,1)');
+            _fCachedCoreGrad.addColorStop(0.5, 'rgba(220,255,255,0.95)');
+            _fCachedCoreGrad.addColorStop(1,   'rgba(120,220,255,0.85)');
+        }
+        ctx.fillStyle = _fCachedCoreGrad;
         ctx.fill();
-        ctx.shadowBlur = 0;
         ctx.strokeStyle = 'rgba(255,255,255,0.9)'; ctx.lineWidth = 1; ctx.stroke();
 
-        // animated internal energy ridges — short bright streaks that
+        // animated internal energy ridges : short bright streaks that
         // re-randomize every frame, cutting across the core at odd angles
         // so the blade doesn't read as one flat static shape.
         {
@@ -792,11 +843,12 @@ function drawSkillF() {
 
         // jitter streak
         ctx.strokeStyle = 'rgba(255,255,255,0.85)';
-        ctx.lineWidth = 1.5; if (!_mobPerf) ctx.shadowBlur = 10;
+        ctx.lineWidth = 1.5;
+        ctx.shadowBlur = 0;
         ctx.beginPath(); ctx.moveTo(0, 0);
         ctx.lineTo(radius, (Math.random() - 0.5) * 18); ctx.stroke();
 
-        // dense particle trail along the leading (outer) edge — replaces
+        // dense particle trail along the leading (outer) edge : replaces
         // the old evenly-scattered static sparks with a stream concentrated
         // near the blade tip, reading as the edge actively cutting forward.
         {
@@ -811,54 +863,9 @@ function drawSkillF() {
 
         ctx.restore();
 
-        // MATRIX SCAN LINES on swept area overlay
-        ctx.save();
-        ctx.beginPath();
-        ctx.moveTo(player.x, player.y);
-        ctx.arc(player.x, player.y, radius, startAngle, currentAngle, skillFDirection === -1);
-        ctx.closePath();
-        ctx.clip();
-        const scanLine = (now / 3) % canvas.height;
-        ctx.fillStyle = 'rgba(0,255,120,0.06)';
-        ctx.fillRect(0, scanLine, canvas.width, 3);
-        ctx.fillRect(0, scanLine - canvas.height * 0.5, canvas.width, 2);
-        ctx.restore();
 
-        // HEX GRID overlay in swept area — this nested per-cell loop over
-        // the whole screen used to run unconditionally at every tier, a
-        // fixed cost this game's other systems don't carry. Now skipped
-        // entirely at LOW (matches how ghost trails/particles degrade) and
-        // drawn at a coarser cell size on MEDIUM instead of full density.
-        if (_gfx < 2) {
-        ctx.save();
-        ctx.beginPath();
-        ctx.moveTo(player.x, player.y);
-        ctx.arc(player.x, player.y, radius, startAngle, currentAngle, skillFDirection === -1);
-        ctx.closePath();
-        ctx.clip();
-        const hR = _gfx < 1 ? 28 : 44;
-        const hW = hR * Math.sqrt(3), hH = hR * 2;
-        ctx.strokeStyle = 'rgba(0,200,100,0.12)';
-        ctx.lineWidth = 0.8;
-        const hCols = Math.ceil(canvas.width / hW) + 2;
-        const hRows = Math.ceil(canvas.height / (hH * 0.75)) + 2;
-        for (let r = -1; r < hRows; r++) {
-            for (let c = -1; c < hCols; c++) {
-                const hx = c * hW + (r % 2 === 0 ? 0 : hW * 0.5);
-                const hy = r * hH * 0.75;
-                ctx.beginPath();
-                for (let i = 0; i < 6; i++) {
-                    const a = (i / 6) * Math.PI * 2 - Math.PI / 6;
-                    i === 0 ? ctx.moveTo(hx + Math.cos(a) * hR, hy + Math.sin(a) * hR)
-                        : ctx.lineTo(hx + Math.cos(a) * hR, hy + Math.sin(a) * hR);
-                }
-                ctx.closePath(); ctx.stroke();
-            }
-        }
-        ctx.restore();
-        }
         } else {
-        // GREAT SAGE — Ruyi Jingu Bang sweep, ported directly from the
+        // GREAT SAGE: Ruyi Jingu Bang sweep, ported directly from the
         // reference demo (ruyi_sweep_demo.html): the staff itself sweeping
         // through the arc, a soft radial fan wash behind it for the AOE
         // read, translucent scorch streaks, a shockwave ring + impact
@@ -869,7 +876,7 @@ function drawSkillF() {
         // hitbox.
         const nhuYMult = Math.min(1 + (_skillFKillsThisSweep || 0) * 0.5, 4.5);
         // baseline widen as the swing travels (pure "gaining momentum"
-        // feel — an accelerating curve like a real swing picking up force,
+        // feel : an accelerating curve like a real swing picking up force,
         // capped well below As One Wishes' own kill-driven growth so the
         // two read as distinct: this is the swing itself, that is landing
         // hits) separate from and stacking on top of the kill-driven
@@ -981,7 +988,7 @@ function drawSkillF() {
         ctx.shadowBlur = 0;
         ctx.restore();
 
-        // hit-impact flash — a bright golden burst that blooms then fades
+        // hit-impact flash : a bright golden burst that blooms then fades
         // at each enemy the staff actually struck this sweep
         for (let i = _skillFHitFlashes.length - 1; i >= 0; i--) {
             const hit = _skillFHitFlashes[i];
@@ -1005,7 +1012,7 @@ function drawSkillF() {
 }
 
 // Great Sage sigil: draws every pending stolen-attack effect
-// (_greatSageEffects, js/skills/sigil-great-sage.js) — telegraph lines, delayed-strike
+// (_greatSageEffects, js/skills/sigil-great-sage.js) : telegraph lines, delayed-strike
 // markers, arc-slash flashes, expanding shockwave rings, and the
 // Leviathan-style rotating sweep beam. The thrown-sword and piercing-orb
 // attacks need no draw code here since they're pushed straight into

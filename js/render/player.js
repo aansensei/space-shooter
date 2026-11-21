@@ -42,7 +42,8 @@ _greatSageGemFrameImg.decode().catch(() => {});
 const GREAT_SAGE_GEM_FRAME_HOLE_FRAC = { offsetX: 294 / 1264, r: 115.5 / 1264 };
 
 function drawSkillShiftEffects() {
-    if (!skillShiftActive) return;
+    const isShiftActive = skillShiftActive || (typeof window !== 'undefined' && window._runGameMode === 'showdown' && window._duelSession && window._duelSession.shiftActive);
+    if (!isShiftActive) return;
     const now = performance.now();
     let chargeDuration = now - skillShiftChargeStart;
     let chargeRatio = Math.min(chargeDuration / skillShiftMaxCharge, 1);
@@ -196,7 +197,8 @@ function drawFinalDefense() {
         ctx.restore();
     }
 
-    if (finalDefense.playerShield) {
+    const _showPlayerShield = window._runGameMode === 'showdown' ? (window._duelSession && window._duelSession.playerShieldActive === true) : finalDefense.playerShield;
+    if (_showPlayerShield) {
         const r = player.width;
         // soft fill
         ctx.fillStyle = 'rgba(0,255,255,0.08)';
@@ -667,6 +669,8 @@ function _getPlayerShipBaseSprite() {
 
 // Player ship
 function drawPlayer(alpha = 1, xOffset = 0, pos = null) {
+    // A Showdown ship that has blown up is not drawn again (its explosion is drawn by DuelCinematics.ending)
+    if (xOffset === 0 && !pos && window._runGameMode === 'showdown' && window._duelSession && window._duelSession.state === 'defeat_burst' && (window._duelSession.burstTotalTime || 0) > .06) return;
     const now = performance.now();
     // Great Sage: 1s untargetable phase-out after every real Annihilation
     // Sweep. The ship fades and sheds rising smoke wisps, like a vanishing
@@ -679,6 +683,11 @@ function drawPlayer(alpha = 1, xOffset = 0, pos = null) {
             player._greatSageSmokeLast = now;
             createParticles(player.x, player.y + player.height * 0.3, 2, 'rgba(148,163,184,0.5)', 3, 7);
         }
+    }
+    // Showdown duel mode recovery invulnerability blinking
+    if (window._runGameMode === 'showdown' && window._duelSession && window._duelSession.recoveryRemaining > 0 && alpha === 1 && xOffset === 0 && !pos) {
+        const _blink = Math.sin(now * 0.03) > 0;
+        if (!_blink) alpha *= 0.25;
     }
     ctx.save();
     ctx.globalAlpha = alpha;
@@ -820,7 +829,8 @@ function drawPlayer(alpha = 1, xOffset = 0, pos = null) {
     }
 
     // Domain tint on player, gold/cobalt to match the Van Gogh domain palette
-    if (skillShiftActive && alpha === 1) {
+    const isShiftPlayerTint = skillShiftActive || (typeof window !== 'undefined' && window._runGameMode === 'showdown' && window._duelSession && window._duelSession.shiftActive);
+    if (isShiftPlayerTint && alpha === 1) {
         ctx.fillStyle = 'rgba(60,120,255,0.28)';
         ctx.beginPath();
         ctx.moveTo(0, -28); ctx.lineTo(24, 12); ctx.lineTo(24, 20);

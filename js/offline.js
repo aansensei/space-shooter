@@ -1,19 +1,114 @@
 // Pisces: Space Journey. Copyright (c) 2024 An Nguyen. Licensed under the PolyForm Noncommercial License 1.0.0.
-// js/offline.js — drives the "Offline Play" download UI in Settings.
+// js/offline.js , drives the "Offline Play" download UI in Settings.
 // The actual cache-first serving happens in sw.js; this file only decides
 // WHAT to download and reports progress/status back to the Settings panel.
 //
 // Two packages, matching the Settings UI: BASIC (app shell + all SFX,
 // enough to play with full mechanics/feedback) and FULL (BASIC + every BGM
 // track, so music works offline too). Picking FULL when BASIC is already
-// cached only fetches the BGM delta — every download here is filtered to
+// cached only fetches the BGM delta , every download here is filtered to
 // "not already in cache" first, nothing gets re-fetched.
 
 (function () {
-    // Mirrors sw.js's CORE_FILES exactly — kept as a separate literal
+    // Mirrors sw.js's CORE_FILES exactly , kept as a separate literal
     // (not fetched from sw.js) since a page script can't import a worker
     // script's module scope.
+    const OPTIONAL_DUEL_AUDIO = [
+];
     const CORE_FILES = [
+        'assets/audio/sfx/arena-bed-p1.mp3',
+        'assets/audio/bgm/egregor-opening.mp3',
+        'assets/audio/sfx/egregor-idle-p1-bed.mp3',
+        'assets/audio/sfx/egregor-idle-p1-breath.mp3',
+        'assets/audio/sfx/egregor-idle-p1-murmur.mp3',
+        'assets/audio/sfx/egregor-idle-p1-growl-a.mp3',
+        'assets/audio/sfx/egregor-idle-p1-growl-b.mp3',
+        'assets/audio/sfx/egregor-idle-p1-coo-a.mp3',
+        'assets/audio/sfx/egregor-idle-p1-coo-b.mp3',
+        'assets/audio/sfx/egregor-idle-p1-roar.mp3',
+        'assets/audio/sfx/arena-bed-p2.mp3',
+        'assets/audio/sfx/arena-bed-p3.mp3',
+        'assets/audio/sfx/boss-breath.mp3',
+        'assets/audio/sfx/boss-bullet-cancel.mp3',
+        'assets/audio/sfx/boss-bullet-eye-a.mp3',
+        'assets/audio/sfx/boss-bullet-eye-b.mp3',
+        'assets/audio/sfx/boss-bullet-eye-c.mp3',
+        'assets/audio/sfx/boss-bullet-ichor-a.mp3',
+        'assets/audio/sfx/boss-bullet-ichor-b.mp3',
+        'assets/audio/sfx/boss-bullet-ichor-c.mp3',
+        'assets/audio/sfx/boss-bullet-spore-a.mp3',
+        'assets/audio/sfx/boss-bullet-spore-b.mp3',
+        'assets/audio/sfx/boss-bullet-spore-c.mp3',
+        'assets/audio/sfx/boss-bullet-thorn-a.mp3',
+        'assets/audio/sfx/boss-bullet-thorn-b.mp3',
+        'assets/audio/sfx/boss-bullet-thorn-c.mp3',
+        'assets/audio/sfx/boss-emerge-roar.mp3',
+        'assets/audio/sfx/boss-hit-a.mp3',
+        'assets/audio/sfx/boss-hit-b.mp3',
+        'assets/audio/sfx/boss-hit-c.mp3',
+        'assets/audio/sfx/boss-hit-heavy.mp3',
+        'assets/audio/sfx/boss-invuln.mp3',
+        'assets/audio/sfx/boss-volley.mp3',
+        'assets/audio/sfx/chorus-whisper.mp3',
+        'assets/audio/sfx/evolve-charge.mp3',
+        'assets/audio/sfx/evolve-roar-p2.mp3',
+        'assets/audio/sfx/evolve-roar-p3.mp3',
+        'assets/audio/sfx/evolve-roar.mp3',
+        'assets/audio/sfx/eyebeam-charge.mp3',
+        'assets/audio/sfx/eyebeam-end.mp3',
+        'assets/audio/sfx/eyebeam-loop.mp3',
+        'assets/audio/sfx/graze-tick-a.mp3',
+        'assets/audio/sfx/graze-tick-b.mp3',
+        'assets/audio/sfx/graze-tick-c.mp3',
+        'assets/audio/sfx/hp-layer-break.mp3',
+        'assets/audio/sfx/lock-on-beep.mp3',
+        'assets/audio/sfx/mind-adapt.mp3',
+        'assets/audio/sfx/mind-lock.mp3',
+        'assets/audio/sfx/mind-scan.mp3',
+        'assets/audio/sfx/mindlink-form.mp3',
+        'assets/audio/sfx/nullslash-hit2.mp3',
+        'assets/audio/sfx/nullslash-slash2-p2.mp3',
+        'assets/audio/sfx/nullslash-slash2-p3.mp3',
+        'assets/audio/sfx/nullslash-slash2.mp3',
+        'assets/audio/sfx/nullslash-tear.mp3',
+        'assets/audio/sfx/nullslash-windup2-p2.mp3',
+        'assets/audio/sfx/nullslash-windup2-p3.mp3',
+        'assets/audio/sfx/nullslash-windup2.mp3',
+        'assets/audio/sfx/orb-burst.mp3',
+        'assets/audio/sfx/orb-throw.mp3',
+        'assets/audio/sfx/portal-crack.mp3',
+        'assets/audio/sfx/result-defeat.mp3',
+        'assets/audio/sfx/result-victory.mp3',
+        'assets/audio/sfx/sensor-sweep.mp3',
+        'assets/audio/sfx/shield-break.mp3',
+        'assets/audio/sfx/shield-restore.mp3',
+        'assets/audio/sfx/spell-charge-p2.mp3',
+        'assets/audio/sfx/spell-charge-p3.mp3',
+        'assets/audio/sfx/spell-charge.mp3',
+        'assets/audio/sfx/spell-release-p2.mp3',
+        'assets/audio/sfx/spell-release-p3.mp3',
+        'assets/audio/sfx/spell-release.mp3',
+        'assets/audio/sfx/tendril-retract.mp3',
+        'assets/audio/sfx/tendril-strike.mp3',
+        'assets/audio/sfx/tendril-windup.mp3',
+        'assets/audio/sfx/ui-back.mp3',
+        'assets/audio/sfx/ui-card-hover-a.mp3',
+        'assets/audio/sfx/ui-card-hover-b.mp3',
+        'assets/audio/sfx/ui-card-hover-c.mp3',
+        'assets/audio/sfx/ui-card-select.mp3',
+        'assets/audio/sfx/ui-confirm-engage.mp3',
+        'assets/audio/sfx/ui-locked.mp3',
+        'assets/audio/sfx/ui-weapon-hover.mp3',
+        'assets/audio/sfx/ui-weapon-select-axe.mp3',
+        'assets/audio/sfx/ui-weapon-select-phantom.mp3',
+        'assets/audio/sfx/ui-weapon-select-spear.mp3',
+        'assets/audio/sfx/ui-weapon-select-sword.mp3',
+        'assets/audio/sfx/ui-weapon-select-titan.mp3',
+        'assets/audio/sfx/ui-weapon-select.mp3',
+        'assets/audio/sfx/upheaval-erupt.mp3',
+        'assets/audio/sfx/upheaval-rumble.mp3',
+        'assets/audio/sfx/upheaval-slam.mp3',
+
         'index.html',
         'guide.html',
         'manifest.json',
@@ -29,6 +124,20 @@
         'assets/images/game/weapons/2-spear.png',
         'assets/images/game/weapons/3-halberd.png',
         'assets/images/game/weapons/5-enuma-spear.png',
+        'assets/images/duel/egregor/opening-dimension.png',
+        'assets/images/duel/opponents/egregor-splash.png',
+        'assets/images/duel/weapons/sword-icon.png',
+        'assets/images/duel/weapons/sword-bullet.png',
+        'assets/images/duel/weapons/spear-icon.png',
+        'assets/images/duel/weapons/spear-bullet.png',
+        'assets/images/duel/weapons/halberd-icon.png',
+        'assets/images/duel/weapons/halberd-bullet.png',
+        'assets/images/duel/weapons/dagger-icon.png',
+        'assets/images/duel/weapons/dagger-bullet.png',
+        'assets/images/duel/weapons/heavy-lance-icon.png',
+        'assets/images/duel/weapons/heavy-lance-bullet.png',
+
+
         'assets/images/game/effects/photokrystos-boomerang.png',
         'assets/images/game/effects/sentinel-shell.png',
         'assets/images/game/effects/sol-arrow-primary.png',
@@ -242,12 +351,25 @@
         'js/render/skill-f.js',
         'js/render/skill-g.js',
         'js/render/skill-s-spirit.js',
+        'js/duel/duel-theme.js',
+        'js/duel/duel-bullets.js',
+        'js/duel/duel-boss-weights.js',
+        'js/duel/duel-boss-brain.js',
+        'js/duel/duel-gestures-data.js',
+        'js/duel/duel-gestures.js',
+        'js/duel/duel-attacks.js',
+        'js/duel/duel-cinematics.js',
+        'js/duel/duel-debug.js',
+        'js/duel/duel-ui.js',
+        'js/duel/duel-recap.js',
+        'js/duel/duel-weapon-skills.js',
+        'js/duel/duel-core.js',
         'assets/audio/sfx/ingame-slices.json',
     ];
 
     // Kept as a static list (not scraped from audio.js's _makePool calls at
     // runtime) since those calls are scattered across one big init function
-    // with no single exported array — mirror this list by hand if new SFX
+    // with no single exported array , mirror this list by hand if new SFX
     // files are ever added to assets/audio/sfx/.
     const SFX_FILES = [
         'assets/audio/sfx/ammit-rift-crack.mp3',
@@ -290,6 +412,14 @@
         'assets/audio/sfx/egregor-tempest-plant.mp3', 'assets/audio/sfx/egregor-tempest-veins.mp3', 'assets/audio/sfx/egregor-tempest-portal.mp3',
         'assets/audio/sfx/egregor-tempest-warn.mp3', 'assets/audio/sfx/egregor-tempest-burst.mp3', 'assets/audio/sfx/egregor-tempest-slam.mp3',
         'assets/audio/sfx/egregor-tempest-retreat.mp3',
+        'assets/audio/voice/ship/vo-chime.mp3', 'assets/audio/voice/ship/vo-contact-1.mp3',
+        'assets/audio/voice/ship/vo-contact-2.mp3', 'assets/audio/voice/ship/vo-contact-3.mp3',
+        'assets/audio/voice/ship/vo-setclear.mp3',
+        'assets/audio/voice/ship/vo-phase2.mp3',
+        'assets/audio/voice/ship/vo-lowhp5.mp3',
+        'assets/audio/voice/ship/vo-lowhp3.mp3',
+        'assets/audio/voice/ship/vo-failed.mp3',
+        'assets/audio/voice/ship/vo-phase3.mp3',
         'assets/audio/sfx/enemy-death.mp3', 'assets/audio/sfx/enemy-hit.wav', 'assets/audio/sfx/engine.mp3',
         'assets/audio/sfx/enuma-elish-charge.mp3', 'assets/audio/sfx/enuma-elish-release.mp3',
         'assets/audio/sfx/gameover.mp3', 'assets/audio/sfx/gate-of-babylon.mp3', 'assets/audio/sfx/goliath-corrupted-meteor.mp3', 'assets/audio/sfx/goliath-death.mp3', 'assets/audio/sfx/goliath-kill-stamp.mp3', 'assets/audio/sfx/goliath-kill-ambience.mp3',
@@ -333,7 +463,7 @@
     ];
 
     function bgmFiles() {
-        // Prefer the live list from AudioMgr (single source of truth) —
+        // Prefer the live list from AudioMgr (single source of truth) ,
         // falls back to a hand-kept mirror only if audio.js hasn't loaded
         // yet for some reason.
         // Fermata is the Kanade cutscene's score in full; it plays only in the
@@ -350,7 +480,7 @@
     };
 
     // Was a hand-kept literal ('pisces-cache-v2') that had to be bumped by
-    // hand every time sw.js's CACHE_VERSION changed — it wasn't, repeatedly,
+    // hand every time sw.js's CACHE_VERSION changed , it wasn't, repeatedly,
     // so downloads were silently writing into an orphaned cache the SW's own
     // fetch handler no longer reads from. Resolve the live name instead:
     // sw.js's activate handler deletes every other pisces-cache-* entry once
@@ -376,16 +506,18 @@
     async function download(which, onProgress) {
         const files = PACKAGES[which].files();
         const cache = await caches.open(await _resolveCacheName());
+        const optional = OPTIONAL_DUEL_AUDIO;
         const missing = [];
-        for (const url of files) {
+        for (const url of [...files, ...optional]) {
             if (!(await cache.match(url))) missing.push(url);
         }
-        let done = files.length - missing.length;
-        onProgress(done, files.length);
+        let done = files.length + optional.length - missing.length;
+        const total = files.length + optional.length;
+        onProgress(done, total);
         if (missing.length === 0) return { ok: true, failed: 0 };
 
         let failed = 0;
-        // Small concurrency window instead of one giant Promise.all — keeps
+        // Small concurrency window instead of one giant Promise.all , keeps
         // a runaway number of parallel connections from choking a weak/
         // metered mobile connection while still being faster than serial.
         const CONCURRENCY = 4;
@@ -396,12 +528,12 @@
                 try {
                     const res = await fetch(url, { cache: 'reload' });
                     if (res.ok) await cache.put(url, res);
-                    else failed++;
+                    else if (!optional.includes(url)) failed++;
                 } catch (_) {
-                    failed++;
+                    if (!optional.includes(url)) failed++;
                 }
                 done++;
-                onProgress(done, files.length);
+                onProgress(done, total);
             }
         }
         await Promise.all(Array.from({ length: Math.min(CONCURRENCY, missing.length) }, worker));

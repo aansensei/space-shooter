@@ -15,13 +15,14 @@ if (typeof PerformanceObserver !== 'undefined') {
                 if (entry.attribution && entry.attribution.length) {
                     attr = entry.attribution.map(a => a.name + '@' + a.containerType).join(', ');
                 }
-                console.warn('[LONGTASK] ' + entry.duration.toFixed(0) + 'ms at t=' + entry.startTime.toFixed(0) + (attr ? ' (' + attr + ')' : ''));
+                if (window._runGameMode !== 'showdown' || window._debugSessionActive) console.warn('[LONGTASK] ' + entry.duration.toFixed(0) + 'ms at t=' + entry.startTime.toFixed(0) + (attr ? ' (' + attr + ')' : ''));
             }
         }).observe({ entryTypes: ['longtask'] });
     } catch (e) {}
 }
 
 function loseLife(cause) {
+    if (window._runGameMode === 'showdown') { if (typeof window._duelOnHit === 'function') window._duelOnHit(cause); return; }
     if (window._tutorialActive) { if (typeof window._tutorialOnHit === 'function') window._tutorialOnHit(cause); return; }
     // Debug invuln guard here too (not just playerTakesHit()): an enemy
     // reaching the bottom boundary calls loseLife() directly, bypassing
@@ -494,7 +495,7 @@ function update(rawDeltaTime) {
     _tyBeginFrame(deltaTime);
 
     // Tích lũy thời gian game thực tế (dùng cho HUD timer và spawn rate)
-    gameElapsedTime += deltaTime;
+    if (window._runGameMode !== 'showdown') gameElapsedTime += deltaTime;
     _ammitTickWorld(deltaTime);
 
     // Bẻ cong (kéo dài) các Timer hồi chiêu của phe người chơi và Enemy Spawn
@@ -540,7 +541,11 @@ function update(rawDeltaTime) {
     // call site this just watches for the lives<5 threshold crossing each
     // frame — same threshold the HUD's blinking heart / red vignette pulse
     // already use.
-    const _lowHpNow = gameState === "playing" && lives > 0 && lives < 5;
+    // A finished duel (defeat, victory or its result screen) never keeps the heartbeat going.
+    const _duelOver = window._runGameMode === 'showdown' && window._duelSession &&
+        (!window._duelSession.active || window._duelSession.state === 'result' ||
+         window._duelSession.state === 'victory_burst' || window._duelSession.state === 'defeat_burst');
+    const _lowHpNow = gameState === "playing" && lives > 0 && lives < 5 && !_duelOver;
     if (_lowHpNow !== window._lowHpActive) {
         window._lowHpActive = _lowHpNow;
         if (window.AudioMgr) {
@@ -855,8 +860,9 @@ function update(rawDeltaTime) {
     // ratio and still crosses the screen in the same time.
     const _phoneMoveMult = window._deviceTier === 'phone' ? 0.90 * (window._hudScale || 1) : 1;
     const _tyMoveMult = window._tyClock < window._tySpeedEnd ? 1.5 : 1;
-    if (keys.left && player.x > player.width / 2 && !player._rooted) player.x -= player.speed * _tyMoveMult * _phoneMoveMult * _nullSlashSpeedMult * _levLaserSlowMult * _dimBreakMult * _wisdomOrbSpeedMult * dt;
-    if (keys.right && player.x < canvas.width - player.width / 2 && !player._rooted) player.x += player.speed * _tyMoveMult * _phoneMoveMult * _nullSlashSpeedMult * _levLaserSlowMult * _dimBreakMult * _wisdomOrbSpeedMult * dt;
+    const _duelCanMove = window._runGameMode !== 'showdown' || (window._duelSession && window._duelSession.state === 'playing' && !window._duelSession.shiftActive);
+    if (_duelCanMove && keys.left && player.x > player.width / 2 && !player._rooted) player.x -= player.speed * _tyMoveMult * _phoneMoveMult * _nullSlashSpeedMult * _levLaserSlowMult * _dimBreakMult * _wisdomOrbSpeedMult * dt;
+    if (_duelCanMove && keys.right && player.x < canvas.width - player.width / 2 && !player._rooted) player.x += player.speed * _tyMoveMult * _phoneMoveMult * _nullSlashSpeedMult * _levLaserSlowMult * _dimBreakMult * _wisdomOrbSpeedMult * dt;
 
     // Uriel's Holy Sword aims at the player's position ~100ms ago instead of
     // the live position, so it can't be launched dead-on-arrival - keep a
@@ -903,7 +909,10 @@ function update(rawDeltaTime) {
         }
     }
 
-    if (Math.random() < 0.6) {
+    // The engine flame shows in every mode, and in the duel only while the fight itself is on screen
+    const _flameOn = window._runGameMode !== 'showdown' ||
+        (window._duelSession && (window._duelSession.state === 'playing' || window._duelSession.state === 'spell_transition' || window._duelSession.state === 'phase_transition'));
+    if (_flameOn && Math.random() < 0.6) {
         particles.push({
             x: player.x - 5.5 + (Math.random() * 2 - 1),
             y: player.y + 26,
@@ -930,7 +939,9 @@ function update(rawDeltaTime) {
     }
 
     // Block auto-fire while silenced
-    if (!player._silenced && !window._debugAutoshotOff) fireAutoShot();
+    const muteAutoshot = window._runGameMode === 'showdown'
+        ? window._debugSessionActive && window._debugAutoshotOff : window._debugAutoshotOff;
+    if (!player._silenced && !muteAutoshot) fireAutoShot();
     _profChk.push(performance.now()); // pre-section (up to & including fireAutoShot)
 
     if (charging && !laserActive && currentTime - chargeStartTime >= overloadChargeTime && currentTime >= laserCooldownEnd) {
@@ -2143,7 +2154,7 @@ function update(rawDeltaTime) {
     // inside the enemies loop above meant it silently skipped that frame,
     // delaying gameover and leaving the low-hp heartbeat looping under the
     // gameover voice on a fast death.
-    if (lives <= 0 && gameState === "playing") _endRun(false);
+    if (window._runGameMode !== 'showdown' && lives <= 0 && gameState === "playing") _endRun(false);
 
     _profChk.push(performance.now()); // end of enemies loop
     // Splits the 'wave+sigil+bulletsLoop' bucket further — that bucket is
@@ -2169,10 +2180,11 @@ function update(rawDeltaTime) {
     // A debug session normally freezes the wave system, but the "Spawn
     // Wave's Full Roster" button flips _debugWaveRosterActive to drive one
     // real wave through it (countdown, banner, trickle) then flips it back.
-    if ((!window._debugSessionActive || window._debugWaveRosterActive) && !window._tutorialActive) _updateWaveSystem(deltaTime, currentTime);
+    if ((!window._debugSessionActive || window._debugWaveRosterActive) && !window._tutorialActive && window._runGameMode !== 'showdown') _updateWaveSystem(deltaTime, currentTime);
     if (window._tutorialActive && typeof updateTutorial === 'function') updateTutorial(deltaTime, currentTime);
+    if (window._runGameMode === 'showdown' && typeof window._duelUpdate === 'function') window._duelUpdate(deltaTime / 1000, currentTime);
     _profChk3.push(performance.now());
-    _updateSigilPassives(currentTime, deltaTime);
+    if (window._runGameMode !== 'showdown') _updateSigilPassives(currentTime, deltaTime);
     _profChk3.push(performance.now());
 
     // Unlike `particles` (capped in render/core.js's draw() via
@@ -2328,7 +2340,7 @@ function update(rawDeltaTime) {
         const _labels3 = ['waveSystem', 'sigilPassives', 'bulletCapTrim', 'gridBuild', 'bulletsCollisionLoop'];
         const _parts3 = [];
         for (let i = 0; i < _labels3.length; i++) _parts3.push(_labels3[i] + ' ' + (_profChk3[i + 1] - _profChk3[i]).toFixed(0) + 'ms');
-        console.warn('[PROF3] wave+sigil+bulletsLoop ' + _profChk3Total.toFixed(0) + 'ms — ' + _parts3.join(', ') + ' (bullets=' + bullets.length + ', enemies=' + enemies.length + ')');
+        if (window._runGameMode !== 'showdown' || window._debugSessionActive) console.warn('[PROF3] wave+sigil+bulletsLoop ' + _profChk3Total.toFixed(0) + 'ms — ' + _parts3.join(', ') + ' (bullets=' + bullets.length + ', enemies=' + enemies.length + ')');
     }
     // Removes expired entries in place instead of `.filter()`ing into a
     // brand new array every single frame — these 3 lists run unconditionally
@@ -2517,8 +2529,12 @@ function update(rawDeltaTime) {
     _updateTidalSurge(deltaTime);
     updateSpiritBullets(deltaTime); _profChk2.push(performance.now());
     updatePhotoBrangs(deltaTime); _profChk2.push(performance.now());
-    updateSkillD(deltaTime); _profChk2.push(performance.now());
-    updateSkillF(deltaTime); _profChk2.push(performance.now());
+    if (window._runGameMode !== 'showdown') {
+        updateSkillD(deltaTime);
+        updateSkillF(deltaTime);
+    }
+    _profChk2.push(performance.now());
+    _profChk2.push(performance.now());
     updateEnergyOrbs(deltaTime, gameElapsedTime); _profChk2.push(performance.now());
     updateTeslaCoils(deltaTime, currentTime); _profChk2.push(performance.now());
     updateTeslaBolts(deltaTime, currentTime);
@@ -2532,7 +2548,7 @@ function update(rawDeltaTime) {
         for (let _i2 = 1; _i2 < _profChk2.length; _i2++) {
             _parts2.push(_labels2[_i2 - 1] + ' ' + (_profChk2[_i2] - _profChk2[_i2 - 1]).toFixed(0) + 'ms');
         }
-        console.warn('[PROF3] skills-batch ' + (_profChk2[_profChk2.length - 1] - _profChk2[0]).toFixed(0) + 'ms — ' + _parts2.join(', '));
+        if (window._runGameMode !== 'showdown' || window._debugSessionActive) console.warn('[PROF3] skills-batch ' + (_profChk2[_profChk2.length - 1] - _profChk2[0]).toFixed(0) + 'ms — ' + _parts2.join(', '));
     }
 
     // Update Leviathan handled inside enemies for loop above
@@ -2962,7 +2978,7 @@ function update(rawDeltaTime) {
         for (let _i = 1; _i < _profChk.length; _i++) {
             _parts.push(_labels[_i - 1] + ' ' + (_profChk[_i] - _profChk[_i - 1]).toFixed(0) + 'ms');
         }
-        console.warn('[PROF2] update ' + _profTotal.toFixed(0) + 'ms — ' + _parts.join(', '));
+        if (window._runGameMode !== 'showdown' || window._debugSessionActive) console.warn('[PROF2] update ' + _profTotal.toFixed(0) + 'ms — ' + _parts.join(', '));
     }
 }
 
@@ -3502,7 +3518,8 @@ function gameLoop(timeStamp) {
     // into a stuck "SYSTEM TERMINATED" screen the player had to notice and
     // manually resume from. Let the deltaTime clamp below absorb a one-time
     // foreground stall instead; only a real backgrounding still pauses.
-    if (deltaTime > 500 && gameState === "playing" && !gamePaused && document.hidden) {
+    if (deltaTime > 500 && gameState === "playing" && !gamePaused && document.hidden
+        && !(typeof window._duelPauseBlocked === 'function' && window._duelPauseBlocked())) {
         gamePaused = true;
         showPauseScreen();
     }
@@ -3535,6 +3552,8 @@ function gameLoop(timeStamp) {
         lastEnemySpawn += _pauseDelay;
     }
     window._wasPausedLastFrame = gamePaused;
+    // Every way out of the pause screen clears gamePaused, so this wakes the audio the pause screen suspended
+    if (!gamePaused && window.AudioMgr && window.AudioMgr.isAudioSuspendedByPause && window.AudioMgr.isAudioSuspendedByPause()) window.AudioMgr.wakeAudio();
     _leoSyncSuspension(gamePaused || loading || !!window._sigilPicker || !!window._kanadeCutscene, performance.now());
 
     const _debugSpeed = (typeof window._debugGameSpeed === 'number' && window._debugGameSpeed > 0) ? window._debugGameSpeed : 1;
@@ -3575,7 +3594,7 @@ function gameLoop(timeStamp) {
         // BETWEEN frames (browser/OS/audio-decode scheduling), not in any
         // game code this file can see or fix by optimizing further.
         if (_tot > 100 || deltaTime > 200) {
-            console.warn('[PROF] rawGap ' + deltaTime.toFixed(0) + 'ms, thisCallback ' + _tot.toFixed(0) + 'ms (update ' + _upd.toFixed(0) + 'ms, draw ' + _drw.toFixed(0) + 'ms)');
+            if (window._runGameMode !== 'showdown' || window._debugSessionActive) console.warn('[PROF] rawGap ' + deltaTime.toFixed(0) + 'ms, thisCallback ' + _tot.toFixed(0) + 'ms (update ' + _upd.toFixed(0) + 'ms, draw ' + _drw.toFixed(0) + 'ms)');
         }
     }
 
@@ -3735,7 +3754,7 @@ function startGame() {
     window._playerSigils = [];
     window._sigilPicker = null;
     window._sigilRerollsLeft = 2;
-    if (typeof _triggerSigilPicker === 'function' && (window._sigilPool || []).length > 0 && !window._debugSkipSigilPick && !window._tutorialActive) {
+    if (typeof _triggerSigilPicker === 'function' && (window._sigilPool || []).length > 0 && !window._debugSkipSigilPick && !window._tutorialActive && window._runGameMode !== 'showdown') {
         _wavePhase = 'sigil_pick';
         _triggerSigilPicker(true);
     }
@@ -3788,6 +3807,7 @@ function startGame() {
     if (typeof window._closeVoyageRecap === 'function') window._closeVoyageRecap();
     lastTimeStamp = performance.now();
     if (window._tutorialActive && typeof beginTutorial === 'function') beginTutorial();
+    if (window._runGameMode === 'showdown' && typeof window._duelStart === 'function') window._duelStart();
     // gameLoop đang chạy liên tục từ draw(16.67) ở cuối file, không cần khởi động lại
 }
 

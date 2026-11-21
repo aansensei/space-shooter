@@ -77,6 +77,7 @@ function drawSkillButton(x, y, key, color, cooldown, lastActivation, activeCondi
 
 const _skillButtonRgb = Object.create(null);
 function drawSkillButtons() {
+    if (window._runGameMode === 'showdown') return;
     if (window._tutHudAllHidden && window._tutHudAllHidden()) return;
     const now = performance.now();
     const skillAReady = (now - lastSkillA >= _skillACooldown()) && skillAOrbs.length < maxSkillAOrbs;

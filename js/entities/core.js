@@ -283,6 +283,10 @@ function handleEnemyKill(enemy) {
 }
 
 function fireAutoShot() {
+    if (window._runGameMode === 'showdown') {
+        if (typeof window._duelFireAutoShot === 'function') window._duelFireAutoShot();
+        return;
+    }
     const fireRateMultiplier = (gloryForJusticeActive ? 1.20 : 1) * (1 + (window._laiKepFireRateBonus || 0));
     if (performance.now() - lastAutoFire < autoFireInterval / fireRateMultiplier) return;
     lastAutoFire = performance.now();

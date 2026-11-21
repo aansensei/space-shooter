@@ -237,6 +237,20 @@
             transition: background 1s ease, backdrop-filter 1s ease;
         }
 
+        body.duel-mode #ui-wrapper {
+            pointer-events: none !important;
+            background: transparent !important;
+        }
+
+        body.duel-mode #mc .mb-sk:not(#mb-yog):not(#mb-f),
+        body.duel-mode #mc #mb-ch,
+        body.duel-mode #mc #mb-a,
+        body.duel-mode #mc #mb-s,
+        body.duel-mode #mc #mb-d,
+        body.duel-mode #mc #mb-g {
+            display: none !important;
+        }
+
         #lock-screen {
             display: flex;
             flex-direction: column;
@@ -500,10 +514,19 @@
         }
         #mode-panel.gm-vi .gm-card .gm-title { font-family: var(--gm-font); letter-spacing: 1px; font-size: 15px; }
         .gm-desc { min-height: 2.8em; font-size: 11px; line-height: 1.4; color: #B9CBE0; text-shadow: 0 1px 2px #000; }
-        .gm-tag { position: absolute; top: 10px; left: 10px; padding: 3px 7px; font-family: 'Orbitron', sans-serif; font-size: 9px; font-weight: 700; letter-spacing: 2px; text-transform: uppercase; border-radius: 2px; }
-        #mode-panel.gm-vi .gm-tag { font-family: var(--gm-font); letter-spacing: 1px; }
+        .gm-tag { position: absolute; top: 10px; left: 10px; padding: 3px 7px; font-family: 'Orbitron', sans-serif; font-size: 9px; font-weight: 700; letter-spacing: 1px; text-transform: uppercase; border-radius: 2px; white-space: nowrap; max-width: calc(100% - 24px); overflow: hidden; text-overflow: ellipsis; }
+        #mode-panel.gm-vi .gm-tag { font-family: var(--gm-font); letter-spacing: 0.5px; }
+        .gm-tags { position: absolute; top: 10px; left: 10px; z-index: 2; display: flex; flex-direction: column; align-items: flex-start; gap: 4px; max-width: calc(100% - 20px); }
+        .gm-tags .gm-tag { position: static; max-width: none; overflow: visible; text-overflow: clip; }
+        .gm-tag-hard { color: #fff1f1; background: #b3263a; }
         .gm-tag-soon { color: #1a1204; background: #E8C46A; }
         .gm-tag-dev { color: #04140a; background: #4ade80; }
+        @keyframes gm-locked-shake {
+            0%, 100% { transform: translateX(0); }
+            20%, 60% { transform: translateX(-4px); }
+            40%, 80% { transform: translateX(4px); }
+        }
+        .gm-card.gm-locked-shake { animation: gm-locked-shake 0.3s ease !important; }
         .gm-check {
             position: absolute;
             top: 9px;
@@ -535,6 +558,7 @@
             .gm-card .gm-title { font-size: 13px; }
             .gm-desc { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; min-height: 0; }
             .gm-tag { top: 8px; }
+            .gm-tags { top: 8px; }
             .gm-title-row { font-size: 16px; letter-spacing: 0.16em; }
         }
         @media (prefers-reduced-motion: reduce) {
@@ -1363,17 +1387,17 @@
                             <span class="gm-check" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg></span>
                             <span class="gm-info"><b class="gm-title" data-i18n="mode.endless">Endless Voyage</b><span class="gm-desc" data-i18n="mode.endless.desc">Survive endless waves. The standard run.</span></span>
                         </button>
-                        <button type="button" class="gm-card" data-mode="tutorial" role="radio" aria-checked="false" style="--i:1">
+                        <button type="button" class="gm-card" data-mode="showdown" role="radio" aria-checked="false" style="--i:1">
+                            <canvas class="gm-art" aria-hidden="true"></canvas><span class="gm-scrim"></span>
+                            <span class="gm-tags"><span class="gm-tag gm-tag-soon" data-i18n="mode.soon">Soon</span><span class="gm-tag gm-tag-hard" data-i18n="mode.hard">High difficulty</span></span>
+                            <span class="gm-check" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg></span>
+                            <span class="gm-info"><b class="gm-title" data-i18n="mode.showdown">Showdown Voyage</b><span class="gm-desc" data-i18n="mode.showdown.desc">A one on one duel against a cosmic entity. Every bullet counts.</span></span>
+                        </button>
+                        <button type="button" class="gm-card" data-mode="tutorial" role="radio" aria-checked="false" style="--i:2">
                             <canvas class="gm-art" aria-hidden="true"></canvas><span class="gm-scrim"></span>
                             <span class="gm-tag gm-tag-soon" data-i18n="mode.soon">Soon</span>
                             <span class="gm-check" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg></span>
                             <span class="gm-info"><b class="gm-title" data-i18n="mode.tutorial">Tutorial</b><span class="gm-desc" data-i18n="mode.tutorial.desc">Learn to dodge and use your skills.</span></span>
-                        </button>
-                        <button type="button" class="gm-card" data-mode="showdown" role="radio" aria-checked="false" style="--i:2">
-                            <canvas class="gm-art" aria-hidden="true"></canvas><span class="gm-scrim"></span>
-                            <span class="gm-tag gm-tag-soon" data-i18n="mode.soon">Soon</span>
-                            <span class="gm-check" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg></span>
-                            <span class="gm-info"><b class="gm-title" data-i18n="mode.showdown">Showdown Voyage</b><span class="gm-desc" data-i18n="mode.showdown.desc">A tale is being written. Stay tuned.</span></span>
                         </button>
                         <button type="button" class="gm-card" data-mode="custom" role="radio" aria-checked="false" style="--i:3">
                             <canvas class="gm-art" aria-hidden="true"></canvas><span class="gm-scrim"></span>
@@ -1521,6 +1545,13 @@
                                     oninput="onAudioSlider('sfx', this.value)" style="--pct:100%;">
                                 <span id="vol-sfx-label" class="st-val">100%</span>
                             </div>
+                            <label class="st-row st-row-click" id="duel-ambience-row">
+                                <span class="st-row-text"><span class="st-label" data-i18n="duel.audio.ambience">Showdown ambience</span></span>
+                                <span class="stg-toggle-wrap">
+                                    <input type="checkbox" id="duel-ambience-check" checked onchange="if(window.AudioMgr) AudioMgr.setDuelAmbienceEnabled(this.checked)">
+                                    <span class="stg-toggle-track"></span><span class="stg-toggle-thumb"></span>
+                                </span>
+                            </label>
                             <div class="st-row st-row-stack">
                                 <span class="st-label" data-i18n="audio.inGameMusic">In-Game Music</span>
                                 <div id="music-select-wrap" class="st-dd">
@@ -2708,10 +2739,13 @@
                         'mode.custom': 'Custom Voyage',
                         'mode.custom.desc': 'Debug sandbox with an empty field and the console.',
                         'mode.showdown': 'Showdown Voyage',
-                        'mode.showdown.desc': 'A tale is being written. Stay tuned.',
+                        'mode.showdown.desc': 'A one on one duel against a cosmic entity. Every bullet counts.',
                         'mode.soon': 'Soon',
                         'mode.dev': 'Dev',
+                        'mode.hard': 'High difficulty',
                         'mode.comingSoon': 'Coming soon',
+                        'mode.desktopOnly': 'Not available yet',
+                        'mode.desktopOnly.desc': 'Showdown is not available on phones and tablets yet. Please play it on a computer.',
                         'confirmMenu.no': 'NO',
                     },
                     vi: {
@@ -2805,10 +2839,13 @@
                         'mode.custom': 'Hành Trình Tùy Chỉnh',
                         'mode.custom.desc': 'Sân thử rỗng cùng bảng debug.',
                         'mode.showdown': 'Quyết Chiến',
-                        'mode.showdown.desc': 'Một câu chuyện đang được viết. Hãy đón chờ nhé.',
+                        'mode.showdown.desc': 'Đấu tay đôi với một thực thể vũ trụ. Từng viên đạn đều đáng gờm.',
                         'mode.soon': 'Sắp Có',
                         'mode.dev': 'Dev',
+                        'mode.hard': 'Độ khó cao',
                         'mode.comingSoon': 'Sắp ra mắt',
+                        'mode.desktopOnly': 'Chưa khả dụng',
+                        'mode.desktopOnly.desc': 'Quyết Chiến chưa khả dụng trên điện thoại và máy tính bảng. Hãy chơi trên máy tính nhé.',
                         'confirmMenu.no': 'KHÔNG',
                     },
                 };
@@ -2817,6 +2854,10 @@
                     return (key in dict) ? dict[key] : (I18N.en[key] || key);
                 }
                 window._t = _t;
+                window._addI18n = function (dict) {
+                    if (dict.en) Object.assign(I18N.en, dict.en);
+                    if (dict.vi) Object.assign(I18N.vi, dict.vi);
+                };
 
                 window._lang = 'en';
                 try {
@@ -2867,6 +2908,8 @@
                     const qBtn = document.getElementById(qMap[lvl] || 'q-high');
                     if (qBtn) qBtn.classList.add('stg-q-active');
 
+                    document.getElementById('duel-ambience-check').checked = !window.AudioMgr || AudioMgr.getDuelAmbienceEnabled();
+                    document.getElementById('duel-ambience-row').style.display = window._runGameMode === 'showdown' ? 'flex' : 'none';
                     // Audio: sync 3 sliders from AudioMgr persisted volumes
                     if (window.AudioMgr) {
                         ['bgm', 'sfx', 'global'].forEach(cat => {
@@ -2999,7 +3042,7 @@
                 function _buildMusicDropdown() {
                     const dd = document.getElementById('music-dropdown');
                     if (!dd || !window.AudioMgr) return;
-                    const tracks = window.AudioMgr.list().filter(t => !t.menuOnly);
+                    const tracks = window.AudioMgr.list().filter(t => !t.menuOnly && !t.duelOnly);
                     dd.innerHTML = tracks.map(t => {
                         const active = window.AudioMgr.isBgmSelected(t.id);
                         return '<div class="stg-music-row' + (active ? ' stg-music-row-active' : '') + '" data-track-id="' + t.id + '" onclick="onMusicTrackClick(\'' + t.id + '\', this)">'
@@ -3880,7 +3923,7 @@
                     }
                     // the sun and its lens ghosts, gone early in the jump
                     const sunA = skyA * (jt < 0 ? 1 : Math.max(0, 1 - jt / 900));
-                    if (sunA > 0.01) {
+                    if (sunA > 0.01 && window._runGameMode !== 'showdown') {
                         const sx0 = width * 0.86 - camX * 0.04, sy0 = height * 0.1 - camY * 0.04;
                         const ss = Math.min(width, height) * 0.55 * (0.92 + 0.08 * Math.sin(now * 0.0009));
                         ctx.globalAlpha = 0.85 * sunA;
@@ -4394,13 +4437,52 @@
         <!-- GAME MODE PICKER -->
     <script>
         (function () {
+            const SHOWDOWN_MOBILE_LOCKED = true;
+            window.SHOWDOWN_MOBILE_LOCKED = SHOWDOWN_MOBILE_LOCKED;
+            function isCoarsePointer() {
+                return !!(window.matchMedia && window.matchMedia('(hover: none) and (pointer: coarse)').matches);
+            }
+            function showdownLockedOnThisDevice() {
+                const lockedSwitch = typeof window.SHOWDOWN_MOBILE_LOCKED === 'boolean' ? window.SHOWDOWN_MOBILE_LOCKED : SHOWDOWN_MOBILE_LOCKED;
+                return lockedSwitch && isCoarsePointer();
+            }
+            window.showdownLockedOnThisDevice = showdownLockedOnThisDevice;
+
+            let _currentRunGameMode = 'normal';
+            try {
+                Object.defineProperty(window, '_runGameMode', {
+                    get() {
+                        return _currentRunGameMode;
+                    },
+                    set(val) {
+                        if (val === 'showdown' && showdownLockedOnThisDevice()) {
+                            if (typeof window._duelAbort === 'function') window._duelAbort();
+                            if (typeof document !== 'undefined' && document.body) document.body.classList.remove('duel-mode');
+                            _currentRunGameMode = 'endless';
+                            return;
+                        }
+                        _currentRunGameMode = val;
+                    },
+                    configurable: true
+                });
+            } catch (_) {
+                window._runGameMode = 'normal';
+            }
+
             // every mode the menu can start; ready false locks the hyperjump button, img takes a PNG path once painted art exists
             const GAME_MODES = {
                 endless: { ready: true, persist: true, img: '' },
                 tutorial: { ready: true, persist: true, img: '' },
                 custom: { ready: true, persist: false, img: '' },
                 // a teaser card: the mode is not built yet, so it stays locked until a build sets ready to true
-                showdown: { ready: false, persist: false, img: '' }
+                showdown: {
+                    get ready() {
+                        const isLocal = typeof location !== 'undefined' && (location.hostname === 'localhost' || location.hostname === '127.0.0.1');
+                        return isLocal && !showdownLockedOnThisDevice();
+                    },
+                    persist: false,
+                    img: ''
+                }
             };
             const KEY = { endless: 'mode.endless', tutorial: 'mode.tutorial', custom: 'mode.custom', showdown: 'mode.showdown' };
             const $ = (id) => document.getElementById(id);
@@ -4701,7 +4783,25 @@
                 if (name) { name.dataset.i18n = KEY[mode]; name.textContent = tr(KEY[mode]); }
                 if (soon) soon.hidden = GAME_MODES[mode].ready;
                 const soonTags = document.querySelectorAll('#modeGrid .gm-card .gm-tag-soon');
-                for (let i = 0; i < soonTags.length; i++) soonTags[i].hidden = GAME_MODES[soonTags[i].parentNode.dataset.mode].ready;
+                for (let i = 0; i < soonTags.length; i++) soonTags[i].hidden = GAME_MODES[soonTags[i].closest('.gm-card').dataset.mode].ready;
+                const showdownCard = document.querySelector('#modeGrid .gm-card[data-mode="showdown"]');
+                if (showdownCard) {
+                    const sTag = showdownCard.querySelector('.gm-tag');
+                    if (sTag) {
+                        const sDesc = showdownCard.querySelector('.gm-desc');
+                        if (showdownLockedOnThisDevice()) {
+                            sTag.hidden = false;
+                            sTag.dataset.i18n = 'mode.desktopOnly';
+                            sTag.textContent = tr('mode.desktopOnly');
+                            if (sDesc) { sDesc.dataset.i18n = 'mode.desktopOnly.desc'; sDesc.textContent = tr('mode.desktopOnly.desc'); }
+                        } else {
+                            sTag.dataset.i18n = 'mode.soon';
+                            sTag.textContent = tr('mode.soon');
+                            sTag.hidden = GAME_MODES.showdown.ready;
+                            if (sDesc) { sDesc.dataset.i18n = 'mode.showdown.desc'; sDesc.textContent = tr('mode.showdown.desc'); }
+                        }
+                    }
+                }
                 const cards = document.querySelectorAll('#modeGrid .gm-card');
                 for (let i = 0; i < cards.length; i++) {
                     const m = cards[i].dataset.mode, on = m === mode;
@@ -4716,6 +4816,9 @@
             window._refreshGameModeUI = updateUI;
 
             window.selectGameMode = function (m) {
+                if (m === 'showdown' && showdownLockedOnThisDevice()) {
+                    m = 'endless';
+                }
                 if (!GAME_MODES[m]) m = 'endless';
                 if (m === 'custom' && !customAvailable()) {
                     // on the live site the debug console is fetched on first use, then Custom is chosen
@@ -4731,17 +4834,24 @@
             window._gameModeLocked = function () { return !GAME_MODES[mode].ready; };
             // the sandbox flags belong to Custom Voyage only, so every other mode clears them before a run starts
             window._prepareGameMode = function (m) {
+                    if (m === 'showdown' && showdownLockedOnThisDevice()) {
+                        m = 'endless';
+                        window.selectGameMode('endless');
+                    }
                     window._runGameMode = m;
                     // sandbox and tutorial flags belong to their own mode, so every run first clears the ones it does not use
                     if (m !== 'tutorial' && typeof window._tutorialAbort === 'function') window._tutorialAbort();
                     if (m === 'tutorial' && typeof window._tutorialPrepare === 'function') window._tutorialPrepare();
                     if (m === 'custom' && customAvailable()) window._debugPrepareSession();
                     else { window._debugSessionActive = false; window._debugWaveRosterActive = false; window._debugSkipSigilPick = false; }
+                    if (m !== 'showdown' && typeof window._duelAbort === 'function') window._duelAbort();
+                    if (m === 'showdown' && typeof window._duelPrepare === 'function') window._duelPrepare();
                 };
                 // Custom Voyage and Tutorial are never kept: the menu opens on Endless again after any run
                 window._gameModeAfterMenuReturn = function () {
                     if (typeof window._tutorialAbort === 'function') window._tutorialAbort();
-                    if (mode === 'custom' || mode === 'tutorial') window.selectGameMode('endless');
+                    if (typeof window._duelAbort === 'function') window._duelAbort();
+                    if (mode === 'custom' || mode === 'tutorial' || mode === 'showdown') window.selectGameMode('endless');
                 };
 
             function onKey(e) {
@@ -4787,10 +4897,40 @@
             $('modeGrid').addEventListener('click', function (e) {
                 const card = e.target.closest ? e.target.closest('.gm-card') : null;
                 if (!card || card.hidden) return;
-                window.selectGameMode(card.dataset.mode);
+                const m = card.dataset.mode;
+                if (m === 'showdown' && showdownLockedOnThisDevice()) {
+                    card.classList.remove('gm-locked-shake');
+                    void card.offsetWidth;
+                    card.classList.add('gm-locked-shake');
+                    return;
+                }
+                window.selectGameMode(m);
                 window.closeModePicker(true);
             });
             window.addEventListener('resize', function () { if (open) paintCards(); });
+
+            const coarseMql = window.matchMedia ? window.matchMedia('(hover: none) and (pointer: coarse)') : null;
+            function onPointerDeviceChange() {
+                if (showdownLockedOnThisDevice()) {
+                    if (mode === 'showdown') {
+                        window.selectGameMode('endless');
+                    }
+                    if (window._runGameMode === 'showdown') {
+                        if (typeof window._duelAbort === 'function') window._duelAbort();
+                        window._runGameMode = 'endless';
+                    }
+                }
+                updateUI();
+                if (open) paintCards();
+            }
+            if (coarseMql) {
+                if (typeof coarseMql.addEventListener === 'function') {
+                    coarseMql.addEventListener('change', onPointerDeviceChange);
+                } else if (typeof coarseMql.addListener === 'function') {
+                    coarseMql.addListener(onPointerDeviceChange);
+                }
+            }
+            window.addEventListener('orientationchange', onPointerDeviceChange);
 
             let saved = 'endless';
             try { const v = localStorage.getItem('pisces_mode'); if (GAME_MODES[v] && GAME_MODES[v].persist && GAME_MODES[v].ready) saved = v; } catch (_) { }
@@ -5012,7 +5152,7 @@
 
     <script src="js/vendor/pixi.min.js"></script>
     <script src="js/canvas-guard.js?v=20261106a"></script>
-    <script src="js/audio.js?v=20261111e"></script>
+    <script src="js/audio.js?v=20261120a"></script>
     <script src="js/offline.js?v=20261113b"></script>
     <script src="js/background.js?v=20261106a"></script>
     <script src="js/config.js?v=20261113b"></script>
@@ -5099,6 +5239,19 @@
     <script src="js/main.js?v=20261117b"></script>
     <script src="js/tutorial.js?v=20261106a"></script>
     <script src="js/tutorial-license.js?v=20261106a"></script>
+    <script src="js/duel/duel-theme.js?v=20261118a"></script>
+    <script src="js/duel/duel-bullets.js?v=20261118a"></script>
+    <script src="js/duel/duel-boss-weights.js?v=20261120a"></script>
+    <script src="js/duel/duel-boss-brain.js?v=20261120a"></script>
+    <script src="js/duel/duel-gestures-data.js?v=20261120a"></script>
+    <script src="js/duel/duel-gestures.js?v=20261120a"></script>
+    <script src="js/duel/duel-attacks.js?v=20261118a"></script>
+    <script src="js/duel/duel-cinematics.js?v=20261120g"></script>
+    <script src="js/duel/duel-ui.js?v=20261118a"></script>
+    <script src="js/duel/duel-recap.js?v=20261118a"></script>
+    <script src="js/duel/duel-weapon-skills.js?v=20261120a"></script>
+    <script src="js/duel/duel-core.js?v=20261120b"></script>
+    <script src="js/duel/duel-debug.js?v=20261120d"></script>
     <script>
         // The debug console (spawn or kill any enemy, force skills, edit HP) loads at once on a local host.
         // On the live site it is fetched only when a player picks Custom Voyage, and its keys then answer
@@ -5796,7 +5949,7 @@
             // so the two can never end up visible at once.
             let _lastMoveSwap = null;
             function _syncMovementSwap() {
-                const wantArrows = typeof skillShiftActive !== 'undefined' && skillShiftActive;
+                const wantArrows = (typeof skillShiftActive !== 'undefined' && skillShiftActive) || (window._runGameMode === 'showdown' && window._duelSession && window._duelSession.shiftActive);
                 if (wantArrows === _lastMoveSwap) return;
                 const joyEl = document.getElementById('mb-joy');
                 const arrowsEl = document.getElementById('mb-yog-arrows');
@@ -5820,6 +5973,11 @@
                 if (_heldEl) _heldEl.classList.add('held');
                 try {
                     if (id === 'mb-yog') {
+                        if (window._runGameMode === 'showdown') {
+                            if (typeof window._duelTriggerShift === 'function') window._duelTriggerShift();
+                            _syncMovementSwap();
+                            return;
+                        }
                         if (!skillShiftActive && performance.now() - lastSkillShift >= skillShiftCooldown
                             && !(typeof player !== 'undefined' && player._silenced)) {
                             skillShiftActive = true; window._shiftActive = true;
@@ -5852,10 +6010,22 @@
                             }
                         }
                     } else if (id === 'mb-left') {
-                        if (skillShiftActive) executeShiftTeleport('left');
+                        if (window._runGameMode === 'showdown') {
+                            if (window._duelSession && window._duelSession.shiftActive) {
+                                if (typeof window._duelShiftTeleport === 'function') window._duelShiftTeleport('left');
+                            } else {
+                                keys.left = true;
+                            }
+                        } else if (skillShiftActive) executeShiftTeleport('left');
                         else keys.left = true;
                     } else if (id === 'mb-right') {
-                        if (skillShiftActive) executeShiftTeleport('right');
+                        if (window._runGameMode === 'showdown') {
+                            if (window._duelSession && window._duelSession.shiftActive) {
+                                if (typeof window._duelShiftTeleport === 'function') window._duelShiftTeleport('right');
+                            } else {
+                                keys.right = true;
+                            }
+                        } else if (skillShiftActive) executeShiftTeleport('right');
                         else keys.right = true;
                     }
                 } catch (e) { }
@@ -5865,6 +6035,11 @@
                 if (_upEl) _upEl.classList.remove('held');
                 try {
                     if (id === 'mb-yog') {
+                        if (window._runGameMode === 'showdown') {
+                            if (typeof window._duelReleaseShift === 'function') window._duelReleaseShift();
+                            _syncMovementSwap();
+                            return;
+                        }
                         if (typeof cancelSkillShift === 'function') cancelSkillShift();
                         _syncMovementSwap();
                     } else if (id === 'mb-ch') {

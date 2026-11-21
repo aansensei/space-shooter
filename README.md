@@ -64,7 +64,7 @@ It is a hobby project made for the love of the genre. The bullet-hell spirit (a 
 - A small **cyan hitbox dot** at the exact center of your ship shows the true collision point — only that dot touching a bullet costs a life.
 - Enemy bullets always render on top of all effects and are outlined with a **pulsing white glow** so they remain visible in dense situations.
 - The game automatically **pauses** if you switch tabs, and resumes cleanly with no time skips.
-- The bar above **Initiate Hyperjump** picks the voyage: **Endless Voyage** is the standard run, **Tutorial** is a short guided lesson with Kanade that teaches movement, every skill and how to read attack warnings, **Showdown Voyage** is a locked teaser card for a boss duel that is still being written, and **Custom Voyage** is the debug sandbox (it opens the debug console, and on the live site the backquote key answers only while Custom Voyage is chosen).
+- The bar above **Initiate Hyperjump** picks the voyage: **Endless Voyage** is the standard run, **Tutorial** is a short guided lesson with Kanade that teaches movement, every skill and how to read attack warnings, **Showdown Voyage** (tagged High difficulty, right after Endless Voyage) is a locked teaser card for a boss duel that is still being written and is not available on phones and tablets, and **Custom Voyage** is the debug sandbox (it opens the debug console, and on the live site the backquote key answers only while Custom Voyage is chosen).
 
 Tutorial awards a bilingual Voyage Pilot Licence after a clean pass through every dodge lesson. The licence records calibration results and can be saved as a PNG.
 
@@ -113,18 +113,19 @@ js/
   input.js              keyboard and touch input
   pixi-renderer.js      WebGL layer, with background.js for the backdrop
   recap.js, tutorial.js, offline.js, ...   Voyage Recap, Tutorial, offline packages and other screens
+  duel/                 Showdown, the boss duel mode (attacks, boss brain, opening, recap, debug panel)
   entities/             enemy and ally logic, one file per boss
   render/               drawing code, one file per enemy plus shared effects
   skills/               player skills and sigil mechanics
   sigils/               sigil definitions, one file per sigil
   vendor/               PixiJS (MIT licensed)
 assets/                 images, audio and video
-game_logic.md           the full game rules: skills, sigils, enemies, spawning
+game_logic.md           the full game rules: skills, sigils, enemies, spawning, Showdown
 misc/                   development tools and test scripts
 LICENSE, LICENSES/, THIRD_PARTY_NOTICES.md
 ```
 
-The folder `js/` has its own [README](js/README.md) with notes on the module layout.
+The folder `js/` has its own [README](js/README.md) with notes on the module layout, `js/duel/` has a [README](js/duel/README.md) for the Showdown code.
 
 ## Inspiration, references and disclaimer
 

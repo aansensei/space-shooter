@@ -302,6 +302,102 @@
   margin-top: 3px;
 }
 
+/* Showdown rank gauge: five rank segments under the total score, filling as the score counts up. */
+.rc-rank-row {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+  margin: 8px auto 2px;
+  max-width: 360px;
+}
+.rc-rank-gauge {
+  position: relative;
+  flex: 1 1 auto;
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 3px;
+  height: 22px;
+  min-width: 0;
+}
+.rc-rank-seg {
+  position: relative;
+  overflow: hidden;
+  background: rgba(8, 14, 34, 0.85);
+  border: 1px solid rgba(63, 169, 245, 0.22);
+  clip-path: polygon(0 0, calc(100% - 5px) 0, 100% 50%, calc(100% - 5px) 100%, 0 100%, 5px 50%);
+}
+.rc-rank-fill {
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 0;
+  background: linear-gradient(90deg, color-mix(in srgb, var(--rk) 35%, transparent), color-mix(in srgb, var(--rk) 85%, transparent));
+}
+.rc-rank-letter {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: var(--rc-font-title);
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  color: rgba(220, 232, 245, 0.55);
+  text-shadow: 0 0 4px rgba(3, 7, 20, 0.9);
+}
+.rc-rank-seg-on .rc-rank-letter {
+  color: #fff;
+  text-shadow: 0 0 6px var(--rk);
+}
+.rc-rank-marker {
+  position: absolute;
+  top: -5px;
+  bottom: -5px;
+  width: 2px;
+  margin-left: -1px;
+  left: 0;
+  background: #fff;
+  box-shadow: 0 0 8px rgba(255, 255, 255, 0.9), 0 0 16px rgba(0, 229, 255, 0.6);
+  pointer-events: none;
+}
+.rc-rank-stamp {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  line-height: 1;
+  opacity: 0;
+  transform: scale(1.9) rotate(-8deg);
+}
+.rc-rank-stamp.rc-rank-stamped {
+  animation: rcRankStamp 520ms cubic-bezier(0.34, 1.56, 0.64, 1) both;
+}
+@keyframes rcRankStamp {
+  0% { opacity: 0; transform: scale(1.9) rotate(-8deg); }
+  70% { opacity: 1; transform: scale(0.92) rotate(2deg); }
+  100% { opacity: 1; transform: scale(1) rotate(0deg); }
+}
+.rc-rank-stamp-label {
+  font-family: var(--rc-font-ui);
+  font-size: 9px;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  color: var(--rc-silver-dim);
+  margin-bottom: 3px;
+}
+.rc-rank-stamp-letter {
+  font-family: var(--rc-font-title);
+  font-size: 34px;
+  font-weight: 700;
+  color: var(--rk);
+  text-shadow: 0 0 14px var(--rk), 0 0 30px color-mix(in srgb, var(--rk) 50%, transparent);
+}
+@media (prefers-reduced-motion: reduce) {
+  .rc-rank-stamp.rc-rank-stamped { animation: none; opacity: 1; transform: none; }
+}
+
 /* Cause of fall reads as one engraved line under the numbers. */
 .rc-epitaph {
   display: flex;
@@ -1151,3 +1247,25 @@
   .rc-analysis-body { grid-template-columns: 1fr; }
   .rc-timeline-summary { grid-template-columns: repeat(2, 1fr); }
 }
+
+/* Showdown ending: same screen as the Voyage Recap with its own accents */
+.rc-showdown .rc-pisces-emblem:not(.rc-sd-emblem) { display: none; }
+.rc-showdown.rc-win .rc-title {
+  color: #ffe9b8;
+  text-shadow: 0 0 26px rgba(232, 196, 106, 0.7), 0 0 60px rgba(255, 190, 90, 0.3);
+}
+.rc-showdown.rc-win .rc-bottom-glow {
+  background: radial-gradient(ellipse at 50% 100%, rgba(232, 196, 106, 0.30) 0%, rgba(63, 169, 245, 0.10) 45%, transparent 78%);
+}
+.rc-showdown.rc-lose .rc-title {
+  color: #ffd2da;
+  text-shadow: 0 0 26px rgba(255, 77, 109, 0.6), 0 0 60px rgba(150, 30, 80, 0.35);
+}
+.rc-showdown.rc-lose .rc-bottom-glow {
+  background: radial-gradient(ellipse at 50% 100%, rgba(255, 77, 109, 0.26) 0%, rgba(110, 40, 140, 0.12) 45%, transparent 78%);
+}
+.rc-showdown .rc-sd-emblem { opacity: 0.5; }
+
+.rc-btn { transition: transform 120ms ease, box-shadow 120ms ease, filter 120ms ease; }
+.rc-btn:active { transform: translateY(3px); box-shadow: inset 0 3px 7px #0008, 0 1px 2px #0006; filter: brightness(.85); }
+@media (prefers-reduced-motion: reduce) { .rc-btn { transition: none; } }

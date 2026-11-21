@@ -2265,7 +2265,7 @@ function drawSentinel(sentinel) {
     }
 
     // Domain ally tint, gold/cobalt to match the Van Gogh domain palette
-    if (skillShiftActive) {
+    if (skillShiftActive || (typeof window !== 'undefined' && window._runGameMode === 'showdown' && window._duelSession && window._duelSession.shiftActive)) {
         ctx.save();
         ctx.fillStyle = 'rgba(70,130,255,0.26)';
         ctx.beginPath(); ctx.arc(x, y, size * 1.15, 0, Math.PI * 2); ctx.fill();

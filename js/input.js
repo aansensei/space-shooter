@@ -52,6 +52,36 @@ function _hideConfirmMainMenu() {
 }
 
 document.addEventListener('DOMContentLoaded', () => {
+    const duelShiftKeys = new Set();
+    const relicShiftKeys = new Set();
+    window._duelIsShiftHeld = () => relicShiftKeys.size > 0;
+    window.addEventListener('keydown', e => {
+        if (e.code === 'ShiftLeft' || e.code === 'ShiftRight') relicShiftKeys.add(e.code);
+    });
+    window.addEventListener('keyup', e => {
+        if (e.code === 'ShiftLeft' || e.code === 'ShiftRight') relicShiftKeys.delete(e.code);
+    });
+    window.addEventListener('blur', () => relicShiftKeys.clear());
+    const duelConsumedArrows = new Set();
+
+    // Only a Showdown fight (opening, combat, transitions) can be paused. Its menus, ending and recap screen
+    // are not a fight in progress, so a tab switch or Esc must not raise the pause overlay over them.
+    // main.js reads this too for its backgrounded tab check.
+    window._duelPauseBlocked = function () {
+        if (window._runGameMode !== 'showdown') return false;
+        const s = window._duelSession;
+        if (!s) return false;
+        return s.state === 'idle' || s.state === 'opponent_select' || s.state === 'weapon_select'
+            || s.state === 'result' || s.state === 'victory_burst' || s.state === 'defeat_burst' || s._recapOpened === true;
+    };
+
+    window.addEventListener('blur', () => {
+        duelShiftKeys.clear();
+        duelConsumedArrows.clear();
+        if (window._runGameMode !== 'showdown') return;
+        keys.left = keys.right = false;
+        window._duelReleaseShift?.();
+    });
     const startBtn = document.getElementById("startBtn");
     const mainMenuBtn = document.getElementById("mainMenuBtn");
 
@@ -154,10 +184,10 @@ document.addEventListener('DOMContentLoaded', () => {
         if (_pgb) _pgb.style.display = "flex";
         window._bgPaused = true;
         // Freeze the full mix (bgm + engine/ambient/laser/charging loops)
-        // while the pause overlay is up; resumed after the reboot animation
-        // completes. Overlay/click/hover sfx stay live so pause-screen UI
-        // still gives audible feedback.
-        if (window.AudioMgr) window.AudioMgr.pauseAll();
+        // and suspend the audio context while the pause overlay is up, so
+        // the game is silent until the player resumes (the reboot animation
+        // completes) or leaves for the menu.
+        if (window.AudioMgr) window.AudioMgr.pauseAll(true);
     }
 
     resumeBtn.addEventListener("click", () => {
@@ -199,13 +229,21 @@ document.addEventListener('DOMContentLoaded', () => {
     if (pauseMenuBtn) {
         // Yes ends the run into the Voyage Recap; its own Main Menu button
         // then goes straight to the menu.
-        const _confirmGoMenuFromPause = () => _showConfirmMainMenu(() => _endRun(true));
+        // In Showdown a fight left from here ends in the Showdown recap (never the Voyage Recap). Before the
+        // fight has begun there is nothing to summarise, so it goes straight to the menu.
+        const _leaveShowdownToMenu = () => {
+            if (typeof window._duelQuitToRecap === 'function' && window._duelQuitToRecap()) return;
+            if (typeof window._duelReturnToMenu === 'function') window._duelReturnToMenu();
+            else if (typeof window._returnToMainMenu === 'function') window._returnToMainMenu();
+        };
+        const _confirmGoMenuFromPause = () => _showConfirmMainMenu(
+            window._runGameMode === 'showdown' ? _leaveShowdownToMenu : () => _endRun(true));
         pauseMenuBtn.addEventListener('click', _confirmGoMenuFromPause);
         pauseMenuBtn.addEventListener('touchstart', (e) => { e.preventDefault(); _confirmGoMenuFromPause(); }, { passive: false });
     }
 
     document.addEventListener("keydown", (e) => {
-        if (e.code === "Escape" && gameState === "playing" && !gamePaused) {
+        if (e.code === "Escape" && gameState === "playing" && !gamePaused && !window._duelPauseBlocked()) {
             gamePaused = true;
             window.showPauseScreen();
             e.preventDefault();
@@ -230,10 +268,19 @@ document.addEventListener('DOMContentLoaded', () => {
         // was frozen, so e.g. Skill D's charge could silently start (or even
         // resolve instantly, if the overlay sat open longer than the charge
         // time) before the player ever saw the game resume.
-        if (gameState !== "playing" || gamePaused || window._sigilPicker || window._kanadeCutscene) return;
+        const isPlaying = (gameState === "playing") || (window._runGameMode === 'showdown' && window._duelSession && (window._duelSession.state === 'playing' || window._duelSession.state === 'spell_transition'));
+        if (!isPlaying || gamePaused || window._sigilPicker || window._kanadeCutscene) return;
 
         // Skill Shift: Yog-Sothoth
         if (e.code === "ShiftLeft" || e.code === "ShiftRight") {
+            if (window._runGameMode === 'showdown') {
+                if (!e.repeat) {
+                    window._duelTriggerShift?.();
+                    if (window._duelSession?.shiftActive || duelShiftKeys.size) duelShiftKeys.add(e.code);
+                }
+                e.preventDefault();
+                return;
+            }
             if (!skillShiftActive && performance.now() - lastSkillShift >= skillShiftCooldown && !(window._tutorialLocked && window._tutorialLocked('SH'))
                 && !(typeof player !== 'undefined' && player._silenced)) {
                 skillShiftActive = true;
@@ -277,17 +324,43 @@ document.addEventListener('DOMContentLoaded', () => {
             e.preventDefault();
         }
 
-        // must check shift first bc arrows inside domain = teleport, return early skips keys.left below
-        if (skillShiftActive) {
-            // Trong lãnh địa, ấn phím điều hướng để Dịch Chuyển
-            if (e.code === "ArrowLeft") { executeShiftTeleport('left'); e.preventDefault(); return; }
-            if (e.code === "ArrowRight") { executeShiftTeleport('right'); e.preventDefault(); return; }
-        } else {
-            // Di chuyển bình thường
-            if (e.code === "ArrowLeft") keys.left = true;
-            if (e.code === "ArrowRight") keys.right = true;
-            if ((e.code === "ArrowLeft" || e.code === "ArrowRight") && !e.repeat) {
-                _updateSkillFDirection(e.code === "ArrowLeft" ? -1 : 1);
+        const arrow = e.code === 'ArrowLeft' ? 'left' : e.code === 'ArrowRight' ? 'right' : '';
+        if (arrow) {
+            if (window._runGameMode === 'showdown') {
+                const s = window._duelSession;
+                if (s?.shiftActive) {
+                    keys[arrow] = true;
+                    if (!e.repeat) window._duelShiftTeleport?.(arrow);
+                    e.preventDefault();
+                    return;
+                }
+                keys[arrow] = true;
+                if (!e.repeat && !(keys.left && keys.right)) window._duelUpdateSkillFDirection?.(arrow === 'left' ? -1 : 1);
+            } else if (skillShiftActive) {
+                keys[arrow] = true;
+                executeShiftTeleport(arrow);
+                e.preventDefault();
+                return;
+            } else {
+                keys[arrow] = true;
+                if (!e.repeat && !(keys.left && keys.right)) _updateSkillFDirection(arrow === 'left' ? -1 : 1);
+            }
+        }
+
+        if (window._runGameMode === 'showdown') {
+            if (e.code === "KeyF") {
+                if (!e.repeat) window._duelTriggerSkillF?.();
+                e.preventDefault();
+                return;
+            }
+            if (e.code === "KeyA") {
+                if (!e.repeat) window._duelTriggerSkillA?.();
+                e.preventDefault();
+                return;
+            }
+            if (e.code === "Space" || e.code === "KeyS" || e.code === "KeyD" || e.code === "KeyG") {
+                e.preventDefault();
+                return;
             }
         }
 
@@ -323,11 +396,17 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     document.addEventListener("keyup", (e) => {
+        duelConsumedArrows.delete(e.code);
         if (e.code === "ArrowLeft") keys.left = false;
         if (e.code === "ArrowRight") keys.right = false;
 
-        // Hủy trạng thái Lãnh địa nếu nhả phím Shift
+        // Releasing a physical Shift key also clears it after leaving Showdown.
         if (e.code === "ShiftLeft" || e.code === "ShiftRight") {
+            duelShiftKeys.delete(e.code);
+            if (window._runGameMode === 'showdown') {
+                if (!duelShiftKeys.size) window._duelReleaseShift?.();
+                return;
+            }
             cancelSkillShift();
         }
 
@@ -359,7 +438,7 @@ document.addEventListener('DOMContentLoaded', () => {
     });
     // Tự động pause khi chuyển tab
     document.addEventListener('visibilitychange', () => {
-        if (document.hidden && gameState === 'playing' && !gamePaused) {
+        if (document.hidden && gameState === 'playing' && !gamePaused && !window._duelPauseBlocked()) {
             gamePaused = true;
             showPauseScreen();
         }

@@ -1,5 +1,5 @@
 // Pisces: Space Journey. Copyright (c) 2024 An Nguyen. Licensed under the PolyForm Noncommercial License 1.0.0.
-// render/enemy-egregor.js — extracted from render.js (base body + Psychic
+// render/enemy-egregor.js: extracted from render.js (base body + Psychic
 // Tempest / Null Slash telegraph and strike effects). Runs to end of original file.
 
 const _egTentPts = new Float32Array(17 * 3);
@@ -198,10 +198,58 @@ function _egregorBodyPath(radius, now, segments) {
 }
 
 // Body textures always pass through this mask, including collapse and Guide rendering.
-function _drawEgregorBodySurface(palette, radius, now, segments) {
+function _drawEgregorBodySurface(palette, radius, now, segments, isDuelBoss = false) {
     _egregorBodyPath(radius, now, segments);
     ctx.save(); ctx.clip();
-    ctx.drawImage(_egBodyArt.body[palette], -radius * 1.2, -radius * 1.2, radius * 2.4, radius * 2.4);
+    if (isDuelBoss) {
+        // Vibrant celestial bioluminescence inner gradient
+        const gr = ctx.createRadialGradient(0, -radius * 0.25, 4, 0, 0, radius * 1.15);
+        if (palette <= 1) {
+            // Phase 1: Radiant Celestial Teal
+            gr.addColorStop(0, '#2d7a8c');
+            gr.addColorStop(0.35, '#1b5260');
+            gr.addColorStop(0.70, '#103742');
+            gr.addColorStop(1, '#0c242c');
+        } else if (palette <= 3) {
+            // Phase 2: Radiant Astral Violet
+            gr.addColorStop(0, '#6b3a8c');
+            gr.addColorStop(0.35, '#4a2366');
+            gr.addColorStop(0.70, '#2e1542');
+            gr.addColorStop(1, '#1b0a2a');
+        } else {
+            // Phase 3: Radiant Cosmic Ruby
+            gr.addColorStop(0, '#8c2d4a');
+            gr.addColorStop(0.35, '#601b30');
+            gr.addColorStop(0.70, '#3d0f1e');
+            gr.addColorStop(1, '#260611');
+        }
+        ctx.fillStyle = gr;
+        ctx.fillRect(-radius * 1.3, -radius * 1.3, radius * 2.6, radius * 2.6);
+
+        // Overlay texture with gentle contrast
+        ctx.globalAlpha = 0.55;
+        ctx.drawImage(_egBodyArt.body[palette], -radius * 1.2, -radius * 1.2, radius * 2.4, radius * 2.4);
+        ctx.globalAlpha = 1.0;
+
+        // Neural bio-circuitry veins
+        ctx.save();
+        ctx.globalCompositeOperation = 'lighter';
+        ctx.strokeStyle = _egBodyColors[palette];
+        ctx.lineWidth = 1.2;
+        ctx.globalAlpha = 0.45;
+        for (let i = 0; i < 18; i++) {
+            const a = i * 2.39996 + now * 0.0005;
+            const r1 = radius * (0.2 + (i % 4) * 0.18);
+            const r2 = radius * (0.45 + (i % 3) * 0.22);
+            ctx.beginPath();
+            ctx.moveTo(Math.cos(a) * r1, Math.sin(a) * r1);
+            ctx.quadraticCurveTo(Math.cos(a + 0.3) * (r1 + r2) * 0.5, Math.sin(a + 0.3) * (r1 + r2) * 0.5, Math.cos(a + 0.1) * r2, Math.sin(a + 0.1) * r2);
+            ctx.stroke();
+        }
+        ctx.restore();
+    } else {
+        ctx.drawImage(_egBodyArt.body[palette], -radius * 1.2, -radius * 1.2, radius * 2.4, radius * 2.4);
+    }
     ctx.restore();
 }
 
@@ -210,7 +258,8 @@ function _drawEgregor(enemy) {
     const now = performance.now(), sc = enemy.size / 220, BASE = 110 * sc, fo = window._fxOpts;
     const glow = !fo || fo.glow !== false, parts = !fo || fo.particles !== false, trails = !fo || fo.trails !== false;
     const rage = Math.min(5, enemy._rageStacks || 0), vr = enemy._visualRage === undefined ? rage : enemy._visualRage, pal = Math.min(5, Math.max(0, Math.ceil(vr)));
-    const hit = Math.max(0, 1 - (now - (enemy._egBodyHitAt || -1000)) / 140), pulse = Math.max(0, 1 - (now - (enemy._ragePulseAt || -1000)) / 600);
+    const hitDur = enemy._isDuelBoss ? 80 : 140;
+    const hit = Math.max(0, 1 - (now - (enemy._egBodyHitAt || -1000)) / hitDur), pulse = Math.max(0, 1 - (now - (enemy._ragePulseAt || -1000)) / 600);
     const breath = Math.sin(now * 0.0027), alive = 10 - (enemy._tentaclesLost || 0), tint = _egBodyColors[pal];
     if (!enemy._eyeBlinkTimers) enemy._eyeBlinkTimers = new Float32Array(4);
     if (!enemy._eyeNextBlinks) enemy._eyeNextBlinks = new Float32Array([2000, 2800, 1500, 3500]);
@@ -303,10 +352,16 @@ function _drawEgregor(enemy) {
     }
     ctx.save(); ctx.translate(Math.sin(now * 0.15) * hit * 3, Math.cos(now * 0.1) * hit * 2); ctx.scale(1 + breath * 0.025, 1 - breath * 0.018);
     const segments = _gfxLevel < 2 && !_mobPerf ? 80 : 36;
-    _drawEgregorBodySurface(pal, BASE, now, segments);
+    _drawEgregorBodySurface(pal, BASE, now, segments, !!enemy._isDuelBoss);
     ctx.save(); ctx.clip();
-    if (hit > 0 || pulse > 0) { ctx.globalAlpha = hit * 0.55 + pulse * 0.18; ctx.fillStyle = '#e7d5e8'; ctx.fill(); ctx.globalAlpha = 1; }
-    ctx.restore(); ctx.strokeStyle = tint; ctx.lineWidth = (2 + vr * 0.35) * sc; ctx.stroke();
+    if (hit > 0 || pulse > 0) {
+        const hitAlpha = enemy._isDuelBoss ? Math.min(0.25, hit * 0.25) : (hit * 0.55 + pulse * 0.18);
+        ctx.globalAlpha = hitAlpha;
+        ctx.fillStyle = '#e7d5e8';
+        ctx.fill();
+        ctx.globalAlpha = 1;
+    }
+    ctx.restore(); ctx.strokeStyle = tint; ctx.lineWidth = (enemy._isDuelBoss ? (3.4 + vr * 0.4) : (2 + vr * 0.35)) * sc; ctx.stroke();
     if (alive > 0) {
         ctx.globalAlpha = alive / 10 * 0.24; ctx.strokeStyle = '#a9badb'; ctx.lineWidth = 4; ctx.stroke(); ctx.globalAlpha = 1;
     }
@@ -315,7 +370,7 @@ function _drawEgregor(enemy) {
         const light = 0.45 + 0.55 * Math.pow(0.5 + 0.5 * Math.sin(now * 0.004 - i * 0.9), 2);
         ctx.save(); ctx.translate(side * 12 * sc, (10 + i * 12) * sc); ctx.rotate(side * (0.3 + breath * 0.12 + i * 0.1));
         ctx.beginPath(); ctx.moveTo(0, 0); ctx.quadraticCurveTo(side * 30 * sc, -8 * sc, side * 55 * sc, 15 * sc); ctx.quadraticCurveTo(side * 20 * sc, 25 * sc, 0, 0);
-        ctx.fillStyle = rage ? '#44233c' : '#153e4b'; ctx.fill(); ctx.globalAlpha = light; ctx.strokeStyle = tint; ctx.lineWidth = 1.4; ctx.stroke(); ctx.restore();
+        ctx.fillStyle = enemy._isDuelBoss ? (rage ? '#752844' : '#1e5462') : (rage ? '#44233c' : '#153e4b'); ctx.fill(); ctx.globalAlpha = light; ctx.strokeStyle = tint; ctx.lineWidth = enemy._isDuelBoss ? 2.0 : 1.4; ctx.stroke(); ctx.restore();
     }
     for (let i = 0; i < 4; i++) {
         const a = i === 0 ? -Math.PI / 3 : i === 1 ? -Math.PI * 2 / 3 : i === 2 ? -Math.PI / 6 + 0.2 : -Math.PI * 5 / 6 - 0.2;
@@ -324,22 +379,28 @@ function _drawEgregor(enemy) {
         if (now > enemy._eyeBlinkTimers[i] + enemy._eyeNextBlinks[i]) {
             enemy._eyeBlinkTimers[i] = now; enemy._eyeNextBlinks[i] = 2000 + Math.random() * 4000;
         }
-        const phase = now - enemy._eyeBlinkTimers[i], blink = phase < 150 ? phase / 150 : phase < 300 ? 1 - (phase - 150) / 150 : 0;
+        const phase = now - enemy._eyeBlinkTimers[i];
+        let blink = phase < 150 ? phase / 150 : phase < 300 ? 1 - (phase - 150) / 150 : 0;
+        if (enemy._isDuelBoss) blink = Math.min(0.60, blink); // Clamp blink for duel boss so eyes remain readable at all times
         const look = Math.atan2(player.y - enemy.y - ey, player.x - enemy.x - ex) + Math.sin(now * 0.0012 + i) * 0.16;
         const px = Math.cos(look) * er * 0.32, py = Math.sin(look) * er * 0.32;
         ctx.save(); ctx.translate(ex, ey); ctx.scale(1, 1 - blink * 0.9); ctx.beginPath(); ctx.ellipse(0, 0, er, er * 0.92, 0, 0, Math.PI * 2); ctx.clip();
-        ctx.fillStyle = rage ? '#ecd3d2' : '#d4e5e6'; ctx.fillRect(-er, -er, er * 2, er * 2);
+        ctx.fillStyle = '#ffffff'; ctx.fillRect(-er, -er, er * 2, er * 2);
         ctx.drawImage(_egBodyArt.iris[pal], px - er * 0.72, py - er * 0.72, er * 1.44, er * 1.44);
         ctx.fillStyle = '#0b0a17'; ctx.beginPath(); ctx.ellipse(px, py, er * (0.18 + (5 - rage) * 0.018), er * 0.48, look, 0, Math.PI * 2); ctx.fill();
-        ctx.fillStyle = '#fff4e5'; ctx.beginPath(); ctx.arc(px - er * 0.18, py - er * 0.22, er * 0.13, 0, Math.PI * 2); ctx.fill(); ctx.restore();
-        ctx.strokeStyle = '#222136'; ctx.lineWidth = 2; ctx.beginPath(); ctx.ellipse(ex, ey, er, er * 0.92 * (1 - blink * 0.9), 0, 0, Math.PI * 2); ctx.stroke();
+        ctx.fillStyle = '#ffffff'; ctx.beginPath(); ctx.arc(px - er * 0.18, py - er * 0.22, er * 0.14, 0, Math.PI * 2); ctx.fill();
+        if (enemy._isDuelBoss) {
+            ctx.fillStyle = '#ffffff'; ctx.beginPath(); ctx.arc(px + er * 0.14, py + er * 0.16, er * 0.09, 0, Math.PI * 2); ctx.fill();
+        }
+        ctx.restore();
+        ctx.strokeStyle = enemy._isDuelBoss ? '#ffffff' : tint; ctx.lineWidth = enemy._isDuelBoss ? 2.6 : 2; ctx.beginPath(); ctx.ellipse(ex, ey, er, er * 0.92 * (1 - blink * 0.9), 0, 0, Math.PI * 2); ctx.stroke();
     }
     ctx.restore();
     if (parts) {
         ctx.fillStyle = tint; ctx.beginPath(); ctx.globalAlpha = 0.45;
         for (let i = 0; i < (_mobPerf || _gfxLevel >= 2 ? 4 : 12); i++) { const ph = (now * 0.00015 + i * 0.618034) % 1, a = i * 2.39996 + now * 0.0001, r = BASE * (1.1 + ph * 0.75); ctx.rect(Math.cos(a) * r, Math.sin(a) * r - ph * 15, 1.2 + i % 2, 1.2 + i % 2); } ctx.fill(); ctx.globalAlpha = 1;
         const woundAge = now - (enemy._egBodyHitAt || -1000);
-        if (woundAge >= 0 && woundAge < 450) {
+        if (!enemy._isDuelBoss && woundAge >= 0 && woundAge < 450) {
             ctx.globalAlpha = 1 - woundAge / 450; ctx.fillStyle = '#bdcbd4'; ctx.beginPath();
             for (let i = 0; i < (_mobPerf ? 3 : 7); i++) { const a = i * 2.39996, d = BASE * 0.85 + woundAge * 0.035; ctx.ellipse(Math.cos(a) * d, Math.sin(a) * d + woundAge * woundAge * 0.00016, 1.4 + i % 2, 2.4 + i % 2, a, 0, Math.PI * 2); } ctx.fill(); ctx.globalAlpha = 1;
         }
@@ -353,9 +414,11 @@ function _drawEgregor(enemy) {
         ctx.fillStyle = '#f3d9c8'; ctx.beginPath(); ctx.ellipse(x, y, s * 0.23, s * 0.6, 0, 0, Math.PI * 2); ctx.fill();
     }
     ctx.globalAlpha = 1;
-    const bw = enemy.size * 1.1, by = -enemy.size / 2 - 14;
-    ctx.fillStyle = '#111020'; ctx.fillRect(-bw / 2, by, bw, 5); ctx.fillStyle = tint; ctx.fillRect(-bw / 2, by, bw * Math.max(0, enemy.hp / enemy.maxHp), 5);
-    ctx.strokeStyle = tint; ctx.lineWidth = 0.8; ctx.strokeRect(-bw / 2, by, bw, 5);
+    if (!enemy._noHpBar) {
+        const bw = enemy.size * 1.1, by = -enemy.size / 2 - 14;
+        ctx.fillStyle = '#111020'; ctx.fillRect(-bw / 2, by, bw, 5); ctx.fillStyle = tint; ctx.fillRect(-bw / 2, by, bw * Math.max(0, enemy.hp / enemy.maxHp), 5);
+        ctx.strokeStyle = tint; ctx.lineWidth = 0.8; ctx.strokeRect(-bw / 2, by, bw, 5);
+    }
     ctx.restore();
 }
 // Portals retain a crisp danger boundary at every graphics level.
@@ -1355,3 +1418,1390 @@ function _drawEgregorRift(cx, cy, R, arcStart, arcSpan, rage, rST, rE, now, flar
     }
     ctx.restore();
 }
+
+// DUEL_EGREGOR_START
+// Pure procedural dark-fantasy Canvas2D Duel Boss + Shared Organic Tentacle Engine + DuelFX
+// Leaves Endless _drawEgregor completely untouched above this marker.
+
+function _duelHash2(ix, iy, seed) {
+    let h = (ix * 374761393 + iy * 668265263 + (seed || 0) * 1442695041) | 0;
+    h = (h ^ (h >>> 13)) * 1274126177;
+    return ((h ^ (h >>> 16)) >>> 0) / 4294967295;
+}
+
+function _duelValueNoise2D(x, y, seed) {
+    const ix = Math.floor(x);
+    const iy = Math.floor(y);
+    const fx = x - ix;
+    const fy = y - iy;
+    const ux = fx * fx * (3 - 2 * fx);
+    const uy = fy * fy * (3 - 2 * fy);
+    const a = _duelHash2(ix, iy, seed);
+    const b = _duelHash2(ix + 1, iy, seed);
+    const c = _duelHash2(ix, iy + 1, seed);
+    const d = _duelHash2(ix + 1, iy + 1, seed);
+    return a + (b - a) * ux + (c - a) * uy + (a - b - c + d) * ux * uy;
+}
+
+function _duelFbm2D(x, y, seed) {
+    return (
+        _duelValueNoise2D(x, y, seed) * 0.56 +
+        _duelValueNoise2D(x * 2.03 + 11.7, y * 2.03 + 5.3, seed + 19) * 0.29 +
+        _duelValueNoise2D(x * 4.11 + 23.1, y * 4.11 + 17.9, seed + 47) * 0.15
+    );
+}
+
+const DuelFX = (function () {
+    const PHASE_PALETTES = {
+        1: {
+            base: '#1d5d66',
+            mid: '#2b7a80',
+            dark: '#0a222b',
+            rim: '#74f5ff',
+            glow: '#42e8d4',
+            sucker: '#a8f8ef',
+            pore: '#08252d',
+            vein: '#6cf5e8',
+            eyeIris: '#f6c244',
+            eyeRim: '#fff0b3'
+        },
+        2: {
+            base: '#4a2580',
+            mid: '#6838a8',
+            dark: '#180a36',
+            rim: '#df87ff',
+            glow: '#fa69bd',
+            sucker: '#ffe6a6',
+            pore: '#1b0b38',
+            vein: '#f5b5ff',
+            eyeIris: '#5cf5d0',
+            eyeRim: '#d8fff4'
+        },
+        3: {
+            base: '#68193a',
+            mid: '#8f254c',
+            dark: '#1d0612',
+            rim: '#ffd97d',
+            glow: '#ff5c8a',
+            sucker: '#ffe3a8',
+            pore: '#2a0612',
+            vein: '#79dfff',
+            eyeIris: '#ff5277',
+            eyeRim: '#ffe8a8'
+        }
+    };
+
+    function getPhasePalette(phase) {
+        const p = phase >= 3 ? 3 : (phase >= 2 ? 2 : 1);
+        return PHASE_PALETTES[p];
+    }
+
+    function drawShockwave(ctx, x, y, radius, alpha, color, lineWidth) {
+        if (!ctx || alpha <= 0.01 || radius <= 1) return;
+        ctx.save();
+        ctx.globalCompositeOperation = 'lighter';
+        ctx.globalAlpha = Math.max(0, Math.min(1, alpha));
+        ctx.strokeStyle = color || '#74f5ff';
+        ctx.lineWidth = lineWidth || 3.0;
+        ctx.beginPath();
+        ctx.arc(x, y, radius, 0, Math.PI * 2);
+        ctx.stroke();
+        ctx.globalAlpha = Math.max(0, Math.min(1, alpha * 0.45));
+        ctx.lineWidth = (lineWidth || 3.0) * 2.4;
+        ctx.beginPath();
+        ctx.arc(x, y, Math.max(1, radius * 0.92), 0, Math.PI * 2);
+        ctx.stroke();
+        ctx.restore();
+    }
+
+    function drawGatherParticles(ctx, cx, cy, radius, progress, color, count, time) {
+        if (!ctx) return;
+        const n = count || 12;
+        const t = typeof time === 'number' ? time : (performance.now() * 0.001);
+        ctx.save();
+        ctx.globalCompositeOperation = 'lighter';
+        ctx.fillStyle = color || '#74f5ff';
+        for (let i = 0; i < n; i++) {
+            const frac = ((t * 1.4 + i / n) % 1);
+            const r = radius * (1 - frac) * (0.4 + 0.6 * progress);
+            const a = (i / n) * Math.PI * 2 + t * 2.1;
+            const px = cx + Math.cos(a) * r;
+            const py = cy + Math.sin(a) * r;
+            ctx.globalAlpha = Math.sin(frac * Math.PI) * 0.85;
+            ctx.beginPath();
+            ctx.arc(px, py, 2.0 + (1 - frac) * 2.5, 0, Math.PI * 2);
+            ctx.fill();
+        }
+        ctx.restore();
+    }
+
+    return { getPhasePalette, drawShockwave, drawGatherParticles };
+})();
+
+if (typeof window !== 'undefined') {
+    window.DuelFX = DuelFX;
+}
+
+// Builds a smooth organic tentacle spine from (x0, y0) to (x1, y1).
+// Supports both joints/segments and curl/tipCurl parameter aliases.
+function buildOrganicTentacleSpine(x0, y0, x1, y1, opts) {
+    const o = opts || {};
+    const rawJoints = o.joints !== undefined ? o.joints : (o.segments !== undefined ? o.segments : 18);
+    const joints = Math.max(12, Math.min(36, Math.round(rawJoints)));
+    const time = typeof o.time === 'number' ? o.time : (performance.now() * 0.001);
+    const waveAmp = typeof o.waveAmp === 'number' ? o.waveAmp : 18;
+    const waveFreq = typeof o.waveFreq === 'number' ? o.waveFreq : 2.2;
+    const waveSpeed = typeof o.waveSpeed === 'number' ? o.waveSpeed : 4.2;
+    const phase = typeof o.phase === 'number' ? o.phase : 0;
+    const curl = o.curl !== undefined ? o.curl : (o.tipCurl !== undefined ? o.tipCurl : 0.45);
+    const bend = typeof o.bend === 'number' ? o.bend : 0;
+    const reach = typeof o.reach === 'number' ? Math.max(0.05, Math.min(1, o.reach)) : 1.0;
+
+    const dx = x1 - x0;
+    const dy = y1 - y0;
+    const len = Math.hypot(dx, dy) || 1;
+    const ux = dx / len;
+    const uy = dy / len;
+    const nx = -uy;
+    const ny = ux;
+
+    const spine = new Array(joints + 1);
+    for (let i = 0; i <= joints; i++) {
+        const uRaw = i / joints;
+        const u = uRaw * reach;
+        const env = Math.pow(uRaw, 1.3);
+        const wave = Math.sin(uRaw * Math.PI * waveFreq - time * waveSpeed + phase) * waveAmp * env;
+        const arch = Math.sin(uRaw * Math.PI) * bend;
+        const curlT = Math.max(0, (uRaw - 0.68) / 0.32);
+        const smoothCurl = curlT * curlT * (3 - 2 * curlT);
+        const curlAngle = smoothCurl * curl * 1.45;
+        const curlOff = Math.sin(curlAngle) * 34 * smoothCurl;
+        const curlBack = (1 - Math.cos(curlAngle)) * 22 * smoothCurl;
+
+        const px = x0 + dx * u + nx * (wave + arch + curlOff) - ux * curlBack;
+        const py = y0 + dy * u + ny * (wave + arch + curlOff) - uy * curlBack;
+        spine[i] = { x: px, y: py };
+    }
+    return spine;
+}
+
+// Catmull-Rom spline subdivision guaranteeing >= 6 smooth samples per coarse segment
+function _subdivideSpineCatmullRom(spine, subdivPerSeg) {
+    if (!spine || spine.length < 3) return spine || [];
+    const n = spine.length;
+    const sub = Math.max(2, subdivPerSeg || 6);
+    // If spine is already dense enough (>= 48 pts), keep cost low with 2x smoothing
+    const effSub = n >= 48 ? 2 : (n >= 24 ? 4 : sub);
+    const out = [];
+    for (let i = 0; i < n - 1; i++) {
+        const p0 = spine[Math.max(0, i - 1)];
+        const p1 = spine[i];
+        const p2 = spine[i + 1];
+        const p3 = spine[Math.min(n - 1, i + 2)];
+        const steps = (i === n - 2) ? effSub : effSub;
+        for (let s = 0; s < steps; s++) {
+            const t = s / effSub;
+            const t2 = t * t;
+            const t3 = t2 * t;
+            const x = 0.5 * (
+                (2 * p1.x) +
+                (-p0.x + p2.x) * t +
+                (2 * p0.x - 5 * p1.x + 4 * p2.x - p3.x) * t2 +
+                (-p0.x + 3 * p1.x - 3 * p2.x + p3.x) * t3
+            );
+            const y = 0.5 * (
+                (2 * p1.y) +
+                (-p0.y + p2.y) * t +
+                (2 * p0.y - 5 * p1.y + 4 * p2.y - p3.y) * t2 +
+                (-p0.y + 3 * p1.y - 3 * p2.y + p3.y) * t3
+            );
+            out.push({ x, y });
+        }
+    }
+    out.push({ x: spine[n - 1].x, y: spine[n - 1].y });
+    return out;
+}
+
+function _resolveTentacleWidths(o) {
+    let rootW;
+    if (typeof o.rootWidth === 'number') rootW = o.rootWidth;
+    else if (typeof o.baseRadius === 'number') rootW = o.baseRadius * 2;
+    else rootW = 34;
+
+    let tipW;
+    if (typeof o.tipWidth === 'number') tipW = o.tipWidth;
+    else if (typeof o.tipRadius === 'number') tipW = o.tipRadius * 2;
+    else tipW = Math.max(2, rootW * 0.10);
+
+    return { rootW: Math.max(3, rootW), tipW: Math.max(1, tipW) };
+}
+
+// Muscular root bulge + smooth organic taper toward tip
+function _tentacleHalfWidthAt(u, rootW, tipW) {
+    const bulge = Math.sin(Math.min(1, u * 3.8) * Math.PI) * rootW * 0.16;
+    const taper = Math.pow(Math.max(0, 1 - u), 1.15);
+    return Math.max(tipW * 0.5, (tipW + (rootW - tipW) * taper + bulge) * 0.5);
+}
+
+// Draws a shaded, smooth-spline, tapered organic tentacle polygon with cross-body shading,
+// bright rim light, wet specular highlight, glowing bio-vein, and proportional elliptical pore suckers.
+function drawOrganicTentacle(ctx, spine, opts) {
+    if (!ctx || !spine || spine.length < 3) return;
+    const o = opts || {};
+    const widths = _resolveTentacleWidths(o);
+    const rootW = widths.rootW;
+    const tipW = widths.tipW;
+    const pal = DuelFX.getPhasePalette(o.phase || 1);
+    const baseCol = o.baseColor || pal.base;
+    const midCol = o.midColor || pal.mid || baseCol;
+    const darkCol = o.darkColor || pal.dark;
+    const rimCol = o.rimColor || pal.rim;
+    const glowCol = o.glowColor || pal.glow;
+    const suckerCol = o.suckerColor || pal.sucker;
+    const poreCol = o.poreColor || pal.pore || darkCol;
+    const glowAmt = typeof o.glow === 'number' ? o.glow : (typeof o.glowIntensity === 'number' ? o.glowIntensity : 0.45);
+    const showSuckers = o.suckers !== false && rootW >= 12;
+    const hooked = !!o.hooked;
+    const alpha = typeof o.alpha === 'number' ? o.alpha : 1.0;
+
+    const smooth = _subdivideSpineCatmullRom(spine, o.subdiv || 6);
+    const n = smooth.length - 1;
+    if (n < 2) return;
+
+    const lx = new Float32Array(n + 1);
+    const ly = new Float32Array(n + 1);
+    const rx = new Float32Array(n + 1);
+    const ry = new Float32Array(n + 1);
+    const mx = new Float32Array(n + 1);
+    const my = new Float32Array(n + 1);
+    const nxArr = new Float32Array(n + 1);
+    const nyArr = new Float32Array(n + 1);
+    const hwArr = new Float32Array(n + 1);
+
+    for (let i = 0; i <= n; i++) {
+        const pPrev = smooth[Math.max(0, i - 1)];
+        const pNext = smooth[Math.min(n, i + 1)];
+        const tx = pNext.x - pPrev.x;
+        const ty = pNext.y - pPrev.y;
+        const tLen = Math.hypot(tx, ty) || 1;
+        const nx = -ty / tLen;
+        const ny = tx / tLen;
+        const u = i / n;
+        const hw = _tentacleHalfWidthAt(u, rootW, tipW);
+        nxArr[i] = nx;
+        nyArr[i] = ny;
+        hwArr[i] = hw;
+        lx[i] = smooth[i].x + nx * hw;
+        ly[i] = smooth[i].y + ny * hw;
+        rx[i] = smooth[i].x - nx * hw;
+        ry[i] = smooth[i].y - ny * hw;
+        mx[i] = smooth[i].x + nx * (hw * 0.12);
+        my[i] = smooth[i].y + ny * (hw * 0.12);
+    }
+
+    const tipP = smooth[n];
+    const prevP = smooth[n - 1];
+    const tipAng = Math.atan2(tipP.y - prevP.y, tipP.x - prevP.x);
+    const tipExt = Math.max(5, rootW * 0.28);
+    const tipX = tipP.x + Math.cos(tipAng) * tipExt;
+    const tipY = tipP.y + Math.sin(tipAng) * tipExt;
+
+    ctx.save();
+    ctx.globalAlpha = alpha;
+    ctx.lineJoin = 'round';
+    ctx.lineCap = 'round';
+
+    // 1. Cast drop shadow beneath tentacle for depth separation
+    if (o.castShadow !== false) {
+        ctx.save();
+        ctx.globalAlpha = alpha * 0.34;
+        ctx.fillStyle = '#03060f';
+        ctx.beginPath();
+        ctx.moveTo(lx[0] + 4, ly[0] + 6);
+        for (let i = 1; i <= n; i++) ctx.lineTo(lx[i] + 4, ly[i] + 6);
+        ctx.lineTo(tipX + 4, tipY + 6);
+        for (let i = n; i >= 0; i--) ctx.lineTo(rx[i] + 4, ry[i] + 6);
+        ctx.closePath();
+        ctx.fill();
+        ctx.restore();
+    }
+
+    // 2. Main muscular tapered silhouette filled with cross-body shaded dark->base->mid gradient
+    const gStart = smooth[0];
+    const gMid = smooth[Math.floor(n * 0.45)];
+    const bodyGrad = ctx.createLinearGradient(
+        gStart.x - nxArr[0] * rootW * 0.55,
+        gStart.y - nyArr[0] * rootW * 0.55,
+        gMid.x + nxArr[Math.floor(n * 0.45)] * rootW * 0.55,
+        gMid.y + nyArr[Math.floor(n * 0.45)] * rootW * 0.55
+    );
+    bodyGrad.addColorStop(0.0, darkCol);
+    bodyGrad.addColorStop(0.42, baseCol);
+    bodyGrad.addColorStop(0.78, midCol);
+    bodyGrad.addColorStop(1.0, darkCol);
+
+    ctx.beginPath();
+    ctx.moveTo(lx[0], ly[0]);
+    for (let i = 1; i <= n; i++) ctx.lineTo(lx[i], ly[i]);
+    ctx.lineTo(tipX, tipY);
+    for (let i = n; i >= 0; i--) ctx.lineTo(rx[i], ry[i]);
+    ctx.closePath();
+    ctx.fillStyle = bodyGrad;
+    ctx.fill();
+
+    // 3. Ventral dark shadow half (gives cylindrical 3D volume)
+    ctx.save();
+    ctx.globalAlpha = alpha * 0.48;
+    ctx.fillStyle = darkCol;
+    ctx.beginPath();
+    ctx.moveTo(mx[0], my[0]);
+    for (let i = 1; i <= n; i++) ctx.lineTo(mx[i], my[i]);
+    ctx.lineTo(tipX, tipY);
+    for (let i = n; i >= 0; i--) ctx.lineTo(rx[i], ry[i]);
+    ctx.closePath();
+    ctx.fill();
+    ctx.restore();
+
+    // 4. Dorsal wet specular highlight band along lit upper ridge
+    ctx.save();
+    ctx.globalAlpha = alpha * 0.32;
+    ctx.strokeStyle = '#e8fbff';
+    ctx.lineWidth = Math.max(1.2, rootW * 0.11);
+    ctx.beginPath();
+    for (let i = 1; i < n - 1; i++) {
+        const sx = smooth[i].x + nxArr[i] * hwArr[i] * 0.44;
+        const sy = smooth[i].y + nyArr[i] * hwArr[i] * 0.44;
+        if (i === 1) ctx.moveTo(sx, sy);
+        else ctx.lineTo(sx, sy);
+    }
+    ctx.stroke();
+    ctx.restore();
+
+    // 5. Glowing central bio-vein
+    if (glowAmt > 0.05) {
+        ctx.save();
+        ctx.globalCompositeOperation = 'lighter';
+        ctx.globalAlpha = alpha * Math.min(0.85, glowAmt * 0.65);
+        ctx.strokeStyle = glowCol;
+        ctx.lineWidth = Math.max(1.2, rootW * 0.12);
+        ctx.beginPath();
+        ctx.moveTo(smooth[0].x, smooth[0].y);
+        for (let i = 1; i <= n; i++) ctx.lineTo(smooth[i].x, smooth[i].y);
+        ctx.stroke();
+        ctx.restore();
+    }
+
+    // 6. Crisp bright rim edge along dorsal side + subtle dark ventral contour
+    ctx.strokeStyle = rimCol;
+    ctx.lineWidth = Math.max(1.2, Math.min(3.0, rootW * 0.06));
+    ctx.globalAlpha = alpha * 0.82;
+    ctx.beginPath();
+    ctx.moveTo(lx[0], ly[0]);
+    for (let i = 1; i <= n; i++) ctx.lineTo(lx[i], ly[i]);
+    ctx.lineTo(tipX, tipY);
+    ctx.stroke();
+
+    ctx.strokeStyle = darkCol;
+    ctx.lineWidth = Math.max(1.0, Math.min(2.4, rootW * 0.05));
+    ctx.globalAlpha = alpha * 0.85;
+    ctx.beginPath();
+    ctx.moveTo(rx[0], ry[0]);
+    for (let i = 1; i <= n; i++) ctx.lineTo(rx[i], ry[i]);
+    ctx.stroke();
+
+    // 7. Proportional elliptical ventral suckers with dark inner pores (largest near base, tapering smoothly)
+    if (showSuckers) {
+        const suckerCount = Math.max(5, Math.min(13, Math.round(6 + rootW * 0.14)));
+        for (let s = 0; s < suckerCount; s++) {
+            const u = 0.09 + (s / suckerCount) * 0.76;
+            const idx = Math.min(n - 1, Math.max(1, Math.round(u * n)));
+            const hw = hwArr[idx];
+            if (hw < 3.5) continue;
+            const pA = smooth[idx - 1];
+            const pB = smooth[idx + 1];
+            const ang = Math.atan2(pB.y - pA.y, pB.x - pA.x);
+            const sx = smooth[idx].x - nxArr[idx] * hw * 0.42;
+            const sy = smooth[idx].y - nyArr[idx] * hw * 0.42;
+            const srX = Math.max(2.2, hw * 0.34);
+            const srY = Math.max(1.5, hw * 0.22);
+
+            ctx.save();
+            ctx.translate(sx, sy);
+            ctx.rotate(ang);
+            ctx.globalAlpha = alpha * 0.90;
+            ctx.fillStyle = suckerCol;
+            ctx.beginPath();
+            ctx.ellipse(0, 0, srX, srY, 0, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.strokeStyle = darkCol;
+            ctx.lineWidth = Math.max(0.8, srY * 0.35);
+            ctx.stroke();
+            ctx.fillStyle = poreCol;
+            ctx.beginPath();
+            ctx.ellipse(0, 0, srX * 0.48, srY * 0.45, 0, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.restore();
+        }
+    }
+
+    // 8. Optional luminous bone hook / spear glow at tip
+    if (o.tipLight !== false && hooked && glowAmt > 0.1) {
+        ctx.save();
+        ctx.globalCompositeOperation = 'lighter';
+        ctx.globalAlpha = alpha * 0.85;
+        ctx.fillStyle = '#ffffff';
+        ctx.beginPath();
+        ctx.arc(tipX, tipY, Math.max(2.5, tipW * 0.65), 0, Math.PI * 2);
+        ctx.fill();
+        ctx.restore();
+    }
+
+    // 9. Optional debug spine & collision capsule overlay (used by tentacle-lab.html / boss-lab.html)
+    if (o.debugSpine) {
+        ctx.save();
+        ctx.globalAlpha = 0.9;
+        ctx.strokeStyle = '#ffeb3b';
+        ctx.lineWidth = 1.5;
+        ctx.beginPath();
+        ctx.moveTo(smooth[0].x, smooth[0].y);
+        for (let i = 1; i <= n; i++) ctx.lineTo(smooth[i].x, smooth[i].y);
+        ctx.stroke();
+        ctx.strokeStyle = 'rgba(255, 77, 109, 0.72)';
+        ctx.lineWidth = 1.0;
+        const step = Math.max(1, Math.floor(n / 12));
+        for (let i = 0; i <= n; i += step) {
+            ctx.beginPath();
+            ctx.arc(smooth[i].x, smooth[i].y, hwArr[i], 0, Math.PI * 2);
+            ctx.stroke();
+        }
+        ctx.restore();
+    }
+
+    ctx.restore();
+}
+
+// Exact tapered capsule collision matching drawOrganicTentacle spine & widths
+function checkOrganicTentacleCollision(px, py, pradius, spine, opts) {
+    if (!spine || spine.length < 2) return false;
+    const o = opts || {};
+    const widths = _resolveTentacleWidths(o);
+    const rootW = widths.rootW;
+    const tipW = widths.tipW;
+    const pad = typeof pradius === 'number' ? pradius : 5.75;
+    const n = spine.length - 1;
+
+    for (let i = 0; i < n; i++) {
+        const a = spine[i];
+        const b = spine[i + 1];
+        const dx = b.x - a.x;
+        const dy = b.y - a.y;
+        const lenSq = dx * dx + dy * dy;
+        let t = 0;
+        if (lenSq > 1e-6) {
+            t = Math.max(0, Math.min(1, ((px - a.x) * dx + (py - a.y) * dy) / lenSq));
+        }
+        const qx = a.x + dx * t;
+        const qy = a.y + dy * t;
+        const u = (i + t) / n;
+        const hw = _tentacleHalfWidthAt(u, rootW, tipW);
+        const hitR = hw * 0.88 + pad;
+        const distSq = (px - qx) * (px - qx) + (py - qy) * (py - qy);
+        if (distSq <= hitR * hitR) return true;
+    }
+    return false;
+}
+
+// =========================================================================
+// Offscreen High-Res Procedural Dark-Fantasy Boss Baking (1024px -> downscaled)
+// =========================================================================
+let _duelBossAssets = null;
+
+function _traceCraniumSilhouette(c, cx, cy, R, phase) {
+    // Sculpted cephalopod mantle + elongated cranium + heavy brow ridges + cheeks + muscular neck
+    const mantleTop = cy - R * (phase === 3 ? 1.24 : (phase === 2 ? 1.16 : 1.08));
+    const crownW = R * (phase === 3 ? 0.98 : (phase === 2 ? 0.90 : 0.84));
+    const browW = R * (phase === 3 ? 1.06 : (phase === 2 ? 1.00 : 0.94));
+    const cheekW = R * (phase === 3 ? 0.86 : 0.80);
+    const neckW = R * 0.58;
+    const chinY = cy + R * 0.78;
+
+    c.beginPath();
+    c.moveTo(cx, mantleTop);
+    // Right upper mantle dome -> lateral lobe -> heavy brow ridge -> cheek -> neck
+    c.bezierCurveTo(cx + crownW * 0.65, mantleTop - R * 0.04, cx + crownW * 1.15, cy - R * 0.80, cx + browW, cy - R * 0.22);
+    c.bezierCurveTo(cx + browW * 1.08, cy + R * 0.06, cx + cheekW * 1.05, cy + R * 0.36, cx + neckW, chinY);
+    c.quadraticCurveTo(cx, chinY + R * 0.16, cx - neckW, chinY);
+    // Left neck -> cheek -> brow ridge -> upper mantle dome
+    c.bezierCurveTo(cx - cheekW * 1.05, cy + R * 0.36, cx - browW * 1.08, cy + R * 0.06, cx - browW, cy - R * 0.22);
+    c.bezierCurveTo(cx - crownW * 1.15, cy - R * 0.80, cx - crownW * 0.65, mantleTop - R * 0.04, cx, mantleTop);
+    c.closePath();
+}
+
+function _bakeProceduralCarapace(phase) {
+    if (typeof document === 'undefined') return null;
+    // Bake at 512px (2x typical 256px display size) or 1024px for crisp anti-aliased skin grain
+    const S = 512;
+    const cv = document.createElement('canvas');
+    cv.width = S;
+    cv.height = S;
+    const c = cv.getContext('2d');
+    if (!c) return null;
+
+    const pal = DuelFX.getPhasePalette(phase);
+    const cx = S * 0.5;
+    const cy = S * 0.54;
+    const R = S * 0.33;
+
+    // 1. Clipped sculpted cranium & mantle base
+    c.save();
+    _traceCraniumSilhouette(c, cx, cy, R, phase);
+    c.clip();
+
+    // Base directional 3D form shading (key light top-left, deep shadow bottom-right)
+    const formGrad = c.createRadialGradient(cx - R * 0.34, cy - R * 0.44, R * 0.08, cx + R * 0.14, cy + R * 0.18, R * 1.42);
+    if (phase === 1) {
+        formGrad.addColorStop(0.0, '#62ccd0');
+        formGrad.addColorStop(0.32, '#2f848e');
+        formGrad.addColorStop(0.70, '#164554');
+        formGrad.addColorStop(1.0, '#081c26');
+    } else if (phase === 2) {
+        formGrad.addColorStop(0.0, '#9662d6');
+        formGrad.addColorStop(0.32, '#5a2d94');
+        formGrad.addColorStop(0.70, '#26104c');
+        formGrad.addColorStop(1.0, '#0c051c');
+    } else {
+        formGrad.addColorStop(0.0, '#d45175');
+        formGrad.addColorStop(0.30, '#851f46');
+        formGrad.addColorStop(0.68, '#380b20');
+        formGrad.addColorStop(1.0, '#12030a');
+    }
+    c.fillStyle = formGrad;
+    c.fillRect(0, 0, S, S);
+
+    // Translucent lobes and branching veins sit beneath the surface plates.
+    c.save();
+    c.lineCap = 'round'; c.lineJoin = 'round';
+    for (let l = 0; l < 7; l++) {
+        const side = l % 2 === 0 ? -1 : 1;
+        const j = Math.floor(l / 2);
+        const x = cx + side * (19 + j * 19), y = cy - R * (0.83 - j * 0.09);
+        const fold = () => {
+            c.beginPath(); c.moveTo(x, y);
+            c.bezierCurveTo(x + side * (68 - j * 7), y - 21, x + side * (37 + j * 7), y + 29, x + side * 53, y + 57);
+            c.bezierCurveTo(x + side * 69, y + 69, x + side * 38, y + 83, x + side * 36, y + 64);
+        };
+        fold(); c.lineWidth = 16 - j * 2; c.strokeStyle = '#08101c'; c.globalAlpha = 0.48; c.stroke();
+        c.translate(-2, -3); fold(); c.lineWidth = 3.7; c.strokeStyle = pal.rim; c.globalAlpha = 0.23; c.stroke(); c.translate(2, 3);
+    }
+    const rootX = cx - 11, rootY = cy - R * 0.25;
+    function vein(x, y, a, size, depth, turn) {
+        const ex = x + Math.cos(a) * size, ey = y + Math.sin(a) * size;
+        c.lineWidth = Math.max(1.1, depth * 1.47);
+        c.beginPath(); c.moveTo(x, y);
+        c.quadraticCurveTo(x + Math.cos(a - turn * 0.43) * size * 0.58, y + Math.sin(a + turn * 0.45) * size * 0.43, ex, ey);
+        c.stroke();
+        if (depth <= 1) return;
+        vein(ex, ey, a + turn * 0.28, size * 0.62, depth - 1, turn);
+        vein(ex, ey, a - turn * 0.66, size * 0.51, depth - 1, -turn);
+    }
+    c.globalCompositeOperation = 'lighter';
+    c.strokeStyle = pal.vein; c.globalAlpha = 0.38;
+    const branches = phase === 1 ? 2 : phase === 2 ? 3 : 4;
+    for (let i = 0; i < branches; i++) vein(rootX + i * 6, rootY + i * 3, -2.32 + i * 0.54, 50 + i * 10, 3, i % 2 ? -1 : 1);
+    c.globalCompositeOperation = 'source-over';
+    const wet = c.createRadialGradient(cx - R * 0.50, cy - R * 0.64, 1, cx - R * 0.37, cy - R * 0.65, R * 0.57);
+    wet.addColorStop(0, '#c7e9db6b'); wet.addColorStop(0.38, '#9bc1c32e'); wet.addColorStop(1, '#8fc6eb00');
+    c.globalAlpha = 0.64; c.fillStyle = wet; c.fillRect(0, 0, S, S);
+    c.restore();
+
+    // Multi-octave organic skin grain, moss/scales, and pores
+    const seed = phase * 137 + 29;
+    const step = 6;
+    for (let y = Math.floor(cy - R * 1.3); y < Math.ceil(cy + R * 1.0); y += step) {
+        for (let x = Math.floor(cx - R * 1.15); x < Math.ceil(cx + R * 1.15); x += step) {
+            const nVal = _duelFbm2D(x * 0.028, y * 0.028, seed);
+            const dx = (x - (cx - R * 0.3)) / (R * 1.4);
+            const dy = (y - (cy - R * 0.4)) / (R * 1.4);
+            const lit = Math.max(0, 1 - Math.hypot(dx, dy));
+            if (nVal > 0.56) {
+                c.fillStyle = phase === 1
+                    ? 'rgba(130, 245, 225, ' + ((nVal - 0.56) * (0.28 + lit * 0.35)) + ')'
+                    : (phase === 2
+                        ? 'rgba(185, 145, 255, ' + ((nVal - 0.56) * (0.26 + lit * 0.35)) + ')'
+                        : 'rgba(255, 195, 130, ' + ((nVal - 0.56) * (0.28 + lit * 0.35)) + ')');
+                c.fillRect(x, y, step, step);
+            } else if (nVal < 0.40) {
+                c.fillStyle = 'rgba(4, 8, 18, ' + ((0.40 - nVal) * 0.62) + ')';
+                c.fillRect(x, y, step, step);
+            }
+        }
+    }
+
+    c.save();
+    c.globalCompositeOperation = 'multiply';
+    for (let i = 0; i < 280; i++) {
+        const angle = i * 2.399963, radius = 12 + (i * 37 % 142);
+        const x = cx + Math.cos(angle) * radius, y = cy + Math.sin(angle) * radius * 0.89;
+        const v = _duelValueNoise2D(x * 0.095, y * 0.085, phase * 37);
+        c.fillStyle = v > 0.48 ? '#73586e63' : '#1d323c80';
+        c.beginPath(); c.ellipse(x, y, 0.9 + (i % 5) * 0.36, 1.7 + (i % 4) * 0.63, angle, 0, Math.PI * 2); c.fill();
+    }
+    c.restore();
+    c.strokeStyle = '#130f18'; c.lineWidth = 1.8;
+    for (let i = 0; i < 5; i++) {
+        const x = cx + (i % 2 ? -1 : 1) * (48 + i * 12), y = cy - 49 + (i % 4) * 22;
+        c.beginPath(); c.moveTo(x - 8, y - 16); c.lineTo(x - 2, y - 6);
+        c.lineTo(x - 5, y); c.lineTo(x + 4, y + 9); c.lineTo(x + 2, y + 17); c.stroke();
+    }
+
+    // Sculpted overlapping carapace plates & cranial ridges across upper mantle
+    for (let row = 0; row < 5; row++) {
+        const ry = cy - R * (0.98 - row * 0.16);
+        const span = R * (0.55 + row * 0.12);
+        const plates = 3 + row;
+        for (let p = 0; p < plates; p++) {
+            const px = cx - span * 0.5 + (p / Math.max(1, plates - 1)) * span;
+            const pw = span / plates * 0.65;
+            const ph = R * 0.12;
+            c.fillStyle = 'rgba(4, 10, 20, 0.28)';
+            c.beginPath();
+            c.ellipse(px + 2, ry + 5, pw, ph, 0, 0, Math.PI);
+            c.fill();
+            c.strokeStyle = pal.rim;
+            c.globalAlpha = 0.22;
+            c.lineWidth = 1.6;
+            c.beginPath();
+            c.ellipse(px, ry, pw, ph * 0.85, 0, Math.PI * 1.1, Math.PI * 1.9);
+            c.stroke();
+            c.globalAlpha = 1.0;
+        }
+    }
+
+    // 4. Sculpted individual brow contours (no continuous dark horizontal band that could read as a mouth)
+    const browGlow = c.createRadialGradient(cx, cy - R * 0.28, R * 0.08, cx, cy - R * 0.28, R * 0.85);
+    browGlow.addColorStop(0.0, 'rgba(255, 255, 255, 0.14)');
+    browGlow.addColorStop(1.0, 'rgba(255, 255, 255, 0.0)');
+    c.fillStyle = browGlow;
+    c.beginPath();
+    c.ellipse(cx, cy - R * 0.32, R * 0.78, R * 0.36, 0, 0, Math.PI * 2);
+    c.fill();
+
+    // Sculpted brow ridge highlight
+    c.strokeStyle = pal.rim;
+    c.globalAlpha = 0.45;
+    c.lineWidth = 4.5;
+    c.beginPath();
+    c.moveTo(cx - R * 0.82, cy - R * 0.18);
+    c.quadraticCurveTo(cx - R * 0.36, cy - R * 0.34, cx, cy - R * 0.20);
+    c.quadraticCurveTo(cx + R * 0.36, cy - R * 0.34, cx + R * 0.82, cy - R * 0.18);
+    c.stroke();
+    c.globalAlpha = 1.0;
+
+    // 5. Branching glowing bio-veins (or molten fissures in Phase 3)
+    c.save();
+    c.globalCompositeOperation = 'lighter';
+    c.strokeStyle = pal.vein;
+    c.lineCap = 'round';
+    const veinCount = phase === 3 ? 11 : (phase === 2 ? 8 : 5);
+    for (let v = 0; v < veinCount; v++) {
+        const startA = -Math.PI * 0.88 + (v / Math.max(1, veinCount - 1)) * Math.PI * 0.76;
+        let vx = cx + Math.cos(startA) * R * 0.22;
+        let vy = cy - R * 0.75 + Math.sin(startA) * R * 0.12;
+        c.lineWidth = phase === 3 ? 3.2 : 2.1;
+        c.globalAlpha = phase === 3 ? 0.62 : 0.38;
+        c.beginPath();
+        c.moveTo(vx, vy);
+        for (let s = 1; s <= 5; s++) {
+            const ang = startA + Math.sin(v * 2.1 + s * 1.4) * 0.35;
+            vx += Math.cos(ang) * R * 0.18;
+            vy += Math.abs(Math.sin(ang)) * R * 0.16 + R * 0.08;
+            c.lineTo(vx, vy);
+        }
+        c.stroke();
+    }
+    c.restore();
+
+    // 6. Irregular organic barnacles/moss patches (strongest in P1) + wet mucous specular streaks
+    const barnacleCount = phase === 1 ? 16 : (phase === 2 ? 9 : 6);
+    for (let b = 0; b < barnacleCount; b++) {
+        const h1 = _duelHash2(b * 3, phase * 7, 91);
+        const h2 = _duelHash2(b * 5, phase * 11, 131);
+        const bx = cx + (h1 - 0.5) * R * 1.55;
+        const by = cy - R * 0.95 + h2 * R * 1.25;
+        const br = 3.5 + _duelHash2(b, phase, 43) * 6.5;
+        c.fillStyle = phase === 1 ? 'rgba(130, 175, 148, 0.42)' : 'rgba(180, 160, 210, 0.26)';
+        c.beginPath();
+        c.ellipse(bx, by, br, br * 0.72, h1 * Math.PI, 0, Math.PI * 2);
+        c.fill();
+        c.fillStyle = 'rgba(6, 12, 20, 0.55)';
+        c.beginPath();
+        c.arc(bx, by, br * 0.32, 0, Math.PI * 2);
+        c.fill();
+    }
+
+    // Wet top-left specular sheen streaks
+    c.save();
+    c.globalAlpha = 0.28;
+    c.fillStyle = '#e8ffff';
+    c.beginPath();
+    c.ellipse(cx - R * 0.34, cy - R * 0.62, R * 0.22, R * 0.08, -0.45, 0, Math.PI * 2);
+    c.fill();
+    c.beginPath();
+    c.ellipse(cx - R * 0.52, cy - R * 0.38, R * 0.10, R * 0.04, -0.7, 0, Math.PI * 2);
+    c.fill();
+    c.restore();
+
+    // 7. Directional rim light along silhouette edge (top-left bright, bottom shadow)
+    c.strokeStyle = pal.rim;
+    c.lineWidth = 4.5;
+    c.globalAlpha = 0.68;
+    _traceCraniumSilhouette(c, cx, cy, R, phase);
+    c.stroke();
+    c.restore();
+
+    // Subtle exterior dark grounding contour (not a thick flat cartoon border)
+    c.save();
+    c.strokeStyle = 'rgba(4, 8, 18, 0.85)';
+    c.lineWidth = 2.4;
+    _traceCraniumSilhouette(c, cx, cy, R, phase);
+    c.stroke();
+    c.restore();
+
+    return cv;
+}
+
+function _bakeProceduralWing(phase) {
+    if (typeof document === 'undefined') return null;
+    const W = 320;
+    const H = 260;
+    const cv = document.createElement('canvas');
+    cv.width = W;
+    cv.height = H;
+    const c = cv.getContext('2d');
+    if (!c) return null;
+
+    const pal = DuelFX.getPhasePalette(phase);
+    const memGrad = c.createLinearGradient(0, 30, W, H);
+    if (phase === 3) {
+        memGrad.addColorStop(0, 'rgba(130, 26, 62, 0.92)');
+        memGrad.addColorStop(0.55, 'rgba(58, 12, 34, 0.84)');
+        memGrad.addColorStop(1, 'rgba(20, 4, 14, 0.60)');
+    } else {
+        memGrad.addColorStop(0, 'rgba(72, 34, 130, 0.88)');
+        memGrad.addColorStop(0.55, 'rgba(30, 14, 68, 0.82)');
+        memGrad.addColorStop(1, 'rgba(10, 6, 28, 0.52)');
+    }
+
+    // Tattered bat/eldritch membrane between 4 bone ribs
+    c.beginPath();
+    c.moveTo(16, H * 0.56);
+    c.quadraticCurveTo(W * 0.42, 16, W - 18, 30);
+    c.quadraticCurveTo(W * 0.78, H * 0.44, W - 36, H * 0.56);
+    c.quadraticCurveTo(W * 0.66, H * 0.68, W * 0.74, H * 0.84);
+    c.quadraticCurveTo(W * 0.46, H * 0.72, W * 0.34, H * 0.92);
+    c.quadraticCurveTo(W * 0.22, H * 0.70, 16, H * 0.68);
+    c.closePath();
+    c.fillStyle = memGrad;
+    c.fill();
+
+    // Glowing membrane veins + bone ribs
+    const ribs = [
+        [W - 18, 30],
+        [W - 36, H * 0.56],
+        [W * 0.74, H * 0.84],
+        [W * 0.34, H * 0.92]
+    ];
+    for (let i = 0; i < ribs.length; i++) {
+        const [rx, ry] = ribs[i];
+        c.strokeStyle = phase === 3 ? '#f5cf82' : '#96d8ff';
+        c.lineWidth = i === 0 ? 6.0 : 3.6;
+        c.lineCap = 'round';
+        c.beginPath();
+        c.moveTo(16, H * 0.58);
+        c.quadraticCurveTo(rx * 0.52, ry * 0.45 + 16, rx, ry);
+        c.stroke();
+
+        c.strokeStyle = pal.dark;
+        c.lineWidth = 1.4;
+        c.beginPath();
+        c.moveTo(16, H * 0.60);
+        c.quadraticCurveTo(rx * 0.52, ry * 0.45 + 19, rx, ry + 2);
+        c.stroke();
+    }
+
+    return cv;
+}
+
+function _bakePhase3RuneRing() {
+    if (typeof document === 'undefined') return null;
+    // Thin rotating arcane ring ONLY (zero solid red disc fill!)
+    const S = 384;
+    const cv = document.createElement('canvas');
+    cv.width = S;
+    cv.height = S;
+    const c = cv.getContext('2d');
+    if (!c) return null;
+
+    const cx = S * 0.5;
+    const cy = S * 0.5;
+    const rOuter = S * 0.44;
+    const rInner = S * 0.37;
+
+    c.strokeStyle = 'rgba(255, 214, 126, 0.72)';
+    c.lineWidth = 2.0;
+    c.beginPath();
+    c.arc(cx, cy, rOuter, 0, Math.PI * 2);
+    c.stroke();
+
+    c.strokeStyle = 'rgba(255, 112, 152, 0.55)';
+    c.lineWidth = 1.4;
+    c.beginPath();
+    c.arc(cx, cy, rInner, 0, Math.PI * 2);
+    c.stroke();
+
+    // 24 radial rune ticks around the ring band
+    c.strokeStyle = 'rgba(255, 224, 150, 0.65)';
+    c.lineWidth = 1.5;
+    for (let i = 0; i < 24; i++) {
+        const a = (i / 24) * Math.PI * 2;
+        const r0 = i % 3 === 0 ? rInner - 6 : rInner + 2;
+        const r1 = i % 3 === 0 ? rOuter + 6 : rOuter - 2;
+        c.beginPath();
+        c.moveTo(cx + Math.cos(a) * r0, cy + Math.sin(a) * r0);
+        c.lineTo(cx + Math.cos(a) * r1, cy + Math.sin(a) * r1);
+        c.stroke();
+    }
+    return cv;
+}
+
+function _bakeDuelLimb(phase) {
+    const sprite = document.createElement('canvas');
+    sprite.width = 104; sprite.height = 170;
+    const ctx = sprite.getContext('2d');
+    const spine = buildOrganicTentacleSpine(51, 18, 70, 149, {
+        joints: 18, time: 0.3, waveAmp: 9, waveFreq: 2.4, bend: -24, curl: 0.5
+    });
+    drawOrganicTentacle(ctx, spine, {
+        phase, rootWidth: 46, tipWidth: 3.4, suckers: true, hooked: true, glow: 0.36, subdiv: 4, tipLight: false, castShadow: false
+    });
+    const pal = DuelFX.getPhasePalette(phase);
+    for (let i = 0; i < 5; i++) {
+        const j = spine[3 + i * 2];
+        ctx.fillStyle = i % 2 ? '#252934' : '#2d2b38';
+        ctx.beginPath(); ctx.moveTo(j.x - 12 + i, j.y - 7);
+        ctx.quadraticCurveTo(j.x - 4, j.y - 14, j.x + 9 - i * 0.5, j.y - 4);
+        ctx.lineTo(j.x + 7, j.y + 2); ctx.lineTo(j.x - 7, j.y - 2); ctx.closePath(); ctx.fill();
+        ctx.strokeStyle = i % 2 ? pal.rim : '#5b525f'; ctx.lineWidth = 1.06;
+        ctx.beginPath(); ctx.moveTo(j.x - 12 + i, j.y - 7);
+        ctx.quadraticCurveTo(j.x - 3, j.y - 13, j.x + 9 - i * 0.5, j.y - 4); ctx.stroke();
+    }
+    return sprite;
+}
+
+function _bakeDuelAtmosphere(phase) {
+    const sprite = document.createElement('canvas');
+    sprite.width = sprite.height = 256;
+    const ctx = sprite.getContext('2d');
+    const rgb = ['69,175,187', '165,96,240', '246,109,87'][phase - 1];
+    const g = ctx.createRadialGradient(128, 128, 12, 128, 128, 128);
+    g.addColorStop(0, 'rgba(' + rgb + ',0.36)');
+    g.addColorStop(0.56, 'rgba(' + rgb + ',0.13)');
+    g.addColorStop(1, 'rgba(' + rgb + ',0)');
+    ctx.fillStyle = g; ctx.fillRect(0, 0, 256, 256);
+    return sprite;
+}
+
+function _bakeDuelCrown(phase) {
+    const sprite = document.createElement('canvas');
+    sprite.width = 252; sprite.height = 160;
+    const ctx = sprite.getContext('2d');
+    const pal = DuelFX.getPhasePalette(phase);
+    ctx.translate(126, 104);
+    const crown = ctx.createLinearGradient(0, -105, 0, 48);
+    crown.addColorStop(0, phase === 2 ? '#c9a8d4' : '#ffe0a2');
+    crown.addColorStop(0.42, phase === 2 ? '#49395f' : '#7e3552');
+    crown.addColorStop(1, '#0c091c');
+    for (let i = -3; i <= 3; i++) {
+        const bx = i * 16, tx = i * (phase === 2 ? 25 : 35);
+        const tipY = -91 + Math.abs(i) * (phase === 2 ? 13 : 10);
+        ctx.fillStyle = crown; ctx.strokeStyle = pal.rim; ctx.lineWidth = 1.35;
+        ctx.beginPath(); ctx.moveTo(bx - 13, 25);
+        ctx.quadraticCurveTo(tx - 6, tipY + 30, tx, tipY);
+        ctx.quadraticCurveTo(tx + 8, tipY + 39, bx + 14, 22); ctx.closePath(); ctx.fill(); ctx.stroke();
+        ctx.strokeStyle = '#100d25'; ctx.lineWidth = 3;
+        ctx.beginPath(); ctx.moveTo(tx, tipY + 12); ctx.lineTo(bx + 1, -11); ctx.lineTo(bx + 5, 12); ctx.stroke();
+    }
+    return sprite;
+}
+
+function _bakeDuelMantleArmor(phase) {
+    const cv = document.createElement('canvas');
+    cv.width = 244; cv.height = 122;
+    const g = cv.getContext('2d');
+    const pal = DuelFX.getPhasePalette(phase);
+    const pat = g.createLinearGradient(0, 20, 0, 111);
+    pat.addColorStop(0, ['#495657', '#58505b', '#645254'][phase - 1]);
+    pat.addColorStop(0.47, ['#303f45', '#3a344a', '#48313d'][phase - 1]);
+    pat.addColorStop(0.78, '#191b29'); pat.addColorStop(1, '#10141e');
+    const ends = [[26, 89, 14], [56, 72, 23], [85, 58, 11], [121, 51, 34],
+        [149, 58, 18], [179, 72, 26], [208, 89, 13]];
+    const lobes = phase === 1 ? [1, 2, 3, 4, 5] : phase === 2 ? [0, 1, 2, 3, 4, 5] : [0, 1, 2, 3, 4, 5, 6];
+    for (const i of lobes) {
+        const [x, y, h] = ends[i];
+        const lean = i < 3 ? -1 : 1;
+        const length = h * (phase === 1 ? 0.43 : phase === 2 ? 0.69 : 1);
+        const tx = x + lean * (5 + i % 3 * 4);
+        g.fillStyle = '#08091086';
+        g.beginPath(); g.ellipse(x + 7, y + 16, 21, 5, lean * 0.18, 0, Math.PI * 2); g.fill();
+        g.fillStyle = pat;
+        g.beginPath(); g.moveTo(x - 15, y + 14);
+        g.quadraticCurveTo(tx - 6, y + 5 - length * 0.34, tx - 1, y - length);
+        g.lineTo(tx + 1.9, y - length + (i === 2 ? 6.4 : 1.1));
+        g.bezierCurveTo(tx + 8, y - 1, x + 12, y + 7, x + 22, y + 13);
+        g.quadraticCurveTo(x + 8, y + 18, x - 15, y + 14);
+        g.fill();
+        g.strokeStyle = pal.rim; g.globalAlpha = 0.36; g.lineWidth = 1.15;
+        g.beginPath(); g.moveTo(tx - 1, y - length + 3);
+        g.quadraticCurveTo(tx - lean * 2, y + 1, x - 9, y + 10); g.stroke();
+        g.globalAlpha = 1;
+        g.strokeStyle = '#161421'; g.lineWidth = 1.6;
+        g.beginPath(); g.moveTo(tx + 1.5, y - length + 8);
+        g.lineTo(x + 1, y + 2); g.lineTo(x - 1, y + 9); g.lineTo(x + 6, y + 13); g.stroke();
+    }
+    return cv;
+}
+
+function _bakeDuelEyeArt(phase) {
+    const socket = document.createElement('canvas'), iris = document.createElement('canvas');
+    socket.width = 88; socket.height = 64;
+    iris.width = iris.height = 64;
+    const g = socket.getContext('2d'), k = iris.getContext('2d');
+    const edge = ['#384947', '#4a364b', '#542c36'][phase - 1];
+    const recess = g.createRadialGradient(46, 33, 5, 45, 31, 43);
+    recess.addColorStop(0, '#07070e'); recess.addColorStop(0.54, '#100c13');
+    recess.addColorStop(0.86, edge); recess.addColorStop(1, '#18232a00');
+    g.fillStyle = recess; g.fillRect(0, 0, 88, 64);
+    const grad = k.createRadialGradient(31, 29, 3, 32, 32, 31);
+    grad.addColorStop(0, '#be8c3f');
+    grad.addColorStop(0.44, phase === 3 ? '#f6a250' : '#ba833b');
+    grad.addColorStop(0.77, '#6b4629'); grad.addColorStop(0.94, '#281b1e');
+    grad.addColorStop(1, '#140f17');
+    k.fillStyle = grad; k.beginPath(); k.arc(32, 32, 31, 0, Math.PI * 2); k.fill();
+    for (let i = 0; i < 38; i++) {
+        const a = i / 38 * Math.PI * 2, root = 8 + i % 7 * 0.85;
+        k.strokeStyle = i % 3 === 0 ? '#f1bb6b88' : '#33222a99'; k.lineWidth = i % 5 === 0 ? 1.3 : 0.6;
+        k.beginPath(); k.moveTo(32 + Math.cos(a) * root, 32 + Math.sin(a) * root);
+        k.quadraticCurveTo(32 + Math.cos(a + 0.09) * 20, 32 + Math.sin(a + 0.09) * 20,
+            32 + Math.cos(a + 0.12) * 28, 32 + Math.sin(a + 0.12) * 28); k.stroke();
+    }
+    return { socket, iris };
+}
+
+function _gradeDuelSprite(sprite, strength, accents, floor = 4) {
+    const ctx = sprite.getContext('2d');
+    const image = ctx.getImageData(0, 0, sprite.width, sprite.height);
+    const colors = image.data;
+    for (let i = 0; i < colors.length; i += 4) {
+        if (!colors[i + 3]) continue;
+        const luma = colors[i] * 0.2126 + colors[i + 1] * 0.7152 + colors[i + 2] * 0.0722;
+        const lift = Math.max(0, (luma - 132) / 123) ** 2;
+        const target = Math.min(255, floor + luma * strength + lift * accents);
+        const gain = target / Math.max(1, luma);
+        for (let ch = 0; ch < 3; ch++) {
+            colors[i + ch] = 0.87 * colors[i + ch] * gain + 0.13 * target;
+        }
+    }
+    ctx.putImageData(image, 0, 0);
+    return sprite;
+}
+
+function bakeDuelBossAssets() {
+    if (_duelBossAssets) return _duelBossAssets;
+    _duelBossAssets = {
+        carapace1: _bakeProceduralCarapace(1),
+        carapace2: _gradeDuelSprite(_bakeProceduralCarapace(2), 0.375, 25),
+        carapace3: _gradeDuelSprite(_bakeProceduralCarapace(3), 0.375, 25),
+        wing2: _gradeDuelSprite(_bakeProceduralWing(2), 0.40, 19),
+        wing3: _gradeDuelSprite(_bakeProceduralWing(3), 0.39, 23),
+        p3Ring: _bakePhase3RuneRing(),
+        limbs: [_bakeDuelLimb(1), ...[2, 3].map(phase => _gradeDuelSprite(_bakeDuelLimb(phase), 0.389, 25))],
+        atmospheres: [1, 2, 3].map(_bakeDuelAtmosphere),
+        crowns: [2, 3].map(phase => _gradeDuelSprite(_bakeDuelCrown(phase), 0.33, 24)),
+        eyes: [1, 2, 3].map(_bakeDuelEyeArt),
+        armor: [1, 2, 3].map(phase => _gradeDuelSprite(_bakeDuelMantleArmor(phase), 0.47, 15))
+    };
+    return _duelBossAssets;
+}
+
+function _drawDetailedBossEye(ctx, ex, ey, rx, ry, lookX, lookY, pal, blinkAmt, eyes, side = 1, minor = false) {
+    ctx.save(); ctx.translate(ex, ey); ctx.rotate(side * 0.12);
+    const lid = Math.max(0.06, (minor ? 0.68 : 0.88) * (1 - blinkAmt));
+    ctx.drawImage(eyes.socket, -rx * 1.48, -ry * 1.58, rx * 2.96, ry * 3.16);
+    ctx.save();
+    ctx.beginPath(); ctx.moveTo(-rx, -ry * 0.12);
+    ctx.quadraticCurveTo(rx * 0.18 * side, -ry * 1.03 * lid, rx, -ry * 0.12);
+    ctx.quadraticCurveTo(rx * -0.08 * side, ry * 1.16 * lid, -rx, -ry * 0.12);
+    ctx.clip();
+    ctx.fillStyle = '#513a2a'; ctx.fillRect(-rx, -ry, rx * 2, ry * 2);
+    const dx = lookX - ex, dy = lookY - ey, distance = Math.hypot(dx, dy) || 1;
+    const ix = (dx / distance) * rx * 0.20, iy = (dy / distance) * ry * 0.23;
+    const irisR = Math.min(rx, ry) * 0.89;
+    ctx.drawImage(eyes.iris, ix - irisR, iy - irisR, irisR * 2, irisR * 2);
+    ctx.fillStyle = '#110c13'; ctx.beginPath();
+    ctx.ellipse(ix, iy, irisR * 0.16, irisR * 0.86, -side * 0.07, 0, Math.PI * 2); ctx.fill();
+    ctx.fillStyle = minor ? '#e4bf81' : '#ffe3b2';
+    ctx.beginPath(); ctx.arc(ix - irisR * 0.31, iy - irisR * 0.38, Math.max(0.45, irisR * 0.13), 0, Math.PI * 2); ctx.fill();
+    ctx.restore();
+    ctx.strokeStyle = minor ? '#53434a' : '#615c5c'; ctx.lineWidth = minor ? 0.7 : 1.4;
+    ctx.beginPath(); ctx.moveTo(-rx * 1.12, -ry * 0.14);
+    ctx.quadraticCurveTo(rx * side * 0.3, -ry * 1.64, rx * 1.13, -ry * 0.27);
+    ctx.stroke();
+    ctx.strokeStyle = minor ? '#332b39' : pal.rim;
+    ctx.globalAlpha *= 0.27; ctx.lineWidth = 0.72;
+    ctx.beginPath(); ctx.moveTo(-rx * 0.81, -ry * 0.63);
+    ctx.quadraticCurveTo(rx * side * 0.24, -ry * 1.55, rx * 0.83, -ry * 0.76); ctx.stroke();
+    ctx.restore();
+}
+
+function _drawDuelVeilBeard(ctx, phase, phaseMorph, release, t) {
+    const reach = 33 + phaseMorph * 7, lip = 3 + release * 5.8;
+    const palette = [
+        ['#090d17', '#19252f', '#476661'],
+        ['#110d1d', '#392639', '#987180'],
+        ['#150b17', '#442036', '#ae817e']
+    ][phase - 1];
+    ctx.save(); ctx.translate(0, 25);
+    ctx.fillStyle = '#090910';
+    ctx.beginPath(); ctx.ellipse(0, 3, 10 + release * 5, lip, -0.08, 0, Math.PI * 2); ctx.fill();
+    if (release > 0.08) {
+        ctx.strokeStyle = '#803c62'; ctx.lineWidth = 1; ctx.globalAlpha *= release * 0.66;
+        ctx.beginPath(); ctx.ellipse(0, 5, 4 + release * 4, 1.5 + release * 2, -0.08, 0, Math.PI * 2); ctx.stroke();
+        ctx.globalAlpha = 1;
+    }
+    ctx.lineCap = 'round';
+    const strands = 9;
+    for (let j = 0; j < strands; j++) {
+        const i = j - 4, sign = i < 0 ? -1 : 1;
+        const drift = Math.sin(t * (2.2 + j * 0.23) + j * 1.9) * (1.7 + j % 3);
+        const part = sign * release * (3 + j % 4 * 0.85);
+        const anchor = i * 3.35;
+        const length = reach - Math.abs(i) * 3.15 + (j % 3) * 3.3;
+        const thick = 2.25 + 1.6 * (1 - Math.abs(i) / 6);
+        const path = () => {
+            ctx.beginPath(); ctx.moveTo(anchor, -7 + Math.abs(i) * 1.25);
+            ctx.bezierCurveTo(anchor - sign * 3.3, 1, anchor + sign * 4.4 + part, length * 0.24, anchor + part + drift, length * 0.48);
+            ctx.bezierCurveTo(anchor + part + drift - sign * 6, length * 0.71, anchor + part + sign * 3.7, length * 0.81,
+                anchor + part + drift * 1.5 + sign * 5.6, length);
+        };
+        path(); ctx.strokeStyle = palette[0]; ctx.lineWidth = thick + 1.2; ctx.stroke();
+        ctx.translate(0.55, -0.6); path(); ctx.strokeStyle = palette[1]; ctx.lineWidth = thick; ctx.stroke();
+        ctx.globalAlpha = 0.29; ctx.strokeStyle = palette[2]; ctx.lineWidth = 0.76; ctx.stroke();
+        ctx.globalAlpha = 1; ctx.translate(-0.55, 0.6);
+    }
+    ctx.restore();
+}
+
+function _duelBodyScale(morph) {
+    return 1.296 + morph * 0.19;
+}
+
+// The mantle scale also sets the combat ellipse.
+function getDuelBossHitbox(phase, phaseMorph) {
+    const pm = typeof phaseMorph === 'number'
+        ? Math.max(0, Math.min(2, phaseMorph))
+        : Math.max(0, Math.min(2, ((phase || 1) - 1)));
+    const scale = _duelBodyScale(pm);
+    return {
+        rx: Math.round(72 * scale),
+        ry: Math.round(57 * scale),
+        offsetY: -4
+    };
+}
+
+// Main pure-procedural 3-phase Duel Boss renderer (zero boss PNGs, opaque body, <= 1.5ms dynamic)
+let _duelHitSurface = null;
+// Casting energy: it jumps with every cue and fades slowly, so the arms keep flailing for a moment after each skill
+let _duelFlailE = 0, _duelFlailLast = 0;
+function drawDuelEgregor(ctx, x, y, state) {
+    if (!ctx) return;
+    const assets = bakeDuelBossAssets();
+    const st = state || {};
+    const hit = st.hitFlash || 0;
+    if (hit > 0.02 && !st.silhouettePass && typeof document !== 'undefined') {
+        if (!_duelHitSurface) {
+            _duelHitSurface = document.createElement('canvas');
+            _duelHitSurface.width = 1000; _duelHitSurface.height = 660;
+        }
+        const g = _duelHitSurface.getContext('2d');
+        g.setTransform(1, 0, 0, 1, 0, 0); g.clearRect(0, 0, 1000, 660);
+        const dir = st.hitDir || { x: 0, y: -1 }, recoil = hit * 3.2;
+        drawDuelEgregor(g, 500, 300, Object.assign({}, st, { silhouettePass: true, hitFlash: 0,
+            playerX: (st.playerX ?? x) - x + 500, playerY: (st.playerY ?? y + 400) - y + 300,
+            eyeSamples: null }));
+        const pal = DuelFX.getPhasePalette(st.phase || 1);
+        g.save(); g.globalCompositeOperation = 'source-atop'; g.globalAlpha = hit * 0.35; g.fillStyle = pal.rim; g.fillRect(0, 0, 1000, 660); g.restore();
+        // The glow stays behind the body untinted, so a hit flashes the body without the halo blinking off
+        g.save(); g.globalCompositeOperation = 'destination-over';
+        drawDuelEgregor(g, 500, 300, Object.assign({}, st, { auraOnly: true, hitFlash: 0 }));
+        g.restore();
+        ctx.save(); ctx.drawImage(_duelHitSurface, x - 500 + dir.x * recoil, y - 300 + dir.y * recoil); ctx.restore(); return;
+    }
+    const phaseMorph = typeof st.phaseMorph === 'number'
+        ? Math.max(0, Math.min(2, st.phaseMorph))
+        : Math.max(0, Math.min(2, (st.phase || 1) - 1));
+    const phase = Math.floor(phaseMorph) + 1;
+    const upper = Math.min(3, phase + 1);
+    const mix = phaseMorph % 1;
+    const t = typeof st.time === 'number' ? st.time : performance.now() * 0.001;
+    const fx = window._fxOpts || {};
+    const low = typeof _gfxLevel !== 'undefined' && _gfxLevel >= 2;
+    const moving = !fx.reducedMotion;
+    const cue = st.cue, wind = cue?.wind || 0, fire = cue?.fire || 0;
+    const gest = st.gesture || null;
+    const flailDt = Math.min(0.1, Math.max(0, t - _duelFlailLast));
+    _duelFlailLast = t;
+    _duelFlailE = Math.max(_duelFlailE * Math.exp(-flailDt / 0.8), Math.max(wind * 0.5, fire));
+    // Even between skills the arms keep a slow writhe, so the boss never hangs still
+    const flail = (!fx.reducedMotion) ? Math.min(1, Math.max(_duelFlailE, 0.14 + 0.04 * Math.sin(t * 1.3))) : 0;
+    const pulse = moving ? Math.sin(t * 2.1) : 0;
+    const scale = _duelBodyScale(phaseMorph) * (1 + pulse * 0.012) *
+        (st.contractScale ?? 1) * (1 - 0.5 * (st.collapseProgress || 0));
+    const growth2 = Math.min(1, phaseMorph * 1.55);
+    const growth3 = Math.max(0, phaseMorph - 1);
+    const light = Math.max(wind * 0.7, st.chargeGlow || 0);
+    const pal = DuelFX.getPhasePalette(phase);
+    const nextPal = DuelFX.getPhasePalette(upper);
+    const gazeBias = gest && gest.gazeBias ? gest.gazeBias : null;
+    const lookX = (gazeBias && gazeBias.lock) ? ((st.playerX ?? x) - x) : (cue ? cue.dirX * 400 : (st.playerX ?? x) - x) + (gazeBias ? gazeBias.x * 110 : 0);
+    const lookY = (gazeBias && gazeBias.lock) ? ((st.playerY ?? y + 300) - y) : (cue ? cue.dirY * 400 : (st.playerY ?? y + 300) - y) + (gazeBias ? gazeBias.y * 110 : 0);
+    const blink = i => moving ? Math.max(0, (Math.sin(t * 1.43 + i * 2.17) - 0.982) * 49) : 0;
+    const auraSize = 246 + phaseMorph * 50;
+    const rim = mix > 0.5 ? nextPal.rim : pal.rim;
+    const eyeArt = assets.eyes[phase - 1];
+    const particleClock = moving ? t : 0;
+    ctx.save();
+    ctx.translate(x - (cue?.dirX || 0) * fire * 5, y - (cue?.dirY || 0) * fire * 5);
+    if (moving && gest && gest.bodyTilt) ctx.rotate(gest.bodyTilt);
+    const sqX = (moving && gest && gest.squashX) ? gest.squashX : 1;
+    const sqY = (moving && gest && gest.squashY) ? gest.squashY : 1;
+    // The whole body breathes and shifts weight with the active gesture
+    ctx.scale(scale * sqX * (1 + flail * 0.012), scale * sqY * (1 - flail * 0.009));
+    if (st.auraOnly) {
+        if (fx.glow !== false) crossfade(assets.atmospheres[phase - 1], assets.atmospheres[upper - 1], -auraSize / 2, -auraSize / 2, auraSize, auraSize);
+        ctx.restore();
+        return;
+    }
+    ctx.globalCompositeOperation = 'source-over';
+
+    function crossfade(first, second, x, y, w, h, alpha = 1) {
+        if (alpha <= 0) return;
+        ctx.globalAlpha = alpha;
+        ctx.drawImage(first, x, y, w, h);
+        if (mix > 0) {
+            ctx.globalAlpha = alpha * mix;
+            ctx.drawImage(second, x, y, w, h);
+        }
+        ctx.globalAlpha = 1;
+    }
+
+    if (!st.silhouettePass && fx.glow !== false) {
+        crossfade(assets.atmospheres[phase - 1], assets.atmospheres[upper - 1], -auraSize / 2, -auraSize / 2, auraSize, auraSize);
+    }
+    if (growth3 > 0) {
+        const r = 145 + growth3 * 28;
+        ctx.save(); ctx.rotate(particleClock * 0.19); ctx.globalAlpha = growth3 * 0.68;
+        ctx.drawImage(assets.p3Ring, -r, -r, r * 2, r * 2); ctx.restore();
+        if (fx.particles !== false) {
+            ctx.strokeStyle = '#ffc195'; ctx.fillStyle = '#38273e';
+            const count = low ? 4 : 10;
+            for (let i = 0; i < count; i++) {
+                const a = i * Math.PI * 2 / count + particleClock * 0.18;
+                const d = 128 + (i % 3) * 17 + pulse * 4;
+                ctx.save(); ctx.translate(Math.cos(a) * d, Math.sin(a) * d * 0.82);
+                ctx.rotate(a + particleClock * 0.14);
+                ctx.globalAlpha = growth3 * (0.42 + (i % 4) * 0.11);
+                ctx.beginPath(); ctx.moveTo(-7, -2); ctx.lineTo(14 + i % 3 * 4, -7);
+                ctx.lineTo(6, 6); ctx.lineTo(-1, 4); ctx.closePath(); ctx.fill(); ctx.stroke(); ctx.restore();
+            }
+        }
+    }
+    for (const side of [-1, 1]) {
+        ctx.save(); ctx.scale(side, 1);
+        if (growth2 > 0) {
+            const w = 126 + growth3 * 36;
+            ctx.translate(18, -27);
+            const gWing = (moving && gest && Number.isFinite(gest.wingOpen)) ? gest.wingOpen : (-wind * 0.08);
+            ctx.rotate((moving ? Math.sin(t * 2.2 + side) * 0.04 : 0) + gWing);
+            crossfade(assets.wing2, assets.wing3, 0, -76 * growth2, w * growth2, (114 + growth3 * 24) * growth2, growth2);
+        }
+        ctx.restore();
+    }
+    // A limb is drawn as thin slices, each turned a little more than the one before it, so the whole arm bends as one smooth curve
+    const LIMB_SLICES = low ? 6 : 9;
+    function bendLimb(bx, by, w, h, alpha, turnAt) {
+        const n = LIMB_SLICES, overlap = 2;
+        const imgs = [assets.limbs[phase - 1], mix > 0 ? assets.limbs[upper - 1] : null];
+        ctx.save();
+        ctx.translate(0, by);
+        for (let s = 0; s < n; s++) {
+            const segH = h / n;
+            for (let k = 0; k < 2; k++) {
+                const img = imgs[k];
+                if (!img) continue;
+                ctx.globalAlpha = k === 0 ? alpha : alpha * mix;
+                if (ctx.globalAlpha <= 0) continue;
+                ctx.drawImage(img, 0, img.height * s / n, img.width, img.height / n + 0.5,
+                    bx, 0, w, segH + (s < n - 1 ? overlap : 0));
+            }
+            if (s < n - 1) { ctx.translate(0, segH); ctx.rotate(turnAt((s + 0.5) / n) / n); }
+        }
+        ctx.globalAlpha = 1;
+        ctx.restore();
+    }
+    function arm(i, side, x, y, angle, length, width, alpha) {
+        if (alpha <= 0) return;
+        ctx.save(); ctx.translate(side * x, y); ctx.scale(side, 1);
+        if (gest && typeof gest.armAngle === "function" && typeof gest.bendAt === "function") {
+            const gAng = moving ? gest.armAngle(i, side) : 0;
+            const gReach = (moving && typeof gest.armReach === "function") ? gest.armReach(i, side) : 1;
+            ctx.rotate(angle + gAng);
+            const reach = length * gReach;
+            const flailSec = moving ? flail * 0.08 : 0;
+            const secPhase = t * 2.1 + i * 1.7 + side * 0.6;
+            bendLimb(-width * 0.49, -length * 0.10, width, reach, alpha,
+                u => gest.bendAt(u, i, side) + flailSec * u * Math.sin(secPhase - u * 2.0));
+        } else {
+            const direction = (cue?.dirX || 0) * side;
+            const sway = moving ? Math.sin(t * (1.1 + i * 0.07) + i * 1.7 + side) * 0.04 : 0;
+            ctx.rotate(angle + sway + wind * (0.24 + direction * 0.17) + fire * 0.22);
+            const reach = length * (1 - wind * 0.12 + fire * 0.1);
+            const amp = moving ? 0.28 + flail * 0.42 : 0;
+            const speed = 1.7 + flail * 1.6;
+            const wavePhase = t * speed + i * 1.9 + side * 0.8;
+            const curl = wind * 0.2 - fire * 0.12;
+            bendLimb(-width * 0.49, -length * 0.10, width, reach, alpha,
+                u => curl + amp * (0.25 + 0.75 * u) * Math.sin(wavePhase - u * 2.6));
+        }
+        ctx.restore();
+    }
+    for (const side of [-1, 1]) {
+        arm(1, side, 33, 4, -0.81, 113 + phaseMorph * 17, 58 + phaseMorph * 10, 1);
+        arm(2, side, 43, 2, -1.09, 155 * growth2, 70 * growth2, growth2);
+        arm(3, side, 65, -18, -1.31, 222 * growth3, 109 * growth3, growth3);
+    }
+    if (growth2 > 0) {
+        const crownW = 192 + growth3 * 52, crownH = 125 + growth3 * 18;
+        crossfade(assets.crowns[0], assets.crowns[1], -crownW / 2 * growth2, -crownH * 0.84 * growth2, crownW * growth2, crownH * growth2, growth2);
+    }
+    const bodyW = 174 + phaseMorph * 22, bodyH = 174 + phaseMorph * 17;
+    const carapaces = [assets.carapace1, assets.carapace2, assets.carapace3];
+    crossfade(carapaces[phase - 1], carapaces[upper - 1], -bodyW / 2, -bodyH * 0.57, bodyW, bodyH);
+
+    const armorW = 129 + phaseMorph * 17;
+    crossfade(assets.armor[phase - 1], assets.armor[upper - 1], -armorW * 0.50, -92 - phaseMorph * 11, armorW, 70 + phaseMorph * 8);
+
+    for (const side of [-1, 1]) {
+        arm(4, side, 18, 22, -0.14, 104 + phaseMorph * 13, 51 + phaseMorph * 4, 1);
+        arm(5, side, 29, 18, -0.48, 95 + phaseMorph * 15, 47 + phaseMorph * 6, 1);
+        arm(6, side, 7, 27, 0.09, 73 + phaseMorph * 9, 23, 1);
+        arm(7, side, 14, 29, -0.08, 57, 18, 1);
+    }
+    const scar = Math.max(light, 0.28 + pulse * 0.08);
+    if (fx.glow !== false) {
+        const sweep = motion => (Math.sin(motion) + 1) * 0.5;
+        ctx.save();
+        ctx.globalCompositeOperation = 'lighter';
+        ctx.strokeStyle = rim; ctx.lineCap = 'round';
+        ctx.globalAlpha = (0.16 + 0.22 * sweep(t * 1.8) + light * 0.28);
+        ctx.lineWidth = 0.85;
+        ctx.beginPath(); ctx.moveTo(-53 - phaseMorph * 8, -23);
+        ctx.bezierCurveTo(-56 - phaseMorph * 8, -49 - phaseMorph * 13, -34, -66 - phaseMorph * 12, -13, -66 - phaseMorph * 12);
+        ctx.stroke();
+        if (!low) {
+            const d = (t * 0.42) % 1;
+            ctx.globalAlpha *= (0.34 + 0.66 * Math.sin(d * Math.PI));
+            ctx.lineWidth = 0.82;
+            ctx.beginPath(); ctx.moveTo(-18 - d * 11, -61 + d * 30);
+            ctx.lineTo(-13 - d * 12, -56 + d * 24); ctx.lineTo(-19 - d * 11, -51 + d * 24); ctx.stroke();
+        }
+        ctx.restore();
+    }
+    ctx.strokeStyle = rim; ctx.lineWidth = 1.35;
+    ctx.globalAlpha = scar * 0.48;
+    for (const side of [-1, 1]) {
+        ctx.beginPath(); ctx.moveTo(side * 14, -54); ctx.lineTo(side * 22, -39);
+        ctx.lineTo(side * 16, -31); ctx.lineTo(side * 28, -22); ctx.lineTo(side * 31, -11); ctx.stroke();
+    }
+    ctx.globalAlpha = 1;
+    for (let i = 0; i < 4; i++) {
+        const outer = i === 0 || i === 3;
+        const lag = !cue && st.eyeSamples?.[(i * 3) % 11];
+        const gazeX = lag ? lag.x - x : lookX;
+        const gazeY = lag ? lag.y - y : lookY;
+        _drawDetailedBossEye(ctx, [-31, -12, 12, 31][i], outer ? 1 : -8, outer ? 9.5 : 11.5,
+            (outer ? 6.2 : 7.6) * (1 + wind * 0.32), gazeX, gazeY, pal, blink(i), eyeArt, i < 2 ? 1 : -1);
+    }
+    for (let i = 0; i < 5; i++) {
+        const extra = i > 1;
+        const growth = Math.max(0, Math.min(1, (extra ? growth3 : growth2) * 1.7 - i % 3 * 0.22));
+        if (!growth) continue;
+        const ex = [-20, 20, -34, 4, 31][i], ey = [-29, -32, -50, -64, -47][i];
+        _drawDetailedBossEye(ctx, ex, ey, (i === 3 ? 4.3 : 3.7) * growth, 2.65 * growth, lookX, lookY, extra ? DuelFX.getPhasePalette(3) : nextPal, blink(i), eyeArt, i % 2 ? 1 : -1, true);
+    }
+    const lastEye = Math.max(0, Math.min(1, growth3 * 1.54 - 0.38));
+    if (lastEye > 0) _drawDetailedBossEye(ctx, 21, -58, 3.4 * lastEye, 2.2 * lastEye,
+        lookX, lookY, nextPal, blink(8), eyeArt, -1, true);
+    _drawDuelVeilBeard(ctx, phase, phaseMorph, Math.min(1, Math.max(fire, st.release || 0)), particleClock);
+    if (fx.particles !== false && !st.silhouettePass) {
+        ctx.fillStyle = rim;
+        for (let i = 0; i < (low ? 3 : 8); i++) {
+            const p = (particleClock * (0.35 + i % 3 * 0.07) + i * 0.23) % 1;
+            ctx.globalAlpha = Math.sin(p * Math.PI) * 0.7;
+            ctx.fillRect((i % 2 ? -1 : 1) * (22 + i * 4 + Math.sin(i + p * 7) * 6), 30 + p * 97, 1.5, 3 + 3 * p);
+        }
+        ctx.globalAlpha = 1;
+    }
+    if (fx.glow !== false && (fire > 0 || st.release > 0)) {
+        ctx.globalCompositeOperation = 'lighter';
+        ctx.strokeStyle = rim; ctx.fillStyle = '#fff2d8';
+        if (fire > 0) {
+            const side = cue.dirX > 0 ? 1 : -1;
+            const kind = cue.kind;
+            const mx = side * (kind === 'eye_beams' ? 15 : kind === 'tendril_lash' ? 40 : 22);
+            const my = kind === 'eye_beams' ? -5 : kind === 'tendril_lash' ? 68 : 24;
+            ctx.globalAlpha = fire * 0.87; ctx.lineWidth = 2;
+            ctx.beginPath(); ctx.ellipse(mx, my, 9 + fire * 10, 4 + fire * 4, -side * 0.5, 0, Math.PI * 2); ctx.stroke();
+            ctx.fillRect(mx - 4, my - 1.2, 8, 2.4);
+        }
+        if (st.release > 0) {
+            ctx.globalAlpha = st.release * 0.68;
+            ctx.beginPath(); ctx.ellipse(0, 0, 55 + (1 - st.release) * 90, 40 + (1 - st.release) * 50, 0, 0, Math.PI * 2); ctx.stroke();
+        }
+        ctx.globalAlpha = 1; ctx.globalCompositeOperation = 'source-over';
+    }
+    if (st.debugHitbox) {
+        const hb = getDuelBossHitbox(phase, phaseMorph);
+        ctx.save();
+        ctx.strokeStyle = '#ff4d6d';
+        ctx.lineWidth = 2;
+        ctx.setLineDash([6, 4]);
+        ctx.beginPath();
+        ctx.ellipse(0, (hb.offsetY || 0) / scale, hb.rx / scale, hb.ry / scale, 0, 0, Math.PI * 2);
+        ctx.stroke();
+        ctx.restore();
+    }
+
+    ctx.restore();
+}
+
+if (typeof window !== 'undefined') {
+    window._duelHash2 = _duelHash2;
+    window._duelValueNoise2D = _duelValueNoise2D;
+    window.buildOrganicTentacleSpine = buildOrganicTentacleSpine;
+    window.drawOrganicTentacle = drawOrganicTentacle;
+    window.checkOrganicTentacleCollision = checkOrganicTentacleCollision;
+    window.bakeDuelBossAssets = bakeDuelBossAssets;
+    window.getDuelBossHitbox = getDuelBossHitbox;
+    window.drawDuelEgregor = drawDuelEgregor;
+}
+// DUEL_EGREGOR_END

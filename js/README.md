@@ -20,6 +20,8 @@ ever looks stale — it is hand-maintained, not generated):
 8. pixi-renderer.js
 9. input.js
 10. main.js
+11. js/duel/*.js (Showdown, the boss duel mode, loaded last and driven through `window._duel*` hooks; see
+    [js/duel/README.md](duel/README.md))
 
 This sequence is mandatory. Every module after config.js references globals that
 config.js declares at parse time, so any deviation causes reference errors on

@@ -1,8 +1,8 @@
 // Pisces: Space Journey. Copyright (c) 2024 An Nguyen. Licensed under the PolyForm Noncommercial License 1.0.0.
-// render/core.js — extracted from render.js (lines 1-304, 424-1536).
+// render/core.js : extracted from render.js (lines 1-304, 424-1536).
 // Module state (quality flags, sprite caches), init helpers, background
 // rendering, the main draw() orchestrator, and the start screen.
-// Loaded first among render/*.js — every other render file reads
+// Loaded first among render/*.js : every other render file reads
 // _mobPerf / _gfxLevel / the sprite-cache getters defined here.
 
 let bgStars = [];
@@ -50,7 +50,7 @@ function _initMobilePerf() {
         const nativeSB = Object.getOwnPropertyDescriptor(proto, 'shadowBlur');
         const nativeSC = Object.getOwnPropertyDescriptor(proto, 'shadowColor');
         let _sbVal = 0, _scVal = 'transparent';
-        // HIGH (level 0): soft-cap at 8px — same strategy as pixi-renderer's canvas.
+        // HIGH (level 0): soft-cap at 8px : same strategy as pixi-renderer's canvas.
         // MED/LOW/MIN (level 1+): zero-out for GPU savings.
         Object.defineProperty(ctx, 'shadowBlur', {
             get: () => _gfxLevel === 0 ? _sbVal : 0,
@@ -222,7 +222,7 @@ function _getRingGlowSprite(color, radius) {
 // site - this is Yog-Sothoth's own danger-sense read on the world, not a
 // permanent HUD element.
 function _drawThreatRing(x, y, radius, progress) {
-    if (!skillShiftActive) return;
+    if (!skillShiftActive && !(typeof window !== 'undefined' && window._runGameMode === 'showdown' && window._duelSession && window._duelSession.shiftActive)) return;
     if (!isFinite(x) || !isFinite(y) || !isFinite(radius) || radius <= 0) return;
     const now = performance.now();
     const p = Math.min(1, Math.max(0, progress));
@@ -523,10 +523,44 @@ function _getEnemyBulletSprite(isLarge, size, gfxLvl) {
     return c;
 }
 
+let _duelDimStars = null;
+function _drawDuelDimStars(c, deltaTime, W, H) {
+    if (!_duelDimStars || _duelDimStars.length !== 28) {
+        _duelDimStars = [];
+        for (let i = 0; i < 28; i++) {
+            _duelDimStars.push({
+                x: Math.random() * W,
+                y: Math.random() * H,
+                vy: 6 + Math.random() * 10,
+                r: 0.6 + Math.random() * 0.4,
+                alpha: 0.08 + Math.random() * 0.12
+            });
+        }
+    }
+    const dt = (deltaTime || 16.67) / 1000;
+    c.save();
+    c.fillStyle = '#ffffff';
+    for (let i = 0; i < _duelDimStars.length; i++) {
+        const s = _duelDimStars[i];
+        s.y += s.vy * dt;
+        if (s.y > H) {
+            s.y = 0;
+            s.x = Math.random() * W;
+        }
+        c.globalAlpha = s.alpha;
+        c.fillRect(s.x, s.y, s.r, s.r);
+    }
+    c.restore();
+}
+
 function drawSpaceBackground(deltaTime) {
     // PIXI background (background.js) is active: just clear so it shows through
     if (window._bgReady) {
         ctx.clearRect(0, 0, canvas.width, canvas.height);
+        if (window._runGameMode === 'showdown') {
+            ctx.fillStyle = 'rgba(3, 7, 20, 0.22)';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+        }
         return;
     }
     // Mobile: cache background, redraw every 3 frames
@@ -632,6 +666,11 @@ function _drawSpaceBgTo(c, deltaTime, W, H) {
     }
     c.globalAlpha = 1;
     c.restore();
+
+    if (window._runGameMode === 'showdown') {
+        c.fillStyle = 'rgba(3, 7, 20, 0.22)';
+        c.fillRect(0, 0, W, H);
+    }
 }
 
 function _makeFallingStar(W, H, initial) {
@@ -766,10 +805,6 @@ function _drawYogSothothDomainMythos() {
             const dabY = bgCy + Math.sin(a) * r;
             const dabAngle = a + Math.PI / 2 + Math.PI / 8;
 
-            ctx.save();
-            ctx.translate(dabX, dabY);
-            ctx.rotate(dabAngle);
-
             const twinkle = (Math.sin(now / 800 + i) + 1) / 2;
             ctx.globalAlpha = (0.2 + 0.2 * twinkle) * breathe;
 
@@ -778,13 +813,17 @@ function _drawYogSothothDomainMythos() {
             ctx.lineWidth = 4 + p2 * 6;
             ctx.lineCap = 'round';
 
-            ctx.beginPath();
             const len = 15 + p1 * 20;
-            ctx.moveTo(-len / 2, 0);
-            ctx.quadraticCurveTo(0, -len * 0.2, len / 2, 0);
-            ctx.stroke();
+            const halfLen = len * 0.5;
+            const cosA = Math.cos(dabAngle), sinA = Math.sin(dabAngle);
+            const x0 = dabX - cosA * halfLen, y0 = dabY - sinA * halfLen;
+            const x1 = dabX + cosA * halfLen, y1 = dabY + sinA * halfLen;
+            const cpx = dabX - sinA * (len * 0.2), cpy = dabY + cosA * (len * 0.2);
 
-            ctx.restore();
+            ctx.beginPath();
+            ctx.moveTo(x0, y0);
+            ctx.quadraticCurveTo(cpx, cpy, x1, y1);
+            ctx.stroke();
         }
     }
 
@@ -893,10 +932,9 @@ function _drawYogSothothDomainMythos() {
                 const px = Math.cos(angle) * finalR;
                 const py = Math.sin(angle) * finalR;
 
-                ctx.save();
-                ctx.translate(px, py);
                 const tangent = angle + Math.PI / 2 + Math.PI / 6;
-                ctx.rotate(tangent + (p2 - 0.5) * 0.5);
+                const dabAng = tangent + (p2 - 0.5) * 0.5;
+                const cosD = Math.cos(dabAng), sinD = Math.sin(dabAng);
 
                 // Mostly cobalt blue, with an occasional warm ochre stroke
                 // mixed in (real impasto Starry Nights always bleed a little
@@ -907,31 +945,34 @@ function _drawYogSothothDomainMythos() {
                 ctx.lineWidth = 10 + p1 * 14;
                 ctx.lineCap = 'round';
                 ctx.globalAlpha = (0.58 + 0.42 * Math.sin(now / 600 + i)) * breathe;
-                // No shadowBlur on these - up to 180 dabs drawn per frame at
-                // FULL tier (3 arms x 60), and a blurred stroke per dab was
-                // the single biggest cost tripping the FPS auto-downgrade
-                // mid-fight, taking the moon/big stars/Great Spiral with it.
 
                 const len = 35 + p2 * 45;
+                const halfLen = len * 0.5;
+                const x0 = px - cosD * halfLen, y0 = py - sinD * halfLen;
+                const x1 = px + cosD * halfLen, y1 = py + sinD * halfLen;
+                const cpx = px + sinD * (len * 0.3), cpy = py - cosD * (len * 0.3);
+
                 ctx.beginPath();
-                ctx.moveTo(-len / 2, 0);
-                ctx.quadraticCurveTo(0, -len * 0.3, len / 2, 0);
+                ctx.moveTo(x0, y0);
+                ctx.quadraticCurveTo(cpx, cpy, x1, y1);
                 ctx.stroke();
 
                 // Impasto highlight: a thin bright core down the middle of
                 // the stroke, like paint caught in raking light. Skipped on
                 // LOW - a second stroke() per dab isn't worth it there.
                 if (tier < 2) {
-                    ctx.shadowBlur = 0;
                     ctx.strokeStyle = 'rgba(220,235,255,0.55)';
                     ctx.lineWidth = Math.max(1, (10 + p1 * 14) * 0.28);
+                    const hx0 = px + cosD * (-len * 0.3) + sinD * (len * 0.06);
+                    const hy0 = py + sinD * (-len * 0.3) - cosD * (len * 0.06);
+                    const hx1 = px + cosD * (len * 0.3) + sinD * (len * 0.06);
+                    const hy1 = py + sinD * (len * 0.3) - cosD * (len * 0.06);
+                    const hcpx = px + sinD * (len * 0.28), hcpy = py - cosD * (len * 0.28);
                     ctx.beginPath();
-                    ctx.moveTo(-len * 0.3, -len * 0.06);
-                    ctx.quadraticCurveTo(0, -len * 0.28, len * 0.3, -len * 0.06);
+                    ctx.moveTo(hx0, hy0);
+                    ctx.quadraticCurveTo(hcpx, hcpy, hx1, hy1);
                     ctx.stroke();
                 }
-
-                ctx.restore();
             }
             ctx.restore();
         }
@@ -1105,11 +1146,15 @@ function _drawYogSothothDomainMythos() {
         ctx.strokeStyle = '#2b4f8c';
         ctx.lineWidth = maxRadius * 0.018;
         ctx.lineCap = 'round';
-        if (!_mobPerf) { ctx.shadowColor = '#3f6fc4'; ctx.shadowBlur = 14; }
         spiralPath(1);
         ctx.stroke();
 
-        ctx.shadowBlur = 0;
+        // soft glowing outer aura stroke without software shadowBlur
+        ctx.strokeStyle = 'rgba(63, 111, 196, 0.28)';
+        ctx.lineWidth = maxRadius * 0.034;
+        spiralPath(1);
+        ctx.stroke();
+
         ctx.strokeStyle = 'rgba(170,205,255,0.5)';
         ctx.lineWidth = Math.max(1.5, maxRadius * 0.006);
         spiralPath(0.92);
@@ -1117,10 +1162,10 @@ function _drawYogSothothDomainMythos() {
 
         ctx.globalAlpha = 0.7 * breathe;
         ctx.fillStyle = '#ffdf9a';
-        if (!_mobPerf) { ctx.shadowColor = '#ffdf9a'; ctx.shadowBlur = 16; }
         ctx.beginPath(); ctx.arc(0, 0, maxRadius * 0.012, 0, Math.PI * 2); ctx.fill();
+        ctx.fillStyle = 'rgba(255, 223, 154, 0.32)';
+        ctx.beginPath(); ctx.arc(0, 0, maxRadius * 0.024, 0, Math.PI * 2); ctx.fill();
 
-        ctx.shadowBlur = 0;
         ctx.restore();
     }
 
@@ -1160,7 +1205,6 @@ function _drawYogSothothDomainMythos() {
                 }
 
                 ctx.lineWidth = 7 + Math.sin(now / 500 + i + rIdx) * 3;
-                if (!_mobPerf) { ctx.shadowColor = ctx.strokeStyle; ctx.shadowBlur = 12; }
 
                 ctx.setLineDash([14 + rIdx * 6, 8 + rIdx * 4]);
                 ctx.lineCap = 'round';
@@ -1181,7 +1225,10 @@ function _drawYogSothothDomainMythos() {
             ctx.beginPath();
             ctx.arc(0, 0, 8 + p1 * 5, 0, Math.PI * 2);
             ctx.fillStyle = isCool ? '#ffffff' : '#ffffee';
-            if (!_mobPerf) { ctx.shadowColor = isCool ? '#aaccff' : '#ffdd66'; ctx.shadowBlur = 25; }
+            ctx.fill();
+            ctx.beginPath();
+            ctx.arc(0, 0, (8 + p1 * 5) * 2.2, 0, Math.PI * 2);
+            ctx.fillStyle = isCool ? 'rgba(170, 204, 255, 0.35)' : 'rgba(255, 221, 102, 0.35)';
             ctx.fill();
 
             // Radiating light spikes, a classic star-burst so the core reads
@@ -1514,7 +1561,8 @@ function drawYogSothothDomain() {
 function _drawYogShiftTeleportHint() {
     const hintEl = document.getElementById('yog-teleport-hint');
     if (!hintEl) return;
-    if (!(gameState === "playing" && skillShiftActive)) { hintEl.style.display = 'none'; return; }
+    const isShiftActive = skillShiftActive || (typeof window !== 'undefined' && window._runGameMode === 'showdown' && window._duelSession && window._duelSession.shiftActive);
+    if (!(gameState === "playing" && isShiftActive)) { hintEl.style.display = 'none'; return; }
     const elapsed = performance.now() - skillShiftChargeStart;
     if (elapsed < 600) { hintEl.style.display = 'none'; return; } // wait for the domain's own expand-in
     hintEl.style.display = 'block';
@@ -1523,15 +1571,16 @@ function _drawYogShiftTeleportHint() {
 
 // Suspended brass pocket watch, the domain's "time" motif made literal.
 // Used to be drawn inside _drawYogSothothDomainMythos() itself, last in
-// its clipped painting pass - fine against the rest of the backdrop, but
+// its clipped painting pass, fine against the rest of the backdrop, but
 // still only the topmost of THAT one pass, drawn early in the frame
 // (see the call site near the top of the main render loop). Anything
-// drawn afterward - enemies, bullets, particles - still rendered over
+// drawn afterward, enemies, bullets, particles, still rendered over
 // it. Now its own function, called dead last in the frame (see the call
 // site near the bottom, right by _drawYogShiftTeleportHint), so nothing
 // in the scene can ever cover it.
 function _drawYogShiftPocketWatch() {
-    if (!(gameState === "playing" && skillShiftActive)) return;
+    const isShiftActive = skillShiftActive || (typeof window !== 'undefined' && window._runGameMode === 'showdown' && window._duelSession && window._duelSession.shiftActive);
+    if (!(gameState === "playing" && isShiftActive)) return;
     if (_gfxLevel !== 0) return; // FULL tier only, same as the rest of the domain's showcase detail
     const now = performance.now();
     const elapsed = now - skillShiftChargeStart;
@@ -2224,7 +2273,7 @@ function _drawYogSothothDomainClassic() {
                 ctx.font = 'italic 14px monospace';
                 ctx.fillStyle = '#dd88ff';
                 if (!_mobPerf) ctx.shadowBlur = 10;
-                ctx.fillText('— Bành trướng lãnh địa —', cx, cy - 46);
+                ctx.fillText(': Bành trướng lãnh địa :', cx, cy - 46);
 
                 ctx.restore();
             }
@@ -2383,6 +2432,11 @@ function _drawUiIcon(icon, cx, cy, s) {
     }
     ctx.restore();
 }
+
+if (typeof window !== 'undefined') {
+    window._iconText = _iconText;
+    window._drawUiIcon = _drawUiIcon;
+}
 function _iconText(icon, text, x, y, size) {
     const w = ctx.measureText(text).width;
     const gap = size * 0.5;
@@ -2438,15 +2492,21 @@ function draw(deltaTime) {
     // Background full canvas
     drawSpaceBackground(deltaTime);
     // Advanced Graphics: Sigil Backdrops off skips each sigil's scenery.
-    if (!window._fxOpts || window._fxOpts.sigilBackdrop !== false) {
-        _drawPiscesAmbience();
-        _drawCapricornBackdrop();
-        if (typeof _drawCancerOceanAmbience === 'function') _drawCancerOceanAmbience();
+    if (window._runGameMode !== 'showdown') {
+        if (!window._fxOpts || window._fxOpts.sigilBackdrop !== false) {
+            _drawPiscesAmbience();
+            _drawCapricornBackdrop();
+            if (typeof _drawCancerOceanAmbience === 'function') _drawCancerOceanAmbience();
+        }
+        if (typeof _drawDauRing === 'function') _drawDauRing();
+        _drawPiscesFish();
     }
-    if (typeof _drawDauRing === 'function') _drawDauRing();
-    _drawPiscesFish();
 
-    if (gameState === "playing" && skillShiftActive) drawYogSothothDomain();
+    if (gameState === "playing" && (skillShiftActive || (window._runGameMode === 'showdown' && window._duelSession && window._duelSession.shiftActive))) {
+        const _sT0 = performance.now();
+        drawYogSothothDomain();
+        window._lastShiftDrawMs = performance.now() - _sT0;
+    }
 
     if (demonGiftEffect.active && performance.now() < demonGiftEffect.endTime) {
         drawDemonGiftAura();
@@ -2521,17 +2581,18 @@ function draw(deltaTime) {
         // specials go last so the other bullets never bury them
         bullets.forEach(b => { if (b.type !== 'sentinel_special') drawBullet(b); });
         bullets.forEach(b => { if (b.type === 'sentinel_special') drawBullet(b); });
-        // Draw non-bullet enemies first (background layer) — Goliath vẽ RIÊNG
+        // Draw non-bullet enemies first (background layer) : Goliath vẽ RIÊNG
         // sau cùng (sau cả Sigil HUD) vì Goliath giờ hay lượn gần viền trên
         // màn hình, dễ bị icon Sigil HUD đè lên nếu vẽ chung ở đây.
         enemies.forEach(e => { if (!e.type.startsWith('enemy_bullet') && e.type !== 'abyssal_chain' && e.type !== 'goliath' && e.type !== 'veilshroud_echo') drawEnemy(e); });
         _drawSentinelSpearFx();  // spear impacts and the twelve Sentinel volley lock on, above the enemies they hit
+        if (window._runGameMode === 'showdown' && typeof window._duelRenderCombat === 'function') window._duelRenderCombat(ctx);
         // Blood Arrow's impact bloom draws AFTER enemies so it sits layered
         // on top of whatever it just hit, instead of hiding underneath it.
         drawSolArrowLilies();
         if (typeof _drawDauStatus === 'function') _drawDauStatus();
         if (typeof _drawBloodArrowTargetRings === 'function') _drawBloodArrowTargetRings();
-        _drawVineBinds(); // Phōtokrystos DNT Vine Bind — growth + slow aura, on top of rooted enemies
+        _drawVineBinds(); // Phōtokrystos DNT Vine Bind : growth + slow aura, on top of rooted enemies
         if (window._usePixi && window._pixiDrawBullets) {
             const _pxbT0 = performance.now();
             window._pixiDrawBullets(bullets, spiritBullets);
@@ -2601,7 +2662,7 @@ function draw(deltaTime) {
         {
             const _specials = [];
             const _pixiP = window._usePixi && window._pixiDrawParticles;
-            // _batches is only ever read below in the !_pixiP branch — when
+            // _batches is only ever read below in the !_pixiP branch : when
             // Pixi is handling normal particles, building it was pure wasted
             // per-frame Map allocation + get/set work (every particle, every
             // frame) for a result nothing consumes.
@@ -2642,10 +2703,14 @@ function draw(deltaTime) {
         marchoBarrierBursts.forEach(_drawMarchoBarrierBurst);
         raphaelDeathBursts.forEach(_drawRaphaelDeathBurst);
         _drawRaphaelWisdomZones();
-        if (skillFState !== 'ready') drawSkillF();
+        if (skillFState !== 'ready') {
+            const _fT0 = performance.now();
+            drawSkillF();
+            window._lastFDrawMs = performance.now() - _fT0;
+        }
         if (skillDCharging) drawSkillDCharging();
         if (charging) drawChargeMeter();
-        if (skillShiftActive) drawSkillShiftEffects();
+        if (skillShiftActive || (window._runGameMode === 'showdown' && window._duelSession && window._duelSession.shiftActive)) drawSkillShiftEffects();
 
         if (typeof _drawDauHud === 'function') _drawDauHud();
 
@@ -2705,7 +2770,8 @@ function draw(deltaTime) {
             // Low-lives persistent pulse (< 5 lives)
             const pulseAlpha = lives < 5 ? 0.20 + 0.14 * Math.abs(Math.sin(_now / 380)) : 0;
 
-            const vignetteAlpha = Math.max(flashAlpha, pulseAlpha);
+            const _isShowdownVig = window._runGameMode === 'showdown';
+            const vignetteAlpha = _isShowdownVig ? Math.min(0.22, Math.max(flashAlpha * 0.45, pulseAlpha * 0.60)) : Math.max(flashAlpha, pulseAlpha);
             if (vignetteAlpha > 0.01) {
                 const grad = ctx.createRadialGradient(cx, cy, innerR, cx, cy, outerR);
                 grad.addColorStop(0, 'rgba(160,0,0,0)');
@@ -2719,7 +2785,7 @@ function draw(deltaTime) {
             // Low-HP "RPG blood border": a harder-edged frame hugging the
             // screen edges (distinct from the soft radial pulse above,
             // which reads more like ambient bruising than a border) plus a
-            // faint slow-rotating "choáng" haze — a cheap, overlay-only
+            // faint slow-rotating "choáng" haze : a cheap, overlay-only
             // dazed effect since this code runs after the frame is already
             // drawn and can't displace anything already on screen.
             if (window._lowHpActive) {
@@ -2745,10 +2811,10 @@ function draw(deltaTime) {
                 ctx.fillStyle = g; ctx.fillRect(canvas.width - edgeDepth, 0, edgeDepth, canvas.height);
                 ctx.restore();
 
-                // dazed haze — a few slow-rotating faint arcs around the
+                // dazed haze : a few slow-rotating faint arcs around the
                 // screen center, cheap (no per-pixel work) but reads as
                 // disoriented swirling at the edge of vision
-                if (_gfxLevel < 2) {
+                if (_gfxLevel < 2 && window._runGameMode !== 'showdown') {
                     ctx.save();
                     ctx.translate(cx, cy);
                     const arcCount = _gfxLevel < 1 ? 3 : 2;
@@ -2767,7 +2833,7 @@ function draw(deltaTime) {
 
             // Maou Haki oppressive darkening: dims the whole screen while
             // Dargruel's shockwave is expanding, on top of the shockwave's
-            // own denser/darker fill (see drawBossShockwaves in fx.js) —
+            // own denser/darker fill (see drawBossShockwaves in fx.js) :
             // makes the effect feel like it's dominating the whole arena,
             // not just a localized ring.
             if (typeof bossShockwaves !== 'undefined') {
@@ -2782,17 +2848,19 @@ function draw(deltaTime) {
             }
         }
 
-        if (typeof _platform === 'undefined' || _platform !== 'mobile') drawSkillButtons();
-        if (typeof drawSigilHUD === 'function') drawSigilHUD();
-        if (typeof _drawGreatSageReleasePrompt === 'function') _drawGreatSageReleasePrompt();
-        if (typeof _drawTidalSurgeReadyPrompt === 'function') _drawTidalSurgeReadyPrompt();
-        if (typeof _drawLeoFateReadyPrompt === 'function') _drawLeoFateReadyPrompt();
-        if (typeof _drawBloodArrowReadyPrompt === 'function') _drawBloodArrowReadyPrompt();
-        if (typeof _drawBloodArrowChargeVignette === 'function') _drawBloodArrowChargeVignette();
-        if (typeof _drawGreatSageChargeVignette === 'function') _drawGreatSageChargeVignette();
-        if (typeof _drawTidalSurgeChargeVignette === 'function') _drawTidalSurgeChargeVignette();
+        if (window._runGameMode !== 'showdown') {
+            if (typeof _platform === 'undefined' || _platform !== 'mobile') drawSkillButtons();
+            if (typeof drawSigilHUD === 'function') drawSigilHUD();
+            if (typeof _drawGreatSageReleasePrompt === 'function') _drawGreatSageReleasePrompt();
+            if (typeof _drawTidalSurgeReadyPrompt === 'function') _drawTidalSurgeReadyPrompt();
+            if (typeof _drawLeoFateReadyPrompt === 'function') _drawLeoFateReadyPrompt();
+            if (typeof _drawBloodArrowReadyPrompt === 'function') _drawBloodArrowReadyPrompt();
+            if (typeof _drawBloodArrowChargeVignette === 'function') _drawBloodArrowChargeVignette();
+            if (typeof _drawGreatSageChargeVignette === 'function') _drawGreatSageChargeVignette();
+            if (typeof _drawTidalSurgeChargeVignette === 'function') _drawTidalSurgeChargeVignette();
+        }
 
-        // Goliath vẽ SAU Sigil HUD — luôn nổi bật, không bị icon Sigil che khuất
+        // Goliath vẽ SAU Sigil HUD : luôn nổi bật, không bị icon Sigil che khuất
         enemies.forEach(e => { if (e.type === 'goliath') drawEnemy(e); });
         _drawPiscesImpacts();
         if (_hasBuff('dong_chay_luan_hoi') || _hasBuff('coi_mong')) _drawPiscesEvents();
@@ -2813,7 +2881,7 @@ function draw(deltaTime) {
         // Wave announcement banner (center screen)
         const _wa = _waveAnnouncedAt || 0;
         const _wcx = canvas.width / 2, _wcy = canvas.height * 0.38;
-        if (_wa > 0) {
+        if (_wa > 0 && window._runGameMode !== 'showdown') {
             const _wAge = performance.now() - _wa;
             if (_wAge < 2800) {
                 const _wAlpha = _wAge < 200 ? _wAge / 200 : (_wAge < 2100 ? 1 : Math.max(0, 1 - (_wAge - 2100) / 700));
@@ -2858,7 +2926,7 @@ function draw(deltaTime) {
                 // Bottom label
                 ctx.font = '10px monospace';
                 ctx.fillStyle = '#253c62';
-                ctx.fillText('—  I N C O M I N G  —', _wcx, _bY + _bH - 11);
+                ctx.fillText(':  I N C O M I N G  :', _wcx, _bY + _bH - 11);
 
                 ctx.restore();
                 _endScreenHud();
@@ -2932,7 +3000,7 @@ function draw(deltaTime) {
             ctx.globalAlpha = _alpha;
             ctx.font = '11px monospace';
             ctx.fillStyle = _isClear ? '#336644' : '#445566';
-            ctx.fillText(_isClear ? 'WAVE CLEARED  —  NEXT IN' : 'NEXT WAVE IN', _wcx, _wcy - 6);
+            ctx.fillText(_isClear ? 'WAVE CLEARED  :  NEXT IN' : 'NEXT WAVE IN', _wcx, _wcy - 6);
             ctx.font = 'bold 20px monospace';
             ctx.fillStyle = _isClear ? '#55cc88' : '#88aacc';
             ctx.shadowBlur = 8; ctx.shadowColor = _isClear ? '#22aa55' : '#2244aa';
@@ -2942,6 +3010,7 @@ function draw(deltaTime) {
         }
 
         // HUD panel (top right)
+        if (window._runGameMode !== 'showdown') {
         _beginScreenHud(canvas.width, 0);
         ctx.save();
         const _hMob = _isMobile;
@@ -3003,7 +3072,7 @@ function draw(deltaTime) {
         ctx.shadowBlur = 0;
         _ry += _rH + 2;
 
-        // Enemy count (manual loop instead of .filter().length — this runs
+        // Enemy count (manual loop instead of .filter().length : this runs
         // every frame in the HUD and enemies can hold 100+ entries in heavy
         // combat, no need to allocate a filtered copy just to count)
         let _aliveCount = 0;
@@ -3076,6 +3145,7 @@ function draw(deltaTime) {
 
         ctx.restore();
         _endScreenHud();
+        }
     } else if (gameState === "start") {
         _drawStartScreen();
     } else if (gameState === "gameover") {
@@ -3092,7 +3162,7 @@ function draw(deltaTime) {
         const _pxT0 = performance.now();
         window._pixiRender();
         const _pxDt = performance.now() - _pxT0;
-        if (_pxDt > 15) console.warn('[PIXI] render took ' + _pxDt.toFixed(0) + 'ms (bullets=' + bullets.length + ', particles=' + particles.length + ')');
+        if (_pxDt > 15 && (window._runGameMode !== 'showdown' || window._debugSessionActive)) console.warn('[PIXI] render took ' + _pxDt.toFixed(0) + 'ms (bullets=' + bullets.length + ', particles=' + particles.length + ')');
     }
     if (typeof _drawSigilChromFlash === 'function') _drawSigilChromFlash();
     _drawYogShiftPocketWatch();
@@ -3125,6 +3195,7 @@ function draw(deltaTime) {
     // sigil picker - the sim is frozen behind it while it plays.
     if (window._kanadeCutscene && typeof drawKanadeCutscene === 'function') drawKanadeCutscene();
     if (window._tutorialActive && typeof drawTutorial === 'function') drawTutorial();
+    if (window._runGameMode === 'showdown' && typeof window._duelRenderHUD === 'function') window._duelRenderHUD(ctx);
     // Debug console's Kanade model viewer, over everything including the
     // cutscene so it can be opened at any time. The Pixi canvas sits above
     // this one, and its nebulae and particles would tint her through the

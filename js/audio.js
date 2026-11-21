@@ -1,25 +1,25 @@
 // Pisces: Space Journey. Copyright (c) 2024 An Nguyen. Licensed under the PolyForm Noncommercial License 1.0.0.
 // Central audio system. All in-game and menu sounds route through this file.
 // Volumes have three categories the settings panel exposes:
-//   bgm    – menu track + randomized in-game BGM
-//   sfx    – gameplay effects + the space "ingame.mp3" ambient loop
-//   global – multiplied into both above (master)
+//   bgm    , menu track + randomized in-game BGM
+//   sfx    , gameplay effects + the space "ingame.mp3" ambient loop
+//   global , multiplied into both above (master)
 // Persisted to localStorage as JSON under key 'audioVols'.
 //
-// Every sound in the game — one-shot sfx, sustained loops, and BGM — plays
+// Every sound in the game , one-shot sfx, sustained loops, and BGM , plays
 // through decoded AudioBufferSourceNodes on the Web Audio rendering thread.
 // This replaces an earlier design where each sound was a pooled/looping
 // <audio> element: on at least one real iOS Safari device/version, actively
 // playing HTMLMediaElements (looped background tracks, and separately the
 // high-frequency one-shot sfx pools like autoshot/spirit-autofire) caused a
-// severe main-thread stall between requestAnimationFrame callbacks — proven
+// severe main-thread stall between requestAnimationFrame callbacks , proven
 // via on-device frame-timing logs, and confirmed by muting audio (which
 // pauses/silences those elements) fully restoring normal FPS. Routing the
 // continuous loops through Web Audio graph nodes alone didn't fix it either;
 // only removing HTMLMediaElement playback from the sustained gameplay loop
 // entirely did. The only remaining <audio> elements are short-lived
 // "bridge" instances used to start BGM instantly while its buffer decodes
-// (see _makeBufferLoop) — never a persistent, long-running element.
+// (see _makeBufferLoop) , never a persistent, long-running element.
 
 (function () {
     const STORAGE_KEY = 'audioVols';
@@ -28,27 +28,34 @@
     // Web Audio graph: everything except the Yog-Sothoth activation cue
     // ("shift-hold") routes through a shared duck-gain -> lowpass-filter
     // chain. Yog-Sothoth Domain and low-HP dazed state both drive this
-    // chain to simulate the rest of the mix being smothered — muffled and
-    // quiet — while each state's own signature cue (shift-hold) bypasses
+    // chain to simulate the rest of the mix being smothered , muffled and
+    // quiet , while each state's own signature cue (shift-hold) bypasses
     // the chain entirely via _bypassGain so it reads as the loudest,
     // clearest thing in the mix. Falls back to silent no-ops with no Web
     // Audio.
     const _AC = window.AudioContext || window.webkitAudioContext;
     const actx = _AC ? new _AC() : null;
     let _duckGain = null, _duckFilter = null, _bypassGain = null;
+    let _masterLimiter = null, _masterClipper = null;
+    const _duelLimitCurve = Float32Array.from({ length: 8193 }, (_, i) => Math.max(-.89, Math.min(.89, i / 4096 - 1)));
     const NORMAL_FREQ = 20000; // effectively unfiltered
     if (actx) {
+        _masterLimiter = actx.createDynamicsCompressor();
+        _masterLimiter.threshold.value = 0; _masterLimiter.knee.value = 0; _masterLimiter.ratio.value = 1;
+        _masterLimiter.attack.value = .001; _masterLimiter.release.value = .08;
+        _masterClipper = actx.createWaveShaper(); _masterClipper.oversample = '4x';
+        _masterLimiter.connect(_masterClipper); _masterClipper.connect(actx.destination);
         _duckGain = actx.createGain();
         _duckFilter = actx.createBiquadFilter();
         _duckFilter.type = 'lowpass';
         _duckFilter.frequency.value = NORMAL_FREQ;
         _duckGain.gain.value = 1;
         _duckGain.connect(_duckFilter);
-        _duckFilter.connect(actx.destination);
+        _duckFilter.connect(_masterLimiter);
 
         _bypassGain = actx.createGain();
         _bypassGain.gain.value = 1;
-        _bypassGain.connect(actx.destination);
+        _bypassGain.connect(_masterLimiter);
     }
 
     // Decode-once, cache-forever buffer store. Every sound (sfx and BGM
@@ -84,7 +91,7 @@
             .then(ab => actx.decodeAudioData(ab)))
             .then(buf => {
                 if (buf && _bufferCache[src] === p) _decodedBuffers[src] = buf;
-                if (!buf && _bufferCache[src] === p) delete _bufferCache[src];
+                // Failed loads retain their settled promise until the next page load.
                 return buf;
             })
             .catch(e => { console.warn('[Audio] buffer decode failed for ' + src, e); return null; });
@@ -101,6 +108,7 @@
     const MAX_SFX_VOICES = 24;
     let _liveVoices = 0;
     function _playVoice(src, gainValue, bypass, capped) {
+        capped = capped || _duelActive;
         if (!actx || gainValue <= 0) return { cancel() {} };
         let cancelled = false, liveNode = null, liveGain = null;
         const start = buf => {
@@ -108,7 +116,9 @@
             const g = actx.createGain();
             liveGain = g;
             g.gain.value = gainValue;
-            g.connect(bypass ? _bypassGain : _duckGain);
+            const isVoice = src.includes('/voice/');
+            g.connect(_duelActive && !isVoice ? (bypass ? _duelCueBus : _duelSfxBus) : (bypass ? _bypassGain : _duckGain));
+            if (isVoice) _duelDuck('voice', buf.duration);
             const node = actx.createBufferSource();
             node.buffer = buf;
             node.connect(g);
@@ -146,7 +156,7 @@
     // (menu track / ambient / engine / laser / charging / heartbeat / ...).
     //
     // A cold decode (a multi-MB BGM file that hasn't been prefetched yet)
-    // can take a couple of seconds — long enough to be an audible startup
+    // can take a couple of seconds , long enough to be an audible startup
     // delay if the player clicks "anywhere to start" before it resolves.
     // play() covers that gap with a plain streaming <audio> "bridge" that
     // starts immediately; once the real buffer decode resolves, playback
@@ -158,9 +168,9 @@
     // bypass routes the loop past the duck/filter chain, for a sound that is
     // its own moment rather than part of the gameplay mix. Everything else
     // sits on _duckGain so low-hp and the domain ducks can still muffle it.
-    function _makeBufferLoop(bypass = false) {
+    function _makeBufferLoop(bypass = false, route = null) {
         const gainNode = actx ? actx.createGain() : null;
-        if (gainNode) gainNode.connect(bypass ? _bypassGain : _duckGain);
+        if (gainNode) gainNode.connect(route || (bypass ? _bypassGain : _duckGain));
         let source = null;
         let bufferPromise = null;
         let playing = false;
@@ -263,7 +273,7 @@
                     _savedPos = bridgeEl.currentTime;
                 }
                 if (bridgeEl) { try { bridgeEl.pause(); } catch (_) {} bridgeEl = null; }
-                // Manually stopping a source also fires onended per spec —
+                // Manually stopping a source also fires onended per spec ,
                 // clear it first so pausing/switching never misfires the
                 // "track finished, advance to a new one" callback.
                 if (source) { try { source.onended = null; source.stop(); } catch (_) {} source = null; }
@@ -426,12 +436,15 @@
     // Multiple independent states can want to duck the mix at once (e.g.
     // dropping to low HP while Yog-Sothoth is already active). Each has its
     // own gain/filter target; whichever active duck is most intense (lowest
-    // gain) wins. low-hp is deliberately muffled further than Yog-Sothoth —
+    // gain) wins. low-hp is deliberately muffled further than Yog-Sothoth ,
     // "choáng" from taking near-fatal damage reads as more disorienting
     // than the domain's own time-distortion hum.
     const DUCK_LEVELS = {
+        duelEvolution: { gain: 0.52, freq: 1400 },
         yogsothoth: { gain: 0.32, freq: 450 },
         lowhp:      { gain: 0.16, freq: 260 },
+        // The duel keeps the boss cues and the arena mix readable, so its low health muffle is much lighter
+        duelLowHp:  { gain: 0.62, freq: 3200 },
         // plain volume cut, no muffle filter - just wants the transform
         // sfx (bypass-routed) to read clearly, not a disorienting effect
         goliathTransform: { gain: 0.35, freq: NORMAL_FREQ },
@@ -478,7 +491,7 @@
 
     // Per-clip base gain. Balance lives in the audio files themselves (gain
     // baked in with ffmpeg's volume filter) so the in-game sliders read as
-    // "true 100%" at their default — this map is a 1.0 passthrough, kept as
+    // "true 100%" at their default , this map is a 1.0 passthrough, kept as
     // a hook for future per-clip tweaks rather than a real attenuation table.
     // Values 0..1, multiplied by sfx * global.
     const SFX_BASE = {
@@ -668,6 +681,7 @@
         { id: 'resurrection',           title: 'Resurrection',                  src: 'assets/audio/bgm/resurrection.mp3' },
         { id: 'blue-sky',               title: 'Blue Sky',                      src: 'assets/audio/bgm/blue-sky.mp3' },
         { id: 'sousei-no-hi',           title: 'Sousei no Hi',                  src: 'assets/audio/bgm/sousei-no-hi.mp3' },
+        { id: 'egregor-theme',          title: 'Ruler of the Violet Domain',    src: 'assets/audio/bgm/egregor-theme.mp3',                    duelOnly: true },
     ];
 
     const state = {
@@ -686,7 +700,7 @@
         laserEl: null,       // sustained laser loop
         chargingEl: null,    // charging hum loop (Space-hold overload laser, 3s)
         skillGLoopEl: null,  // Skill G Tesla Matrix ambient loop, held for the full 30s barrier
-        skillDChargeEl: null, // black hole charge hum (Skill D, 2s — distinct clip)
+        skillDChargeEl: null, // black hole charge hum (Skill D, 2s , distinct clip)
         skillFChargeEl: null, // Skill F charge-up cue, cut short at natural pace (not looped)
         skillFFireEl: null,   // Skill F slash cue, cut short when the sweep animation ends (not looped)
         blackholeEl: null,    // black hole ambience, cut short when the hole leaves the screen (not looped)
@@ -707,7 +721,7 @@
         raphaelIdleEl: null,  // Raphael ambient presence (gear-hum + choral drone + platform-rise + breath), same native gapless loop
         pool: {},            // sfx key → { src, bypass }
         // In-game BGM rotation pool the player picked in Settings (track ids,
-        // excludes the menu-only "pisces" track — that one never plays in a
+        // excludes the menu-only "pisces" track , that one never plays in a
         // match). Empty = random from the FULL in-game pool (default).
         selectedBgmIds: [],
     };
@@ -723,13 +737,13 @@
         }
     } catch (_) {}
 
-    // Load persisted BGM rotation selection (separate key — kept independent
+    // Load persisted BGM rotation selection (separate key , kept independent
     // of the volumes blob so neither format has to know about the other).
     try {
         const rawSel = localStorage.getItem(STORAGE_KEY_BGM_SEL);
         if (rawSel) {
             const arr = JSON.parse(rawSel);
-            if (Array.isArray(arr)) state.selectedBgmIds = arr.filter(id => BGM_LIST.some(t => t.id === id && !t.menuOnly));
+            if (Array.isArray(arr)) state.selectedBgmIds = arr.filter(id => BGM_LIST.some(t => t.id === id && !t.menuOnly && !t.duelOnly));
         }
     } catch (_) {}
 
@@ -750,7 +764,7 @@
     }
 
     // Prefetch/decode a one-shot sfx clip. size is a historical pool-depth
-    // hint from the pre-Web-Audio pooled-<audio> design — playback no longer
+    // hint from the pre-Web-Audio pooled-<audio> design , playback no longer
     // pools discrete elements (a fresh AudioBufferSourceNode per play()
     // supports unlimited overlapping instances natively) so it's unused now,
     // kept only so the many call sites below don't need touching.
@@ -780,7 +794,7 @@
     }
     function prepareGameplay() {
         const enemy = /^(tut-|ammit|egregor|dimension|goliath|dargruel|leviathan|uriel|raphael|phantom|veilshroud|kanade|stack-overflow|timeline-distortion|dau-|ty-)/;
-        for (const key of Object.keys(state.pool)) if (!enemy.test(key)) _decodeBuffer(state.pool[key].src);
+        for (const key of Object.keys(state.pool)) if (!enemy.test(key) && !_duelSounds[key]) _decodeBuffer(state.pool[key].src);
     }
     function prepareSigil(id) {
         if (id === 'dau' || id === 'ty') for (const key of Object.keys(state.pool)) if (key.startsWith(id + '-')) _decodeBuffer(state.pool[key].src);
@@ -940,7 +954,302 @@
     }
     function stopAmmitCues() { for (let i = 0; i < _ammitCues.length; i++) _ammitStopCue(_ammitCues[i]); }
 
+    // Duel voices share bounded lifetimes, priority buses and deterministic take selection.
+    const DUEL_SOUNDS = [{"key":"egregor-idle-p1-bed","duration":19,"group":"ambience","stereo":true,"loop":true,"phase":1},{"key":"egregor-idle-p1-breath","duration":12.4,"group":"ambience","stereo":true,"loop":true,"phase":1},{"key":"egregor-idle-p1-murmur","duration":15.1,"group":"ambience","stereo":true,"loop":true,"phase":1},{"key":"egregor-idle-p1-growl-a","duration":3.1,"group":"effect","stereo":false},{"key":"egregor-idle-p1-growl-b","duration":2.5,"group":"effect","stereo":false},{"key":"egregor-idle-p1-coo-a","duration":2.1,"group":"effect","stereo":false},{"key":"egregor-idle-p1-coo-b","duration":1.8,"group":"effect","stereo":false},{"key":"egregor-idle-p1-roar","duration":4.1,"group":"large","stereo":false},{"key":"arena-bed-p1","duration":12,"group":"ambience","stereo":true,"loop":true,"phase":1},{"key":"arena-bed-p2","duration":12,"group":"ambience","stereo":true,"loop":true,"phase":2},{"key":"arena-bed-p3","duration":12,"group":"ambience","stereo":true,"loop":true,"phase":3},{"key":"boss-breath","duration":8,"group":"ambience","stereo":true,"loop":true},{"key":"boss-bullet-cancel","duration":0.3,"group":"effect","stereo":false},{"key":"boss-bullet-eye-a","duration":0.18,"group":"effect","stereo":false,"variants":"boss-bullet-eye"},{"key":"boss-bullet-eye-b","duration":0.18,"group":"effect","stereo":false,"variants":"boss-bullet-eye"},{"key":"boss-bullet-eye-c","duration":0.18,"group":"effect","stereo":false,"variants":"boss-bullet-eye"},{"key":"boss-bullet-ichor-a","duration":0.18,"group":"effect","stereo":false,"variants":"boss-bullet-ichor"},{"key":"boss-bullet-ichor-b","duration":0.18,"group":"effect","stereo":false,"variants":"boss-bullet-ichor"},{"key":"boss-bullet-ichor-c","duration":0.18,"group":"effect","stereo":false,"variants":"boss-bullet-ichor"},{"key":"boss-bullet-spore-a","duration":0.18,"group":"effect","stereo":false,"variants":"boss-bullet-spore"},{"key":"boss-bullet-spore-b","duration":0.18,"group":"effect","stereo":false,"variants":"boss-bullet-spore"},{"key":"boss-bullet-spore-c","duration":0.18,"group":"effect","stereo":false,"variants":"boss-bullet-spore"},{"key":"boss-bullet-thorn-a","duration":0.18,"group":"effect","stereo":false,"variants":"boss-bullet-thorn"},{"key":"boss-bullet-thorn-b","duration":0.18,"group":"effect","stereo":false,"variants":"boss-bullet-thorn"},{"key":"boss-bullet-thorn-c","duration":0.18,"group":"effect","stereo":false,"variants":"boss-bullet-thorn"},{"key":"boss-emerge-roar","duration":2.2,"group":"large","stereo":true},{"key":"boss-hit-a","duration":0.28,"group":"effect","stereo":false,"variants":"boss-hit"},{"key":"boss-hit-b","duration":0.28,"group":"effect","stereo":false,"variants":"boss-hit"},{"key":"boss-hit-c","duration":0.28,"group":"effect","stereo":false,"variants":"boss-hit"},{"key":"boss-hit-heavy","duration":0.55,"group":"large","stereo":true},{"key":"boss-invuln","duration":0.35,"group":"effect","stereo":false},{"key":"boss-volley","duration":0.4,"group":"effect","stereo":false},{"key":"chorus-whisper","duration":3,"group":"ambience","stereo":true,"loop":true},{"key":"evolve-charge","duration":3,"group":"large","stereo":true},{"key":"evolve-roar-p2","duration":2.4,"group":"large","stereo":true,"phase":2},{"key":"evolve-roar-p3","duration":2.4,"group":"large","stereo":true,"phase":3},{"key":"evolve-roar","duration":2.4,"group":"large","stereo":true},{"key":"eyebeam-charge","duration":1,"group":"effect","stereo":false},{"key":"eyebeam-end","duration":0.45,"group":"effect","stereo":false},{"key":"eyebeam-loop","duration":2,"group":"ambience","stereo":true,"loop":true},{"key":"graze-tick-a","duration":0.08,"group":"effect","stereo":false,"variants":"graze-tick"},{"key":"graze-tick-b","duration":0.08,"group":"effect","stereo":false,"variants":"graze-tick"},{"key":"graze-tick-c","duration":0.08,"group":"effect","stereo":false,"variants":"graze-tick"},{"key":"hp-layer-break","duration":1.1,"group":"large","stereo":true},{"key":"lock-on-beep","duration":0.2,"group":"ui","stereo":false},{"key":"mind-adapt","duration":1,"group":"effect","stereo":false},{"key":"mind-lock","duration":0.5,"group":"effect","stereo":false},{"key":"mind-scan","duration":0.8,"group":"effect","stereo":false},{"key":"mindlink-form","duration":0.85,"group":"effect","stereo":false},{"key":"nullslash-hit2","duration":0.55,"group":"large","stereo":true},{"key":"nullslash-slash2-p2","duration":0.95,"group":"large","stereo":true,"phase":2},{"key":"nullslash-slash2-p3","duration":0.95,"group":"large","stereo":true,"phase":3},{"key":"nullslash-slash2","duration":0.95,"group":"large","stereo":true},{"key":"nullslash-tear","duration":0.6,"group":"effect","stereo":false},{"key":"nullslash-windup2-p2","duration":1.5,"group":"large","stereo":true,"phase":2},{"key":"nullslash-windup2-p3","duration":1.5,"group":"large","stereo":true,"phase":3},{"key":"nullslash-windup2","duration":1.5,"group":"large","stereo":true},{"key":"orb-burst","duration":1,"group":"large","stereo":true},{"key":"orb-throw","duration":0.7,"group":"effect","stereo":false},{"key":"portal-crack","duration":2.4,"group":"large","stereo":true},{"key":"result-defeat","duration":4,"group":"ui","stereo":true},{"key":"result-victory","duration":4.5,"group":"ui","stereo":true},{"key":"sensor-sweep","duration":3,"group":"effect","stereo":true},{"key":"shield-break","duration":0.6,"group":"effect","stereo":false},{"key":"shield-restore","duration":0.5,"group":"ui","stereo":false},{"key":"spell-charge-p2","duration":1.3,"group":"large","stereo":true,"phase":2},{"key":"spell-charge-p3","duration":1.3,"group":"large","stereo":true,"phase":3},{"key":"spell-charge","duration":1.3,"group":"large","stereo":true},{"key":"spell-release-p2","duration":0.9,"group":"large","stereo":true,"phase":2},{"key":"spell-release-p3","duration":0.9,"group":"large","stereo":true,"phase":3},{"key":"spell-release","duration":0.9,"group":"large","stereo":true},{"key":"tendril-retract","duration":0.55,"group":"effect","stereo":false},{"key":"tendril-strike","duration":0.5,"group":"effect","stereo":false},{"key":"tendril-windup","duration":0.7,"group":"effect","stereo":false},{"key":"ui-back","duration":0.25,"group":"ui","stereo":false},{"key":"ui-card-hover-a","duration":0.12,"group":"ui","stereo":false,"variants":"ui-card-hover"},{"key":"ui-card-hover-b","duration":0.12,"group":"ui","stereo":false,"variants":"ui-card-hover"},{"key":"ui-card-hover-c","duration":0.12,"group":"ui","stereo":false,"variants":"ui-card-hover"},{"key":"ui-card-select","duration":0.5,"group":"ui","stereo":false},{"key":"ui-confirm-engage","duration":0.9,"group":"ui","stereo":false},{"key":"ui-locked","duration":0.35,"group":"ui","stereo":false},{"key":"ui-weapon-hover","duration":0.12,"group":"ui","stereo":false},{"key":"ui-weapon-select-axe","duration":0.5,"group":"ui","stereo":false},{"key":"ui-weapon-select-phantom","duration":0.5,"group":"ui","stereo":false},{"key":"ui-weapon-select-spear","duration":0.5,"group":"ui","stereo":false},{"key":"ui-weapon-select-sword","duration":0.5,"group":"ui","stereo":false},{"key":"ui-weapon-select-titan","duration":0.5,"group":"ui","stereo":false},{"key":"ui-weapon-select","duration":0.5,"group":"ui","stereo":false},{"key":"upheaval-erupt","duration":0.9,"group":"large","stereo":true},{"key":"upheaval-rumble","duration":1.1,"group":"large","stereo":true},{"key":"upheaval-slam","duration":0.7,"group":"large","stereo":true}];
+    DUEL_SOUNDS.push({key:'duel-relic-sword-release',duration:.6,group:'effect',optional:true,stereo:false}, {key:'duel-relic-sword-return',duration:.8,group:'effect',optional:true,stereo:false});
+    DUEL_SOUNDS.push(...[{"key":"duel-gapbar-warn","duration":1.1,"group":"effect","optional":true,"stereo":false},{"key":"duel-gapbar-sweep","duration":0.9,"group":"large","optional":true,"stereo":true},{"key":"duel-gapbar-fade","duration":0.5,"group":"effect","optional":true,"stereo":false},{"key":"duel-pillar-warn","duration":1.2,"group":"effect","optional":true,"stereo":false},{"key":"duel-pillar-drop","duration":0.6,"group":"large","optional":true,"stereo":true},{"key":"duel-pillar-slam","duration":0.8,"group":"large","optional":true,"stereo":true},{"key":"duel-pillar-fade","duration":0.6,"group":"effect","optional":true,"stereo":false},{"key":"egregor-chorus-form","duration":1.5,"group":"effect","optional":true,"stereo":false},{"key":"egregor-chorus-pulse","duration":0.9,"group":"effect","optional":true,"stereo":false},{"key":"egregor-mindlink-fade","duration":0.6,"group":"effect","optional":true,"stereo":false},{"key":"egregor-rift-warn","duration":1,"group":"effect","optional":true,"stereo":false},{"key":"egregor-rift-form","duration":1.2,"group":"large","optional":true,"stereo":true},{"key":"egregor-rift-fade","duration":0.7,"group":"effect","optional":true,"stereo":false},{"key":"egregor-sphere-warn","duration":0.35,"group":"effect","optional":true,"stereo":false},{"key":"egregor-cast-rune","duration":0.7,"group":"effect","optional":true,"stereo":false},{"key":"egregor-cast-release","duration":0.5,"group":"effect","optional":true,"stereo":false},{"key":"duel-cancel-shards","duration":0.3,"group":"effect","optional":true,"stereo":false},{"key":"egregor-evolution-shell","duration":1.5,"group":"large","optional":true,"stereo":true},{"key":"egregor-evolution-shards","duration":1.1,"group":"large","optional":true,"stereo":true},{"key":"egregor-death-fracture","duration":1.6,"group":"large","optional":true,"stereo":true},{"key":"egregor-death-ash","duration":1.4,"group":"large","optional":true,"stereo":true},{"key":"duel-ship-fireball","duration":1.2,"group":"large","optional":true,"stereo":true},{"key":"duel-ship-debris","duration":0.8,"group":"large","optional":true,"stereo":true},{"key":"duel-cockpit-five","duration":0.8,"group":"large","optional":true,"stereo":true},{"key":"duel-cockpit-three","duration":1,"group":"large","optional":true,"stereo":true},{"key":"duel-ship-report","duration":0.3,"group":"effect","optional":true,"stereo":false},{"key":"duel-opening-dust","duration":1.5,"group":"effect","optional":true,"stereo":false},{"key":"egregor-opening-ten-minds","duration":3.5,"group":"effect","optional":true,"stereo":false},{"key":"egregor-opening-glass","duration":1.2,"group":"effect","optional":true,"stereo":false},{"key":"egregor-opening-rays","duration":1.6,"group":"effect","optional":true,"stereo":false},{"key":"egregor-opening-unison","duration":1.5,"group":"effect","optional":true,"stereo":false},{"key":"egregor-opening-limb","duration":1.1,"group":"effect","optional":true,"stereo":false},{"key":"egregor-opening-breath","duration":1.3,"group":"effect","optional":true,"stereo":false},{"key":"egregor-opening-inscribe","duration":1.3,"group":"effect","optional":true,"stereo":false},{"key":"duel-relic-sword-cast","duration":1,"group":"effect","optional":true,"stereo":false},{"key":"duel-relic-sword-hit","duration":0.45,"group":"effect","optional":true,"stereo":false},{"key":"duel-relic-spear-cast","duration":0.6,"group":"effect","optional":true,"stereo":false},{"key":"duel-relic-spear-hit","duration":0.45,"group":"effect","optional":true,"stereo":false},{"key":"duel-relic-halberd-cast","duration":1,"group":"effect","optional":true,"stereo":false},{"key":"duel-relic-halberd-hit","duration":0.45,"group":"effect","optional":true,"stereo":false},{"key":"duel-relic-dagger_array-cast","duration":1,"group":"effect","optional":true,"stereo":false},{"key":"duel-relic-dagger_array-hit","duration":0.45,"group":"effect","optional":true,"stereo":false},{"key":"duel-relic-heavy_lance-cast","duration":1,"group":"effect","optional":true,"stereo":false},{"key":"duel-relic-heavy_lance-hit","duration":0.45,"group":"effect","optional":true,"stereo":false},{"key":"duel-relic-spear-release","duration":0.8,"group":"effect","optional":true,"stereo":false},{"key":"duel-relic-dagger_array-volley","duration":0.13,"group":"effect","optional":true,"stereo":false},{"key":"duel-relic-heavy_lance-impact","duration":0.9,"group":"effect","optional":true,"stereo":false},{"key":"duel-relic-cancel","duration":0.25,"group":"effect","optional":true,"stereo":false},{"key":"duel-relic-ready","duration":0.5,"group":"effect","optional":true,"stereo":false}]);
+    DUEL_SOUNDS.push({"key":"egregor-eyebeam-fire","duration":0.65,"group":"effect","event":"Tia mắt bắt đầu gây nguy hiểm","material":"An ancient petrified eye opens and releases a compressed column of cavern pressure, cracked bronze friction and a deep organic hiss","file":"js/duel/duel-attacks.js","fn":"_syncSkillAudio / _updateSkills","optional":true,"stereo":false});
+    const _duelSounds = Object.fromEntries(DUEL_SOUNDS.map(item => [item.key, item]));
+    const _duelFamilies = {};
+    for (const sound of DUEL_SOUNDS) if (sound.variants) {
+        (_duelFamilies[sound.variants] || (_duelFamilies[sound.variants] = [])).push(sound.key);
+    }
+    const _duelVoices = new Set(), _duelLoops = new Map();
+    const _duelLast = {}, _duelRound = {}, _duelGroupVolumes = { effect: 1, large: 1, ui: 1, ambience: 1 };
+    let _duelActive = false, _duelPaused = false, _duelGeneration = 0, _duelPrepared = null;
+    let _duelVoiceUntil = 0, _duelCueUntil = 0, _duelDuckTimer = null;
+    let _duelAmbience = true;
+    try { _duelAmbience = localStorage.getItem('duelAmbienceEnabled') !== 'false'; } catch (_) {}
+    const _duelSfxBus = actx ? actx.createGain() : null;
+    const _duelCueBus = actx ? actx.createGain() : null;
+    const _duelMusicBus = actx ? actx.createGain() : null;
+    if (actx) {
+        _duelSfxBus.connect(_duckGain);
+        _duelCueBus.connect(_bypassGain);
+        _duelMusicBus.connect(_duckGain);
+    }
+
+    function _duelPriority() {
+        if (!actx) return;
+        const now = actx.currentTime;
+        const voice = _duelActive && _duelVoiceUntil > now;
+        const cue = _duelActive && _duelCueUntil > now;
+        _duelSfxBus.gain.setTargetAtTime(voice ? .5012 : 1, now, voice ? .015 : .14);
+        _duelCueBus.gain.setTargetAtTime(voice ? .5012 : 1, now, voice ? .015 : .14);
+        _duelMusicBus.gain.setTargetAtTime(voice ? .5012 : cue ? .7079 : 1, now, voice || cue ? .025 : .22);
+        clearTimeout(_duelDuckTimer);
+        const next = Math.min(...[_duelVoiceUntil, _duelCueUntil].filter(t => t > now));
+        if (Number.isFinite(next)) _duelDuckTimer = setTimeout(_duelPriority, Math.max(1, (next - now) * 1000 + 10));
+    }
+    function _duelDuck(kind, seconds) {
+        if (!_duelActive || !actx) return;
+        const until = actx.currentTime + seconds;
+        if (kind === 'voice') _duelVoiceUntil = Math.max(_duelVoiceUntil, until);
+        else _duelCueUntil = Math.max(_duelCueUntil, until);
+        _duelPriority();
+    }
+    function prepareDuel() {
+        if (!_duelPrepared) _duelPrepared = (async () => {
+            _decodeBuffer(OPENING_MUSIC_SRC);
+            const battleTheme = BGM_LIST.find(t => t.duelOnly);
+            if (battleTheme) _decodeBuffer(battleTheme.src);
+            const order = DUEL_SOUNDS.slice().sort((a, b) => {
+                const rank = s => s.group === 'ui' ? 0 : /sensor|portal|emerge|lock-on/.test(s.key) ? 1 : s.loop ? 3 : 2;
+                return rank(a) - rank(b) || a.duration - b.duration;
+            });
+            const result = [];
+            for (const sound of order) {
+                if (sound.optional) continue;
+                await new Promise(resolve => {
+                    if (window.requestIdleCallback) window.requestIdleCallback(resolve, { timeout: 100 });
+                    else setTimeout(resolve, 12);
+                });
+                result.push(await _decodeBuffer('assets/audio/sfx/' + sound.key + '.mp3'));
+            }
+            return result;
+        })();
+        return _duelPrepared;
+    }
+    // The short opening cue of the Showdown. It plays through the duel music bus while the opening scene runs, the
+    // background music rests until it ends, and the loud hit in the cue lands as the rift tears open.
+    const OPENING_MUSIC_SRC = 'assets/audio/bgm/egregor-opening.mp3';
+    let _openingMusic = null;
+    // The battle theme loops on the shared BGM player for the whole fight. Ramps scale the player volume between 0 and
+    // the user's music volume, and any track switch or newer ramp cancels an older one.
+    let _bgmRamp = 0;
+    function _rampBgm(from, to, seconds, done) {
+        const token = ++_bgmRamp, t0 = performance.now();
+        const step = () => {
+            if (token !== _bgmRamp || !state.bgmEl) return;
+            const p = Math.min(1, (performance.now() - t0) / (seconds * 1000));
+            state.bgmEl.volume = Math.min(1, bgmGain() * (from + (to - from) * p));
+            if (p < 1) setTimeout(step, 50); else if (done) done();
+        };
+        step();
+    }
+    function startDuelBattleTheme() {
+        const track = BGM_LIST.find(t => t.duelOnly);
+        if (!actx || !_duelActive || !track) return;
+        if (state.currentBgmId === track.id) {
+            if (state.bgmEl.paused && !_pauseSnapshot) state.bgmEl.play().catch(() => {});
+            return;
+        }
+        _switchBgm(track);
+        _rampBgm(0, 1, 1.6);
+    }
+    function stopDuelBattleTheme(fadeSec) {
+        const track = BGM_LIST.find(t => t.duelOnly);
+        if (!track || state.currentBgmId !== track.id) return;
+        if (!(fadeSec > 0)) { _bgmRamp++; stopBgm(); state.bgmEl.volume = bgmGain(); return; }
+        _rampBgm(1, 0, fadeSec, () => { if (state.currentBgmId === track.id) stopBgm(); state.bgmEl.volume = bgmGain(); });
+    }
+    // once the opening cue is over the battle theme takes the music slot; outside a duel the rested music simply resumes
+    function _afterOpeningMusic() {
+        if (_duelActive && !_duelPaused) startDuelBattleTheme(); else resumeBgm();
+    }
+    function stopDuelOpeningMusic(fadeSec) {
+        const m = _openingMusic;
+        if (!m) return;
+        _openingMusic = null;
+        m.cancelled = true;
+        if (m.node && m.gain) {
+            const fade = fadeSec > 0 ? fadeSec : 0.02, t = actx.currentTime;
+            try { m.gain.gain.cancelScheduledValues(t); m.gain.gain.setValueAtTime(m.gain.gain.value, t); m.gain.gain.linearRampToValueAtTime(0, t + fade); m.node.stop(t + fade + 0.02); } catch (_) {}
+        }
+        if (m.restedBgm) _afterOpeningMusic();
+    }
+    function playDuelOpeningMusic() {
+        if (!actx || !_duelActive || state.muted) return null;
+        stopDuelOpeningMusic(0);
+        stopDuelBattleTheme(0);
+        const m = { cancelled: false, node: null, gain: null, restedBgm: false, cancel(fade) { if (_openingMusic === m) stopDuelOpeningMusic(fade); else m.cancelled = true; } };
+        _openingMusic = m;
+        _decodeBuffer(OPENING_MUSIC_SRC).then(buffer => {
+            if (!buffer || m.cancelled || _openingMusic !== m || _duelPaused) { if (_openingMusic === m) _openingMusic = null; return; }
+            m.gain = actx.createGain(); m.gain.gain.value = bgmGain();
+            m.gain.connect(_duelMusicBus);
+            m.node = actx.createBufferSource(); m.node.buffer = buffer; m.node.connect(m.gain);
+            m.node.onended = () => { try { m.gain.disconnect(); } catch (_) {} if (_openingMusic === m) { _openingMusic = null; if (m.restedBgm) _afterOpeningMusic(); } };
+            m.node.start();
+            pauseBgm(); m.restedBgm = true;
+        });
+        return m;
+    }
+    function setDuelAudioActive(value) {
+        _duelActive = !!value;
+        if (!_duelActive) { stopDuelAudio(); stopDuelBattleTheme(0); }
+        if (_masterLimiter) {
+            const now = actx.currentTime;
+            _masterLimiter.threshold.setValueAtTime(_duelActive ? -3 : 0, now);
+            _masterLimiter.ratio.setValueAtTime(_duelActive ? 20 : 1, now);
+            _masterClipper.curve = _duelActive ? _duelLimitCurve : null;
+        }
+        _duelPriority();
+    }
+    function _duelWidth() { return typeof canvas !== 'undefined' && canvas ? canvas.width : 1280; }
+    function _duelRate(key, phase) {
+        const varied = /^(boss-hit|boss-bullet|graze|ui-card-hover|ui-weapon-hover)/.test(key);
+        return varied ? 1 + (Math.random() * .08 - .04) : phase === 3 && /tendril|upheaval/.test(key) ? .96 : 1;
+    }
+    function _duelGain(sound, key) {
+        return sfxGain(key) * _duelGroupVolumes[sound.group];
+    }
+    function playDuelSfx(key, x, y, phase = 1) {
+        if (!actx || !_duelActive || _duelPaused || _timeFrozen || state.muted) return null;
+        const family = _duelFamilies[key];
+        const logical = family ? key : key.replace(/-[abc]$/, '');
+        const interval = logical.startsWith('boss-hit') ? .1 : logical === 'boss-invuln' ? .15 : logical.startsWith('boss-bullet') ? .08 : logical === 'graze-tick' ? .12 : /hover/.test(logical) ? .08 : .035;
+        const now = actx.currentTime;
+        if (now - (_duelLast[logical] ?? -Infinity) < interval) return null;
+        const preview = _duelSounds[key] || _duelSounds[family?.[0]];
+        if ((_liveVoices >= MAX_SFX_VOICES || _duelVoices.size >= 20) && preview?.group === 'large') {
+            const expendable = Array.from(_duelVoices).find(v => _duelSounds[v.key]?.group === 'effect');
+            if (expendable?.cancel) expendable.cancel();
+        }
+        if (_liveVoices >= MAX_SFX_VOICES || _duelVoices.size >= 20) return null;
+        const localCount = Array.from(_duelVoices).filter(v => v.logical === logical).length;
+        if (localCount >= (/graze/.test(logical) ? 1 : 3)) return null;
+        let actual = key;
+        if (family) actual = family[(_duelRound[key] || 0) % family.length];
+        if (phase >= 2 && _duelSounds[actual + '-p' + phase]) actual += '-p' + phase;
+        const sound = _duelSounds[actual], pool = state.pool[actual];
+        if (!sound || !pool) return null;
+        const gainValue = _duelGain(sound, actual);
+        if (gainValue <= 0) return null;
+        _duelLast[logical] = now;
+        if (family) _duelRound[key] = (_duelRound[key] || 0) + 1;
+        const generation = _duelGeneration;
+        const slot = { logical, key: actual, node: null, gain: null, pan: null, counted: false, cancelled: false };
+        _duelVoices.add(slot);
+        const cleanup = () => {
+            if (slot.counted) { _liveVoices = Math.max(0, _liveVoices - 1); slot.counted = false; }
+            for (const node of [slot.node, slot.gain, slot.pan]) if (node) try { node.disconnect(); } catch (_) {}
+            _duelVoices.delete(slot);
+        };
+        const start = buffer => {
+            if (!buffer || generation !== _duelGeneration || slot.cancelled || _duelPaused || state.muted || _liveVoices >= MAX_SFX_VOICES) { cleanup(); return; }
+            const node = actx.createBufferSource(), gain = actx.createGain();
+            slot.node = node; slot.gain = gain; node.buffer = buffer;
+            node.playbackRate.value = _duelRate(actual, phase);
+            const distance = sound.group === 'large' || sound.group === 'ui' ? 1 : Number.isFinite(x) ? Math.max(.55, _distanceGain(x, y)) : 1;
+            gain.gain.value = gainValue * distance * (/boss-hit|bullet|graze/.test(actual) ? .94 + Math.random() * .06 : 1);
+            node.connect(gain);
+            if (actx.createStereoPanner && Number.isFinite(x)) {
+                slot.pan = actx.createStereoPanner(); slot.pan.pan.value = Math.max(-.65, Math.min(.65, (x / _duelWidth() - .5) * 1.3));
+                gain.connect(slot.pan); slot.pan.connect(pool.bypass ? _duelCueBus : _duelSfxBus);
+            } else gain.connect(pool.bypass ? _duelCueBus : _duelSfxBus);
+            slot.counted = true; _liveVoices++;
+            node.onended = cleanup; node.start();
+            if (sound.group === 'large') _duelDuck('cue', buffer.duration / node.playbackRate.value);
+        };
+        const ready = _decodedBuffers[pool.src];
+        if (ready) start(ready); else _decodeBuffer(pool.src).then(start);
+        slot.cancel = () => { slot.cancelled = true; if (slot.node) try { slot.node.stop(); } catch (_) {} cleanup(); };
+        return slot;
+    }
+    function _duelLoopVolume(slot) {
+        if (!actx || !slot.gain) return;
+        const sound = _duelSounds[slot.key];
+        slot.gain.gain.setTargetAtTime(_duelPaused || state.muted || (slot.ambient && !_duelAmbience) ? 0 : _duelGain(sound, slot.key), actx.currentTime, .05);
+    }
+    function startDuelLoop(key, x, ambient = false) {
+        if (!actx || !_duelActive || _duelPaused || state.muted || (ambient && !_duelAmbience)) return;
+        const old = _duelLoops.get(key);
+        if (old) { if (old.pan && Number.isFinite(x)) old.pan.pan.setTargetAtTime(Math.max(-.65, Math.min(.65, (x / _duelWidth() - .5) * 1.3)), actx.currentTime, .1); return; }
+        const sound = _duelSounds[key], pool = state.pool[key];
+        if (!sound || !sound.loop || !pool) return;
+        const slot = { key, ambient, node: null, gain: null, pan: null, cancelled: false, counted: false };
+        _duelLoops.set(key, slot);
+        const start = buffer => {
+            if (!buffer || slot.cancelled || _duelLoops.get(key) !== slot || _duelPaused || _liveVoices >= MAX_SFX_VOICES) { stopDuelLoop(key); return; }
+            slot.node = actx.createBufferSource(); slot.node.buffer = buffer; slot.node.loop = true;
+            slot.gain = actx.createGain(); slot.gain.gain.value = 0; slot.node.connect(slot.gain);
+            if (actx.createStereoPanner && Number.isFinite(x)) {
+                slot.pan = actx.createStereoPanner(); slot.pan.pan.value = Math.max(-.65, Math.min(.65, (x / _duelWidth() - .5) * 1.3));
+                slot.gain.connect(slot.pan); slot.pan.connect(_duelSfxBus);
+            } else slot.gain.connect(_duelSfxBus);
+            slot.counted = true; _liveVoices++;
+            slot.node.start(); _duelLoopVolume(slot);
+        };
+        const buffer = _decodedBuffers[pool.src];
+        if (buffer) start(buffer); else _decodeBuffer(pool.src).then(start);
+    }
+    function stopDuelLoop(key) {
+        const slot = _duelLoops.get(key);
+        if (!slot) return;
+        slot.cancelled = true; _duelLoops.delete(key);
+        if (slot.node) {
+            const now = actx.currentTime;
+            slot.gain.gain.cancelScheduledValues(now); slot.gain.gain.setValueAtTime(slot.gain.gain.value, now); slot.gain.gain.linearRampToValueAtTime(0, now + .025);
+            const cleanup = () => {
+                if (slot.counted) { _liveVoices = Math.max(0, _liveVoices - 1); slot.counted = false; }
+                for (const node of [slot.node, slot.gain, slot.pan]) if (node) try { node.disconnect(); } catch (_) {}
+            };
+            slot.node.onended = cleanup;
+            try { slot.node.stop(now + .03); } catch (_) { cleanup(); }
+        }
+    }
+    function syncDuelLoops(playing, phase, x, beam, chorus) {
+        if (!playing || _duelPaused || !_duelActive) { for (const key of Array.from(_duelLoops.keys())) stopDuelLoop(key); return; }
+        const wanted = new Set();
+        // Phase 1 has its own layered idle set (bed, breath and murmur); the other phases still use the shared pair
+        if (_duelAmbience && phase === 1) { wanted.add('egregor-idle-p1-bed'); wanted.add('egregor-idle-p1-breath'); wanted.add('egregor-idle-p1-murmur'); }
+        else if (_duelAmbience) { wanted.add('boss-breath'); wanted.add('arena-bed-p' + phase); }
+        if (beam) wanted.add('eyebeam-loop');
+        if (chorus) wanted.add('chorus-whisper');
+        for (const key of _duelLoops.keys()) if (!wanted.has(key)) stopDuelLoop(key);
+        for (const key of wanted) startDuelLoop(key, key === 'eyebeam-loop' ? x : undefined, /boss-breath|arena-bed|egregor-idle/.test(key));
+    }
+    function stopDuelAudio() {
+        _duelGeneration++; _duelPaused = false;
+        for (const slot of Array.from(_duelVoices)) if (slot.cancel) slot.cancel();
+        for (const key of Array.from(_duelLoops.keys())) stopDuelLoop(key);
+        _duelVoiceUntil = _duelCueUntil = 0; _duelPriority();
+        for (const key of Object.keys(_duelLast)) delete _duelLast[key];
+    }
+    function setDuelGroupVolume(group, value) {
+        if (!(group in _duelGroupVolumes)) return;
+        _duelGroupVolumes[group] = Math.max(0, Math.min(1, value));
+        for (const slot of _duelLoops.values()) _duelLoopVolume(slot);
+    }
+    function setDuelAmbienceEnabled(value) {
+        _duelAmbience = !!value;
+        try { localStorage.setItem('duelAmbienceEnabled', String(_duelAmbience)); } catch (_) {}
+        if (!_duelAmbience) for (const [key, slot] of _duelLoops) if (slot.ambient) stopDuelLoop(key);
+    }
+    // Read-only view of which sustained loops are running right now and at what gain, for audits and tests.
+    function debugLoops() {
+        const names = ['ambientEl', 'engineEl', 'lowHpEl', 'menuSpaceEl', 'laserEl', 'chargingEl', 'skillFChargeEl', 'skillFFireEl', 'skillGLoopEl', 'crawlEl', 'bgmEl'];
+        const out = {};
+        for (const n of names) out[n.replace(/El$/, '')] = !!(state[n] && !state[n].paused);
+        out.duelLoops = Array.from(_duelLoops.keys());
+        out.timeFrozen = !!_timeFrozen;
+        out.limiterReduction = _masterLimiter ? _masterLimiter.reduction : 0;
+        out.muted = !!state.muted;
+        out.volumes = { sfx: state.vol.sfx, global: state.vol.global, ambientGain: sfxGain('ambient'), engineGain: sfxGain('engine'), lowHpGain: sfxGain('low-hp') };
+        return out;
+    }
+    function getDuelAudioStatus() {
+        return { active: _duelActive, paused: _duelPaused, voices: _duelVoices.size, liveVoices: _liveVoices, maxVoices: MAX_SFX_VOICES,
+            loops: Array.from(_duelLoops.keys()), decoded: DUEL_SOUNDS.filter(s => _decodedBuffers['assets/audio/sfx/' + s.key + '.mp3']).length,
+            voiceDuck: !!(actx && _duelVoiceUntil > actx.currentTime), cueDuck: !!(actx && _duelCueUntil > actx.currentTime),
+            mix: actx ? { normal: _duelSfxBus.gain.value, cue: _duelCueBus.gain.value, music: _duelMusicBus.gain.value, limiterRatio: _masterLimiter.ratio.value } : null,
+            rounds: { ..._duelRound }, groups: { ..._duelGroupVolumes } };
+    }
+
     function playSfx(key) {
+        if (_duelSounds[key] || _duelFamilies[key]) return playDuelSfx(key);
+        if (key === 'evolve-reveal') key = 'egregor-tempest-portal';
         if (_timeFrozen) return;
         const p = state.pool[key];
         if (!p) return;
@@ -965,7 +1274,8 @@
         for (let i = 0; i < _ammitCues.length; i++) if (_ammitCues[i].tutorial) _ammitStopCue(_ammitCues[i]);
     }
 
-    function playSfxAt(key, x, y) {
+    function playSfxAt(key, x, y, phase) {
+        if (_duelSounds[key] || _duelFamilies[key]) return playDuelSfx(key, x, y, phase);
         if (_timeFrozen) return;
         const p = state.pool[key];
         if (!p) return;
@@ -975,6 +1285,127 @@
         if (_sfxTooSoon(key)) return;
         if (key.startsWith('ammit-')) return _playAmmitCue(p.src, g, p.bypass, !cue);
         return _playVoice(p.src, g, p.bypass, !cue);
+    }
+
+    // Voice announcer sequences. Several clips (an alert chime and the fragments of one sentence) are
+    // scheduled end to end on the audio clock, so the whole sentence plays gap free at any frame rate.
+    // Each part is [file name without extension, silence in seconds after it].
+    const VOICE_DIR = 'assets/audio/voice/ship/';
+    const VOICE_SEQUENCES = {
+        contact: { parts: [['vo-chime', 0.15], ['vo-contact-1', 0.3], ['vo-contact-2', 0.6], ['vo-contact-3', 0]], fallbackSec: 6.3 }
+    };
+    SFX_BASE['vo-chime'] = 0.7;
+    // The opening warning starts with one loud chime. Offsets are seconds from the start of the sequence; the
+    // opening screen reads them too so its red pulses land on each chime.
+    const ALARM_FIRST_CHIME_BOOST = 1.6;
+    // a ship alarm: after the loud first chime the same chime repeats at a fixed interval until the opening ends
+    const ALARM_TING_INTERVAL = 0.8;
+    const ALARM_TING_TIMES = Array.from({ length: 14 }, (_, i) => (i + 1) * ALARM_TING_INTERVAL);
+    function getAlarmTingTimes() { return ALARM_TING_TIMES.slice(); }
+    SFX_BASE['vo-voice'] = 1.0;
+    // These lines are recorded at the same level as the contact voice, so they play at its gain (the set clear line is
+    // a little lower because it comes up every time an attack set is broken)
+    SFX_BASE['vo-setclear'] = 0.85;
+    SFX_BASE['vo-phase2'] = 1.0;
+    SFX_BASE['vo-phase3'] = 1.0;
+    SFX_BASE['vo-lowhp5'] = 1.0;
+    SFX_BASE['vo-lowhp3'] = 1.0;
+    SFX_BASE['vo-failed'] = 1.0;
+    function _voicePartSrc(name) { return VOICE_DIR + name + '.mp3'; }
+    // Total length in seconds. Uses the real decoded lengths once they are known, else the measured fallback.
+    function getVoiceSequenceDuration(id) {
+        const seq = VOICE_SEQUENCES[id];
+        if (!seq) return 0;
+        let total = 0;
+        for (let i = 0; i < seq.parts.length; i++) {
+            const buf = _decodedBuffers[_voicePartSrc(seq.parts[i][0])];
+            if (!buf) return seq.fallbackSec;
+            total += buf.duration + seq.parts[i][1];
+        }
+        return total;
+    }
+    // Decoded buffers and scheduled playback share the same part boundaries.
+    function getVoiceSequenceOffset(id, partIndex) {
+        const seq = VOICE_SEQUENCES[id];
+        if (!seq) return 0;
+        const index = Math.max(0, Math.min(seq.parts.length, partIndex | 0));
+        const fallback = id === 'contact' ? [0, 0.62, 1.63, 4.73, 6.22] : null;
+        let offset = 0;
+        for (let i = 0; i < index; i++) {
+            const buffer = _decodedBuffers[_voicePartSrc(seq.parts[i][0])];
+            if (!buffer) return fallback ? fallback[index] : seq.fallbackSec;
+            offset += buffer.duration + seq.parts[i][1];
+        }
+        return offset;
+    }
+    function prepareVoiceSequence(id) {
+        const seq = VOICE_SEQUENCES[id];
+        if (!seq) return Promise.resolve();
+        return Promise.all(seq.parts.map(p => _decodeBuffer(_voicePartSrc(p[0])))).then(() => {});
+    }
+    // Returns { duration, cancel(fadeSec) }. A missing file or a muted game plays nothing and never throws.
+    function playVoiceSequence(id) {
+        const seq = VOICE_SEQUENCES[id];
+        const handle = { duration: getVoiceSequenceDuration(id), startedAt: null, partOffsets: null, cancel() {} };
+        if (!seq || !actx || state.muted) return handle;
+        let cancelled = false;
+        const live = [];
+        let duckUntil = 0;
+        Promise.all(seq.parts.map(p => _decodeBuffer(_voicePartSrc(p[0])))).then(bufs => {
+            if (cancelled || bufs.some(b => !b)) return;
+            let when = actx.currentTime + 0.05;
+            handle.startedAt = performance.now() + 50;
+            handle.partOffsets = Array.from({ length: seq.parts.length + 1 }, (_, i) => getVoiceSequenceOffset(id, i));
+            let total = 0;
+            const sequenceStart = when;
+            for (let i = 0; i < bufs.length; i++) {
+                const g = actx.createGain();
+                g.gain.value = i === 0 ? sfxGain('vo-chime') * (id === 'contact' ? ALARM_FIRST_CHIME_BOOST : 1) : sfxGain('vo-voice');
+                g.connect(_bypassGain);
+                const node = actx.createBufferSource();
+                node.buffer = bufs[i];
+                node.connect(g);
+                node.start(when);
+                node.onended = () => { try { g.disconnect(); } catch (_) {} };
+                live.push({ node, g });
+                const step = bufs[i].duration + seq.parts[i][1];
+                when += step;
+                total += step;
+            }
+            if (id === 'contact') {
+                for (let k = 0; k < ALARM_TING_TIMES.length; k++) {
+                    const level = .85;
+                    const g = actx.createGain();
+                    g.gain.value = sfxGain('vo-chime') * level;
+                    g.connect(_bypassGain);
+                    const node = actx.createBufferSource();
+                    node.buffer = bufs[0];
+                    node.connect(g);
+                    node.start(sequenceStart + ALARM_TING_TIMES[k]);
+                    node.onended = () => { try { g.disconnect(); } catch (_) {} };
+                    live.push({ node, g });
+                }
+            }
+            handle.duration = total;
+            _duelDuck('voice', total + .05);
+            duckUntil = _duelVoiceUntil;
+        });
+        handle.cancel = function (fadeSec) {
+            cancelled = true;
+            if (duckUntil > 0 && _duelVoiceUntil === duckUntil) { _duelVoiceUntil = 0; _duelPriority(); }
+            const fade = fadeSec > 0 ? fadeSec : 0;
+            for (let i = 0; i < live.length; i++) {
+                try {
+                    if (fade > 0) {
+                        const t = actx.currentTime;
+                        live[i].g.gain.setValueAtTime(live[i].g.gain.value, t);
+                        live[i].g.gain.linearRampToValueAtTime(0, t + fade);
+                        live[i].node.stop(t + fade + 0.01);
+                    } else live[i].node.stop();
+                } catch (_) {}
+            }
+        };
+        return handle;
     }
 
     // Loop controls for sustained sfx (charging, laser, crawl, idle, ...). Idempotent.
@@ -1023,7 +1454,21 @@
     // running so resumeAll only unpauses those. Used when the SYSTEM TERMINATED
     // overlay shows so the game goes silent while paused.
     let _pauseSnapshot = null;
-    function pauseAll() {
+    // The pause screen also suspends the whole audio context, so nothing started by any path (voice lines, sound
+    // tails, loops no list knows about) can be heard while the game is paused. The short delay lets the loops
+    // that were just stopped finish their fade first.
+    let _hardPaused = false;
+    function _wakeAudio() {
+        if (!_hardPaused) return;
+        _hardPaused = false;
+        if (actx && actx.state === 'suspended') actx.resume().catch(() => {});
+    }
+    function pauseAll(hardSilence) {
+        if (hardSilence && actx && !_hardPaused) {
+            _hardPaused = true;
+            setTimeout(() => { if (_hardPaused && actx.state === 'running') actx.suspend().catch(() => {}); }, 80);
+        }
+        if (_duelActive) { stopDuelAudio(); _duelPaused = true; }
         _pauseAmmitCues();
         _pauseSnapshot = {
             bgm:      !!(state.bgmEl      && !state.bgmEl.paused),
@@ -1061,6 +1506,8 @@
             .forEach(el => { if (el) { try { el.pause(); } catch (_) {} } });
     }
     function resumeAll() {
+        _wakeAudio();
+        _duelPaused = false;
         if (!_pauseSnapshot || state.muted) { _pauseSnapshot = null; return; }
         _resumeAmmitCues();
         const s = _pauseSnapshot;
@@ -1101,10 +1548,10 @@
     // in-game pool the instant the selection is emptied out.
     function _pickInGameBgm() {
         const base = state.selectedBgmIds.length > 0
-            ? BGM_LIST.filter(t => !t.menuOnly && state.selectedBgmIds.includes(t.id))
-            : BGM_LIST.filter(t => !t.menuOnly);
+            ? BGM_LIST.filter(t => !t.menuOnly && !t.duelOnly && state.selectedBgmIds.includes(t.id))
+            : BGM_LIST.filter(t => !t.menuOnly && !t.duelOnly);
         const pool = base.filter(t => t.id !== state.currentBgmId);
-        if (pool.length === 0) return base[0] || BGM_LIST.find(t => !t.menuOnly);
+        if (pool.length === 0) return base[0] || BGM_LIST.find(t => !t.menuOnly && !t.duelOnly);
         return pool[Math.floor(Math.random() * pool.length)];
     }
 
@@ -1116,7 +1563,7 @@
     // Toggle a track in/out of the rotation pool. Returns the new selected-on
     // state (true = now in the pool) so the UI can update without a re-query.
     function toggleBgmSelection(id) {
-        const track = BGM_LIST.find(t => t.id === id && !t.menuOnly);
+        const track = BGM_LIST.find(t => t.id === id && !t.menuOnly && !t.duelOnly);
         if (!track) return false;
         const idx = state.selectedBgmIds.indexOf(id);
         let nowOn;
@@ -1153,14 +1600,15 @@
         // paused fell through to setSrc()+play(), which resets its saved
         // position and restarted it from 0 instead of leaving it alone.
         if (state.currentBgmId === track.id) return;
+        _bgmRamp++;
         state.bgmEl.pause();
         // Menu has only one track (loops itself forever). In-game tracks
-        // shouldn't loop the same song all match — advance to a new random
+        // shouldn't loop the same song all match , advance to a new random
         // in-game track instead once this one finishes.
-        state.bgmEl.setSrc(track.src, !!track.menuOnly);
+        state.bgmEl.setSrc(track.src, !!(track.menuOnly || track.duelOnly));
         state.bgmEl.volume = bgmGain();
         state.currentBgmId = track.id;
-        if (!track.menuOnly) {
+        if (!track.menuOnly && !track.duelOnly) {
             state.bgmEl.setOnEnded(() => {
                 if (state.currentBgmId !== track.id) return;
                 // a one-track selection picks the same song again, which
@@ -1175,7 +1623,7 @@
     }
 
     // Decoded BGM buffers (raw PCM) run far larger in memory than the mp3
-    // on disk, and _bufferCache never expires on its own — over a long
+    // on disk, and _bufferCache never expires on its own , over a long
     // session of random in-game tracks this grows unbounded. Only the
     // track that's actually playing (plus the menu theme, reused on every
     // return to the title screen) needs to stay decoded; every other
@@ -1195,6 +1643,7 @@
     // so their .volume setter throws for anything outside [0,1] - a boosted
     // gain like ambient's 1.1 would otherwise crash this on every slider move.
     function refreshVolumes() {
+        for (const slot of _duelLoops.values()) _duelLoopVolume(slot);
         if (state.bgmEl)     state.bgmEl.volume     = Math.min(1, bgmGain());
         if (state.ambientEl) state.ambientEl.volume = Math.min(1, sfxGain('ambient'));
         if (state.kanadeAmbienceEl) state.kanadeAmbienceEl.volume = Math.min(1, sfxGain('kanade-frozen-ambience'));
@@ -1257,7 +1706,13 @@
         }
     }
 
-    // Ambient / engine helpers — start on game entry, stop on exit.
+    // Ambient / engine helpers , start on game entry, stop on exit.
+    // Brings the space ambience and the engine back if something left them stopped during a run.
+    function ensureRunLoops() {
+        if (state.muted || _timeFrozen) return;
+        if (state.ambientEl && state.ambientEl.paused) startAmbient();
+        if (state.engineEl && state.engineEl.paused) startEngine();
+    }
     function startAmbient() { startLoop('ambientEl', 'ambient'); }
     function stopAmbient()  { stopLoop('ambientEl'); }
     function startEngine()  { startLoop('engineEl', 'engine'); }
@@ -1288,7 +1743,7 @@
     // AudioBufferSourceNode.loop is sample-accurate and gapless, so unlike
     // the old HTMLAudioElement version (which needed two alternating clips
     // crossfaded across their final quarter to hide the loop-point seam),
-    // a single looping buffer node just works — tick* are kept as no-op
+    // a single looping buffer node just works , tick* are kept as no-op
     // stubs since main.js/skills/*.js/entities.js still poll them every frame.
     function startEgregorCrawl() { startLoop('crawlEl', 'egregor-crawl'); }
     function stopEgregorCrawl()  { stopLoop('crawlEl'); }
@@ -1322,14 +1777,14 @@
     // dazed feel. startLoop/stopLoop already handle the element itself;
     // the duck is a separate call since it affects the whole mix, not just
     // this one element.
-    function startLowHp() { startLoop('lowHpEl', 'low-hp'); enterDuck('lowhp'); }
-    function stopLowHp()  { stopLoop('lowHpEl'); exitDuck('lowhp'); }
+    function startLowHp() { startLoop('lowHpEl', 'low-hp'); enterDuck(_duelActive ? 'duelLowHp' : 'lowhp'); }
+    function stopLowHp()  { stopLoop('lowHpEl'); exitDuck('lowhp'); exitDuck('duelLowHp'); }
 
     // Prepare common cues and register the remaining sounds for their encounters.
     function _boot() {
-        state.bgmEl = _makeBufferLoop(); // src set per-track in _switchBgm
+        state.bgmEl = _makeBufferLoop(false, _duelMusicBus); // src set per-track in _switchBgm
         // Kick off the menu track's decode immediately on page load instead
-        // of waiting for the "click anywhere to start" gesture — decoding a
+        // of waiting for the "click anywhere to start" gesture , decoding a
         // multi-MB mp3 takes real time, and _decodeBuffer's cache means the
         // later playMenuBgm() call just picks up the already-resolved buffer.
         const _menuTrack = BGM_LIST.find(t => t.menuOnly);
@@ -1424,6 +1879,22 @@
         _makePool('ammit-heart-devour', 'assets/audio/sfx/ammit-heart-devour.mp3', 2);
         _makePool('ammit-enrage', 'assets/audio/sfx/ammit-enrage.mp3', 2, true);
         _makePool('ammit-death-roar', 'assets/audio/sfx/ammit-death-roar.mp3', 2, true);
+        _makePool('vo-setclear', 'assets/audio/voice/ship/vo-setclear.mp3', 1, true);
+        _makePool('vo-phase2', 'assets/audio/voice/ship/vo-phase2.mp3', 1, true);
+        _makePool('vo-phase3', 'assets/audio/voice/ship/vo-phase3.mp3', 1, true);
+        // bypass pools: the low health muffle filter never touches them
+        _makePool('vo-lowhp5', 'assets/audio/voice/ship/vo-lowhp5.mp3', 1, true);
+        _makePool('vo-lowhp3', 'assets/audio/voice/ship/vo-lowhp3.mp3', 1, true);
+        _makePool('vo-failed', 'assets/audio/voice/ship/vo-failed.mp3', 1, true);
+        for (const sound of DUEL_SOUNDS) {
+            const key = sound.key;
+            SFX_BASE[key] = sound.group === 'ambience' ? .28 : sound.group === 'large' ? .82 : key.startsWith('boss-bullet') ? .28 : key.startsWith('graze') ? .12 : key.startsWith('boss-hit') ? .46 : sound.group === 'ui' ? .65 : .62;
+            _makePool(key, 'assets/audio/sfx/' + key + '.mp3', 2, sound.group === 'large');
+        }
+        // Phase 1 idle set, measured against the fight mix: the breath sits about as loud as boss hits, the bed and murmur
+        // underneath it, and the growls, coos and roar are clearly heard over the combat
+        Object.assign(SFX_BASE, { 'egregor-idle-p1-bed': 1.25, 'egregor-idle-p1-breath': 1.6, 'egregor-idle-p1-murmur': 1.0,
+            'egregor-idle-p1-growl-a': 1.15, 'egregor-idle-p1-growl-b': 1.15, 'egregor-idle-p1-coo-a': 1.15, 'egregor-idle-p1-coo-b': 1.15, 'egregor-idle-p1-roar': 1.0 });
         _makePool('egregor-death-roar',      'assets/audio/sfx/egregor-death-roar.mp3',      1, true); // bypass duck so it stays clear
         _makePool('egregor-tempest-strike',  'assets/audio/sfx/egregor-tempest-strike.mp3',  2);
         // Tempest cues. The -b and -c keys play the same file so three portals firing in one frame are not dropped by the per-key repeat guard.
@@ -1602,7 +2073,11 @@
     _boot();
 
     window.AudioMgr = {
-        prepareEnemy, prepareGameplay, prepareSigil,
+        prepareEnemy, prepareGameplay, prepareSigil, prepareDuel,
+        debugLoops, ensureRunLoops, playDuelSfx, startDuelLoop, stopDuelLoop, syncDuelLoops, stopDuelAudio, setDuelAudioActive,
+        setDuelGroupVolume, setDuelAmbienceEnabled, getDuelAudioStatus,
+        getDuelAmbienceEnabled: () => _duelAmbience,
+        getDuelSounds: () => DUEL_SOUNDS.map(s => ({ ...s })),
         // BGM
         playMenuBgm, playRandomInGameBgm, playBgmById, stopBgm,
         pauseBgm, resumeBgm,
@@ -1615,6 +2090,13 @@
 
         // SFX
         playSfx, playSfxAt, playTutorialSfx, stopTutorialSfx,
+        enterDuelEvolutionDuck: () => enterDuck('duelEvolution'),
+        exitDuelEvolutionDuck: () => exitDuck('duelEvolution'),
+        wakeAudio: _wakeAudio,
+        playDuelOpeningMusic, stopDuelOpeningMusic, startDuelBattleTheme, stopDuelBattleTheme,
+        getAlarmTingTimes,
+        isAudioSuspendedByPause: () => _hardPaused,
+        playVoiceSequence, getVoiceSequenceDuration, getVoiceSequenceOffset, prepareVoiceSequence,
         startAmbient, stopAmbient,
         startEngine,  stopEngine,
         startCharging, stopCharging,

@@ -138,9 +138,9 @@ window.skillDBolts = []; // {x1,y1,x2,y2,life} — short-lived spaceship firing-
 // Skill F
 let lastSkillF = -Infinity;
 const skillFCooldown = 7000;
-let skillFState = "ready", skillFChargeStart, skillFSweepStart;
+let skillFState = "ready", skillFChargeStart = 0, skillFSweepStart = 0;
 let skillFDirection = 1;
-const skillFSweepDuration = 1000;
+let skillFSweepDuration = 1000;
 const BULLET_SLASH_FX_MS = 380;
 // Great Sage sigil (Ransacked Treasury): up to 3 stolen enemy gems held at
 // once, one of each kind (FIFO — oldest is the one spent first), each one an

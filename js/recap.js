@@ -201,7 +201,8 @@ function label(raw, lang) {
 
 function t(key, lang, vars) {
   const dict = I18N[lang] || I18N.en;
-  let str = dict[key] || I18N.en[key] || key;
+  const ov = window._rcOverrides && window._rcOverrides[lang === "vi" ? "vi" : "en"];
+  let str = (ov && ov[key]) || dict[key] || I18N.en[key] || key;
   if (vars) for (const k in vars) str = str.replace("{" + k + "}", vars[k]);
   return str;
 }
@@ -721,7 +722,9 @@ function computeTimelineMetrics(data) {
     avgDps: avgDps,
     mvpRaw: mvpRaw,
     mvpPct: mvpPct,
-    top3Pct: top3Pct
+    top3Pct: top3Pct,
+    wavePrefix: (data && data.wavePrefix) || "W",
+    bossWaves: (data && data.bossWaves) || null
   };
 }
 
@@ -985,7 +988,7 @@ function drawTimelineCanvas(canvas, metrics, lang, progress) {
   for (let i = 0; i < metrics.waveChanges.length; i++) {
     const wc = metrics.waveChanges[i];
     const x = padL + (wc.index / Math.max(1, n - 1)) * plotW;
-    const isBoss = (wc.wave === 5 || wc.wave === 10);
+    const isBoss = metrics.bossWaves ? metrics.bossWaves.indexOf(wc.wave) >= 0 : (wc.wave === 5 || wc.wave === 10);
     ctx.strokeStyle = isBoss ? "rgba(232, 196, 106, 0.65)" : "rgba(63, 169, 245, 0.18)";
     ctx.lineWidth = isBoss ? 1.4 : 1;
     ctx.setLineDash(isBoss ? [4, 2] : [2, 3]);
@@ -999,7 +1002,7 @@ function drawTimelineCanvas(canvas, metrics, lang, progress) {
       ctx.fillStyle = isBoss ? "#E8C46A" : "rgba(140, 166, 198, 0.78)";
       ctx.font = (isBoss ? "700 " : "600 ") + "8px " + _rcF.ui;
       ctx.textAlign = "center";
-      ctx.fillText("W" + wc.wave, x, padT + plotH + 14);
+      ctx.fillText(metrics.wavePrefix + wc.wave, x, padT + plotH + 14);
     }
   }
 
@@ -1620,12 +1623,46 @@ function renderStatBarsHtml(statsObj, tabKey, lang) {
   return html;
 }
 
+const RC_RANK_ORDER = ["D", "C", "B", "A", "S"];
+const RC_RANK_COLOR = { D: "#E0675A", C: "#B68AFF", B: "#3FA9F5", A: "#00E5FF", S: "#F2D98B" };
+
+// Position of a score along the D to S gauge as 0..1, five equal segments whose edges are the rank thresholds.
+// A defeat can never rank above D, so its marker stays inside the D segment.
+function _rcRankPos(score, data) {
+  const bands = data.rankBands;
+  let pos = 1;
+  for (let i = 0; i < RC_RANK_ORDER.length; i++) {
+    if (score < bands[i + 1]) { pos = (i + Math.max(0, score - bands[i]) / (bands[i + 1] - bands[i])) / RC_RANK_ORDER.length; break; }
+  }
+  return data.rankCap ? Math.min(pos, 0.2 * 0.985) : pos;
+}
+
+function _rcRankGaugeHtml(data, lang) {
+  if (!data.rank || !Array.isArray(data.rankBands)) return "";
+  let segs = "";
+  for (let i = 0; i < RC_RANK_ORDER.length; i++) {
+    const r = RC_RANK_ORDER[i];
+    segs += '<div class="rc-rank-seg' + (r === data.rank ? " rc-rank-seg-on" : "") + '" style="--rk:' + RC_RANK_COLOR[r] + '">' +
+      '<i class="rc-rank-fill"></i><span class="rc-rank-letter">' + r + '</span></div>';
+  }
+  return '<div class="rc-rank-row">' +
+      '<div class="rc-rank-gauge" id="rcRankGauge">' + segs + '<i class="rc-rank-marker" id="rcRankMarker"></i></div>' +
+      '<div class="rc-rank-stamp" id="rcRankStamp" style="--rk:' + RC_RANK_COLOR[data.rank] + '">' +
+        '<span class="rc-rank-stamp-label">' + t("rcRank", lang) + '</span>' +
+        '<span class="rc-rank-stamp-letter">' + data.rank + '</span>' +
+      '</div>' +
+    '</div>';
+}
+
 function openRecap(container, data, lang, onPlayAgain, onMainMenu) {
   closeRecap();
   ensureSpritesInitialized();
 
   const useLang = lang || (data && data.lang) || "vi";
   const useData = data;
+  // A Showdown ending reuses this whole screen with its own labels and figures (see _openShowdownRecap).
+  const showdown = !!(data && data.variant === "showdown");
+  window._rcOverrides = (showdown && data.labels) ? data.labels : null;
   const metrics = computeTimelineMetrics(useData);
 
   _rcUseLang(useLang);
@@ -1667,12 +1704,12 @@ function openRecap(container, data, lang, onPlayAgain, onMainMenu) {
   for (let i = 0; i < sigils.length; i++) {
     const s = sigils[i];
     const sName = useLang === "vi" ? (s.vi || s.name) : s.name;
-    const wLabel = s.atWave === 0 ? t("rcAtWave", useLang) : t("rcWaveNum", useLang, { w: s.atWave });
+    const wLabel = s.tag != null ? s.tag : (s.atWave === 0 ? t("rcAtWave", useLang) : t("rcWaveNum", useLang, { w: s.atWave }));
     sigilPillsHtml += (
       '<span class="rc-sigil-pill">' +
         '<span class="rc-sigil-dot" style="background:' + (s.color || "#00E5FF") + '"></span>' +
         '<span>' + sName + '</span>' +
-        '<span class="rc-sigil-wave">(' + wLabel + ')</span>' +
+        (wLabel ? '<span class="rc-sigil-wave">(' + wLabel + ')</span>' : '') +
       '</span>'
     );
   }
@@ -1680,7 +1717,7 @@ function openRecap(container, data, lang, onPlayAgain, onMainMenu) {
   const canShareFiles = Boolean(navigator.share && navigator.canShare);
 
   container.innerHTML = (
-    '<div class="rc-root rc-lang-' + useLang + '">' +
+    '<div class="rc-root rc-lang-' + useLang + (showdown ? ' rc-showdown ' + (useData.outcome === "victory" ? 'rc-win' : 'rc-lose') : '') + '">' +
       '<canvas class="rc-bg-canvas" id="rcBgCanvas"></canvas>' +
       '<div class="rc-bottom-glow"></div>' +
       '<div class="rc-scroll">' +
@@ -1688,6 +1725,7 @@ function openRecap(container, data, lang, onPlayAgain, onMainMenu) {
 
           /* 1. Title with faint Pisces Constellation behind */
           '<header class="rc-header rc-stage-item" id="rcStageTitle">' +
+            (showdown ? RC_SHOWDOWN_EMBLEM : '') +
             '<svg class="rc-pisces-emblem" viewBox="0 0 320 110" fill="none">' +
               '<path d="M28 84 L68 58 L112 48 L158 56 L204 42 L248 28 L292 38" stroke="#00E5FF" stroke-width="1.2" stroke-dasharray="3 3"/>' +
               '<path d="M68 58 L54 24 L92 18 L112 48 M204 42 L228 78 L268 72 L248 28" stroke="#3FA9F5" stroke-width="1"/>' +
@@ -1714,6 +1752,7 @@ function openRecap(container, data, lang, onPlayAgain, onMainMenu) {
               '<div class="rc-metric-box rc-metric-primary">' +
                 '<div class="rc-metric-label">' + t("rcScore", useLang) + '</div>' +
                 '<div class="rc-metric-val" id="rcCountScore">0</div>' +
+                (showdown ? _rcRankGaugeHtml(useData, useLang) : '') +
                 '<div class="rc-metric-sub">' + t("rcScoreSub", useLang) + '</div>' +
               '</div>' +
               '<div class="rc-metric-box">' +
@@ -1734,9 +1773,9 @@ function openRecap(container, data, lang, onPlayAgain, onMainMenu) {
             '<div class="rc-epitaph-left">' +
               '<i class="rc-mark"></i>' +
               '<div class="rc-epitaph-text">' +
-                (useData.quit
+                (useData.epitaphHtml ? useData.epitaphHtml : (useData.quit
                   ? t("rcQuitLine", useLang)
-                  : t("rcEpitaphPrefix", useLang) + '<span class="rc-epitaph-cause">' + label(useData.cause || "Unknown", useLang) + '</span>') +
+                  : t("rcEpitaphPrefix", useLang) + '<span class="rc-epitaph-cause">' + label(useData.cause || "Unknown", useLang) + '</span>')) +
               '</div>' +
             '</div>' +
             '<div class="rc-epitaph-lives">' +
@@ -1998,7 +2037,7 @@ function openRecap(container, data, lang, onPlayAgain, onMainMenu) {
     shareCanvas.toBlob(function(blob) { fn(blob); }, "image/png");
   };
   const cardFileName = function() {
-    return "pisces-voyage-" + Math.round(useData.score || 0) + "-" + _recapState.shareFormat + ".png";
+    return (showdown ? "pisces-showdown-" : "pisces-voyage-") + Math.round(useData.score || 0) + "-" + _recapState.shareFormat + ".png";
   };
   const isIOS = /iP(hone|ad|od)/.test(navigator.userAgent) || (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
   const isTouch = !!(window.matchMedia && window.matchMedia("(pointer: coarse)").matches);
@@ -2157,6 +2196,9 @@ function openRecap(container, data, lang, onPlayAgain, onMainMenu) {
   const elWave = container.querySelector("#rcCountWave");
   const elTime = container.querySelector("#rcCountTime");
   const elKills = container.querySelector("#rcCountKills");
+  const elRankSegs = container.querySelectorAll("#rcRankGauge .rc-rank-fill");
+  const elRankMarker = container.querySelector("#rcRankMarker");
+  const elRankStamp = container.querySelector("#rcRankStamp");
 
   let lastChartProg = -1;
 
@@ -2190,12 +2232,21 @@ function openRecap(container, data, lang, onPlayAgain, onMainMenu) {
     if (elWave) elWave.textContent = String(Math.round((useData.wave || 0) * easeOut));
     if (elTime) elTime.textContent = formatTimeMs((useData.timeMs || 0) * easeOut);
     if (elKills) elKills.textContent = formatNumber(((useData.kills && useData.kills.total) || 0) * easeOut);
+    if (elRankMarker) {
+      const rankPos = _rcRankPos((useData.score || 0) * easeOut, useData);
+      elRankMarker.style.left = (rankPos * 100).toFixed(2) + "%";
+      for (let i = 0; i < elRankSegs.length; i++) {
+        elRankSegs[i].style.width = (Math.max(0, Math.min(1, rankPos * RC_RANK_ORDER.length - i)) * 100).toFixed(1) + "%";
+      }
+      if (elRankStamp && countProg >= 1 && !elRankStamp.classList.contains("rc-rank-stamped")) elRankStamp.classList.add("rc-rank-stamped");
+    }
 
     // 3. Charts progressive draw (starts at 327ms, duration 864ms)
     const chartProg = Math.max(0, Math.min(1, (elapsed - 327) / 864));
     const chartEase = 1 - Math.pow(1 - chartProg, 3);
 
-    drawSigilConstellationCanvas(sigilCanvas, sigils, useLang, chartEase, nowMs);
+    if (showdown) drawShowdownConstellationCanvas(sigilCanvas, useData, useLang, chartEase, nowMs);
+    else drawSigilConstellationCanvas(sigilCanvas, sigils, useLang, chartEase, nowMs);
 
     if (chartProg !== lastChartProg) {
       const activeStats = (useData.matchStats && useData.matchStats[_recapState.activeTab]) || {};
@@ -2218,6 +2269,133 @@ function openRecap(container, data, lang, onPlayAgain, onMainMenu) {
   _recapState.rafId = requestAnimationFrame(stepRecap);
 }
 
+// Emblem of the Showdown ending: an eye ringed by ten small minds, drawn in the same dotted constellation style.
+const RC_SHOWDOWN_EMBLEM = '<svg class="rc-pisces-emblem rc-sd-emblem" viewBox="0 0 320 110" fill="none">' +
+  '<ellipse cx="160" cy="55" rx="62" ry="26" stroke="#00E5FF" stroke-width="1.3"/>' +
+  '<ellipse cx="160" cy="55" rx="96" ry="40" stroke="#3FA9F5" stroke-width="0.9" stroke-dasharray="3 4"/>' +
+  '<circle cx="160" cy="55" r="15" stroke="#E8C46A" stroke-width="1.4"/>' +
+  '<ellipse cx="160" cy="55" rx="4" ry="11" fill="#E8C46A"/>' +
+  '<path d="M64 55 L98 46 M256 55 L222 46 M160 15 L160 29 M160 95 L160 81" stroke="#DCE8F5" stroke-width="0.9"/>' +
+  '<circle cx="64" cy="55" r="3" fill="#E8C46A"/><circle cx="256" cy="55" r="3" fill="#E8C46A"/>' +
+  '<circle cx="160" cy="15" r="3" fill="#00E5FF"/><circle cx="160" cy="95" r="3" fill="#00E5FF"/>' +
+  '<circle cx="104" cy="28" r="2.4" fill="#DCE8F5"/><circle cx="216" cy="28" r="2.4" fill="#DCE8F5"/>' +
+  '<circle cx="104" cy="82" r="2.4" fill="#DCE8F5"/><circle cx="216" cy="82" r="2.4" fill="#DCE8F5"/>' +
+'</svg>';
+
+// The eighteen attacks of the fight as three rows of stars (one row per form). Cleared attacks are lit in the
+// colour of their form, flawless ones carry a gold ring, the attack the run ended on pulses red.
+function drawShowdownConstellationCanvas(canvas, data, lang, progress, nowMs) {
+  if (!canvas) return;
+  const rect = canvas.getBoundingClientRect();
+  const dpr = Math.min(window.devicePixelRatio || 1, 2);
+  const w = Math.max(260, Math.floor(rect.width));
+  const h = Math.max(120, Math.floor(rect.height));
+  if (canvas.width !== w * dpr || canvas.height !== h * dpr) { canvas.width = w * dpr; canvas.height = h * dpr; }
+  const ctx = canvas.getContext("2d");
+  ctx.save();
+  ctx.scale(dpr, dpr);
+  ctx.clearRect(0, 0, w, h);
+
+  const attacks = (data && data.attacks) || [];
+  const rows = [[], [], []];
+  for (let i = 0; i < attacks.length; i++) rows[Math.max(0, Math.min(2, (attacks[i].phase || 1) - 1))].push(attacks[i]);
+  const cols = ["#46D2C8", "#B68AFF", "#FF6B6B"];
+  const names = (data && data.phaseNames) || ["I", "II", "III"];
+  const pulse = 0.88 + 0.12 * Math.sin(nowMs * 0.003);
+  const rowY = [h * 0.2, h * 0.5, h * 0.8];
+  let drawn = 0;
+  const total = Math.max(1, attacks.length);
+
+  for (let r = 0; r < 3; r++) {
+    const list = rows[r];
+    if (!list.length) continue;
+    const x0 = w * 0.2, x1 = w * 0.94;
+    const pts = list.map(function(a, i) {
+      return { x: list.length === 1 ? (x0 + x1) / 2 : x0 + (i / (list.length - 1)) * (x1 - x0), y: rowY[r] + ((i % 2) ? 5 : -5), a: a };
+    });
+
+    ctx.font = "700 10px " + _rcF.ui;
+    ctx.textAlign = "left";
+    ctx.fillStyle = cols[r];
+    ctx.fillText(names[r], 8, rowY[r] + 3);
+
+    ctx.strokeStyle = cols[r];
+    ctx.globalAlpha = 0.45;
+    ctx.lineWidth = 1.4;
+    ctx.setLineDash([4, 4]);
+    ctx.beginPath();
+    ctx.moveTo(pts[0].x, pts[0].y);
+    for (let i = 1; i < pts.length; i++) {
+      const seg = Math.max(0, Math.min(1, progress * total - (drawn + i - 0.5)));
+      ctx.lineTo(pts[i - 1].x + (pts[i].x - pts[i - 1].x) * seg, pts[i - 1].y + (pts[i].y - pts[i - 1].y) * seg);
+    }
+    ctx.stroke();
+    ctx.setLineDash([]);
+    ctx.globalAlpha = 1;
+
+    for (let i = 0; i < pts.length; i++) {
+      const p = pts[i], a = p.a;
+      const vis = Math.max(0, Math.min(1, progress * total - (drawn + i)));
+      if (vis <= 0) continue;
+      const rad = 9 * (0.6 + 0.4 * vis);
+      ctx.globalAlpha = vis;
+      if (a.cleared) {
+        ctx.globalAlpha = 0.55 * pulse * vis;
+        ctx.drawImage(SPRITE_CACHE.glowCyan, p.x - 22, p.y - 22, 44, 44);
+        ctx.globalAlpha = vis;
+        ctx.fillStyle = cols[r];
+      } else {
+        ctx.fillStyle = "#0B1230";
+      }
+      ctx.strokeStyle = a.cleared ? cols[r] : "rgba(140, 166, 198, 0.55)";
+      ctx.lineWidth = 1.6;
+      ctx.beginPath();
+      ctx.arc(p.x, p.y, rad, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.stroke();
+      if (a.clean) {
+        ctx.strokeStyle = "#E8C46A";
+        ctx.lineWidth = 1.2;
+        ctx.beginPath();
+        ctx.arc(p.x, p.y, rad + 3, 0, Math.PI * 2);
+        ctx.stroke();
+      }
+      if (a.failed) {
+        ctx.strokeStyle = "rgba(255, 77, 109, " + (0.55 + 0.4 * Math.sin(nowMs * 0.006)).toFixed(2) + ")";
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.arc(p.x, p.y, rad + 4, 0, Math.PI * 2);
+        ctx.stroke();
+      }
+      ctx.font = "700 9px " + _rcF.ui;
+      ctx.textAlign = "center";
+      ctx.fillStyle = a.cleared ? "#04101F" : "#8CA6C6";
+      ctx.fillText(String(a.id), p.x, p.y + 3);
+      ctx.globalAlpha = 1;
+    }
+    drawn += pts.length;
+  }
+  ctx.restore();
+}
+
+// Opens the Voyage Recap screen for a finished Showdown. data comes from js/duel/duel-recap.js.
+function _openShowdownRecap(data, onPlayAgain, onMainMenu) {
+  if (!_rcOverlay) {
+    _rcOverlay = document.createElement("div");
+    _rcOverlay.id = "recapOverlay";
+    document.body.appendChild(_rcOverlay);
+  }
+  _rcOverlay.style.display = "block";
+  const lang = window._lang === "vi" ? "vi" : "en";
+  openRecap(_rcOverlay, data, lang, function() {
+    _closeVoyageRecap();
+    if (typeof onPlayAgain === "function") onPlayAgain();
+  }, function() {
+    _closeVoyageRecap();
+    if (typeof onMainMenu === "function") onMainMenu();
+  });
+}
+
 function closeRecap() {
   _recapState.active = false;
   if (_recapState.rafId) {
@@ -2228,6 +2406,7 @@ function closeRecap() {
     try { _recapState.cleanupFns[i](); } catch (e) {}
   }
   _recapState.cleanupFns = [];
+  window._rcOverrides = null;
 }
 
 // Everything the recap shows, gathered from the run that just ended.
@@ -2279,7 +2458,17 @@ function _closeVoyageRecap() {
 }
 
 window._openVoyageRecap = _openVoyageRecap;
+window._openShowdownRecap = _openShowdownRecap;
 window._closeVoyageRecap = _closeVoyageRecap;
 window._buildRecapData = _buildRecapData;
 window.drawShareCard = drawShareCard;
+window._recapHelpers = {
+  renderCelestialBackground: renderCelestialBackground,
+  drawOrnateCanvasFrame: drawOrnateCanvasFrame,
+  drawTimelineCanvas: drawTimelineCanvas,
+  drawDonutChart: drawDonutChart,
+  RC_FONTS: RC_FONTS,
+  openRecap: openRecap,
+  closeRecap: closeRecap
+};
 })();

@@ -972,3 +972,184 @@ A blessed enemy gains:
 The trade is **10% less movement speed** for the rest of its life. Break the shield and the extra defence goes with it, though the Max HP and the speed penalty stay.
 
 Blessed enemies are ringed by a violet aura whose edge churns like the surface of something liquid. The ripple travels on MEDIUM and HIGH. On the tiers below it the same ring is drawn static, with its ripple frozen at a shape derived from when the enemy was blessed, so blessed enemies still do not all look alike.
+
+---
+
+## Showdown Voyage (Quyet Chien)
+
+Showdown Voyage is a dedicated danmaku boss duel mode featuring Egregor the Overmind. Showdown mode is temporarily locked on mobile and coarse pointer devices via SHOWDOWN_MOBILE_LOCKED while touch controls and mobile UI calibration are in progress. All roguelike progression systems are removed: no skill A, S, D, G, no Sentinels, no Sigils, no passive perks, and no regular enemy waves. Normal game HUD elements (the 10-heart life bar, wave banner, elapsed timer, stat counters, and mobile skill pads) are completely hidden. Only horizontal ship movement, chosen Divine Arm auto fire, Yog-Sothoth Shift, Player Shield, Skill F (Annihilation Sweep), pause, and settings remain available.
+
+### Opponent Selection and Match Setup
+
+Before entering combat, the player chooses an opponent and difficulty setting on the Opponent Select screen:
+* **Egregor Card**: Features an animated procedural preview, boss lore, key stats (18 attacks, 3 phases, 10 to 12 minutes average duration), and difficulty selector (Standard or Hard).
+* **Teaser Cards**: Visual placeholders displaying locked entities for future showdown encounters.
+* **Practice Mode**: Accessed via the "Practice" ("Luyện Tập") button. Opens an 18-attack selection modal organized into three phase columns. Allows targeted practice against any individual attack with any chosen Divine Arm, featuring a dedicated practice result screen with Retry and Pick Another options without overwriting full-run records.
+
+### Divine Arm Selection
+
+The player selects one of five Divine Artifacts, each offering calibrated damage profiles balanced within a 3.7% TTK discrepancy:
+
+1. **Celestial Blade / Thanh Kiếm Thiên Hà (Sword)**: A five-projectile fan spanning 18 degrees. Deals 1.35 damage per blade at 135ms fire intervals. Curved blade projectiles with cyan glow.
+2. **Void Piercer / Ngọn Giáo Hư Không (Spear)**: Dual forward thrusts spaced 16 pixels apart. Deals 2.60 damage per spear at 135ms fire intervals. High precision spearhead projectiles with trailing photonic needle.
+3. **Eclipse Cleaver / Lưỡi Kích Nhật Thực (Halberd)**: A three-projectile fan spanning 18 degrees. Deals 1.80 damage per projectile at 135ms fire intervals. Sweeping crescent axe arc projectiles with amber trail.
+4. **Phantom Blades / Bộ Phi Đao Bóng Ma (Dagger Array)**: Four parallel blades spaced across a 64 pixel width. Deals 1.25 damage per dagger at 135ms fire intervals. Flying dagger projectiles with violet-cyan sheen.
+5. **Titan Greatlance / Chiến Thương Cự Thần (Heavy Lance)**: Cyclic weapon cycling seven light piercing shots (2.0 damage each) followed by an explosive heavy blast on the eighth volley (26.0 damage). Large heavy lance projectiles with shockwave aura.
+
+All player projectiles utilize a pre-allocated pool of 128 elements to eliminate dynamic runtime allocations and array splicing. Projectiles measure between 18 and 40 pixels in length, render at 55% to 70% opacity under enemy bullets, and trigger distinct hit sparks on the boss.
+
+### Pre-Battle and Inter-Spell Transitions
+
+* **Pre-Battle Slide and Countdown**: Egregor slides smoothly downward from above the screen into patrol altitude y = 0.18H while the player ship ascends from the bottom. A dramatic 3-2-1 countdown overlay appears, skippable after 1.0 second.
+* **Spell Card Transition**: Upon depleting a boss spell card or surviving its timer, a 1.5 second resolution banner appears ("THU PHỤC PHÙ THẺ / SPELL CARD RESOLVED") while bullets clear and the next pattern prepares.
+* **Phase Transition (Phase Shift)**: Dedicated 3.5 second sequence triggered at Attack 7 (Phase 2) and Attack 14 (Phase 3). Features 0.25 second freeze frame, bass boom audio cue (dimension-break for Phase 2, egregor-death-roar for Phase 3), expanding shockwave ring, 6px screen shake, boss transformation (Phase 2 adds rage stars and expands tentacles, Phase 3 opens dimensional portals and limbs), smooth 1.2 second screen palette lerp (Phase 1 teal #00E5FF, Phase 2 violet #9C7BFF, Phase 3 crimson #FF4D6D), phase banner sweep ("PHASE II: COLLECTIVE" / "PHA II: Ý THỨC HỘI TỤ", "PHASE III: OVERMIND" / "PHA III: TÂM TRÍ TỐI CAO"), and free player shield recharge with 1.5 seconds calm breathing room before combat resumes.
+
+### Boss Movement and Visual Scaling
+
+Egregor model scaling and movement are tightly regulated:
+* **Visual Scale**: Egregor body size is scaled to 118 (58% of original 200), hit radius is calibrated to 32 pixels, and tentacle anchor points are placed at 48 pixels radius. When centered at y = 0.18H (129.6px on 720p), the boss body remains fully inside the screen (>50px below top edge) and completely below the HUD HP bar (y = 12 to 24) and spell banner (y = 28 to 46).
+* **Deterministic Movement State Machine**: Boss horizontal movement strictly follows an alternating HOLD (1.8 to 3.2s) and MOVE (1.2 to 1.8s) smoothstep state machine. Peak horizontal velocity is mathematically capped at 140 px/s (satisfying the 150 px/s ceiling), average horizontal speed remains below 70 px/s, and hold ratio ranges from 36.5% to 100%.
+* **Movement Constraints**: Egregor remains completely stationary on Attack 6, and remains stationary during laser telegraph and beam phases on Attacks 9 and 10.
+* **Hit Flash and Smooth HP Depletion**: Body hits trigger procedural white-violet hit flashes and micro-shakes via _egBodyHitAt. The HUD boss HP bar displays smooth trailing damage lag bars.
+
+### Truly Dark Danmaku Background
+
+To maximize bullet readability while preserving visual depth, Showdown Voyage utilizes the authentic game background dimmed with a soft translucent dark panel overlay (rgba(3, 7, 20, 0.65)), guaranteeing mean relative luminance below 0.06 across the playfield, supplemented by 40 slow floating ambient dust motes in menu screens. The backdrop keeps its parallax asteroid field exactly as in Endless Voyage.
+
+### Yog-Sothoth Shift Mechanics
+
+Shift operates with immediate availability and aggressive active recovery:
+* **Immediate Availability**: Shift is fully available at t = 0 without requiring graze accumulation or energy charging.
+* **Cooldown and Duration**: Opening Shift projects a temporal domain slowing enemy projectiles to 35% speed for up to 2.0 seconds. Releasing Shift or exceeding duration initiates a 4.0 second cooldown.
+* **Graze Recovery**: Grazing within 20 pixels of an active bullet reduces remaining cooldown by 0.15 seconds per graze, capped at 8 grazes per second.
+* **Continuous Teleportation**: While Shift is active, pressing the left or right directional inputs teleports the ship across min(0.15W, 192) pixels without closing Shift or incurring separate cooldowns, allowing sequential dodges.
+* **Visual and Audio Polish**: Features Yog-Sothoth cursed domain distortion shaders, afterimage trails, and an illuminated ship hitbox core dot.
+
+### Player Shield (Final Defense in Duel)
+
+Showdown Voyage preserves the player ship's Final Defense shield as an essential safety net:
+* **Initial State**: Combat begins with an active shield surrounding the ship.
+* **Hit Absorption**: Sustaining a lethal hit or bullet collision breaks the shield instead of losing a life. The hit is completely absorbed and does not deduct a life or register as damage taken.
+* **Break VFX**: Shatters into cyan crystal fragments accompanied by an 80 pixel localized bullet clearance shockwave that dissolves nearby enemy bullets into light motes.
+* **Cooldown and Auto Recharge**: Recharges automatically over 25 seconds following a break, or recharges to full immediately upon recovery invulnerability expiring after losing a life.
+* **Free Phase Shift Recharge**: Every Phase Shift sequence (Attack 7 and Attack 14) immediately grants a free instantaneous shield recharge.
+* **HUD Indicator**: Displayed in the top right HUD cluster alongside lives and elapsed time.
+* **Solver Independence**: The life path solver operates strictly assuming zero shields exist. The shield functions purely as player protection without altering underlying mathematical pattern solvability.
+
+### Skill F: Annihilation Sweep in Duel
+
+Skill F is fully enabled in Showdown Voyage as a tactical bullet clearing and time dilation tool:
+* **Charging and Aiming**: 1.5 second charge time followed by a 1.0 second sweep. Pressing Left or Right arrow keys during charging sets sweep direction, indicated by an onscreen capsule reticle.
+* **Bare Variable Scope & Visual Effects**: State and timing variables (skillFState, skillFChargeStart, skillFSweepStart, skillFDirection, skillShiftChargeStart) are directly bound to script-level identifiers, ensuring the full inward energy particle vortex, ship aura bloom, sweeping energy blade, and scorch marks render continuously without depending on regular game loop ticks.
+* **Zero Boss Damage**: Annihilation Sweep deals zero damage to Egregor, preserving exact phase health balancing. The regular game's updateSkillF and updateSkillD loops are bypassed during showdown mode to prevent unintended multi-billion damage ticks. Damage dealt is strictly clamped by actual boss health lost.
+* **Bullet Clearing**: The sweeping energy blade dissolves regular enemy bullets within its cone into light motes (pool maximum 120 motes). Non-bullet hazards (telegraph lasers, active beams, Tempest lightning columns, Null Slash arcs, rift cracks, and physical tentacle sweeps) cannot be cleared and must be dodged.
+* **Boss Time Dilation**: Hitting with the sweep slows Egregor and all active enemy projectiles to 50% speed for 4.0 seconds via enemyTimeScale = 0.5. The attack timer advances at half speed, preserving pattern geometry. The player ship moves at normal speed.
+* **Visual Indicators**: Egregor displays a frosty cyan aura, faint clock dial markings, sluggish tentacle animation, and an icy cyan border on the boss HP bar during dilation.
+* **Cooldown**: 18.0 second cooldown. Displayed in the bottom left HUD cluster and as an onscreen touch button on mobile devices.
+* **Solver Independence**: The life path solver operates strictly assuming Skill F is never used, guaranteeing that all 18 attacks remain 100% beatable without relying on Skill F.
+
+### Cinematic Opening Sequence and Readability
+
+The opening runs about 12.3 seconds and can be skipped with Enter, Space or a click after 1.2 seconds. It has two clocks: the scene clock (`preBattleElapsed`) and the ship computer's voice clock. The scene clock is held at 2.2 seconds while the voice line "contact" plays, so the warning, the escalation and the rupture follow the voice and not a fixed timer. The short orchestral cue `egregor-opening.mp3` (12.95 seconds) starts with the scene and the background music rests until it ends or is skipped.
+
+* **Systems and radar**: flight, shield and armament checks come online and a radar sweep crosses the ship.
+* **Contact and warning**: a constant interval chime (never rising in pitch) sounds until the voice finishes. A red WARNING with the entity class and a range and mass readout appears, a colossal silhouette grows out of the contact point, the screen edges turn red and the world shakes harder as the warning escalates.
+* **Rupture and portal (scene clock 2.2 to 3.4)**: a light line splits the sky, the rift tears open into an elliptical portal with a ritual rim and crackling energy that crawls around it. The inside of the portal shows another dimension: a painted picture (`assets/images/duel/egregor/opening-dimension.png`) that turns slowly under a second, counter rotating copy for depth, with light streaks rushing outward. While that file is missing a generated violet nebula is used, so the opening never fails without it.
+* **Limbs and arrival (3.15 to 5.0)**: four tentacles with suckers, tapered tips and a faint glow reach out of the dimension, over the rim and toward the ship, debris is thrown out of the portal and shock rings roll outward at the tear, at the grip and at the arrival. The Egregor then rises through the portal, the world freezes for a beat at 4.67 seconds and an impact wave marks the roar at 4.75.
+* **Name card (5.17 to 6.6)**: the title "The Slumbering Elder" is inscribed with its phase.
+* **Health bar and HUD (6.6 to 7.3)**: the boss bar unrolls, the match HUD and skill buttons deploy, ENGAGE is shown and control returns to the pilot around 8.9 seconds of scene time.
+* **Reduced motion and low quality**: `reducedMotion` removes the zoom, shake and sway, `particles` and `glow` switch off debris and lightning, and the lowest graphics tier uses fewer limbs and particles.
+* **Boss face readability**: the boss renders at full alpha with luminous white sclera and a crisp outline over background skills.
+* **Skill rendering**: Null Slash, Thought Cube, Psychic Tempest, Tendril Lash, Eye Beams and Dimension Rift each have their authentic telegraph and effect drawing (see the attack list below). The Starry Night texture and the F hex canvas are pre warmed during the opening so the first Shift and F cause no hitch.
+
+### Lives and Hit Recovery
+
+The player enters combat with 8 lives (DUEL_LIVES = 8). Sustaining a hit without an active shield deducts 1 life, creates a 120 pixel localized clearance burst, triggers an 80ms hit stop, initiates a 700ms red screen vignette, and grants 2.0 seconds of recovery invulnerability with a ship warning halo and ship sprite blinking. When remaining lives drop to 5 or fewer, a low HP red ambient pulse engages and the HUD heart icon blinks red (see Presentation, audio and flow).
+
+### Danmaku Patterns: Egregor 18 Attacks and Core Boss Skills
+
+All 18 attacks are engineered around Egregor's authentic boss identity, featuring 9 signature boss skills rather than generic bullet storms. Regular bullets serve strictly as secondary rhythm fill and are held beneath strict live caps (Phase 1 <= 45, Phase 2 <= 65, Phase 3 <= 85):
+
+1. **Null Slash (Trảm Kích Hư Vô)**: Aim locks onto the player with a 1.0 to 3.0 second telegraph (filling fan indicator, eight-pointed star, comet trace). A massive tentacle sweeps a 180-degree arc, leaving a lingering Dimension Break rift that slows movement. In Phase 1 and 2, hits inflict a 50% slow for 1.5s; in Phase 3, hits cost 1 life. Outer arena edges provide guaranteed safe zones accessible via 2-key horizontal movement.
+2. **Psychic Tempest (Bão Tố Tâm Linh)**: Locks up to 3 spatial reticles at cast time (static, does not track ship movement). Inward red telegraph rings collapse over 1.2s before psychic lightning columns strike across a 100px radius. Dodged by stepping sideways.
+3. **Tendril Lash (Xúc Tu Quất)**: Massive tentacle extends from boundary portals, telegraphed by a shadow projection before sweeping horizontally across 60% arena width or slamming vertically, leaving predictable safe lanes.
+4. **Eye Beams (Tia Mắt)**: Four eyes lock aim angles over 0.9s via glowing targeting lines, firing 36px wide concentrated beams for 0.5s with slow rotational sweeps in advanced variants.
+5. **Mind Link Pulse (Xung Liên Kết)**: Orbiting rage stars revolve around Egregor before detaching into slow expanding pulse rings connected to the boss by glowing energy filaments.
+6. **Boon and Bane (Ban Phước và Giáng Họa)**: Egregor raises a hexagonal absorption barrier during Null Slash charging, absorbing player bullets. Upon executing the slash, Egregor suffers recoil damage, rewarding player survivability with boss health deduction.
+7. **Chorus (Đồng Ca)**: Egregor's 10 tentacles strike sequentially across successive horizontal lanes like traveling portal waves.
+8. **Dimension Rift (Vết Nứt Không Gian)**: Spatial rifts deploy persistent slowing distortion zones and rhythmic projectile expulsions.
+9. **Thought Cube (Khối Tư Duy)**: A monolithic 3D geometric cube constructed via 8-vertex perspective projection with back-face culling, 3-face phase shading (teal, purple, crimson), neon edges, and floor shadow. The cube drops at 150px/s, absorbing player bullets, and shatters at 62% screen height into 8 mini-cubes with guaranteed 110px safe corridors.
+
+### Continuous Match HP Bar and Spell Card HUD
+
+* **Continuous Monotonic HP Bar**: Total match health equals 11,210 base HP across all 18 attacks (Phase 1: 2,880 HP, Phase 2: 4,050 HP, Phase 3: 4,280 HP). The HP bar drains continuously without ever refilling between attacks. Phase boundary ticks are marked at exactly 8,330 / 11,210 (Phase 1 boundary) and 4,280 / 11,210 (Phase 2 boundary). Visual styling uses Goliath boss bar specifications with flat dark frame (rgba(8, 8, 8, 0.88)), Playfair Display italic gold typography, and lagging ghost bar.
+* **Touhou Floating Spell Card Banner**: Attack names ("x / 18" text removed) appear as an elegant floating spell card banner at top-left (x=24, y=116, positioned 56px below the mute button and clearing the debug FPS overlay by 26px) for 2.5s before fading smoothly out of the boss movement path.
+* **Streamlined Top-Right HUD**: Displays distinct rows for match elapsed timer (monospace blue-white), remaining lives (heart icon with low HP blink), and player shield status (cyan READY or amber recharge timer).
+* **Persistent Boss Entity**: The boss object persists across all frames and phase transitions, preserving eye blink timers (`_eyeBlinkTimers`, `_eyeNextBlinks`) and visual rage states without facial distortion.
+* **Phase Transitions**: Phase shifts execute in 3.5s with full-screen palette transitions (teal to purple to crimson) and the ornate `Theme.drawPhaseShiftBanner`, replacing previous 12-second dead black screens.
+
+* **Phase 1: Awakening (Attacks 1 to 6, Live bullet cap <= 45)**:
+  1. *Tendril Probe / Thăm Dò Xúc Tu* (25s): Slow telegraphed Tendril Lash followed by single-point Psychic Tempest and light curved bullet fans.
+  2. *Locked Thought / Ý Khóa Tâm* (50s): Sequential Psychic Tempest targeting with twin eye beam lines, minimal bullet density.
+  3. *Eye Lines / Tia Nhìn Hội Tụ* (25s): Dual then quad eye beam sweep with safe center pocket.
+  4. *Ripple of Dimensions / Gợn Sóng Không Gian* (50s): Portal wave ripples accompanied by the introductory Thought Cube (110px edge).
+  5. *Whisper Rain / Mưa Lời Thì Thầm* (25s): Sparse, curved droplet trajectories with a single telegraphed tentacle strike.
+  6. *Mirror Mind / Phản Chiếu Vọng Tâm* (50s): Mirrored boss phantom projecting symmetrical eye beams and cross kunai streams.
+* **Phase 2: Multiple Minds (Attacks 7 to 13, Live bullet cap <= 65)**:
+  7. *Ten Voices / Mười Tiếng Nói* (25s): 10-tentacle sequential Chorus wave sweeping left to right.
+  8. *Collective Mind / Ý Thức Hợp Nhất* (55s): Coordinated dual-point Tempest combined with 150px Thought Cube drop.
+  9. *Null Prelude / Khúc Dạo Đầu Hư Vô* (25s): 3.0s Null Slash charge with hexagonal Boon barrier.
+  10. *Null Slash / Trảm Kích Hư Vô* (55s): Quad Null Slash sweeps leaving lingering Dimension Break slow rifts.
+  11. *Mind Link Pulse / Xung Liên Kết Tâm Trí* (25s): Detaching rage stars emitting filament-linked pulse rings.
+  12. *Boon and Bane / Ban Phước và Giáng Họa* (55s): Hexagonal barrier absorbing player bullets, converting slash recoil into boss damage.
+  13. *Dimension Break / Rách Nát Không Gian* (55s): Dual portal slow zones with twin Thought Cubes.
+* **Phase 3: One Voice (Attacks 14 to 18, Live bullet cap <= 85)**:
+  14. *Overmind Chorus / Đồng Ca Thống Lĩnh* (30s): Accelerated 10-tentacle Chorus wave with 3-point Psychic Tempest.
+  15. *Psychic Tempest Maelstrom / Bão Tố Tâm Linh Cuồng Nộ* (60s): Rapid sequential 3-point Tempest strikes.
+  16. *Echo of Ten / Tiếng Vọng Mười Ý Thức* (30s): Synthesis of quad eye beams and wide tentacle sweeps.
+  17. *Rage of the Collective / Cơn Thịnh Nộ Tập Thể* (60s): Maximum rage stars, lethal Null Slash, and 190px Thought Cube drop.
+  18. *Ten Minds, One Voice / Mười Tâm Trí, Một Tiếng Nói* (75s): Climax encounter combining sweeping eye beams, 10-tentacle waves, and giant monolithic Thought Cube shatter.
+
+### Results and Records
+
+* **Showdown Log**: Full voyage completion or defeat opens the Showdown Log recap screen (cloned from Voyage Recap), featuring Overview, Hits Taken, and Timeline tabs.
+* **Scoring Formula**: Score equals Base Score (1,000,000 for full clear, scaled by attacks cleared on defeat) plus Time Bonus (up to 500,000 based on clearance speed) plus Life Bonus (50,000 per remaining life) plus Graze Bonus (100 per graze) minus Damage Penalty (100,000 per life lost).
+* **Defeat Flow and Recap Architecture**: When lives reach 0, player ship triggers gold and crimson explosion particles and enters defeat_burst state (1.2s burst duration). Global lives are clamped to Math.max(1, session.lives) during Showdown to strictly prevent the regular Endless game loop (main.js line 2148) from executing _endRun(false) or displaying Endless recap. During defeat_burst, combat rendering smoothly darkens the screen over 1.2s with a deep dark translucent overlay (rgba(2, 6, 18, 0.90)). Between 1.5s and 2.5s (protected by a 3.0s safety fallback), session transitions cleanly to result state, invoking the single layer DOM duelRecapOverlay (z-index 99999). Canvas UI rendering in duel-core.js is eliminated in result state in favor of a clean dark canvas backdrop (rgba(2, 6, 18, 0.95)), completely removing double layer results. "Fight Again" cleanly aborts and restarts Showdown session via DuelSession.restart(), restoring window._runGameMode = 'showdown', resetting 8 lives, 320 HP, shield, and re-entering pre-battle without Endless HUD leaks.
+* **Rank Thresholds**: S Rank requires clearing all 18 attacks with score at or above 1,200,000. A Rank requires score at or above 900,000. B Rank requires score at or above 600,000. C Rank requires score at or above 300,000. D Rank represents scores below 300,000.
+* **Practice Result Mode**: Practicing an individual attack displays focused stats (hits taken, shield absorptions, graze count, shifts used, clear time) without overall match score or rank stamping.
+* **Record Persistence**: Best full voyage completion time is persisted to localStorage (pisces_duel_best_egregor). Practice mode completions do not overwrite full run records.
+
+### Visual and Skill Polish (Milestone 12)
+
+* **Weapon Selection UI Clearance**: Bottom of procedural weapon icon to weapon title top is calibrated with >= 12px clearance (41.5px verified across 1280x720, 1366x768, and 1917x767 resolutions) to prevent title text overlap. Unselected weapon cards display high-contrast tactical role description text (#9bb5d1 at 100% opacity) for high legibility on dark card backgrounds. Weapon preview window displays continuous 3-wave streams of authentic animated weapon projectiles.
+* **Boss Visuals and Bioluminescence**: Duel Egregor features enhanced bioluminescence: neural bio-circuitry gradient veins (Phase 1 cyan/teal, Phase 2 violet, Phase 3 ruby) preventing the boss body from turning pitch-black (#1d112b) during skills like Dimension Break, Mind Link, Tendril Lash, and Thought Cube. All 18 attacks maintain boss 220x220 region average brightness >= 96% of Attack 1 baseline (exceeding the 70% requirement). Boss eyes maintain pure white sclera (#ffffff) with maximum blink closure capped at 60% so eyes never vanish or shut completely.
+* **Cosmic Rift and Slow Zone Redesign**: Replaced flat rectangular slow zones with authentic vertical cosmic fissures: glowing cyan and violet jagged edges, trembling spatial noise, deep gravitational vortex, concentric slow ripple waves expanding outward, inward motes, and tether distortion connecting to caught player ships.
+* **Polished Skills**:
+  * *Tendril Lash*: 42% thicker body (ptsW = 54px base), radiant glowing cyan/violet rim, bioluminescent suction cups, high-velocity motion blur ghost ribbons, tip shockwave ring, and bursting spark particles upon impact.
+  * *Eye Beams*: 3-tier beam tapering at both ends (intense white core streak, blazing amber body, golden aura), boss eye lens flare burst, and floor explosive splash.
+
+## Showdown: thánh di vật, phím A
+
+A kích hoạt kỹ năng của vũ khí đang cầm. A và F hoạt động độc lập, bị khóa khi giữ Shift. A không cấp bất tử.
+
+| Vũ khí | Kỹ năng | Hồi (giây) | Ngân sách hit |
+| --- | --- | --- | --- |
+| Kiếm | Nguyệt Luân Hộ Thân | 13 | 18 hit, mỗi hit 8 sát thương, hủy tối đa 18 đạn |
+| Giáo | Xuyên Hư Thương | 15 | 6 nhân 30 sau 0,6 giây nạp |
+| Kích | Nhật Thực Trảm | 15 | 5 nhân 30 trong 0,9 giây, hủy tối đa 18 đạn |
+| Phi Đao | Ảnh Phi Đao | 14 | 37 loạt, 8 viên mỗi loạt, mỗi viên 0,76 trong 5 giây |
+| Chiến Thương | Cự Thần Phá | 16 | 90 cộng sóng 30, đặt bộ đếm viên nặng tiếp theo 40,5 |
+
+Mọi hit đi qua _damageBoss, có hệ số quá hạn và cộng damageDealt cùng skillADamage. Mỗi lần tung A chỉ tính một hit cho Boon and Bane. Đạn thường giữ cách đếm từng viên. Hồ đạn người chơi 256, hết chỗ bỏ viên an toàn. Các thực thể A bị xóa khi chuyển cảnh hoặc rời trận.
+
+## Showdown: presentation, audio and flow
+
+* **Battle theme**: `assets/audio/bgm/egregor-theme.mp3` ("Ruler of the Violet Domain", 6:00, loops) is flagged `duelOnly` in the music list. It starts when the opening ends or is skipped, also in Practice, fades in over 1.6 seconds, runs on the shared music bus and is therefore ducked by ship voice lines. It fades out when the Egregor falls (1.5 seconds) or the ship is lost (1.2 seconds), stops when the recap opens and stops at once on the way to the main menu. It never enters the Voyage music rotation or the Settings track picker, and it is listed in the Music Archive of the Guide.
+* **Control tips**: three plates (Shift, F, A) fade in during the first 5 seconds of game time and then fade away.
+* **Low HP**: at 5 lives the ship computer says a warning line and at 3 lives a critical one. Both are on the bypass bus, so they are not muffled by the low HP filter. Each line comes with a cockpit frame around the screen and a report panel in the upper left corner. A new match that starts at 3 lives jumps straight to the critical line. On defeat the "mission failed" line replaces the plain game over voice.
+* **Idle audio**: Phase 1 has its own ambience bed, breathing and murmur loops plus random growl, coo and roar lines; Phases 2 and 3 reuse the older pair until their own sets are made.
+* **Skill casts**: when the Egregor casts a skill, ribbons of the skill colour reach out of its body toward the target, its eyes flare and rings burst out on release. Boss death and ship death have their own sequences.
+* **Time**: the HUD clock and `stats.timeSec` advance by game time, so Shift (0.35) and the F sweep (0.5) slow them along with the boss. The clock never restarts between attacks.
+* **Leaving a match**: Esc pauses and silences every sound. Quitting to the recap shows the Showdown Log with the rank gauge (S, A, B, C, D) beside the total score, and a quit epitaph when the match was abandoned. Returning to the main menu from pause or from the recap stops all Showdown audio, ends the duel and restores the menu theme.
+* **Mobile**: on phones and tablets (coarse pointer without hover) the Showdown card is locked and shows "Not available yet" with a note to play on a computer. Tapping it only shakes the card. A device that changes pointer type while Showdown is selected falls back to Endless Voyage.
+* **Debug panel**: F4 on localhost opens the Showdown debug panel to jump to any attack or phase, toggle god mode and speed, trigger idle sounds and preview skill effects.

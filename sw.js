@@ -1,17 +1,111 @@
 // Pisces: Space Journey. Copyright (c) 2024 An Nguyen. Licensed under the PolyForm Noncommercial License 1.0.0.
-// sw.js — Service Worker for offline play (see js/offline.js for the
+// sw.js: Service Worker for offline play (see js/offline.js for the
 // Settings-panel download UI that drives explicit "download this package"
 // requests; this file only handles the SW lifecycle + serving).
 //
 // One cache, versioned by CACHE_NAME. Bump the version string whenever the
 // CORE_FILES list changes so old clients pick up the new set on next visit.
-const CACHE_VERSION = 'v682';
+const CACHE_VERSION = 'v723';
 const CACHE_NAME = 'pisces-cache-' + CACHE_VERSION;
 
-// App shell — everything needed for the game to boot and run at all.
+// App shell: everything needed for the game to boot and run at all.
 // Keep in sync with js/offline.js's CORE_FILES (same list, used there to
 // report package status/progress in the Settings UI).
+const OPTIONAL_DUEL_AUDIO = [
+];
 const CORE_FILES = [
+    "assets/audio/sfx/arena-bed-p1.mp3",
+    "assets/audio/bgm/egregor-opening.mp3",
+    "assets/audio/sfx/egregor-idle-p1-bed.mp3",
+    "assets/audio/sfx/egregor-idle-p1-breath.mp3",
+    "assets/audio/sfx/egregor-idle-p1-murmur.mp3",
+    "assets/audio/sfx/egregor-idle-p1-growl-a.mp3",
+    "assets/audio/sfx/egregor-idle-p1-growl-b.mp3",
+    "assets/audio/sfx/egregor-idle-p1-coo-a.mp3",
+    "assets/audio/sfx/egregor-idle-p1-coo-b.mp3",
+    "assets/audio/sfx/egregor-idle-p1-roar.mp3",
+    "assets/audio/sfx/arena-bed-p2.mp3",
+    "assets/audio/sfx/arena-bed-p3.mp3",
+    "assets/audio/sfx/boss-breath.mp3",
+    "assets/audio/sfx/boss-bullet-cancel.mp3",
+    "assets/audio/sfx/boss-bullet-eye-a.mp3",
+    "assets/audio/sfx/boss-bullet-eye-b.mp3",
+    "assets/audio/sfx/boss-bullet-eye-c.mp3",
+    "assets/audio/sfx/boss-bullet-ichor-a.mp3",
+    "assets/audio/sfx/boss-bullet-ichor-b.mp3",
+    "assets/audio/sfx/boss-bullet-ichor-c.mp3",
+    "assets/audio/sfx/boss-bullet-spore-a.mp3",
+    "assets/audio/sfx/boss-bullet-spore-b.mp3",
+    "assets/audio/sfx/boss-bullet-spore-c.mp3",
+    "assets/audio/sfx/boss-bullet-thorn-a.mp3",
+    "assets/audio/sfx/boss-bullet-thorn-b.mp3",
+    "assets/audio/sfx/boss-bullet-thorn-c.mp3",
+    "assets/audio/sfx/boss-emerge-roar.mp3",
+    "assets/audio/sfx/boss-hit-a.mp3",
+    "assets/audio/sfx/boss-hit-b.mp3",
+    "assets/audio/sfx/boss-hit-c.mp3",
+    "assets/audio/sfx/boss-hit-heavy.mp3",
+    "assets/audio/sfx/boss-invuln.mp3",
+    "assets/audio/sfx/boss-volley.mp3",
+    "assets/audio/sfx/chorus-whisper.mp3",
+    "assets/audio/sfx/evolve-charge.mp3",
+    "assets/audio/sfx/evolve-roar-p2.mp3",
+    "assets/audio/sfx/evolve-roar-p3.mp3",
+    "assets/audio/sfx/evolve-roar.mp3",
+    "assets/audio/sfx/eyebeam-charge.mp3",
+    "assets/audio/sfx/eyebeam-end.mp3",
+    "assets/audio/sfx/eyebeam-loop.mp3",
+    "assets/audio/sfx/graze-tick-a.mp3",
+    "assets/audio/sfx/graze-tick-b.mp3",
+    "assets/audio/sfx/graze-tick-c.mp3",
+    "assets/audio/sfx/hp-layer-break.mp3",
+    "assets/audio/sfx/lock-on-beep.mp3",
+    "assets/audio/sfx/mind-adapt.mp3",
+    "assets/audio/sfx/mind-lock.mp3",
+    "assets/audio/sfx/mind-scan.mp3",
+    "assets/audio/sfx/mindlink-form.mp3",
+    "assets/audio/sfx/nullslash-hit2.mp3",
+    "assets/audio/sfx/nullslash-slash2-p2.mp3",
+    "assets/audio/sfx/nullslash-slash2-p3.mp3",
+    "assets/audio/sfx/nullslash-slash2.mp3",
+    "assets/audio/sfx/nullslash-tear.mp3",
+    "assets/audio/sfx/nullslash-windup2-p2.mp3",
+    "assets/audio/sfx/nullslash-windup2-p3.mp3",
+    "assets/audio/sfx/nullslash-windup2.mp3",
+    "assets/audio/sfx/orb-burst.mp3",
+    "assets/audio/sfx/orb-throw.mp3",
+    "assets/audio/sfx/portal-crack.mp3",
+    "assets/audio/sfx/result-defeat.mp3",
+    "assets/audio/sfx/result-victory.mp3",
+    "assets/audio/sfx/sensor-sweep.mp3",
+    "assets/audio/sfx/shield-break.mp3",
+    "assets/audio/sfx/shield-restore.mp3",
+    "assets/audio/sfx/spell-charge-p2.mp3",
+    "assets/audio/sfx/spell-charge-p3.mp3",
+    "assets/audio/sfx/spell-charge.mp3",
+    "assets/audio/sfx/spell-release-p2.mp3",
+    "assets/audio/sfx/spell-release-p3.mp3",
+    "assets/audio/sfx/spell-release.mp3",
+    "assets/audio/sfx/tendril-retract.mp3",
+    "assets/audio/sfx/tendril-strike.mp3",
+    "assets/audio/sfx/tendril-windup.mp3",
+    "assets/audio/sfx/ui-back.mp3",
+    "assets/audio/sfx/ui-card-hover-a.mp3",
+    "assets/audio/sfx/ui-card-hover-b.mp3",
+    "assets/audio/sfx/ui-card-hover-c.mp3",
+    "assets/audio/sfx/ui-card-select.mp3",
+    "assets/audio/sfx/ui-confirm-engage.mp3",
+    "assets/audio/sfx/ui-locked.mp3",
+    "assets/audio/sfx/ui-weapon-hover.mp3",
+    "assets/audio/sfx/ui-weapon-select-axe.mp3",
+    "assets/audio/sfx/ui-weapon-select-phantom.mp3",
+    "assets/audio/sfx/ui-weapon-select-spear.mp3",
+    "assets/audio/sfx/ui-weapon-select-sword.mp3",
+    "assets/audio/sfx/ui-weapon-select-titan.mp3",
+    "assets/audio/sfx/ui-weapon-select.mp3",
+    "assets/audio/sfx/upheaval-erupt.mp3",
+    "assets/audio/sfx/upheaval-rumble.mp3",
+    "assets/audio/sfx/upheaval-slam.mp3",
     'assets/audio/sfx/ammit-rift-crack.mp3',
     'assets/audio/sfx/ammit-rift-open.mp3',
     'assets/audio/sfx/ammit-emerge.mp3',
@@ -54,6 +148,30 @@ const CORE_FILES = [
     'assets/images/game/weapons/2-spear.png',
     'assets/images/game/weapons/3-halberd.png',
     'assets/images/game/weapons/5-enuma-spear.png',
+    'assets/images/duel/egregor/opening-dimension.png',
+    'assets/images/duel/opponents/egregor-splash.png',
+    'assets/audio/voice/ship/vo-chime.mp3',
+    'assets/audio/voice/ship/vo-contact-1.mp3',
+    'assets/audio/voice/ship/vo-contact-2.mp3',
+    'assets/audio/voice/ship/vo-contact-3.mp3',
+    'assets/audio/voice/ship/vo-setclear.mp3',
+    'assets/audio/voice/ship/vo-phase2.mp3',
+    'assets/audio/voice/ship/vo-lowhp5.mp3',
+    'assets/audio/voice/ship/vo-lowhp3.mp3',
+    'assets/audio/voice/ship/vo-failed.mp3',
+    'assets/audio/voice/ship/vo-phase3.mp3',
+    'assets/images/duel/weapons/sword-icon.png',
+    'assets/images/duel/weapons/sword-bullet.png',
+    'assets/images/duel/weapons/spear-icon.png',
+    'assets/images/duel/weapons/spear-bullet.png',
+    'assets/images/duel/weapons/halberd-icon.png',
+    'assets/images/duel/weapons/halberd-bullet.png',
+    'assets/images/duel/weapons/dagger-icon.png',
+    'assets/images/duel/weapons/dagger-bullet.png',
+    'assets/images/duel/weapons/heavy-lance-icon.png',
+    'assets/images/duel/weapons/heavy-lance-bullet.png',
+
+
     'assets/images/game/effects/photokrystos-boomerang.png',
     'assets/images/game/effects/sentinel-shell.png',
     'assets/images/game/effects/sol-arrow-primary.png',
@@ -280,6 +398,19 @@ const CORE_FILES = [
         'js/render/sigil-ty.js',
     'js/render/skill-g.js',
     'js/render/skill-s-spirit.js',
+    'js/duel/duel-theme.js',
+    'js/duel/duel-bullets.js',
+    'js/duel/duel-boss-weights.js',
+    'js/duel/duel-boss-brain.js',
+    'js/duel/duel-gestures-data.js',
+    'js/duel/duel-gestures.js',
+    'js/duel/duel-attacks.js',
+    'js/duel/duel-cinematics.js',
+    'js/duel/duel-debug.js',
+        'js/duel/duel-ui.js',
+    'js/duel/duel-recap.js',
+    'js/duel/duel-weapon-skills.js',
+        'js/duel/duel-core.js',
     'assets/audio/sfx/ingame-slices.json',
 ];
 
@@ -340,7 +471,7 @@ self.addEventListener('message', (event) => {
     }
 });
 
-// Cache-first, falling back to network — and opportunistically caching
+// Cache-first, falling back to network: opportunistically caching
 // whatever the network returns, so normal browsing (not just the explicit
 // Settings download) fills in the cache over time too. Only same-origin GET
 // requests are intercepted; everything else (analytics, POSTs, etc.) passes
@@ -365,7 +496,7 @@ self.addEventListener('fetch', (event) => {
             if (cached) return cached;
             return fetch(req).then((res) => {
                 // res.ok is true for the whole 2xx range, including 206
-                // Partial Content — browsers issue ranged Range: requests
+                // Partial Content: browsers issue ranged Range: requests
                 // against audio/video elements (BGM playback/seeking hits
                 // this constantly), and the Cache API throws on any attempt
                 // to store a partial response. That threw on every single

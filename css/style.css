@@ -229,7 +229,7 @@ canvas {
    bullets, the painted backdrop) rather than a paused, frozen screen. */
 #yog-teleport-hint {
     position: absolute;
-    top: 14px;
+    top: 54px;
     left: 50%;
     transform: translateX(-50%);
     padding: 4px 14px;
@@ -370,3 +370,6 @@ canvas {
     background: linear-gradient(90deg, #0ea5e9, #00ffff);
     box-shadow: 0 0 10px #00ffff;
 }
+body.duel-mode #pause-overlay button:active,
+body.duel-mode #confirm-mainmenu-overlay button:active,
+body.duel-mode #audio-toggle:active { transform: translateY(3px); box-shadow: inset 0 3px 7px #0008, 0 1px 2px #0006; filter: brightness(.85); }

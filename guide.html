@@ -778,6 +778,8 @@
 </div>
 <div class="card">
 <h2 style="color:var(--cyan)">CONTROLS</h2>
+<p><b>Showdown:</b> A unleashes the selected sacred relic skill. F charges the annihilation sweep. Hold Shift for the time domain. A and F are independent and cannot start while Shift is held. A grants no invulnerability. Space, S, D and G are disabled in Showdown. Showdown is still being written and stays locked on the live site, and it is not available on phones and tablets.</p>
+<table class="controls-table"><tr><th>Relic skill (A)</th><th>Cooldown</th></tr><tr><td>Moonwheel Aegis</td><td>13s</td></tr><tr><td>Void Lance</td><td>15s</td></tr><tr><td>Eclipse Reave</td><td>15s</td></tr><tr><td>Phantom Blades</td><td>14s</td></tr><tr><td>Titan Breaker</td><td>16s</td></tr></table>
 <table class="controls-table">
 <tr><th>Input</th><th>Action</th></tr>
 <tr><td><span class="key">ESC</span></td><td>Pause / Resume game</td></tr>
@@ -791,6 +793,11 @@
 <tr><td><span class="key">F</span></td><td>Annihilation Sweep — full screen beam</td></tr>
 <tr><td><span class="key">G</span></td><td>Life Domain / Tesla Matrix</td></tr>
 </table></div>
+<div class="card"><h2 style="color:var(--cyan)">VOYAGES</h2><div class="sub">GAME MODES · CHOSEN ON THE BAR ABOVE INITIATE HYPERJUMP</div><ul>
+<li><b>Endless Voyage:</b> the standard run. Survive endless waves, pick your sigils and chase a high score.</li>
+<li><b>Showdown Voyage</b> <span class="hr">HIGH DIFFICULTY</span>: a one on one boss duel against a cosmic entity, played with one of five sacred relics. It is still being written, so it stays locked on the live site, and it is not available on phones and tablets.</li>
+<li><b>Tutorial:</b> a short guided lesson with Kanade that teaches movement, every skill and how to read attack warnings.</li>
+<li><b>Custom Voyage:</b> a debug sandbox with an empty field and the console, meant for development.</li></ul></div>
 <div class="card"><h2 style="color:var(--gold)">LIVES & SCORING</h2><ul>
 <li>Start with <span class="hg">10 lives</span>, never more than <span class="hg">12</span>. Earn <span class="hgr">+1 life</span> every <span class="dmg">500,000 pts</span>.</li>
 <li>Score = enemy Max HP × 4 on wave 1, easing down to × 3 by wave 10. Goliath is worth 500,000 at most.</li><li>Game auto-pauses on tab switch.</li></ul></div>
@@ -1346,8 +1353,22 @@
 <div class="card"><h2 style="color:var(--cyan)">UPDATE LOG</h2><div class="sub">FULL VERSION HISTORY · NEWEST FIRST</div>
 <div class="ul-hero" oncontextmenu="return false"><img src="assets/images/site/update-log-hero.png" draggable="false" alt="Pisces: Space Journey"></div></div>
 
+<div class="ul-entry" style="--ul-accent:#9162d8">
+<div class="ul-head"><span class="ul-ver">v7.1.5: RULER OF THE VIOLET DOMAIN</span><span class="ul-badge">CURRENT</span></div>
+<div class="ul-date">2026-11-20 &middot; A new battle theme in the Music Archive, a reordered Voyage picker, and a lighter Annihilation Sweep and Yog-Sothoth Domain</div>
+<p class="det-short ul-summary">The Voyage picker puts Showdown Voyage right after Endless Voyage with a High difficulty tag. The Music Archive gains the Egregor battle theme, and the Guide explains every Voyage. Annihilation Sweep and the Yog-Sothoth Domain draw their effects with less work per frame.</p>
+<ul class="det-full">
+<li><span class="ul-tag tag-feat">FEAT</span> <b>Voyage picker order:</b> Showdown Voyage now sits right after Endless Voyage and carries a red <span class="hr">High difficulty</span> tag. Its description reads "A one on one duel against a cosmic entity. Every bullet counts." The card is still a locked teaser and cannot be started.</li>
+<li><span class="ul-tag tag-feat">FEAT</span> <b>Showdown on phones and tablets:</b> on a touch device the card carries a Not available yet tag and says to play on a computer. Tapping it only shakes the card, and the picker keeps Endless Voyage selected.</li>
+<li><span class="ul-tag tag-feat">FEAT</span> <b>Music Archive:</b> a new track, "Ruler of the Violet Domain", the Egregor battle theme. It is listed in the Archive with the label Egregor Battle Theme and does not join the random in game music.</li>
+<li><span class="ul-tag tag-feat">FEAT</span> <b>Guide, Voyages:</b> the Basics tab has a new card that explains Endless Voyage, Showdown Voyage, Tutorial and Custom Voyage, in English and Vietnamese.</li>
+<li><span class="ul-tag tag-perf">PERF</span> <b>Annihilation Sweep:</b> the hexagon grid shown during the sweep is drawn once and reused, instead of being rebuilt every frame.</li>
+<li><span class="ul-tag tag-perf">PERF</span> <b>Yog-Sothoth Domain:</b> the brush dabs of the Starry Night sky are drawn without saving, moving and rotating the canvas for each one, which lowers the work of drawing the domain.</li>
+<li><span class="ul-tag tag-global">GLOBAL</span> <b>Offline package:</b> the offline file lists carry the new battle theme and the Showdown art, and the cache version moves forward so every device picks the new files up.</li>
+</ul></div>
+
 <div class="ul-entry" style="--ul-accent:#22cc55">
-<div class="ul-head"><span class="ul-ver">v7.0.1: ULYSSES' RETURN</span><span class="ul-badge">CURRENT</span></div>
+<div class="ul-head"><span class="ul-ver">v7.0.1: ULYSSES' RETURN</span></div>
 <div class="ul-date">2026-11-08 &middot; Thaelis trades its split bullets for a wave of its own and comes back stronger from its Cocoon</div>
 <p class="det-short ul-summary">Thaelis loses its normal attack and gains Ulysses' Return, a wave it earns from the damage it takes. Its Shield is much stronger before and after the Cocoon, and it returns sooner.</p>
 <ul class="det-full">
@@ -2991,6 +3012,8 @@
 </div>
 <div class="card">
 <h2 style="color:var(--cyan)">ĐIỀU KHIỂN</h2>
+<p><b>Quyết Chiến:</b> A tung kỹ năng của thánh di vật đang cầm. F nạp đường quét hủy diệt. Giữ Shift để mở lãnh địa thời gian. A và F độc lập, không thể kích hoạt khi giữ Shift. A không cấp bất tử. Space, S, D và G bị khóa trong Quyết Chiến. Quyết Chiến vẫn đang được viết và còn bị khóa trên trang chính thức, đồng thời chưa khả dụng trên điện thoại và máy tính bảng.</p>
+<table class="controls-table"><tr><th>Kỹ năng A</th><th>Hồi chiêu</th></tr><tr><td>Nguyệt Luân Hộ Thân</td><td>13 giây</td></tr><tr><td>Xuyên Hư Thương</td><td>15 giây</td></tr><tr><td>Nhật Thực Trảm</td><td>15 giây</td></tr><tr><td>Ảnh Phi Đao</td><td>14 giây</td></tr><tr><td>Cự Thần Phá</td><td>16 giây</td></tr></table>
 <table class="controls-table">
 <tr><th>Phím</th><th>Hành động</th></tr>
 <tr><td><span class="key">ESC</span></td><td>Tạm dừng / Tiếp tục game</td></tr>
@@ -3004,6 +3027,11 @@
 <tr><td><span class="key">F</span></td><td>Càn Quét Hủy Diệt — chùm tia toàn màn hình</td></tr>
 <tr><td><span class="key">G</span></td><td>Kết Giới Sinh Mệnh / Ma Trận Tesla</td></tr>
 </table></div>
+<div class="card"><h2 style="color:var(--cyan)">CÁC CHUYẾN BAY</h2><div class="sub">CHẾ ĐỘ CHƠI · CHỌN Ở THANH PHÍA TRÊN NÚT KHỞI ĐỘNG SIÊU NHẢY</div><ul>
+<li><b>Endless Voyage:</b> lượt chơi tiêu chuẩn. Sống sót qua vô tận các wave, chọn sigil và chinh phục điểm cao.</li>
+<li><b>Quyết Chiến (Showdown Voyage)</b> <span class="hr">ĐỘ KHÓ CAO</span>: trận đấu tay đôi với một thực thể vũ trụ, dùng một trong năm thánh di vật. Chế độ vẫn đang được viết nên còn bị khóa trên trang chính thức, và chưa khả dụng trên điện thoại và máy tính bảng.</li>
+<li><b>Tutorial:</b> bài học ngắn cùng Kanade, dạy cách di chuyển, mọi kỹ năng và cách đọc cảnh báo đòn đánh.</li>
+<li><b>Custom Voyage:</b> sân thử gỡ lỗi với trường chơi trống và bảng điều khiển, dành cho phát triển.</li></ul></div>
 <div class="card"><h2 style="color:var(--gold)">MẠNG & ĐIỂM SỐ</h2><ul>
 <li>Bắt đầu với <span class="hg">10 mạng</span>, tối đa <span class="hg">12 mạng</span>. Nhận <span class="hgr">+1 mạng</span> mỗi <span class="dmg">500,000 điểm</span>.</li>
 <li>Điểm = Max HP kẻ địch × 4 ở wave 1, giảm dần còn × 3 từ wave 10. Goliath cho tối đa 500,000 điểm.</li><li>Game tự động tạm dừng khi chuyển tab.</li></ul></div>
@@ -3092,6 +3120,7 @@
       { title: 'Requiem for a Persian Spring',   sub: 'In-Game BGM',  src: 'assets/audio/bgm/requiem-for-a-persian-spring.mp3' },
       { title: 'Requiem of Falling Stars',       sub: 'In-Game BGM',  src: 'assets/audio/bgm/requiem-of-falling-stars.mp3' },
       { title: 'Resurrection',                   sub: 'In-Game BGM',  src: 'assets/audio/bgm/resurrection.mp3' },
+      { title: 'Ruler of the Violet Domain',     sub: 'Egregor Battle Theme', src: 'assets/audio/bgm/egregor-theme.mp3' },
       { title: 'Sorrow of a Thousand Blades',    sub: 'In-Game BGM',  src: 'assets/audio/bgm/sorrow-of-a-thousand-blades.mp3' },
       { title: 'Sousei no Hi',                   sub: 'In-Game BGM',  src: 'assets/audio/bgm/sousei-no-hi.mp3' },
       { title: "The Last Cicada's Song",         sub: 'In-Game BGM',  src: 'assets/audio/bgm/the-last-cicadas-song.mp3' },
@@ -3112,7 +3141,7 @@
 <h2 style="color:var(--cyan)">LƯU TRỮ NHẠC</h2>
 <div class="sub">Nơi hàng vạn dòng chảy thanh âm hội tụ, thời gian giao thoa thành giai điệu, và các vì sao ngân lên khúc khải hoàn.</div>
 <img src="assets/images/site/music-archive-kanade-headphones.png" alt="Kanade nằm nghe nhạc trên sofa, bầu trời đêm phong cách Van Gogh ngoài cửa sổ" oncontextmenu="return false" style="width:100%;border-radius:10px;margin-top:12px;display:block;border:1px solid rgba(0,229,255,0.18);user-select:none;-webkit-user-drag:none">
-<p style="opacity:0.75; font-size:12px; margin-top:6px;">Nhạc nền menu "Pisces" chỉ phát ở màn hình tiêu đề. Mọi bản nhạc khác được chọn ngẫu nhiên sau khi bạn xác nhận sigil đầu tiên mỗi lượt chơi.</p>
+<p style="opacity:0.75; font-size:12px; margin-top:6px;">Nhạc nền menu "Pisces" chỉ phát ở màn hình tiêu đề. Mọi bản nhạc khác được chọn ngẫu nhiên sau khi bạn xác nhận sigil đầu tiên mỗi lượt chơi. "Ruler of the Violet Domain" là nhạc trận đấu với Egregor, chỉ phát trong Quyết Chiến.</p>
 <div id="music-list" style="display:flex; flex-direction:column; gap:10px; margin-top:14px;"></div>
 </div>`;
       }
@@ -3121,7 +3150,7 @@
 <h2 style="color:var(--cyan)">MUSIC ARCHIVE</h2>
 <div class="sub">Where the currents of sound gather, time itself blossoms in melody, and the silence between stars begins to sing.</div>
 <img src="assets/images/site/music-archive-kanade-headphones.png" alt="Kanade lying on a sofa listening to music, a Van Gogh style starry night sky through the window" oncontextmenu="return false" style="width:100%;border-radius:10px;margin-top:12px;display:block;border:1px solid rgba(0,229,255,0.18);user-select:none;-webkit-user-drag:none">
-<p style="opacity:0.75; font-size:12px; margin-top:6px;">The menu theme "Pisces" plays only on the title screen. All other tracks are randomly chosen once you confirm your first sigil each run.</p>
+<p style="opacity:0.75; font-size:12px; margin-top:6px;">The menu theme "Pisces" plays only on the title screen. All other tracks are randomly chosen once you confirm your first sigil each run. "Ruler of the Violet Domain" is the Egregor battle theme and plays only in Showdown.</p>
 <div id="music-list" style="display:flex; flex-direction:column; gap:10px; margin-top:14px;"></div>
 </div>`;
     }
