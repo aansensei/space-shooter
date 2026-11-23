@@ -5,7 +5,7 @@
 //
 // One cache, versioned by CACHE_NAME. Bump the version string whenever the
 // CORE_FILES list changes so old clients pick up the new set on next visit.
-const CACHE_VERSION = 'v736';
+const CACHE_VERSION = 'v739';
 const CACHE_NAME = 'pisces-cache-' + CACHE_VERSION;
 
 // App shell: everything needed for the game to boot and run at all.
@@ -24,6 +24,22 @@ const CORE_FILES = [
     "assets/audio/sfx/egregor-idle-p1-coo-a.mp3",
     "assets/audio/sfx/egregor-idle-p1-coo-b.mp3",
     "assets/audio/sfx/egregor-idle-p1-roar.mp3",
+    "assets/audio/sfx/egregor-idle-p2-bed.mp3",
+    "assets/audio/sfx/egregor-idle-p2-breath.mp3",
+    "assets/audio/sfx/egregor-idle-p2-murmur.mp3",
+    "assets/audio/sfx/egregor-idle-p2-growl-a.mp3",
+    "assets/audio/sfx/egregor-idle-p2-growl-b.mp3",
+    "assets/audio/sfx/egregor-idle-p2-coo-a.mp3",
+    "assets/audio/sfx/egregor-idle-p2-coo-b.mp3",
+    "assets/audio/sfx/egregor-idle-p2-roar.mp3",
+    "assets/audio/sfx/egregor-idle-p3-bed.mp3",
+    "assets/audio/sfx/egregor-idle-p3-breath.mp3",
+    "assets/audio/sfx/egregor-idle-p3-murmur.mp3",
+    "assets/audio/sfx/egregor-idle-p3-growl-a.mp3",
+    "assets/audio/sfx/egregor-idle-p3-growl-b.mp3",
+    "assets/audio/sfx/egregor-idle-p3-coo-a.mp3",
+    "assets/audio/sfx/egregor-idle-p3-coo-b.mp3",
+    "assets/audio/sfx/egregor-idle-p3-roar.mp3",
     "assets/audio/sfx/arena-bed-p2.mp3",
     "assets/audio/sfx/arena-bed-p3.mp3",
     "assets/audio/sfx/boss-breath.mp3",

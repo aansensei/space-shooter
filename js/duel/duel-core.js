@@ -386,7 +386,7 @@
         // the ship report and its panel come as Egregor falls, with the epic cue under the voice; the afterglow follows once the cue has ended
         _playVictoryCues() {
             const am = window.AudioMgr;
-            if (!am || this.practiceMode) return;
+            if (!am) return;
             const keep = h => { (this._victoryHandles || (this._victoryHandles = [])).push(h); };
             this._victoryAfter(600, () => keep(am.playSfx('duel-victory-bloom')));
             this._victoryAfter(1200, () => {
@@ -1369,7 +1369,7 @@
         _updateIdleVoice(dt) {
             const am = window.AudioMgr;
             const def = this.attacks && Attacks.ATTACK_DEFS[this.attacks.currentAttackId];
-            if (!am || !def || def.phase !== 1) return;
+            if (!am || !def || !(def.phase >= 1 && def.phase <= 3)) return;
             const v = this._idleVoice || (this._idleVoice = { clock: 0, next: 8 + Math.random() * 6, lastRoar: -999 });
             v.clock += dt;
             if (v.clock < v.next || this.attacks.elapsed < 1.5 || this.shiftActive) return;
@@ -1379,10 +1379,12 @@
             let kind = r < .4 ? 'coo' : r < .85 ? 'growl' : 'roar';
             if (kind === 'roar' && v.clock - v.lastRoar < 45) kind = 'growl';
             if (kind === 'roar') v.lastRoar = v.clock;
-            const key = kind === 'roar' ? 'egregor-idle-p1-roar' : 'egregor-idle-p1-' + kind + (Math.random() < .5 ? '-a' : '-b');
+            const phase = def.phase;
+            const key = kind === 'roar' ? 'egregor-idle-p' + phase + '-roar' : 'egregor-idle-p' + phase + '-' + kind + (Math.random() < .5 ? '-a' : '-b');
             // a busy mix can refuse the sound, so it is tried again shortly instead of being skipped
-            if (!am.playSfxAt(key, this.bossPos.x, this.bossPos.y, 1)) { v.next = v.clock + 1.2; return; }
-            v.next = v.clock + 9 + Math.random() * 9;
+            if (!am.playSfxAt(key, this.bossPos.x, this.bossPos.y, phase)) { v.next = v.clock + 1.2; return; }
+            // the later forms speak up more often: 9 to 18 s, then 7 to 14 s, then 5 to 11 s
+            v.next = v.clock + (phase === 1 ? 9 + Math.random() * 9 : phase === 2 ? 7 + Math.random() * 7 : 5 + Math.random() * 6);
         }
 
         _updateBossMotion(dt, canvasW, canvasH, playerX, playerY) {
