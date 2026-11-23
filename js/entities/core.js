@@ -133,6 +133,7 @@ function handleEnemyKill(enemy) {
     _leoOnEnemyKill(enemy);
     _dauOnEnemyKill(enemy);
     _tyOnEnemyKill(enemy);
+    if (typeof _muiOnEnemyKill === 'function') _muiOnEnemyKill(enemy);
     if (window.AudioMgr) {
         window.AudioMgr.playSfxAt('enemy-death', enemy.x, enemy.y);
         // Layered on top of the generic death sfx for enemies killed by
@@ -1061,6 +1062,13 @@ function dealDamage(enemy, source) {
     // Sigil: Daybreak Crow (Dawn Herald) bonus incoming damage
     if (!isSentinel && typeof _dauHasDaybreak === 'function' && _dauHasDaybreak(enemy)) {
         totalDamage = Math.ceil(totalDamage * DAU_DAYBREAK_DAMAGE_MULT);
+    }
+
+    // Sigil: Wraith Warden Spirit Array doubles sigil-sourced damage on targets inside the array.
+    if (totalDamage > 0 && (source.damage > 0 || (source.percentDamage || 0) > 0)
+        && enemy._muiArrayUntil > currentTime
+        && typeof _isSigilDamageSource === 'function' && _isSigilDamageSource(source)) {
+        totalDamage = Math.ceil(totalDamage * 2);
     }
 
     // Sigil: Death Mark — linear 0%→40% from 100%→21% HP; flat +50% at ≤20% (docs/combat-scaling-rebalance.md Part 5)

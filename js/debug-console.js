@@ -204,7 +204,7 @@ function _autoplayTick() {
         if (typeof activateSkillF === 'function' && (_realEnemyCount > 0 || _greatSageGemReady)) activateSkillF();
         if (typeof activateSkillG === 'function') activateSkillG();
         // a banked Space release (Cancer, Leo, Capricorn) is free, so it fires the moment it is ready
-        if ((window._tidalSurgeReady || window._leoFateReady || window._capricornReady) && typeof _releaseReadySpaceSigil === 'function'
+        if ((window._tidalSurgeReady || window._leoFateReady || window._muiReady || window._capricornReady) && typeof _releaseReadySpaceSigil === 'function'
             && !(typeof player !== 'undefined' && player._silenced)) {
             _releaseReadySpaceSigil();
         }
@@ -727,6 +727,18 @@ window.debugSetYuukiBonus = function () {
           <button class="dbg-btn" onclick="debugTyAction('restore')">Restore Scale Shield</button>
           <button class="dbg-btn" onclick="debugTyAction('venom')">Venom: 5 stacks</button>
         </div>
+      </div>
+      <div id="dbgMuiSection" style="margin-top:8px; padding-top:8px; border-top:1px solid rgba(0,229,255,0.12); display:none;">
+        <div class="dbg-h" style="font-size:10px;">WRAITH WARDEN (MUI), LEGION OF SOULS</div>
+        <div id="dbgMuiState" style="font-size:10px; opacity:0.7; margin-bottom:4px;"></div>
+        <div class="dbg-row" style="flex-wrap:wrap;">
+          <button class="dbg-btn" onclick="debugMuiAction('test')">Full Test (dummies + call Legion)</button>
+          <button class="dbg-btn" onclick="debugMuiAction('fill')">Fill Soul Qi to Ready</button>
+          <button class="dbg-btn" onclick="debugMuiAction('call')">Call Legion Now</button>
+          <button class="dbg-btn" onclick="debugMuiAction('dummies')">Spawn 6 Tough Dummies</button>
+          <button class="dbg-btn" onclick="debugMuiAction('clear')">Clear State</button>
+        </div>
+        <div class="dbg-note dbg-note-flush">Shown while Wraith Warden is equipped. "Full Test" fills the Qi, spawns six dummies with 5M HP and calls the Legion: 5s of speed, 5 Iron Body layers, the Spirit Array and 110 blades. Every button equips the sigil first.</div>
       </div>
       <div id="dbgDauSection" style="margin-top:8px; padding-top:8px; border-top:1px solid rgba(0,229,255,0.12); display:none;">
         <div class="dbg-h" style="font-size:10px;">DAWN HERALD (DAU), DAYBREAK CROW</div>
@@ -1401,7 +1413,10 @@ window.debugSetYuukiBonus = function () {
             }
         } else {
             const i = window._playerSigils.findIndex(s => s.sigilId === sigilId);
-            if (i !== -1) window._playerSigils.splice(i, 1);
+            if (i !== -1) {
+                window._playerSigils.splice(i, 1);
+                if (sigilId === 'mui' && typeof _muiReset === 'function') _muiReset();
+            }
         }
         _refreshSigilSections();
     };
@@ -1899,8 +1914,29 @@ window.debugSetYuukiBonus = function () {
         }
         if (typeof _dauTriggerCrow === 'function') _dauTriggerCrow();
     };
+    window.debugMuiAction = function (action) {
+        if (typeof _hasSigil === 'function' && !_hasSigil('mui') && typeof window.debugToggleSigil === 'function') {
+            window.debugToggleSigil('mui', true);
+            if (typeof syncSigilCheckboxes === 'function') syncSigilCheckboxes();
+        }
+        if (typeof _muiRelease !== 'function') return;
+        const dummies = () => {
+            for (let i = 0; i < 6; i++) {
+                spawnApostle();
+                const e = enemies[enemies.length - 1];
+                e.x = 220 + i * 160; e.y = 160 + (i % 3) * 60; e.speed = 0.2;
+                e.hp = e.maxHp = 5e6;
+            }
+        };
+        if (action === 'clear') _muiReset();
+        if (action === 'dummies') dummies();
+        if (action === 'fill' || action === 'call' || action === 'test') _muiAddQi(100);
+        if (action === 'test') dummies();
+        if (action === 'call' || action === 'test') _muiRelease();
+        _refreshSigilSections();
+    };
     // Each sigil's debug section shows only while that sigil is equipped.
-    const _DBG_SIGIL_SECTIONS = [['dbgTySection', 'ty'], ['dbgLeoSection', 'leo'], ['dbgDauSection', 'dau'], ['dbgPiscesSection', 'pisces'], ['dbgCapricornSection', 'capricorn']];
+    const _DBG_SIGIL_SECTIONS = [['dbgMuiSection', 'mui'], ['dbgTySection', 'ty'], ['dbgLeoSection', 'leo'], ['dbgDauSection', 'dau'], ['dbgPiscesSection', 'pisces'], ['dbgCapricornSection', 'capricorn']];
     window.debugTyAction = function (action) {
         if (!_hasSigil('ty')) return;
         if (action === 'venom') {
@@ -1929,6 +1965,13 @@ window.debugSetYuukiBonus = function () {
             if (section) section.style.display = typeof _hasSigil === 'function' && _hasSigil(sigil) ? '' : 'none';
         }
         _refreshCapricornStateDisplay();
+        const muiState = document.getElementById('dbgMuiState');
+        if (muiState && typeof _hasSigil === 'function' && _hasSigil('mui')) {
+            let blades = 0; for (const b of (window._muiBlades || [])) if (b.active) blades++;
+            muiState.textContent = `Soul Qi: ${Math.round(window._muiQi || 0)}/100 ${window._muiReady ? '(READY)' : ''}`
+                + ` · Windup: ${((window._muiWindupMs || 0) / 1000).toFixed(1)}s · Legion: ${((window._muiRemainMs || 0) / 1000).toFixed(1)}s · Iron Body: ${window._muiIronLayers || 0}`
+                + ` · Blades: ${blades} · Waves: ${window._muiWavesSpawned || 0}/${typeof MUI_WAVES_TOTAL !== 'undefined' ? MUI_WAVES_TOTAL : 79}`;
+        }
         const state = document.getElementById('dbgTyState');
         if (state && _hasSigil('ty')) {
             let alive = 0; for (let i = 0; i < _tySerpents.length; i++) if (_tySerpents[i].active) alive++;

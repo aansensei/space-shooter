@@ -37,6 +37,9 @@ function loseLife(cause) {
         return;
     }
 
+    // Wraith Warden Iron Body blocks direct boundary life loss.
+    if (typeof _muiConsumeIronLayer === 'function' && _muiConsumeIronLayer()) return;
+
     if (lives === 1 && !hasTriggeredLastStand) {
         hasTriggeredLastStand = true;
         playerAbsoluteShield = true;
@@ -98,6 +101,9 @@ function playerTakesHit(attacker) {
         createParticles(player.x, player.y, 10, '#c4b5fd', 2, 6);
         return false;
     }
+
+    // Wraith Warden Iron Body blocks one hit per layer during the windup and Legion.
+    if (typeof _muiConsumeIronLayer === 'function' && _muiConsumeIronLayer()) return false;
 
     // ƯU TIÊN 0: Yog-Sothoth - Miễn mọi sát thương trong Lãnh địa Thời Gian
     if (skillShiftActive) {
@@ -385,6 +391,7 @@ function _endRun(quit) {
         return;
     }
     _ammitReset();
+    if (typeof _muiReset === 'function' && _muiHasSpec()) _muiReset();
     gameState = "gameover";
     if (window._timelineDistortion && window._timelineDistortion.id !== 'stack_overflow') _clearTimelineDistortion();
     _gameOverPlayTime = performance.now() - gameStartTime;
@@ -497,6 +504,7 @@ function update(rawDeltaTime) {
 
     _leoBeginFrame(deltaTime, currentTime);
     if (typeof _dauBeginFrame === 'function') _dauBeginFrame(deltaTime, currentTime);
+    if (typeof _muiBeginFrame === 'function') _muiBeginFrame(deltaTime, currentTime);
     _capricornBeginFrame(deltaTime);
     _tyBeginFrame(deltaTime);
 
@@ -865,10 +873,15 @@ function update(rawDeltaTime) {
     // phone widens the world by _hudScale, so the ship speeds up by the same
     // ratio and still crosses the screen in the same time.
     const _phoneMoveMult = window._deviceTier === 'phone' ? 0.90 * (window._hudScale || 1) : 1;
+    const _muiCCImm = typeof _muiPlayerCCImmune === 'function' && _muiPlayerCCImmune();
+    if (_muiCCImm) { _dimBreakMult = 1.0; _wisdomOrbSpeedMult = 1.0; player._silenced = false; player._rooted = false; }
+    const _muiMoveMult = typeof _muiMoveSpeedMult === 'function' ? _muiMoveSpeedMult() : 1;
+    const _effNullSlow = _muiCCImm ? 1.0 : _nullSlashSpeedMult;
+    const _effLevSlow = _muiCCImm ? 1.0 : _levLaserSlowMult;
     const _tyMoveMult = window._tyClock < window._tySpeedEnd ? 1.5 : 1;
     const _duelCanMove = window._runGameMode !== 'showdown' || (window._duelSession && window._duelSession.state === 'playing' && !window._duelSession.shiftActive);
-    if (_duelCanMove && keys.left && player.x > player.width / 2 && !player._rooted) player.x -= player.speed * _tyMoveMult * _phoneMoveMult * _nullSlashSpeedMult * _levLaserSlowMult * _dimBreakMult * _wisdomOrbSpeedMult * dt;
-    if (_duelCanMove && keys.right && player.x < canvas.width - player.width / 2 && !player._rooted) player.x += player.speed * _tyMoveMult * _phoneMoveMult * _nullSlashSpeedMult * _levLaserSlowMult * _dimBreakMult * _wisdomOrbSpeedMult * dt;
+    if (_duelCanMove && keys.left && player.x > player.width / 2 && !player._rooted) player.x -= player.speed * _tyMoveMult * _muiMoveMult * _phoneMoveMult * _effNullSlow * _effLevSlow * _dimBreakMult * _wisdomOrbSpeedMult * dt;
+    if (_duelCanMove && keys.right && player.x < canvas.width - player.width / 2 && !player._rooted) player.x += player.speed * _tyMoveMult * _muiMoveMult * _phoneMoveMult * _effNullSlow * _effLevSlow * _dimBreakMult * _wisdomOrbSpeedMult * dt;
 
     // Uriel's Holy Sword aims at the player's position ~100ms ago instead of
     // the live position, so it can't be launched dead-on-arrival - keep a
@@ -1594,10 +1607,12 @@ function update(rawDeltaTime) {
                     // Darkened chain: costs 1 life, no root/silence
                     playerTakesHit(enemy);
                 } else {
-                    // Normal chain: root & silence
-                    player._silenced = true;
-                    player._silenceEnd = currentTime + 1000;
-                    player._rooted = true;
+                    // Normal chain: root & silence (blocked by Wraith Warden CC immunity)
+                    if (!(typeof _muiPlayerCCImmune === 'function' && _muiPlayerCCImmune())) {
+                        player._silenced = true;
+                        player._silenceEnd = currentTime + 1000;
+                        player._rooted = true;
+                    }
                     _setShake(6, 250);
                     if (window.AudioMgr) window.AudioMgr.playSfxAt('dargruel-chain-root', player.x, player.y);
                     try { window._vibrateEnabled !== false && navigator.vibrate && navigator.vibrate(30); } catch (e) { }
@@ -2023,6 +2038,11 @@ function update(rawDeltaTime) {
         if (enemy._tySlowEnd > window._tyClock && !_isCCImmune(enemy) && !_capIsGoliath(enemy)) {
             enemy.x = _tyBeforeX + (enemy.x - _tyBeforeX) * 0.5;
             enemy.y = _tyBeforeY + (enemy.y - _tyBeforeY) * 0.5;
+        }
+        if (enemy._muiSlowEnd > currentTime && enemy.type !== 'goliath') {
+            const _muiSF = enemy._muiSlowFactor || 0.55;
+            enemy.x = _tyBeforeX + (enemy.x - _tyBeforeX) * _muiSF;
+            enemy.y = _tyBeforeY + (enemy.y - _tyBeforeY) * _muiSF;
         }
         if (enemy._adminBlessing && enemy.hp > 0) _updateAdminBlessingGuard(enemy);
         if (enemy.type !== 'uriel') _updateTimelineFavorRegen(enemy, deltaTime);
@@ -2526,6 +2546,7 @@ function update(rawDeltaTime) {
     updateShadowTwin(deltaTime); _profChk2.push(performance.now());
     updateShadowOrbs(deltaTime); _profChk2.push(performance.now());
     updateGateOfBabylon(deltaTime); _profChk2.push(performance.now());
+    if (typeof updateSoulBlades === 'function') updateSoulBlades(deltaTime);
     updateEnumaElish(deltaTime); _profChk2.push(performance.now());
     updateMirrorLaserColumns(deltaTime); _profChk2.push(performance.now());
     updateGoldenArrowSweep(deltaTime); _profChk2.push(performance.now());
@@ -2582,7 +2603,7 @@ function update(rawDeltaTime) {
                 // Yog-Sothoth Domain, Dream Realm né, khiên Skill A, v.v.
                 const _orbAttacker = { type: 'goliath', _tdMultiHit: true };
                 for (let li = 0; li < 5; li++) {
-                    if (!_yuushaPierceRedirect(orb.dmg, true) && playerTakesHit(_orbAttacker)) _goliathApplySilence(1250);
+                    if (!_yuushaPierceRedirect(orb.dmg, true) && playerTakesHit(_orbAttacker) && !(typeof _muiPlayerCCImmune === 'function' && _muiPlayerCCImmune())) _goliathApplySilence(1250);
                     if (_orbAttacker._tdFavorBlocked) break;
                 }
                 addExplosion(orb.x, orb.y, 80, '#9d00ff');
@@ -2611,7 +2632,7 @@ function update(rawDeltaTime) {
             if (Math.hypot(sw.x - player.x, sw.y - player.y) < (sw.radius || 88) + (player.hitRadius || 15)) {
                 const _yHitsAlready = (sw.hitEnemies || []).length;
                 const _yCoeff = _yHitsAlready === 0 ? 0.675 : _yHitsAlready === 1 ? 0.575 : 0.525;
-                if (!_yuushaPierceRedirect(_yCoeff * (sw.atk || 0), false) && playerTakesHit({ type: 'goliath' })) _goliathApplySilence();
+                if (!_yuushaPierceRedirect(_yCoeff * (sw.atk || 0), false) && playerTakesHit({ type: 'goliath' }) && !(typeof _muiPlayerCCImmune === 'function' && _muiPlayerCCImmune())) _goliathApplySilence();
                 addExplosion(sw.x, sw.y, 50, '#ff8c1a');
                 if (window.AudioMgr) window.AudioMgr.playSfxAt('metal-hit', sw.x, sw.y);
                 return false;
@@ -2646,7 +2667,7 @@ function update(rawDeltaTime) {
             _capStopProjectile(m, capX, capY, 'skill', true, 46);
             if (m.life <= 0 || m.x < -80 || m.x > canvas.width + 80 || m.y < -80 || m.y > canvas.height + 80) return false;
             if (Math.hypot(m.x - player.x, m.y - player.y) < 46 + (player.hitRadius || 15)) {
-                if (!_yuushaPierceRedirect(0.625 * (m.atk || 0), true) && playerTakesHit({ type: 'goliath' })) _goliathApplySilence();
+                if (!_yuushaPierceRedirect(0.625 * (m.atk || 0), true) && playerTakesHit({ type: 'goliath' }) && !(typeof _muiPlayerCCImmune === 'function' && _muiPlayerCCImmune())) _goliathApplySilence();
                 addExplosion(m.x, m.y, 70, '#f59e0b');
                 if (window.AudioMgr) window.AudioMgr.playSfxAt('metal-hit', m.x, m.y);
                 return false;
@@ -2699,7 +2720,7 @@ function update(rawDeltaTime) {
             _trySlashEchoByProjectiles(g);
             if (g._slashed) return false;
             if (Math.hypot(g.x - player.x, g.y - player.y) < GOLIATH_ECHO_HIT_RADIUS + (player.hitRadius || 15)) {
-                if (!_yuushaPierceRedirect(0.625 * (g.atk || 0), true) && playerTakesHit({ type: 'goliath' })) _goliathApplySilence();
+                if (!_yuushaPierceRedirect(0.625 * (g.atk || 0), true) && playerTakesHit({ type: 'goliath' }) && !(typeof _muiPlayerCCImmune === 'function' && _muiPlayerCCImmune())) _goliathApplySilence();
                 _echoQueueBurst(player.x, player.y, currentTime, true);
                 addExplosion(g.x, g.y, 60, '#a855f7');
                 if (window.AudioMgr) window.AudioMgr.playSfxAt('metal-hit', g.x, g.y);
@@ -2867,9 +2888,11 @@ function update(rawDeltaTime) {
                         if (!_yuushaPierceRedirect(_lastRitesHs * Math.min(0.01375, 0.000375 * hits), true, laser)) playerTakesHit(laser);
                     }
                 } else {
-                    player._levLaserSlowEnd = currentTime + 1000;
-                    player._silenced = true;
-                    player._silenceEnd = Math.max(player._silenceEnd || 0, currentTime + 1000);
+                    if (!(typeof _muiPlayerCCImmune === 'function' && _muiPlayerCCImmune())) {
+                        player._levLaserSlowEnd = currentTime + 1000;
+                        player._silenced = true;
+                        player._silenceEnd = Math.max(player._silenceEnd || 0, currentTime + 1000);
+                    }
                 }
             }
 
@@ -3816,6 +3839,7 @@ function startGame() {
     _piscesEventsReset();
     _leoReset();
     if (typeof _dauReset === 'function') _dauReset();
+    if (typeof _muiReset === 'function') _muiReset();
     _tyReset();
     _capricornReset();
     window._muiTenVangHitCount = 0;

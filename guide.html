@@ -1132,6 +1132,17 @@
 <div class="sfc-story">Among extinguished stars, the Umbral Serpent inscribes a seal upon the void. Ten serpents emerge from its eye to intercept the approaching enemy. Every bite kindles strength throughout the formation.</div>
 <div class="sfc-hint">click to return</div></div></div></div>
 
+<div class="sfc" onclick="this.classList.toggle('flipped')" style="--sc:#3DDBB0;--scl:rgba(61,219,176,0.12)">
+<div class="sfc-inner"><div class="sfc-front">
+<canvas class="sfc-glyph-cv" data-sigil="mui"></canvas><div class="sfc-name">WRAITH WARDEN</div><div class="sfc-el">Necromancy</div><div class="sfc-atk"><span>SPEED <b>+6%</b></span></div><div class="sfc-theme">THE GUARDIAN LEGION</div>
+<div class="sfc-buffs">
+<div class="sfc-row"><span class="sbt spec">SPEC</span><b>Legion of Souls</b> <span class="sbd">Kills and time charge Soul Qi up to 100. When full, press Space for a 0.5s windup where energy sweeps across the screen, then the Legion arrives for 5s: +40% move speed, 5 Iron Body layers (each blocks one hit), immunity to all CC, and eight small Spirit Array pools open at random spots above and away from the ship. Enemies inside a pool are held for 1.5s (Dominant, through CC immunity), then slowed 45%, take 12% ATK true damage every 0.4s and take double sigil damage. CC immune enemies are only slowed 25%. Passive: always +6% move speed.</span></div>
+<div class="sfc-row"><span class="sbt atk">ATK</span><b>Soul Blade Rain</b> <span class="sbd">While the Legion is out, 79 waves of spectral blades rise from the 180 degrees behind the ship and fly in straight lines at the enemies ahead, piercing everything on the way and wiping every enemy bullet they cut through. Enemies standing in a Spirit Array pool have a 40% chance, on each blade hit, to take 25% of that hit again as true damage. Each wave has 2 blades. Each blade hits each enemy once for 14% ATK + 0.06% Max HP true damage, and deals 10% more to units below Elite tier. Each blade hit deals 25% more to an enemy with more than 50% of its Max HP.</span></div>
+</div><div class="sfc-hint">click to read lore</div>
+</div><div class="sfc-back"><canvas class="sfc-glyph-sm-cv" data-sigil="mui"></canvas>
+<div class="sfc-story">Beneath the cold stars of the Ghost Mansion, the Wraith Warden stands before a gate no one else dares to hold. When he lifts his hand the dead remember that they were soldiers: blades rise behind him, a bronze drum answers eight times, and an entire army marches to keep one living commander safe.</div>
+<div class="sfc-hint">click to return</div></div></div></div>
+
 </div>`,
 
       enemies: `
@@ -1353,8 +1364,33 @@
 <div class="card"><h2 style="color:var(--cyan)">UPDATE LOG</h2><div class="sub">FULL VERSION HISTORY · NEWEST FIRST</div>
 <div class="ul-hero" oncontextmenu="return false"><img src="assets/images/site/update-log-hero.png" draggable="false" alt="Pisces: Space Journey"></div></div>
 
+<div class="ul-entry" style="--ul-accent:#3DDBB0">
+<div class="ul-head"><span class="ul-ver">v7.2.0: WRAITH WARDEN, LEGION OF SOULS</span><span class="ul-badge">CURRENT</span></div>
+<div class="ul-date">2026-11-23 &middot; A new Vietnamese zodiac sigil joins the pool, Dimension Break links its portals, and waves arrive more calmly</div>
+<p class="det-short ul-summary">Wraith Warden (Quỷ Kim Tinh Quan) fills a Soul Qi meter from kills and time, then calls a Legion of Souls: five seconds of spectral blades from behind the ship and eight Spirit Array pools that hold and weaken enemies. Showdown gets a linked portal Dimension Break and a safe cell in the Void Horizon bar, and the normal waves stop piling strong enemies on top of each other.</p>
+<ul class="det-full">
+<li><span class="ul-tag tag-balance">BALANCE</span> <b>Calmer waves:</b> new arrivals go through one shared limit with spacing between tiers. At most 16 enemies share the screen (12 on phones), at most two big enemies appear before wave 8, and Elites and Dominators arrive further apart. Leviathan calls its reinforcements one at a time, Coronation counts against the same limits, a wave no longer starts while enemies are still on screen, and there is no surge past the cap.</li>
+<li><span class="ul-tag tag-feat">FEAT</span> <b>Wraith Warden sigil:</b> a new Vietnamese zodiac sigil (Mùi, Necromancy) with two buffs. Its passive always gives +6% move speed. It joins the sigil pool at waves 5 and 10 and has its own card, effects and sounds.</li>
+<li><span class="ul-tag tag-feat">FEAT</span> <b>Legion of Souls (SPEC):</b> kills and time charge Soul Qi up to 100. When it is full, press Space (or the CHARGE button on a phone) for a 0.5s windup in which energy sweeps across the screen, then the Legion stays for 5s. The ship gains +40% move speed, 5 Iron Body layers that each block one hit, and immunity to all CC.</li>
+<li><span class="ul-tag tag-feat">FEAT</span> <b>Spirit Array:</b> the Legion opens eight small pools (86px) at random spots above and away from the ship. An enemy inside is held for 1.5s once per Legion (a Dominant hold that works through CC immunity, bosses included), then slowed 45% (25% if CC immune). Every 0.4s it takes 12% ATK as true damage, and it takes double sigil damage.</li>
+<li><span class="ul-tag tag-feat">FEAT</span> <b>Soul Blade Rain (ATK):</b> during the Legion, 79 waves of 2 spectral blades rise from the 180 degrees behind the ship and fly straight at the enemies ahead, piercing everything. Each blade hits each enemy once for 14% ATK + 0.06% Max HP true damage, 10% more below Elite tier and 25% more against an enemy with over 50% of its Max HP. Blades wipe every enemy bullet they cut through.</li>
+<li><span class="ul-tag tag-feat">FEAT</span> <b>Pool Echo:</b> when a blade hits an enemy standing in a pool, there is a 40% chance it takes 25% of that hit again as true damage.</li>
+<li><span class="ul-tag tag-feat">FEAT</span> <b>Soul Qi meter and prompt:</b> a jade meter frame fills with Soul Qi, and a prompt at the centre of the screen tells you when the Legion is ready, in the same style as the other sigils.</li>
+<li><span class="ul-tag tag-feat">FEAT</span> <b>Wraith Warden look and sound:</b> five weapon sprites for the blades, a goat skull emblem, ghost soldiers, a call sigil, root rings and blade portals, plus eleven sounds from the first call to the end of the Legion.</li>
+<li><span class="ul-tag tag-feat">FEAT</span> <b>Guide:</b> the Sigils tab has a Wraith Warden card with its lore and both buffs, in English and Vietnamese.</li>
+<li><span class="ul-tag tag-feat">FEAT</span> <b>Debug console:</b> a Wraith Warden panel can fill the Qi, call the Legion and spawn six tough dummies on localhost.</li>
+<li><span class="ul-tag tag-feat">FEAT</span> <b>Dimension Break:</b> the two portals are now linked, so shots go in one and come out of the other. The portals swap places and crossing rings sweep the field.</li>
+<li><span class="ul-tag tag-feat">FEAT</span> <b>Void Horizon safe cell:</b> the sideways bar now leaves one flashing safe cell on the ship row inside a fully red screen, so there is always a reachable gap.</li>
+<li><span class="ul-tag tag-feat">FEAT</span> <b>Showdown win:</b> beating Egregor plays the ship's mission complete line as it dies, with a report panel in the corner, a quiet epic cue, a seal as the rank stamps and a soft afterglow on the recap. Practice wins play the same report and music.</li>
+<li><span class="ul-tag tag-feat">FEAT</span> <b>Egregor idle sounds:</b> the second and third forms have their own idle bed, breath and murmur, plus growls, coos and a roar, and they speak up more often than the first form.</li>
+<li><span class="ul-tag tag-perf">PERF</span> <b>Showdown loading:</b> sounds decode six at a time and start loading when Showdown is picked. Short cues go ahead of music in the queue, the large ambient bed waits a few seconds, and ship voices are preloaded for the fight.</li>
+<li><span class="ul-tag tag-fix">FIX</span> <b>Showdown Vietnamese:</b> the card, HUD, weapons and recap use one term per thing, with more Hán Việt names.</li>
+<li><span class="ul-tag tag-global">GLOBAL</span> <b>Debug autoplay:</b> the bot in the debug console now reads boss blades and lasers and steers every frame.</li>
+<li><span class="ul-tag tag-global">GLOBAL</span> <b>Offline package:</b> the offline file lists carry all Wraith Warden scripts, images and sounds, and the cache version moves forward so every device picks the new files up.</li>
+</ul></div>
+
 <div class="ul-entry" style="--ul-accent:#9162d8">
-<div class="ul-head"><span class="ul-ver">v7.1.5: SHOWDOWN VOYAGE, EGREGOR THE OVERMIND</span><span class="ul-badge">CURRENT</span></div>
+<div class="ul-head"><span class="ul-ver">v7.1.5: SHOWDOWN VOYAGE, EGREGOR THE OVERMIND</span></div>
 <div class="ul-date">2026-11-20 &middot; A one on one boss duel against Egregor arrives, with its own weapons, opening, battle theme and ship voice. It plays on a computer and is locked on Mobile</div>
 <p class="det-short ul-summary">Showdown Voyage is a boss duel against Egregor the Overmind: 18 attacks in three forms, five sacred relics with a skill on A, a rebuilt opening and its own battle theme. The card sits right after Endless Voyage, tagged High difficulty. The mode plays on a computer and is locked, with a Soon tag, when the Mobile tab is chosen.</p>
 <ul class="det-full">
@@ -2855,6 +2891,17 @@
 </div><div class="sfc-hint">click để đọc truyền thuyết</div>
 </div><div class="sfc-back"><canvas class="sfc-glyph-sm-cv" data-sigil="ty"></canvas>
 <div class="sfc-story">Giữa vùng sao tắt, Dực Hỏa Tinh Quan khắc vòng ấn lên chân không. Mười bóng rắn rời tâm trận, mang hắc viêm đến những kẻ đang áp sát. Mỗi nhát cắn thắp thêm sức mạnh cho cả đội hình.</div>
+<div class="sfc-hint">click để quay lại</div></div></div></div>
+
+<div class="sfc" onclick="this.classList.toggle('flipped')" style="--sc:#3DDBB0;--scl:rgba(61,219,176,0.12)">
+<div class="sfc-inner"><div class="sfc-front">
+<canvas class="sfc-glyph-cv" data-sigil="mui"></canvas><div class="sfc-name">QUỶ KIM TINH QUAN</div><div class="sfc-el">Âm Binh Thuật</div><div class="sfc-atk"><span>TỐC ĐỘ <b>+6%</b></span></div><div class="sfc-theme">BINH ĐOÀN HỘ VỆ</div>
+<div class="sfc-buffs">
+<div class="sfc-row"><span class="sbt spec">SPEC</span><b>Binh Đoàn Linh Hồn</b> <span class="sbd">Hạ gục kẻ địch và thời gian chiến đấu nạp Hồn Khí (tối đa 100). Khi đầy, nhấn Space khởi động 0.5 giây với năng lượng tỏa khắp màn hình, rồi Binh Đoàn xuất hiện trong 5 giây: tốc độ chạy +40%, có 5 lớp Iron Body (mỗi lớp chặn 1 lần trúng đòn), miễn nhiễm mọi CC, và mở 8 vòng Ma Trận nhỏ ở các chỗ ngẫu nhiên phía trên và cách xa tàu. Kẻ địch trong vòng Ma Trận bị giữ chân 1.5 giây (Áp Chế, xuyên qua miễn nhiễm CC) rồi bị làm chậm 45%, chịu 12% ATK sát thương chuẩn mỗi 0.4 giây, và chịu gấp đôi sát thương sigil. Kẻ địch miễn CC chỉ bị làm chậm 25%. Nội tại: luôn được +6% tốc độ chạy.</span></div>
+<div class="sfc-row"><span class="sbt atk">ATK</span><b>Vạn Kiếm Quy Hồn</b> <span class="sbd">Trong lúc Binh Đoàn xuất hiện, 79 đợt hồn kiếm liên tục trồi lên từ vùng 180 độ phía sau tàu rồi phóng thẳng về phía kẻ địch ở phía trước, xuyên qua mọi thứ trên đường bay và xóa mọi đạn của kẻ địch mà chúng cắt qua. Kẻ địch đứng trong vòng Ma Trận có 40% xác suất, mỗi lần bị kiếm trúng, chịu thêm 25% sát thương của nhát đó dưới dạng sát thương chuẩn. Mỗi đợt có 2 thanh kiếm. Mỗi kiếm gây cho mỗi kẻ địch một lần 14% ATK + 0.06% Max HP sát thương chuẩn, và thêm 10% sát thương lên đơn vị không phải Elite trở lên. Mỗi nhát kiếm gây thêm 25% sát thương lên kẻ địch còn trên 50% Max HP.</span></div>
+</div><div class="sfc-hint">click để đọc truyền thuyết</div>
+</div><div class="sfc-back"><canvas class="sfc-glyph-sm-cv" data-sigil="mui"></canvas>
+<div class="sfc-story">Dưới những vì sao lạnh của Quỷ Tú, Quỷ Kim Tinh Quan đứng trước cánh cổng không ai dám giữ. Khi người giơ tay, những kẻ đã khuất nhớ ra mình từng là chiến sĩ: gươm trỗi dậy sau lưng, trống đồng vang tám lần, và cả một đạo quân tiến lên che chở cho một người còn sống.</div>
 <div class="sfc-hint">click để quay lại</div></div></div></div>
 
 </div>`,
@@ -6588,7 +6635,7 @@ c.textAlign = 'left';
         // (language switch, etc.) doesn't re-create/re-decode the Images.
         if (!window._guideZodiacImgs) {
           window._guideZodiacImgs = {};
-          ['aries', 'taurus', 'gemini', 'cancer', 'leo', 'virgo', 'libra', 'scorpio', 'sagittarius', 'capricorn', 'aquarius', 'pisces', 'than', 'dau', 'ty'].forEach(zid => {
+          ['aries', 'taurus', 'gemini', 'cancer', 'leo', 'virgo', 'libra', 'scorpio', 'sagittarius', 'capricorn', 'aquarius', 'pisces', 'than', 'dau', 'ty', 'mui'].forEach(zid => {
             const img = new Image();
             img.src = 'assets/images/game/zodiac/zodiac_' + zid + '.png';
             img.decode().catch(() => {});

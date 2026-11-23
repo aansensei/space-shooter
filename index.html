@@ -2724,12 +2724,12 @@
                         'pause.peekHint': 'Click/Tap anywhere or press Esc to return',
                         'confirmMenu.message': 'Abort the voyage? Your flight log will be sealed here.',
                         'whatsNew.title': "What's New",
-                        'whatsNew.release': 'v7.1.5 · Showdown Voyage',
-                        'whatsNew.i1': "<b>Showdown Voyage:</b> a boss duel against Egregor the Overmind, with five sacred relics and 18 attacks. It is tagged High difficulty and plays on a computer.",
-                        'whatsNew.i2': "<b>Voyage picker:</b> Showdown Voyage now sits right after Endless Voyage. It shows Soon and stays locked on the Mobile tab.",
-                        'whatsNew.i3': "<b>New music:</b> \"Ruler of the Violet Domain\", the Egregor battle theme, joins the Music Archive.",
-                        'whatsNew.i4': "<b>Guide:</b> the Basics tab has a new Voyages card that explains every Voyage.",
-                        'whatsNew.i5': "<b>Smoother effects:</b> Annihilation Sweep and the Yog-Sothoth Domain take less work to draw.",
+                        'whatsNew.release': 'v7.2.0 · Wraith Warden',
+                        'whatsNew.i1': "<b>Wraith Warden:</b> a new Vietnamese zodiac sigil. Kills and time fill a Soul Qi meter, then Space calls a Legion of Souls for 5 seconds.",
+                        'whatsNew.i2': "<b>Legion of Souls:</b> 5 Iron Body layers, CC immunity, +40% move speed, eight Spirit Array pools that hold enemies, and 79 waves of Soul Blades that wipe enemy bullets.",
+                        'whatsNew.i3': "<b>Showdown:</b> Dimension Break links its two portals, and the sideways bar leaves one flashing safe cell. Beating Egregor has its own win sound.",
+                        'whatsNew.i4': "<b>Calmer waves:</b> strong enemies no longer pile up on top of each other, and a wave waits until the screen is clear.",
+                        'whatsNew.i5': "<b>Faster Showdown:</b> its sounds load sooner, and the Vietnamese text is reworked.",
                         'whatsNew.log': 'Full Update Log',
                         'whatsNew.ok': 'Got It',
                         'confirmMenu.yes': 'YES',
@@ -2823,12 +2823,12 @@
                         'pause.peekHint': 'Click/Chạm vào bất kỳ đâu hoặc nhấn Esc để quay lại',
                         'confirmMenu.message': 'Dừng chuyến bay tại đây? Nhật ký chuyến bay sẽ khép lại.',
                         'whatsNew.title': 'Có Gì Mới',
-                        'whatsNew.release': 'v7.1.5 · Showdown Voyage',
-                        'whatsNew.i1': "<b>Quyết Chiến:</b> trận đấu tay đôi với Egregor the Overmind, có năm thánh di vật và 18 đòn tấn công. Chế độ mang tag Độ khó cao và chơi trên máy tính.",
-                        'whatsNew.i2': "<b>Chọn Hành Trình:</b> Quyết Chiến giờ nằm ngay sau Hành Trình Vô Tận. Chế độ này hiện Soon và bị khóa ở thẻ Mobile.",
-                        'whatsNew.i3': "<b>Nhạc mới:</b> \"Ruler of the Violet Domain\", nhạc trận đấu với Egregor, đã có trong Lưu Trữ Nhạc.",
-                        'whatsNew.i4': "<b>Hướng dẫn:</b> tab Cơ Bản có thẻ Các Chuyến Bay mới giải thích từng Hành Trình.",
-                        'whatsNew.i5': "<b>Hiệu ứng mượt hơn:</b> Thiên Ý Trảm và Lãnh Địa Yog-Sothoth tốn ít công vẽ hơn.",
+                        'whatsNew.release': 'v7.2.0 · Wraith Warden',
+                        'whatsNew.i1': "<b>Quỷ Kim Tinh Quan:</b> sigil cung hoàng đạo Việt mới. Hạ gục kẻ địch và thời gian nạp Hồn Khí, rồi nhấn Space gọi Binh Đoàn Linh Hồn trong 5 giây.",
+                        'whatsNew.i2': "<b>Binh Đoàn Linh Hồn:</b> 5 lớp Iron Body, miễn nhiễm CC, tốc độ chạy +40%, tám vòng Ma Trận giữ chân kẻ địch, và 79 đợt Hồn Kiếm xóa đạn của kẻ địch.",
+                        'whatsNew.i3': "<b>Quyết Chiến:</b> Phá Vị Diện nối hai cổng với nhau, và thanh ngang chừa một ô an toàn nhấp nháy. Hạ Egregor có âm thanh thắng riêng.",
+                        'whatsNew.i4': "<b>Các đợt êm hơn:</b> kẻ địch mạnh không còn dồn lên cùng lúc, và đợt mới chỉ bắt đầu khi màn hình đã sạch.",
+                        'whatsNew.i5': "<b>Quyết Chiến nhanh hơn:</b> âm thanh tải sớm hơn, và phần tiếng Việt được làm lại.",
                         'whatsNew.log': 'Xem Chi Tiết',
                         'whatsNew.ok': 'Đã Hiểu',
                         'confirmMenu.yes': 'CÓ',
@@ -4333,6 +4333,7 @@
                 if (typeof _ammitReset === 'function') _ammitReset();
                 if (typeof _leoReset === 'function') _leoReset();
                 if (typeof _dauReset === 'function') _dauReset();
+                if (typeof _muiReset === 'function') _muiReset();
                 _tyReset();
                 const _po = document.getElementById('pause-overlay');
                 if (_po) _po.style.display = 'none';
@@ -5169,6 +5170,7 @@
     <script src="js/sigils/pisces.js?v=20261106a"></script>
     <script src="js/sigils/than.js?v=20261106a"></script>
     <script src="js/sigils/dau.js?v=20261106a"></script>
+    <script src="js/sigils/mui.js?v=20261122a"></script>
     <script src="js/sigils/ty.js?v=20261025i"></script>
     <script src="js/yuusha-party.js?v=20261106a"></script>
     <script src="js/entities/core.js?v=20261122-spawn1"></script>
@@ -5189,6 +5191,7 @@
     <script src="js/skills/sigil-cancer.js?v=20261106a"></script>
     <script src="js/skills/sigil-leo.js?v=20261106a"></script>
     <script src="js/skills/sigil-dau.js?v=20261108h"></script>
+    <script src="js/skills/sigil-mui.js?v=20261122a"></script>
     <script src="js/skills/sigil-pisces.js?v=20261014a"></script>
     <script src="js/skills/sigil-capricorn.js?v=20261106a"></script>
     <script src="js/skills/sigil-ty.js?v=20261025i"></script>
@@ -5225,6 +5228,18 @@
     <script src="js/render/sigil-cancer.js?v=20261106a"></script>
     <script src="js/render/sigil-leo.js?v=20261106a"></script>
     <script src="js/render/sigil-dau.js?v=20261109a"></script>
+    <script src="js/render/sigil-mui-common.js?v=20261123a"></script>
+    <script src="js/render/sigil-mui-call.js?v=20261123a"></script>
+    <script src="js/render/sigil-mui-call-detail.js?v=20261123a"></script>
+    <script src="js/render/sigil-mui-blades.js?v=20261123a"></script>
+    <script src="js/render/sigil-mui-impacts.js?v=20261123a"></script>
+    <script src="js/render/sigil-mui-pools.js?v=20261123a"></script>
+    <script src="js/render/sigil-mui-status.js?v=20261123a"></script>
+    <script src="js/render/sigil-mui-ship.js?v=20261123a"></script>
+    <script src="js/render/sigil-mui-ship-fx.js?v=20261123a"></script>
+    <script src="js/render/sigil-mui-meter.js?v=20261123a"></script>
+    <script src="js/render/sigil-mui-ui.js?v=20261123a"></script>
+    <script src="js/render/sigil-mui.js?v=20261123a"></script>
     <script src="js/render/sigil-pisces.js?v=20261024a"></script>
     <script src="js/render/sigil-capricorn.js?v=20261106a"></script>
     <script src="js/render/sigil-ty.js?v=20261102c"></script>
@@ -5995,7 +6010,7 @@
                         // Cancer and Leo sigils: a banked Riptide Surge or Divine Fate
                         // takes priority over the normal charge/laser, one per press,
                         // Cancer first, same as the keyboard Space path in input.js
-                        if ((window._tidalSurgeReady || window._leoFateReady || window._capricornReady) && !(typeof player !== 'undefined' && player._silenced)) {
+                        if ((window._tidalSurgeReady || window._leoFateReady || window._muiReady || window._capricornReady) && !(typeof player !== 'undefined' && player._silenced)) {
                             _releaseReadySpaceSigil();
                         } else if (!charging && !laserActive && !skillShiftActive) {
                             const _now = performance.now();
@@ -6485,6 +6500,17 @@
                             _mbClass('mb-ch', 'cd', false);
                             _mbClass('mb-ch', 'skill-active', true);
                             _lastReadyGlow.ch = true;
+                        } else if (window._muiReady) {
+                            if (typeof _muiDrawMobileChargeSync === 'function') {
+                                _muiDrawMobileChargeSync('mb-ch-cv', now);
+                            } else {
+                                _mbReadyGlow('mb-ch-cv', [
+                                    [0, '#EAF7F2'], [0.3, '#8ff0d2'], [0.6, '#3DDBB0'], [0.85, '#136f63'], [1, '#0B3B3A'],
+                                ], now);
+                            }
+                            _mbClass('mb-ch', 'cd', false);
+                            _mbClass('mb-ch', 'skill-active', true);
+                            _lastReadyGlow.ch = true;
                         } else if (window._capricornReady) {
                             _mbReadyGlow('mb-ch-cv', [
                                 [0, '#e8edf2'], [0.3, '#b9c2cc'], [0.6, '#6f7f78'], [0.85, '#2f3b44'], [1, '#0b0d14'],
@@ -6720,7 +6746,7 @@
     <script>
         (function () {
             // Bump with each update log entry that should greet returning players.
-            const RELEASE = '7.1.5';
+            const RELEASE = '7.2.0';
             const ITEMS = 5;
             function show() {
                 const ov = document.createElement('div');

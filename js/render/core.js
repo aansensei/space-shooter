@@ -2530,6 +2530,7 @@ function draw(deltaTime) {
         _drawUrielSwordTelegraphs();
         _drawRaphaelWisdomTelegraphs();
         _drawTyGround();
+        if (typeof _drawMuiArray === 'function') _drawMuiArray();
         sentinels.forEach(drawSentinel);
         // Vanguard Network threads (5+ sentinels)
         if (sentinels.length >= 5) _drawVanguardThreads();
@@ -2595,6 +2596,10 @@ function draw(deltaTime) {
         // on top of whatever it just hit, instead of hiding underneath it.
         drawSolArrowLilies();
         if (typeof _drawDauStatus === 'function') _drawDauStatus();
+        if (typeof _drawMuiCall === 'function') _drawMuiCall();
+        if (typeof _drawMuiCallDetail === 'function') _drawMuiCallDetail();
+        if (typeof _drawMuiBlades === 'function') _drawMuiBlades();
+        if (typeof _drawMuiImpacts === 'function') _drawMuiImpacts();
         if (typeof _drawBloodArrowTargetRings === 'function') _drawBloodArrowTargetRings();
         _drawVineBinds(); // Phōtokrystos DNT Vine Bind : growth + slow aura, on top of rooted enemies
         if (window._usePixi && window._pixiDrawBullets) {
@@ -2637,6 +2642,10 @@ function draw(deltaTime) {
         if (typeof _drawTidalSurgeMeter === 'function') _drawTidalSurgeMeter();
         if (typeof _drawLeoFateMeter === 'function') _drawLeoFateMeter();
         _drawCapricornMeter();
+        if (typeof _drawMuiMeter === 'function') _drawMuiMeter();
+        if (typeof _drawMuiUi === 'function') _drawMuiUi();
+        if (typeof _drawMuiShipStatus === 'function') _drawMuiShipStatus();
+        if (typeof _drawMuiShipFx === 'function') _drawMuiShipFx();
         _drawCapricornStackRing();
         _drawTyActors();
         if (typeof _drawLeoReadyAura === 'function') _drawLeoReadyAura();
@@ -2858,6 +2867,7 @@ function draw(deltaTime) {
             if (typeof _drawGreatSageReleasePrompt === 'function') _drawGreatSageReleasePrompt();
             if (typeof _drawTidalSurgeReadyPrompt === 'function') _drawTidalSurgeReadyPrompt();
             if (typeof _drawLeoFateReadyPrompt === 'function') _drawLeoFateReadyPrompt();
+            if (typeof _drawMuiReadyPrompt === 'function') _drawMuiReadyPrompt();
             if (typeof _drawBloodArrowReadyPrompt === 'function') _drawBloodArrowReadyPrompt();
             if (typeof _drawBloodArrowChargeVignette === 'function') _drawBloodArrowChargeVignette();
             if (typeof _drawGreatSageChargeVignette === 'function') _drawGreatSageChargeVignette();

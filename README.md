@@ -29,7 +29,7 @@ It is a hobby project made for the love of the genre. The bullet-hell spirit (a 
 | **Genre** | Arcade space shooter, with bullet-hell influences |
 | **Play on** | Any modern browser, desktop or phone. No install and no account. Optional install as an offline web app |
 | **Languages** | English and Tiếng Việt, switchable in Settings |
-| **Modes** | Endless Voyage, a guided Tutorial with Kanade, and a Custom Voyage sandbox |
+| **Modes** | Endless Voyage, Showdown Voyage (a one on one boss duel, computer only), a guided Tutorial with Kanade, and a Custom Voyage sandbox |
 | **Cost** | Free and non-commercial. No ads, no sales |
 | **Built with** | Plain JavaScript, HTML5 Canvas and WebGL (PixiJS). No framework, no bundler, no backend |
 
@@ -38,7 +38,7 @@ It is a hobby project made for the love of the genre. The bullet-hell spirit (a 
 ## Features
 
 - **Ten boss-class enemies.** Veilshroud, Uriel, Thaelis, Raphael, Marchosias, Egregor, Ammit, Dargruel, Leviathan and Goliath each break a different rule: barriers, shields that heal, rifts, gateways, waves you must read.
-- **Zodiac Sigils.** At waves 5 and 10 you pick from a pool of sigils (the twelve Western zodiac signs plus a growing Vietnamese zodiac set). Each one grants two permanent buffs and changes how you play.
+- **Zodiac Sigils.** At waves 5 and 10 you pick from a pool of sigils (the twelve Western zodiac signs plus a growing Vietnamese zodiac set, most recently Mùi, the Wraith Warden, who calls a Legion of Souls). Each one grants two permanent buffs and changes how you play.
 - **Skills and Sentinels.** Six active skills on the keyboard, and Sentinels that join you, throw golden spears and form a network that shares damage.
 - **Readable danger.** Every strong area attack shows the same warning language: a zone, a closing ring and a tick clock. Enemy bullets always sit on top and glow, so dense screens stay fair.
 - **Timeline Distortion.** Boss waves bend the rules of the run for a while.

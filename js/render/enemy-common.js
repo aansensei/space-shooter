@@ -743,6 +743,7 @@ function drawEnemy(enemy) {
         if (enemy._yogMark && typeof _drawPiscesDreamMark === 'function') _drawPiscesDreamMark(enemy);
         if (enemy._piscesStunMs > 0 && typeof _drawPiscesStun === 'function') _drawPiscesStun(enemy);
         if (enemy._capBuryMs > 0 && typeof _drawCapricornBurial === 'function') _drawCapricornBurial(enemy);
+        if (typeof _drawMuiEnemyStatus === 'function') _drawMuiEnemyStatus(enemy);
         return;
     }
     // Abyssal Chain render
@@ -1320,6 +1321,7 @@ function drawEnemy(enemy) {
 
     // Lion's Roar Burn flames and Divine Fate stone (js/render/sigil-leo.js)
     if (typeof _drawLeoEnemyStatus === 'function') _drawLeoEnemyStatus(enemy);
+    if (typeof _drawMuiEnemyStatus === 'function') _drawMuiEnemyStatus(enemy);
 }
 
 

@@ -15,7 +15,7 @@ const SIGIL_ORDER = ['aries','taurus','gemini','cancer','leo','virgo',
 // currently just Great Sage) - appended into the random pool at run start
 // alongside SIGIL_ORDER (see window._sigilPool in main.js) rather than
 // interleaved into that fixed sequence.
-const SIGIL_EXTRA = ['than', 'dau', 'ty'];
+const SIGIL_EXTRA = ['than', 'dau', 'ty', 'mui'];
 
 // Vietnamese display text for the sigil picker (name/element/buff name/buff
 // desc only) — SIGIL_DEFS above stays English and is what all game LOGIC
@@ -154,6 +154,10 @@ function _onSigilApplied(sigilId, buffId) {
         if (typeof _dauReset === 'function') _dauReset();
         // Baked here, at the pick, so no player without the sigil pays for it.
         if (typeof _dauSprites === 'function') _dauSprites();
+    }
+    if (buffId === 'quy_mon_diem_quan') {
+        if (typeof _muiReset === 'function') _muiReset();
+        if (typeof _muiSprites === 'function') _muiSprites();
     }
 }
 
@@ -805,6 +809,9 @@ function _drawSigilCard(cx, cy, w, h, sigilId, def, isHovered, isSelected, now, 
     }
 
     _drawZodiacGlyph(sigilId, symCx, symCy, symR * 0.72, def.color);
+    if (sigilId === 'mui' && typeof _muiDrawSigilCardFx === 'function') {
+        _muiDrawSigilCardFx(ctx, x, y, w, h, cx, cy, symCx, symCy, symR, isHovered, isSelected, now, compact);
+    }
 
     ctx.textAlign = 'center';
     ctx.fillStyle = '#f0f4ff';
@@ -852,6 +859,9 @@ function _drawSigilCardMobile(cx, cy, w, h, sigilId, def, now) {
     ctx.fillStyle = `rgba(${r},${g},${b},0.15)`;
     ctx.beginPath(); ctx.arc(symCx, symCy, symR + 5, 0, Math.PI * 2); ctx.fill();
     _drawZodiacGlyph(sigilId, symCx, symCy, symR * 0.72, def.color);
+    if (sigilId === 'mui' && typeof _muiDrawSigilCardMobileFx === 'function') {
+        _muiDrawSigilCardMobileFx(ctx, x, y, w, h, cx, cy, symCx, symCy, symR, now);
+    }
 
     ctx.textAlign = 'center';
     ctx.fillStyle = '#f0f4ff';
@@ -1216,7 +1226,7 @@ function _drawShipEntry(p, elapsed) {
 // Cached per (sigil, color) since the same pair redraws every frame.
 const _zodiacGlyphImgs = {};
 const _zodiacTintCache = {};
-['aries', 'taurus', 'gemini', 'cancer', 'leo', 'virgo', 'libra', 'scorpio', 'sagittarius', 'capricorn', 'aquarius', 'pisces', 'than', 'dau', 'ty'].forEach(id => {
+['aries', 'taurus', 'gemini', 'cancer', 'leo', 'virgo', 'libra', 'scorpio', 'sagittarius', 'capricorn', 'aquarius', 'pisces', 'than', 'dau', 'ty', 'mui'].forEach(id => {
     const img = new Image();
     img.src = 'assets/images/game/zodiac/zodiac_' + id + '.png';
     img.decode().catch(() => {});
@@ -1464,6 +1474,10 @@ function _mobileGoTo(p, newIndex) {
     p.mobileIndex = newIndex;
     p.selectedSigil = p.options[newIndex];
     _sigilPickerCue('select', 'hover');
+    if (p.selectedSigil === 'mui' && typeof _muiOnSigilCardSelect === 'function') {
+        const L = _pickerLayout();
+        _muiOnSigilCardSelect(L.panelX + L.panelW / 2, L.startY + L.cardH / 2);
+    }
 }
 
 function _sigilPickerCue(key, existing) {
@@ -1493,6 +1507,11 @@ function _handleSigilPickerClick(ex, ey) {
             p.hoveredSigil = p.options[idx];
             p.selectedSigil = p.options[idx];
             _sigilPickerCue('select', 'click');
+            if (p.selectedSigil === 'mui' && typeof _muiOnSigilCardSelect === 'function') {
+                const cardCx = L.startX + idx * (L.cardW + L.gapX) + L.cardW / 2;
+                const cardCy = L.startY + L.cardH / 2;
+                _muiOnSigilCardSelect(cardCx, cardCy);
+            }
             return;
         }
     }

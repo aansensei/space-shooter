@@ -120,29 +120,48 @@
     // costs nodes. Non-positional cues (wave, game over) are never capped.
     const MAX_SFX_VOICES = 24;
     let _liveVoices = 0;
-    function _playVoice(src, gainValue, bypass, capped) {
+    function _playVoice(src, gainValue, bypass, capped, optional = false, panX = null) {
         // ship voices are rare and carry the defeat and low health calls, so a busy fight never drops them
         capped = (capped || _duelActive) && !src.includes('/voice/');
         if (!actx || gainValue <= 0) return { cancel() {} };
-        let cancelled = false, liveNode = null, liveGain = null;
+        let cancelled = false, liveNode = null, liveGain = null, livePan = null;
         const start = buf => {
             if (!buf || cancelled || (capped && _liveVoices >= MAX_SFX_VOICES)) return;
             const g = actx.createGain();
             liveGain = g;
             g.gain.value = gainValue;
             const isVoice = src.includes('/voice/');
-            g.connect(_duelActive && !isVoice ? (bypass ? _duelCueBus : _duelSfxBus) : (bypass ? _bypassGain : _duckGain));
+            const bus = _duelActive && !isVoice ? (bypass ? _duelCueBus : _duelSfxBus) : (bypass ? _bypassGain : _duckGain);
+            if (actx.createStereoPanner && Number.isFinite(panX)) {
+                try {
+                    const screenW = (typeof canvas !== 'undefined' && canvas && canvas.width) ? canvas.width : 480;
+                    const panVal = Math.max(-0.75, Math.min(0.75, (panX / screenW - 0.5) * 1.5));
+                    const panner = actx.createStereoPanner();
+                    panner.pan.value = panVal;
+                    g.connect(panner);
+                    panner.connect(bus);
+                    livePan = panner;
+                } catch (_) {
+                    g.connect(bus);
+                }
+            } else {
+                g.connect(bus);
+            }
             if (isVoice) _duelDuck('voice', buf.duration);
             const node = actx.createBufferSource();
             node.buffer = buf;
             node.connect(g);
             if (capped) _liveVoices++;
-            node.onended = () => { if (capped) _liveVoices = Math.max(0, _liveVoices - 1); try { g.disconnect(); } catch (_) {} };
+            node.onended = () => {
+                if (capped) _liveVoices = Math.max(0, _liveVoices - 1);
+                try { g.disconnect(); } catch (_) {}
+                if (livePan) { try { livePan.disconnect(); } catch (_) {} }
+            };
             node.start(0);
             liveNode = node;
         };
         const ready = _decodedBuffers[src];
-        if (ready) start(ready); else _decodeBuffer(src).then(start);
+        if (ready) start(ready); else _decodeBuffer(src, optional).then(start);
         return {
             // fadeSec above 0 ramps the voice down first so a cut mid-sound does not click
             cancel(fadeSec) {
@@ -464,6 +483,7 @@
         // sfx (bypass-routed) to read clearly, not a disorienting effect
         goliathTransform: { gain: 0.35, freq: NORMAL_FREQ },
         goliathSpawn: { gain: 0.35, freq: NORMAL_FREQ },
+        muiWindup: { gain: 0.45, freq: 1800 },
     };
     const _activeDucks = new Set();
     function _duckTarget() {
@@ -495,6 +515,8 @@
     // longer transform duck if the two ever overlapped.
     function enterGoliathSpawnDuck() { enterDuck('goliathSpawn'); }
     function exitGoliathSpawnDuck()  { exitDuck('goliathSpawn'); }
+    function enterMuiWindupDuck() { enterDuck('muiWindup'); }
+    function exitMuiWindupDuck()  { exitDuck('muiWindup'); }
 
     // The duck still applies to everything else (bgm, ambient, sfx...) so
     // the domain still reads as muffling the outside world - the theme
@@ -701,6 +723,10 @@
         // the loudest of the set, so it sits well under the crow it leads into.
         'dau-crow': 1.0, 'dau-wave': 0.8, 'dau-charge': 0.5,
         'dau-needle-hit': 0.6, 'dau-star-strike': 0.7, 'dau-reflect': 0.9,
+        'mui-legion-call': 0.95, 'mui-legion-burst': 1.0, 'mui-array-open': 0.85, 'mui-blade-summon': 0.55,
+        'mui-blade-launch': 0.65, 'mui-iron-block': 0.85, 'mui-legion-end': 0.85,
+        'mui-qi-ready': 0.75, 'mui-root-bind': 0.80, 'mui-blade-hit': 0.60,
+        'mui-pool-echo': 0.70,
     };
 
     // Positional sfx fall off with distance from the player ship. maxRangeFrac
@@ -853,8 +879,8 @@
         }).catch(() => {});
     }
 
-    function _makePool(key, src, size = 3, bypass = false) {
-        state.pool[key] = { src, bypass };
+    function _makePool(key, src, size = 3, bypass = false, optional = false) {
+        state.pool[key] = { src, bypass, optional };
         if (/^(click|hover|overlay|sigil-|new-wave|enemy-hit|enemy-death|autoshot|shield-hit|life-lost|skill-ready|dargruel-chain-launch|goliath-spawn)/.test(key)) _decodeBuffer(src);
     }
 
@@ -867,11 +893,11 @@
         for (const ref of refs[type] || []) if (state[ref]) state[ref].prepare();
     }
     function prepareGameplay() {
-        const enemy = /^(tut-|ammit|egregor|dimension|goliath|dargruel|leviathan|uriel|raphael|phantom|veilshroud|kanade|stack-overflow|timeline-distortion|dau-|ty-)/;
+        const enemy = /^(tut-|ammit|egregor|dimension|goliath|dargruel|leviathan|uriel|raphael|phantom|veilshroud|kanade|stack-overflow|timeline-distortion|dau-|ty-|mui-)/;
         for (const key of Object.keys(state.pool)) if (!enemy.test(key) && !_duelSounds[key]) _decodeBuffer(state.pool[key].src);
     }
     function prepareSigil(id) {
-        if (id === 'dau' || id === 'ty') for (const key of Object.keys(state.pool)) if (key.startsWith(id + '-')) _decodeBuffer(state.pool[key].src);
+        if (id === 'dau' || id === 'ty' || id === 'mui') for (const key of Object.keys(state.pool)) if (key.startsWith(id + '-')) _decodeBuffer(state.pool[key].src, !!state.pool[key].optional);
     }
 
     // Kanade's boss-wave cutscene stops time, and nothing is allowed to make a
@@ -973,10 +999,20 @@
     // The same sfx started again within this window would only stack on the
     // first one, louder and phasing, so it is skipped.
     const SFX_REPEAT_MS = 35;
+    const SFX_KEY_REPEAT_MS = {
+        'mui-blade-hit': 50,
+        'mui-blade-launch': 60,
+        'mui-blade-summon': 80,
+        'mui-root-bind': 100,
+        'mui-pool-echo': 75,
+        'mui-iron-block': 110,
+        'mui-qi-ready': 140,
+    };
     const _sfxLastAt = {};
     function _sfxTooSoon(key) {
         const t = performance.now();
-        if (t - (_sfxLastAt[key] || -Infinity) < SFX_REPEAT_MS) return true;
+        const minGap = SFX_KEY_REPEAT_MS[key] || SFX_REPEAT_MS;
+        if (t - (_sfxLastAt[key] || -Infinity) < minGap) return true;
         _sfxLastAt[key] = t;
         return false;
     }
@@ -1346,7 +1382,7 @@
         const g = sfxGain(key);
         if (g <= 0) return;
         if (key.startsWith('ammit-')) return _playAmmitCue(p.src, g, p.bypass, true);
-        return _playVoice(p.src, g, p.bypass);
+        return _playVoice(p.src, g, p.bypass, false, !!p.optional);
     }
 
     const tutorialLast = new Map();
@@ -1396,7 +1432,7 @@
         if (g <= 0.005) return;
         if (_sfxTooSoon(key)) return;
         if (key.startsWith('ammit-')) return _playAmmitCue(p.src, g, p.bypass, !cue);
-        return _playVoice(p.src, g, p.bypass, !cue);
+        return _playVoice(p.src, g, p.bypass, !cue, !!p.optional, typeof x === 'number' ? x : null);
     }
 
     // Voice announcer sequences. Several clips (an alert chime and the fragments of one sentence) are
@@ -1939,6 +1975,17 @@
         _makeTyPool('ty-serpents-rise', 'skill-s-summon.mp3');
         _makeTyPool('ty-bite', 'enemy-hit.wav');
         _makeTyPool('ty-scale-break', 'shield-hit.wav');
+        _makePool('mui-legion-call', 'assets/audio/sfx/mui-legion-call.mp3', 1, true, true);
+        _makePool('mui-legion-burst', 'assets/audio/sfx/mui-legion-burst.mp3', 1, false, true);
+        _makePool('mui-array-open', 'assets/audio/sfx/mui-array-open.mp3', 1, false, true);
+        _makePool('mui-blade-summon', 'assets/audio/sfx/mui-blade-summon.mp3', 4, false, true);
+        _makePool('mui-blade-launch', 'assets/audio/sfx/mui-blade-launch.mp3', 4, false, true);
+        _makePool('mui-iron-block', 'assets/audio/sfx/mui-iron-block.mp3', 3, false, true);
+        _makePool('mui-legion-end', 'assets/audio/sfx/mui-legion-end.mp3', 1, false, true);
+        _makePool('mui-qi-ready', 'assets/audio/sfx/mui-qi-ready.mp3', 1, false, true);
+        _makePool('mui-root-bind', 'assets/audio/sfx/mui-root-bind.mp3', 3, false, true);
+        _makePool('mui-blade-hit', 'assets/audio/sfx/mui-blade-hit.mp3', 4, false, true);
+        _makePool('mui-pool-echo', 'assets/audio/sfx/mui-pool-echo.mp3', 3, false, true);
         _makePool('skill-s-summon', 'assets/audio/sfx/skill-s-summon.mp3', 2);
         _makePool('skill-a-orb-hit',  'assets/audio/sfx/skill-a-orb-hit.mp3',  4);
         _makePool('skill-a-orb-lock', 'assets/audio/sfx/skill-a-orb-lock.mp3', 4);
@@ -2254,6 +2301,7 @@
         enterTimeDomain, exitTimeDomain,
         enterGoliathTransformDuck, exitGoliathTransformDuck,
         enterGoliathSpawnDuck, exitGoliathSpawnDuck,
+        enterMuiWindupDuck, exitMuiWindupDuck,
         unlockContext,
     };
 })();

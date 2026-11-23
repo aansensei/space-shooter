@@ -5,7 +5,7 @@
 //
 // One cache, versioned by CACHE_NAME. Bump the version string whenever the
 // CORE_FILES list changes so old clients pick up the new set on next visit.
-const CACHE_VERSION = 'v740';
+const CACHE_VERSION = 'v743';
 const CACHE_NAME = 'pisces-cache-' + CACHE_VERSION;
 
 // App shell: everything needed for the game to boot and run at all.
@@ -237,6 +237,22 @@ const CORE_FILES = [
     'assets/images/game/icons/dargruel-root-silence-debuff.png',
     'assets/images/game/icons/goliath-silence-debuff.png',
     'assets/images/game/icons/soul-reaver-debuff.png',
+    'assets/images/game/sigils/mui-meter-frame.png',
+    'assets/images/game/sigils/mui-array-drum.png',
+    'assets/images/game/weapons/6-duong-dao.png',
+    'assets/images/game/weapons/7-thuong.png',
+    'assets/images/game/weapons/8-qua.png',
+    'assets/images/game/weapons/9-quan-dao.png',
+    'assets/images/game/weapons/10-dong-son-kiem.png',
+    'assets/images/game/zodiac/zodiac_mui.png',
+    'assets/images/game/sigils/mui-goat-skull.png',
+    'assets/images/game/sigils/mui-blade-trail.png',
+    'assets/images/game/sigils/mui-hit-slash.png',
+    'assets/images/game/sigils/mui-blade-portal.png',
+    'assets/images/game/sigils/mui-root-ring.png',
+    'assets/images/game/sigils/mui-call-sigil.png',
+    'assets/images/game/sigils/mui-iron-orb.png',
+    'assets/images/game/sigils/mui-ghost-soldier.png',
     'assets/images/game/sigils/cancer-whirlpool-oceanfloor.png',
     'assets/images/game/sigils/tidal-meter-frame.png',
     'assets/images/game/sigils/leo-meter-frame.png',
@@ -369,6 +385,7 @@ const CORE_FILES = [
     'js/sigils/pisces.js',
     'js/sigils/than.js',
     'js/sigils/dau.js',
+    'js/sigils/mui.js',
         'js/sigils/ty.js',
     'js/yuusha-party.js',
     'js/skills/skill-a.js',
@@ -378,6 +395,7 @@ const CORE_FILES = [
     'js/skills/sigil-cancer.js',
     'js/skills/sigil-leo.js',
     'js/skills/sigil-dau.js',
+    'js/skills/sigil-mui.js',
     'js/skills/sigil-pisces.js',
     'js/skills/sigil-capricorn.js',
         'js/skills/sigil-ty.js',
@@ -414,6 +432,18 @@ const CORE_FILES = [
     'js/render/sigil-cancer.js',
     'js/render/sigil-leo.js',
     'js/render/sigil-dau.js',
+    'js/render/sigil-mui-common.js',
+    'js/render/sigil-mui-call.js',
+    'js/render/sigil-mui-call-detail.js',
+    'js/render/sigil-mui-blades.js',
+    'js/render/sigil-mui-impacts.js',
+    'js/render/sigil-mui-pools.js',
+    'js/render/sigil-mui-status.js',
+    'js/render/sigil-mui-ship.js',
+    'js/render/sigil-mui-ship-fx.js',
+    'js/render/sigil-mui-meter.js',
+    'js/render/sigil-mui-ui.js',
+    'js/render/sigil-mui.js',
     'js/render/sigil-pisces.js',
     'js/render/sigil-capricorn.js',
         'js/render/sigil-ty.js',

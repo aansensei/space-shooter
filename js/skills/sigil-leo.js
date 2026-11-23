@@ -178,17 +178,18 @@ function _leoSyncCastAudio(e, frozen) {
 }
 
 // Called for every enemy from the main update loop. Returns true when the
-// enemy is held, petrified by Leo, stunned by a Pisces fish or buried by
-// Capricorn's Mountainfall, and its own update must be skipped this frame.
+// enemy is held, petrified by Leo, stunned by a Pisces fish, buried by
+// Capricorn's Mountainfall, lifted by Ty or held in a Wraith Warden pool, and its own update must be skipped this frame.
 // Every hold is Dominant and shares _thanMenhFrozen, so every cast and
 // movement check honours them alike; only the petrify turns the enemy to
 // stone (_leoStone) and shatters it.
 function _leoFreezeEnemy(e, now, deltaTime) {
     const stone = window._leoPetrifyMs > 0 && _leoCanPetrify(e);
-    const stunned = !stone && (e._piscesStunMs > 0 || e._capBuryMs > 0 || (e._tyLiftMs > 0 && !_capIsGoliath(e))) && _leoCanPetrify(e);
+    const stunned = !stone && (e._piscesStunMs > 0 || e._capBuryMs > 0 || (e._tyLiftMs > 0 && !_capIsGoliath(e)) || e._muiHoldMs > 0) && _leoCanPetrify(e);
     if (e._piscesStunMs > 0) e._piscesStunMs = Math.max(0, e._piscesStunMs - deltaTime);
     if (e._capBuryMs > 0) e._capBuryMs = Math.max(0, e._capBuryMs - deltaTime);
     if (e._tyLiftMs > 0) e._tyLiftMs = Math.max(0, e._tyLiftMs - deltaTime);
+    if (e._muiHoldMs > 0) e._muiHoldMs = Math.max(0, e._muiHoldMs - deltaTime);
     const frozen = stone || stunned;
     if (e._thanMenhFrozen && e._leoPetrifyLastAt != null) _leoShiftClocks(e, now - e._leoPetrifyLastAt);
     if (frozen && e._thanMenhFrozen && Number.isFinite(e._arcBarrierReviveAt)) e._arcBarrierReviveAt += deltaTime;
