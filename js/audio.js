@@ -1574,6 +1574,8 @@
     function stopLoop(refKey) {
         const el = state[refKey];
         if (!el) return;
+        // a loop stopped on purpose must not come back when a pause that saw it playing ends
+        if (_pauseSnapshot) { const k = refKey.replace(/El$/, ''); if (k in _pauseSnapshot) _pauseSnapshot[k] = false; }
         try { el.pause(); el.currentTime = 0; } catch (_) {}
     }
 
@@ -1620,6 +1622,7 @@
         }
         if (_duelActive) { stopDuelAudio(); _duelPaused = true; }
         _pauseAmmitCues();
+        const _earlier = _pauseSnapshot;
         _pauseSnapshot = {
             bgm:      !!(state.bgmEl      && !state.bgmEl.paused),
             ambient:  !!(state.ambientEl  && !state.ambientEl.paused),
@@ -1652,6 +1655,8 @@
             urielSwordHover: !!(state.urielSwordHoverEl && !state.urielSwordHoverEl.paused),
             raphaelIdle: !!(state.raphaelIdleEl && !state.raphaelIdleEl.paused),
         };
+        // a second pause while already paused sees every loop stopped, so it keeps what the first one saw
+        if (_earlier) for (const k of Object.keys(_pauseSnapshot)) if (_earlier[k]) _pauseSnapshot[k] = true;
         [state.bgmEl, state.ambientEl, state.kanadeAmbienceEl, state.kanadeCollapseEl, state.kanadeMusicEl, state.menuSpaceEl, state.engineEl, state.laserEl, state.chargingEl, state.skillGLoopEl, state.skillDChargeEl, state.skillFChargeEl, state.skillFFireEl, state.blackholeEl, state.maouHakiEl, state.lowHpEl, state.nullSlashWindupEl, state.crawlEl, state.photokrystosIdleEl, state.goliathIdleEl, state.goliathVerdictChargeEl, state.cancerWhirlpoolEl, state.leviathanIdleEl, state.ammitIdleEl, state.thaelisIdleEl, state.thaelisGearEl, state.thaelisWeaponEl, state.urielIdleEl, state.urielSwordHoverEl, state.raphaelIdleEl]
             .forEach(el => { if (el) { try { el.pause(); } catch (_) {} } });
     }
@@ -1933,6 +1938,8 @@
     // this one element.
     function startLowHp() { startLoop('lowHpEl', 'low-hp'); enterDuck(_duelActive ? 'duelLowHp' : 'lowhp'); }
     function stopLowHp()  { stopLoop('lowHpEl'); exitDuck('lowhp'); exitDuck('duelLowHp'); }
+    // True when the heartbeat should be sounding but its loop is not running (a pause or a time stop dropped it)
+    function lowHpNeedsRestart() { return !!(actx && state.lowHpEl && state.lowHpEl.paused && !state.muted && !_timeFrozen && !_hardPaused && !_pauseSnapshot); }
 
     // Prepare common cues and register the remaining sounds for their encounters.
     function _boot() {
@@ -2277,7 +2284,7 @@
         startSkillFFire, stopSkillFFire,
         startDeathStar, stopDeathStar,
         startMaouHaki, stopMaouHaki,
-        startLowHp, stopLowHp,
+        startLowHp, stopLowHp, lowHpNeedsRestart,
         startNullSlashWindup, stopNullSlashWindup,
         startGoliathVerdictCharge, stopGoliathVerdictCharge,
         startEgregorCrawl, stopEgregorCrawl, tickEgregorCrawl,

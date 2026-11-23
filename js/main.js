@@ -566,6 +566,9 @@ function update(rawDeltaTime) {
             if (_lowHpNow) window.AudioMgr.startLowHp();
             else window.AudioMgr.stopLowHp();
         }
+    } else if (_lowHpNow && window.AudioMgr && window.AudioMgr.lowHpNeedsRestart && window.AudioMgr.lowHpNeedsRestart()) {
+        // the heartbeat flag is already set but the loop died (pause, time stop), so bring it back
+        window.AudioMgr.startLowHp();
     }
 
     // Egregor crawl texture is started per-frame from updateEgregor while one
