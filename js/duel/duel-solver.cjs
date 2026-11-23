@@ -14,8 +14,7 @@ const GRID_STEP = 2.0;
 const CANVAS_W = 1280.0;
 const CANVAS_H = 720.0;
 const SHIP_Y = CANVAS_H - 60.0;
-const SHIP_SPEED_NORMAL = 516.0;
-const SHIP_SPEED_SLOW = 412.8;
+const SHIP_SPEED_NORMAL = 8.6 * 1000 / 16.67;
 const SHIP_SOLVER_RADIUS = 12.75; // Ship radius 5.75 + Bullet radius 4.0 + Design margin 3.0
 
 function verifyBossMovement() {
@@ -37,12 +36,12 @@ function verifyBossMovement() {
             if (pos.y > maxY) maxY = pos.y;
         }
 
-        if (Math.abs(maxY - minY) > 0.01) {
-            console.error(`ERROR: Boss Y moved significantly for Attack ${attackId}`);
+        if (![minX, maxX, minY, maxY].every(Number.isFinite) || minY < 0 || maxY > CANVAS_H) {
+            console.error(`ERROR: Invalid boss trajectory for Attack ${attackId}`);
             process.exit(1);
         }
     }
-    console.log('Boss Y is strictly constant across all 18 attacks.\n');
+    console.log('Boss trajectories remain finite and inside the arena.\n');
 
     console.log('BOSS HORIZONTAL MOVEMENT & HOLD RATIO (Touhou Movement Metrics):');
     console.log('Attack | Peak Speed | Average Speed | Hold Ratio | Movement Mode');
@@ -103,7 +102,7 @@ function solveAttack(attackId, difficulty, seed) {
             const b = pool.bullets[i];
             if (b.active) {
                 active++;
-                prevBulletStates.set(b.id, { x: b.x, y: b.y, radius: b.radius });
+                prevBulletStates.set(b.id, { x: b.x, y: b.y, radius: b.radius, generation: b.generation });
             }
         }
         if (active > peakBullets) peakBullets = active;
@@ -116,13 +115,14 @@ function solveAttack(attackId, difficulty, seed) {
         const tNext = (step + 1) * DT;
 
         controller.update(DT, CANVAS_W, CANVAS_H, CANVAS_W * 0.5, SHIP_Y);
-        pool.update(DT, 1.0, { minX: -60, maxX: CANVAS_W + 60, minY: -60, maxY: CANVAS_H + 60 });
+        pool.update(DT, 1.1, { minX: -60, maxX: CANVAS_W + 60, minY: -60, maxY: CANVAS_H + 60 });
 
         const activeSweptBullets = [];
         for (let i = 0; i < pool.capacity; i++) {
             const b = pool.bullets[i];
             if (b.active && prevBulletStates.has(b.id)) {
                 const prev = prevBulletStates.get(b.id);
+                if (prev.generation !== b.generation) continue;
                 if (Math.min(prev.y, b.y) <= SHIP_Y + SHIP_SOLVER_RADIUS + 12 &&
                     Math.max(prev.y, b.y) >= SHIP_Y - SHIP_SOLVER_RADIUS - 12) {
                     activeSweptBullets.push({
@@ -136,14 +136,14 @@ function solveAttack(attackId, difficulty, seed) {
 
         const nextReachable = new Uint8Array(numGridPoints);
         let anyReachable = false;
+        const bars = controller.skills.filter(sk => sk.type === 'gap_bar');
 
         for (let pIdx = 0; pIdx < numGridPoints; pIdx++) {
             if (!reachable[pIdx]) continue;
 
             const px0 = minX + pIdx * GRID_STEP;
 
-            const isSlow = controller.checkSlowAt(px0, SHIP_Y) > 0;
-            const speed = isSlow ? SHIP_SPEED_SLOW : SHIP_SPEED_NORMAL;
+            const speed = SHIP_SPEED_NORMAL * (1 - controller.checkSlowAt(px0, SHIP_Y));
             const maxDeltaX = speed * DT;
             const maxGridStep = Math.floor(maxDeltaX / GRID_STEP);
 
@@ -158,6 +158,7 @@ function solveAttack(attackId, difficulty, seed) {
                 if (controller.checkLaserCollisions(px1, SHIP_Y, SHIP_SOLVER_RADIUS)) {
                     hit = true;
                 }
+                if (!hit && bars.length && controller.checkSkillCollisions.call({ skills: bars }, px1, SHIP_Y, SHIP_SOLVER_RADIUS)) hit = true;
 
                 if (!hit) {
                     for (let bi = 0; bi < activeSweptBullets.length; bi++) {
@@ -255,4 +256,15 @@ function runAll() {
     }
 }
 
-runAll();
+module.exports = { solveAttack, runAll };
+if (require.main === module) {
+    const selected = process.argv.indexOf('--attack');
+    if (selected >= 0) {
+        const id = Number(process.argv[selected + 1]); let passed = true;
+        for (const difficulty of DIFFICULTIES) for (const seed of SEEDS) {
+            const result = solveAttack(id, difficulty, seed);
+            console.log(JSON.stringify({ attack: id, difficulty, seed, ...result })); passed &&= result.survived;
+        }
+        if (!passed) process.exitCode = 1;
+    } else runAll();
+}

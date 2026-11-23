@@ -348,6 +348,8 @@
                     style: 'ball',
                     colorKey: 'orange',
                     behavior: null,
+                    portalHops: 0,
+                    portalFeed: false,
                     behaviorData: null
                 };
             }
@@ -384,6 +386,7 @@
 
             const b = this.bullets[found];
             b.active = true;
+            b.generation = (b.generation || 0) + 1;
             b.x = x;
             b.y = y;
             b.vx = vx;
@@ -400,6 +403,9 @@
             b.colorKey = options.colorKey || 'orange';
             b.cause = options.cause || 'bullet';
             b.behavior = options.behavior || null;
+            b.portalHops = options.portalHops || 0;
+            b.portalFeed = !!options.portalFeed;
+            b.portalFanOffset = options.portalFanOffset || 0;
             b.behaviorData = options.behaviorData ? Object.assign({}, options.behaviorData) : null;
 
             this.activeCount++;
@@ -417,6 +423,8 @@
             for (let i = 0; i < this.capacity; i++) {
                 const b = this.bullets[i];
                 if (!b.active) continue;
+
+                const previousX = b.x, previousY = b.y;
 
                 b.age += dt;
                 if (b.age >= b.maxAge) {
@@ -445,6 +453,7 @@
                     b.y += b.vy * speedScale * dt;
                 }
 
+                if (this.portalController && this.portalController.capturePortalBullet(b, previousX, previousY)) continue;
                 if (b.x < minX || b.x > maxX || b.y < minY || b.y > maxY) {
                     b.active = false;
                     this.activeCount--;

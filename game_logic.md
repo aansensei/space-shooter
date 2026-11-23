@@ -1118,7 +1118,7 @@ All 18 attacks are engineered around Egregor's authentic boss identity, featurin
   10. *Null Slash / Trảm Kích Hư Vô* (55s): Quad Null Slash sweeps leaving lingering Dimension Break slow rifts.
   11. *Mind Link Pulse / Xung Liên Kết Tâm Trí* (25s): Detaching rage stars emitting filament-linked pulse rings.
   12. *Boon and Bane / Ban Phước và Giáng Họa* (55s): Hexagonal barrier absorbing player bullets, converting slash recoil into boss damage.
-  13. *Dimension Break / Rách Nát Không Gian* (55s): Dual portal slow zones with twin Thought Cubes.
+  13. *Dimension Break / Phá Vỡ Diện* (30s): Linked portals capture enemy projectiles within a 56px radius. Each projectile travels once, waits 0.35s, then exits the partner at its original speed, aimed at the ship position locked on capture with fan offsets preserved. The shot does not home after release. A shrinking pulse and direction trace warn of the exit. Boss fans use 5 projectiles, 6 on Hard, every 2s. Swaps have a 1.2s warning and 1.1s slide, with capture paused during movement. Twin Thought Spheres launch at second 9. From second 18, offset portals form interference rings with a 38-degree gap, 32 on Hard, every 3.2s or 2.8s on Hard. Active plus held projectiles are capped at 56. Circular portal fields slow movement by 35% without contact damage.
 * **Phase 3: One Voice (Attacks 14 to 18, Live bullet cap <= 85)**:
   14. *Overmind Chorus / Đồng Ca Thống Lĩnh* (30s): Accelerated 10-tentacle Chorus wave with 3-point Psychic Tempest.
   15. *Psychic Tempest Maelstrom / Bão Tố Tâm Linh Cuồng Nộ* (60s): Rapid sequential 3-point Tempest strikes.
@@ -1143,6 +1143,10 @@ All 18 attacks are engineered around Egregor's authentic boss identity, featurin
 * **Polished Skills**:
   * *Tendril Lash*: 42% thicker body (ptsW = 54px base), radiant glowing cyan/violet rim, bioluminescent suction cups, high-velocity motion blur ghost ribbons, tip shockwave ring, and bursting spark particles upon impact.
   * *Eye Beams*: 3-tier beam tapering at both ends (intense white core streak, blazing amber body, golden aura), boss eye lens flare burst, and floor explosive splash.
+
+### Void Horizon: horizontal safe cell
+
+A horizontal sweep (`gap_bar`, `axis: x`) uses a locked square on the ship row: 170px Standard or 150px Hard. Its centre X is 200px to at most 320px from the ship, bounded by half of the real ship speed times the telegraph duration minus 0.25s reaction time. Hard has a maximum displacement of about 270.845px. The warning lasts 1.5s Standard or 1.3s Hard. The 54px bar still sweeps in 1.25s; the square cuts a visible opening from the bar. Standing in the square avoids the bar, and Shift retains its normal immunity. Placement avoids active stone pillars or waits for space. The square artwork is lifted enough to keep a 12px bottom margin, with the ship fully inside it. Its X hit clearance uses the same square width. Vertical sweeps (`axis: y`) retain their existing gap and behaviour.
 
 ## Showdown: thánh di vật, phím A
 

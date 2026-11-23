@@ -282,6 +282,8 @@
         }
 
         abort() {
+            this.attacks.clearDimensionBreak();
+            this.attacks.pendingSafeBars = [];
             root.DuelWeaponSkills?.reset(this);
             if (window.AudioMgr) window.AudioMgr.setDuelAudioActive(false);
             if (window.AudioMgr) { window._lowHpActive = false; try { window.AudioMgr.stopLowHp(); } catch (_) {} }
@@ -757,6 +759,7 @@
                 clean: attHits === 0
             });
 
+            this.attacks.clearDimensionBreak();
             this.attacks.skills.length = 0;
             this.attacks.telegraphs.length = 0;
             this.attacks.slowZones.length = 0;
@@ -2136,7 +2139,7 @@
                 }
             }
 
-            // Boss body, aura, face, and eyes always rendered on top with guaranteed alpha 1.0
+            // Boss body, aura, face, and eyes render with guaranteed alpha 1.0.
             // The opening cutscene draws the boss itself as it emerges from the portal
             if (this.state !== 'pre_battle') {
                 ctx.save();
@@ -2152,6 +2155,8 @@
                 }
                 ctx.restore();
             }
+
+            if (this.attacks.dimension) this.attacks.renderLinkedPortals(ctx);
 
             // Invulnerability shield ripples when bullets strike boss during transitions
             if (this._invulnRipples && this._invulnRipples.length > 0) {
@@ -2604,6 +2609,7 @@
             ctx.save();
             for (let i = 0; i < zones.length; i++) {
                 const sz = zones[i];
+                if (sz.linked) continue;
                 const cx = sz.x + sz.w * 0.5;
                 const cy = sz.y + sz.h * 0.5;
                 const r = sz.w * 0.5;

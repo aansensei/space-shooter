@@ -400,7 +400,7 @@
             const color = c._bulletColor();
             for (let i = 0; i < n; i++) {
                 const a = i / n * Math.PI * 2 + 0.18 + offset;
-                c.pool.spawn(this.targetX, this.targetY, Math.cos(a) * 170, Math.sin(a) * 170,
+                c._spawnPatternBullet(this.targetX, this.targetY, Math.cos(a) * 170, Math.sin(a) * 170,
                     { style: 'eye_seed', colorKey: color, radius: 4.5, maxAge: 6 });
             }
         }
@@ -511,6 +511,7 @@
         }
 
         startAttack(attackId, options = {}) {
+            this.clearDimensionBreak();
             this.currentAttackId = attackId;
             this.pressureBeat = 0;
             this.pressureAt = 2.5;
@@ -542,6 +543,8 @@
             this._seenSkills = new WeakSet();
             this._skillAudioStages = new WeakMap();
             this._lastEmissionAudio = -1;
+            this.pendingSafeBars = [];
+            this._lastSafeCellSide = 0;
 
             if (options.seed !== undefined) {
                 this.setSeed(options.seed);
@@ -600,6 +603,7 @@
             if (this.elapsed < this.scriptWarmup) { this.scriptTime = this.elapsed; return; }
             this.scriptTime += dt * cycleCadence;
             if (def && this.scriptTime >= def.duration) {
+                if (this.currentAttackId === 13) { this.clearDimensionBreak(); this.pool.reset(); }
                 this.cycleCount += 1;
                 this._sound('mind-adapt');
                 this.scriptTime = 0;
@@ -695,11 +699,11 @@
                         crush_pillar: { telegraph: 'duel-pillar-warn', drop:'duel-pillar-drop', rest: 'duel-pillar-slam', aftermath:'duel-pillar-fade' },
                         rift: {active:'egregor-rift-warn'}, chorus: { active: 'egregor-chorus-form' }, mind_link: { active: 'mindlink-form' }
                     }[sk.type]?.[phase];
-                    if (key) this._sound(key);
+                    if (key) this._sound(key, sk.linked ? sk.x : undefined, sk.linked ? sk.y : undefined);
                 }
                 if(sk.type==='rift'){
-                    if(sk.elapsed>=.35 && !sk._r3Form){sk._r3Form=true;this._sound('egregor-rift-form');}
-                    if(sk.elapsed>=(sk.duration||5)-.4 && !sk._r3Fade){sk._r3Fade=true;this._sound('egregor-rift-fade');}
+                    if(sk.elapsed>=.35 && !sk._r3Form){sk._r3Form=true;this._sound('egregor-rift-form',sk.linked?sk.x:undefined,sk.linked?sk.y:undefined);}
+                    if(sk.elapsed>=(sk.duration||5)-.4 && !sk._r3Fade){sk._r3Fade=true;this._sound('egregor-rift-fade',sk.linked?sk.x:undefined,sk.linked?sk.y:undefined);}
                 }
                 if(sk.type==='mind_link' && sk.elapsed>=sk.duration-.4 && !sk._r3Fade){sk._r3Fade=true;this._sound('egregor-mindlink-fade');}
                 if (sk.type === 'upheaval' && sk.phase === 'strike' && sk.elapsed >= .42 && !sk._audioSlam) {
@@ -782,7 +786,7 @@
                 const e = this.emissions[i]; e.delay -= dt;
                 if (e.delay > 0) continue;
                 this._volleySound(e.options.style, e.x, e.y);
-                this.pool.spawn(e.x, e.y, e.vx, e.vy, e.options); this.emissions.splice(i, 1);
+                this._spawnPatternBullet(e.x, e.y, e.vx, e.vy, e.options); this.emissions.splice(i, 1);
             }
         }
 
@@ -821,7 +825,7 @@
                     this._lastVolleyCueAt = this.elapsed; this._setBossCue(opt.cause === 'rift' ? 'rift' : 'volley', 0.25, 0.12, x + vx, y + vy);
                 }
                 this.emissions.push({ x, y, vx, vy, options: opt, delay: 0.25 });
-            } else { this._volleySound(opt.style, x, y); this.pool.spawn(x, y, vx, vy, opt); }
+            } else { this._volleySound(opt.style, x, y); this._spawnPatternBullet(x, y, vx, vy, opt); }
         }
 
         _updateTelegraphs(dt) {
@@ -868,6 +872,11 @@
         }
 
         _updateSkills(dt, canvasW, canvasH, playerX, playerY) {
+            if (this.pendingSafeBars?.length) {
+                const request = this.pendingSafeBars[0];
+                if (this._spawnGapBar(...request, true)) this.pendingSafeBars.shift();
+            }
+            if (this.dimension) this._updateDimensionPortals(dt, canvasW, canvasH, playerX, playerY);
             for (let i = this.skills.length - 1; i >= 0; i--) {
                 const sk = this.skills[i];
                 if (sk.type === 'null_slash') sk.previousStrikeElapsed = sk.elapsed;
@@ -1332,7 +1341,81 @@
             ctx.restore();
         }
 
+        _renderSafeCellBar(ctx, sk, now) {
+            const W = sk.canvasW, H = sk.canvasH, size = sk.safeSize;
+            const x0 = sk.safeX - size / 2, y0 = sk.cellTop;
+            const tel = sk.phase === 'telegraph' ? Math.min(1, sk.elapsed / sk.telegraphDur) : 1;
+            const fade = sk.phase === 'aftermath' ? Math.max(0, 1 - sk.elapsed / sk.aftermathDur) : 1;
+            const pal = window.DuelFX.getPhasePalette(ATTACK_DEFS[this.currentAttackId].phase);
+            const fo = window._fxOpts || {}, low = typeof _gfxLevel !== 'undefined' && _gfxLevel >= 2;
+            ctx.save();
+            // The whole screen is dangerous except the safe cell: a red wash, a bright red frame and a glow, all cut around the cell
+            const screenW = typeof canvas !== 'undefined' ? canvas.width : W, screenH = typeof canvas !== 'undefined' ? canvas.height : H;
+            const red = window._dangerGuide === true || fo.dangerWarn !== false;
+            ctx.save(); ctx.beginPath(); ctx.rect(0, 0, screenW, screenH); ctx.rect(x0, y0, size, size); ctx.clip('evenodd');
+            if (red) {
+                const wash = (sk.phase === 'sweep' ? 0.14 : 0.07 + tel * 0.13) * fade * (fo.reducedMotion ? 1 : 0.86 + 0.14 * Math.sin(now * 0.012));
+                ctx.fillStyle = 'rgba(255,48,34,' + wash + ')'; ctx.fillRect(0, 0, screenW, screenH);
+                ctx.strokeStyle = 'rgba(255,70,49,' + ((0.5 + tel * 0.4) * fade) + ')'; ctx.lineWidth = 8; ctx.strokeRect(4, 4, screenW - 8, screenH - 8);
+                if (!low && fo.glow !== false) {
+                    ctx.globalCompositeOperation = 'lighter'; ctx.strokeStyle = 'rgba(255,56,32,' + (0.2 * fade) + ')';
+                    ctx.lineWidth = 24; ctx.strokeRect(12, 12, screenW - 24, screenH - 24); ctx.globalCompositeOperation = 'source-over';
+                }
+            } else {
+                ctx.strokeStyle = 'rgba(228,224,217,' + (0.5 * fade) + ')'; ctx.lineWidth = 4; ctx.strokeRect(2, 2, screenW - 4, screenH - 4);
+            }
+            ctx.restore();
+            if ((sk.phase === 'telegraph' || sk.phase === 'sweep') && typeof _drawDangerZone === 'function') {
+                // the whole ship row is lethal except the safe cell, so it carries the standard red warning: zone, rim, glow and ticks
+                ctx.save(); ctx.beginPath(); ctx.rect(0, 0, W, H); ctx.rect(x0, y0, size, size); ctx.clip('evenodd');
+                _drawDangerZone('strip', 0, y0 + size / 2, W, sk.phase === 'telegraph' ? tel : 1, sk.phase === 'telegraph' ? 0.9 : 0.5, now, 0, size / 2, Math.PI, false, false);
+                ctx.restore();
+            } else if (sk.phase === 'telegraph' && fo.dangerWarn !== false) {
+                ctx.fillStyle = 'rgba(255,60,95,' + (0.06 + tel * 0.13) + ')';
+                ctx.fillRect(0, y0, x0, size); ctx.fillRect(x0 + size, y0, W - x0 - size, size);
+            }
+            if (sk.phase === 'sweep') {
+                const along = gapBarPos(sk, Math.min(1, sk.elapsed / sk.sweepDur));
+                ctx.save(); ctx.beginPath(); ctx.rect(0, 0, W, H); ctx.rect(x0, y0, size, size); ctx.clip('evenodd');
+                const g = ctx.createLinearGradient(along - 27, 0, along + 27, 0);
+                g.addColorStop(0, pal.base); g.addColorStop(0.5, pal.dark); g.addColorStop(1, pal.base);
+                ctx.fillStyle = g; ctx.fillRect(along - 27, 0, 54, H);
+                if (!low && fo.glow !== false) {
+                    const trail = ctx.createLinearGradient(along, 0, along - sk.dir * 140, 0);
+                    trail.addColorStop(0, '#ff547e66'); trail.addColorStop(1, '#ff547e00');
+                    ctx.fillStyle = trail; ctx.fillRect(Math.min(along, along - sk.dir * 140), 0, 140, H);
+                }
+                ctx.strokeStyle = pal.rim; ctx.lineWidth = 2;
+                ctx.beginPath(); ctx.moveTo(along - 27, 0); ctx.lineTo(along - 27, H); ctx.moveTo(along + 27, 0); ctx.lineTo(along + 27, H); ctx.stroke();
+                ctx.restore();
+            }
+            // The safe cell flashes so it can be found at a glance; reduced motion swaps the flash for a slow pulse
+            const flash = fo.reducedMotion ? 0.5 + 0.5 * Math.sin(now * 0.006) : (Math.sin(now * 0.016) > -0.15 ? 1 : 0);
+            ctx.globalAlpha = fade * (0.1 + 0.34 * flash); ctx.fillStyle = flash > 0.5 ? '#f4f0ff' : pal.rim; ctx.fillRect(x0, y0, size, size);
+            ctx.globalAlpha = fade * (0.45 + 0.55 * flash); ctx.strokeStyle = flash > 0.5 ? '#ffffff' : pal.rim; ctx.lineWidth = 3 + tel;
+            const dash = low || fo.reducedMotion || fo.trails === false ? 0 : now * 0.025;
+            ctx.setLineDash([11, 7]); ctx.lineDashOffset = -dash; ctx.strokeRect(x0, y0, size, size); ctx.setLineDash([]);
+            ctx.lineWidth = 2;
+            for (const [x, y, sx, sy] of [[x0, y0, 1, 1], [x0 + size, y0, -1, 1], [x0, y0 + size, 1, -1], [x0 + size, y0 + size, -1, -1]]) {
+                ctx.beginPath(); ctx.moveTo(x, y + sy * 18); ctx.lineTo(x, y); ctx.lineTo(x + sx * 18, y); ctx.stroke();
+            }
+            if (sk.phase === 'telegraph') {
+                const side = Math.sign(sk.safeX - sk.originShipX), travel = Math.abs(sk.safeX - sk.originShipX) - size / 2 - 26;
+                for (let k = 0; k < (low ? 2 : 4); k++) {
+                    const u = low || fo.reducedMotion || fo.trails === false ? (k + 1) / (low ? 3 : 5) : ((now * 0.00065 + k / 4) % 1);
+                    const x = sk.originShipX + side * (24 + u * travel), y = sk.safeY + 24;
+                    ctx.beginPath(); ctx.moveTo(x - side * 9, y - 7); ctx.lineTo(x, y); ctx.lineTo(x - side * 9, y + 7); ctx.stroke();
+                }
+                for (const x of [22, W - 22]) {
+                    const y = y0 - 24;
+                    ctx.beginPath(); ctx.moveTo(x - sk.dir * 12, y - 8); ctx.lineTo(x + sk.dir * 12, y); ctx.lineTo(x - sk.dir * 12, y + 8); ctx.stroke();
+                }
+            }
+            ctx.restore();
+        }
+
         _renderGapBar(ctx, sk, now) {
+            if (sk.axis === 'x' && Number.isFinite(sk.safeX)) { this._renderSafeCellBar(ctx, sk, now); return; }
             // Along the 'x' axis the drawing is mirrored across the diagonal, so the code below always draws a sweep along y
             const swap = sk.axis === 'x';
             const arenaW = arenaWidth(sk), arenaH = Math.max(sk.canvasH || 720, (typeof canvas !== 'undefined' && canvas.height) || 0);
@@ -1874,6 +1957,7 @@
                     }
                     ctx.restore();
                 } else if (sk.type === 'rift') {
+                    if (sk.linked) continue;
                     const dur = sk.duration || 5.0;
                     const p = Math.min(1.0, sk.elapsed / dur);
                     const rx = sk.x || 640;
@@ -2105,7 +2189,10 @@
                 } else if (sk.type === 'gap_bar' && sk.phase === 'sweep') {
                     const along = gapBarPos(sk, Math.min(1, sk.elapsed / sk.sweepDur));
                     const onBar = sk.axis === 'x' ? px : py, across = sk.axis === 'x' ? py : px;
-                    if (Math.abs(onBar - along) <= sk.thick * 0.5 + pradius && Math.abs(across - sk.gap) > sk.gapW * 0.5 - pradius) {
+                    const outside = sk.axis === 'x' && Number.isFinite(sk.safeX)
+                        ? Math.abs(px - sk.safeX) > sk.safeSize * 0.5 - pradius
+                        : Math.abs(across - sk.gap) > sk.gapW * 0.5 - pradius;
+                    if (Math.abs(onBar - along) <= sk.thick * 0.5 + pradius && outside) {
                         return { hit: true, cause: 'gap_bar' };
                     }
                 } else if (sk.type === 'crush_pillar' && (sk.phase === 'drop' || sk.phase === 'rest')) {
@@ -2211,6 +2298,8 @@
         checkSlowAt(x, y) {
             for (let i = 0; i < this.slowZones.length; i++) {
                 const sz = this.slowZones[i];
+                if (sz.disabled) continue;
+                if (sz.linked && Math.hypot(x - sz.x - sz.w * 0.5, y - sz.y - sz.h * 0.5) > sz.radius) continue;
                 if (x >= sz.x && x <= sz.x + sz.w && y >= sz.y && y <= sz.y + sz.h) {
                     return sz.slowFactor || 0.20;
                 }
@@ -2285,7 +2374,40 @@
 
         // A bar that sweeps the whole arena from one edge to the other. Only the gap is safe, and it is placed
         // a few hundred pixels from the ship so the ship has to move to reach it.
-        _spawnGapBar(canvasW, canvasH, isHard, dir, axis) {
+        _spawnGapBar(canvasW, canvasH, isHard, dir, axis, retry = false) {
+            if (axis === 'x') {
+                const size = isHard ? 150 : 170, telegraphDur = isHard ? 1.3 : 1.5;
+                const px = Number.isFinite(this._lastPlayerX) ? this._lastPlayerX : canvasW / 2;
+                const py = Number.isFinite(this._lastPlayerY) ? this._lastPlayerY : canvasH - 60;
+                const maxDistance = Math.min(320, 8.6 * 1000 / 16.67 * 0.5 * (telegraphDur - 0.25));
+                const lo = size / 2 + 40, hi = canvasW - size / 2 - 40, choices = [];
+                for (const side of [-1, 1]) {
+                    let ranges = [[Math.max(lo, side < 0 ? px - maxDistance : px + 200), Math.min(hi, side < 0 ? px - 200 : px + maxDistance)]];
+                    for (const sk of this.skills) if (sk.type === 'crush_pillar' && sk.phase !== 'aftermath') {
+                        for (const col of sk.cols) {
+                            const a = col.x - sk.w / 2 - size / 2 - 8, b = col.x + sk.w / 2 + size / 2 + 8;
+                            ranges = ranges.flatMap(([l, r]) => r <= a || l >= b ? [[l, r]] : [[l, Math.min(r, a)], [Math.max(l, b), r]]);
+                        }
+                    }
+                    for (const [a, b] of ranges) if (b - a > 0.01) choices.push({ side, a, b, weight: (b - a) * (side === dir ? 1.4 : 1) });
+                }
+                if (!choices.length) {
+                    if (!retry) (this.pendingSafeBars ||= []).push([canvasW, canvasH, isHard, dir, axis]);
+                    return null;
+                }
+                const opposite = choices.filter(c => c.side !== this._lastSafeCellSide);
+                const eligible = opposite.length && this._lastSafeCellSide ? opposite : choices;
+                let roll = this.rng() * eligible.reduce((s, c) => s + c.weight, 0), pick = eligible.at(-1);
+                for (const candidate of eligible) { roll -= candidate.weight; if (roll <= 0) { pick = candidate; break; } }
+                const safeX = pick.a + this.rng() * (pick.b - pick.a);
+                this._lastSafeCellSide = pick.side;
+                const sk = { type: 'gap_bar', phase: 'telegraph', elapsed: 0, telegraphDur, sweepDur: 1.25,
+                    aftermathDur: 0.35, safeX, safeY: py, safeSize: size, originShipX: px, maxDistance,
+                    cellTop: Math.max(12, Math.min(canvasH - size - 12, py - size / 2)),
+                    gap: py, gapW: size, thick: 54, dir, axis, canvasW, canvasH };
+                this.skills.push(sk); this._sound('duel-safecell-lock', safeX, py);
+                return sk;
+            }
             const gapW = isHard ? 200 : 230;
             const across = axis === 'x' ? canvasH : canvasW;
             const margin = axis === 'x' ? 150 : 60;
@@ -2902,7 +3024,185 @@
             }
         }
 
-        // Attack 13: Dimension Break (P2: Dual flank portals, slow zones, dual Thought Spheres)
+        // Interference rings share a moving opening at the ship's row.
+        _dimensionLaneAt(time) {
+            const d = this.dimension;
+            return d ? d.width * (0.5 + 0.18 * Math.sin(time * 0.26)) : this.anchorX;
+        }
+
+        _spawnPatternBullet(x, y, vx, vy, options = {}) {
+            const d = this.currentAttackId === 13 ? this.dimension : null;
+            if (!d) return this.pool.spawn(x, y, vx, vy, options);
+            if (this.pool.activeCount + d.transits.length >= 56) return null;
+            // The opening is composed at launch; bullets retain their velocity in flight.
+            if (options.protectLane) {
+                const band = (options.radius || 4.5) + 7.75, lifetime = options.maxAge || 6;
+                const eta = Math.abs(vy) > 1 ? (d.shipY - y) / (vy * 1.1) : 0;
+                const half = Math.abs(vy) > 1 ? band / Math.abs(vy * 1.1) : lifetime;
+                const start = Math.max(0, eta - half), end = Math.min(lifetime, eta + half);
+                if (Math.abs(vy) > 1 || Math.abs(y - d.shipY) <= band) {
+                    const sway = options.behaviorData?.amplitude || 0;
+                    for (let age = start; age <= end; age += 1 / 120) {
+                        const atX = x + vx * 1.1 * age;
+                        if (Math.abs(atX - this._dimensionLaneAt(this.elapsed + age)) < 92 + sway * 2) return null;
+                    }
+                }
+            }
+            return this.pool.spawn(x, y, vx, vy, options);
+        }
+
+        clearDimensionBreak() {
+            if (this.dimension || this.currentAttackId === 13) {
+                if (this.emissions) this.emissions.length = 0;
+                if (this.cues) this.cues.length = 0;
+                this.bossCue = null;
+                if (this.thoughtCube) this.thoughtCube.active = false;
+                if (this.thoughtCube2) this.thoughtCube2.active = false;
+            }
+            if (this.dimension) this.dimension.transits.length = 0;
+            this.dimension = null;
+            if (this.pool) this.pool.portalController = null;
+            if (this.skills) this.skills = this.skills.filter(sk => !sk.linked);
+            if (this.slowZones) this.slowZones = this.slowZones.filter(z => !z.linked);
+        }
+
+        _portalSound(key, x, y) {
+            const d = this.dimension;
+            if (this.elapsed - (d.soundAt[key] ?? -1) < 0.08 - 1e-6) return;
+            d.soundAt[key] = this.elapsed;
+            this._sound(key, x, y);
+        }
+
+        capturePortalBullet(b, previousX, previousY) {
+            const d = this.dimension;
+            if (!d || b.portalHops || d.sliding || this.elapsed - d.openedAt < 0.9) return false;
+            for (let i = 0; i < 2; i++) {
+                const p = d.portals[i];
+                if (Math.hypot(previousX - p.x, previousY - p.y) <= 56) continue;
+                if (_distToSegmentSq(p.x, p.y, previousX, previousY, b.x, b.y) > 56 * 56) continue;
+                const target = d.portals[1 - i];
+                const aim = Math.atan2(d.shipY - target.y, this._lastPlayerX - target.x);
+                const angle = aim + b.portalFanOffset;
+                d.transits.push({ from: i, to: 1 - i, remaining: 0.35, duration: 0.35,
+                    capturedAt: this.elapsed, speed: Math.hypot(b.vx, b.vy), angle,
+                    targetX: this._lastPlayerX, targetY: d.shipY, fanOffset: b.portalFanOffset,
+                    options: { style: b.style, colorKey: b.colorKey, radius: b.radius,
+                        maxAge: Math.max(0.1, b.maxAge - b.age), portalHops: 1,
+                        cause: b.cause, behavior: b.behavior,
+                        behaviorData: b.behaviorData ? { ...b.behaviorData } : null } });
+                b.active = false; this.pool.activeCount--;
+                this._portalSound('duel-portal-swallow', p.x, p.y);
+                return true;
+            }
+            return false;
+        }
+
+        _updateDimensionPortals(dt, canvasW, canvasH, playerX, playerY) {
+            const d = this.dimension, t = this.scriptTime;
+            d.shipY = playerY; d.sliding = false;
+            const period = this.difficulty === 'hard' ? 4.2 : 5;
+            let swapped = false, progress = 0, warning = false;
+            for (let at = 8; at + 2.3 <= 18; at += period) {
+                if (t >= at && t < at + 1.2) warning = true;
+                if (t >= at + 1.2 && t < at + 2.3) {
+                    d.sliding = true; progress = smoothstep((t - at - 1.2) / 1.1);
+                } else if (t >= at + 2.3) swapped = !swapped;
+            }
+            if (warning && !d.warning) { d.warnStart = this.elapsed; this._sound('duel-portal-swap-warn', canvasW / 2, canvasH * 0.42); }
+            if (d.sliding && !d.wasSliding) this._sound('duel-portal-swap', canvasW / 2, canvasH * 0.42);
+            d.warning = warning; d.wasSliding = d.sliding;
+            for (let i = 0; i < 2; i++) {
+                const p = d.portals[i], left = (i === 0) !== swapped;
+                const start = canvasW * (left ? 0.25 : 0.75), end = canvasW - start;
+                p.x = t >= 18 ? canvasW * (i === 0 ? 0.3 : 0.7) : start + (end - start) * progress;
+                p.y = canvasH * 0.42 + (t >= 18 ? (i === 0 ? -35 : 35) : 0);
+                p.warning = warning;
+                const z = d.zones[i]; z.x = p.x - 56; z.y = p.y - 56; z.disabled = d.sliding;
+            }
+            for (let i = d.transits.length - 1; i >= 0; i--) {
+                const q = d.transits[i]; q.remaining -= dt;
+                if (q.remaining > 1e-7) continue;
+                const p = d.portals[q.to];
+                q.angle = Math.atan2(q.targetY - p.y, q.targetX - p.x) + q.fanOffset;
+                const ux = Math.cos(q.angle), uy = Math.sin(q.angle);
+                const x = p.x + ux * 58, y = p.y + uy * 58;
+                // A transit is consumed even when capacity or spawn clearance rejects it.
+                d.transits.splice(i, 1);
+                if (Math.hypot(x - playerX, y - playerY) < 90) continue;
+                const b = this._spawnPatternBullet(x, y, ux * q.speed, uy * q.speed, { ...q.options, angle: q.angle, speed: q.speed });
+                if (b) this._portalSound('duel-portal-emit', x, y);
+            }
+        }
+
+        _dimensionRing(portal, count, speed, gap) {
+            const d = this.dimension;
+            const eta = Math.max(0, (d.shipY - portal.y) / (speed * 1.1));
+            const lane = this._dimensionLaneAt(this.elapsed + eta);
+            const aim = Math.atan2(d.shipY - portal.y, lane - portal.x);
+            for (let i = 0; i < count; i++) {
+                const a = aim + gap / 2 + i * (Math.PI * 2 - gap) / Math.max(1, gap > 0 ? count - 1 : count);
+                this._spawnPatternBullet(portal.x, portal.y, Math.cos(a) * speed, Math.sin(a) * speed,
+                    { style: 'void_shard', colorKey: 'hellrose', radius: 4.5, maxAge: 6, cause: 'rift', angle: a, protectLane: true });
+            }
+        }
+
+        renderLinkedPortals(ctx) {
+            if (!this.dimension) return;
+            const now = performance.now();
+            for (const portal of this.dimension.portals) this._renderLinkedPortal(ctx, portal, now);
+        }
+
+        _renderLinkedPortal(ctx, sk, now) {
+            const d = this.dimension;
+            if (!d) return;
+            const low = typeof _gfxLevel !== 'undefined' && _gfxLevel >= 2;
+            const fo = window._fxOpts || {}, open = Math.min(1, Math.max(0, (this.elapsed - d.openedAt) / 0.9));
+            const color = sk.warning ? '#ff805d' : '#c45cff';
+            if (typeof _drawDangerZone === 'function' && open >= 1) {
+                const slot = d.portals.indexOf(sk), held = d.transits.filter(q => q.to === slot);
+                if (held.length) {
+                    let lo = Infinity, hi = -Infinity, remaining = 0.35;
+                    for (const q of held) { lo = Math.min(lo, q.fanOffset); hi = Math.max(hi, q.fanOffset); remaining = Math.min(remaining, q.remaining); }
+                    const centre = Math.atan2(held[0].targetY - sk.y, held[0].targetX - sk.x) + (lo + hi) / 2;
+                    const reach = Math.min(620, Math.hypot(held[0].targetX - sk.x, held[0].targetY - sk.y) + 140);
+                    _drawDangerZone('sector', sk.x, sk.y, reach, 1 - remaining / 0.35, 0.6, now, centre, 0, Math.max(0.24, hi - lo + 0.3), false, false);
+                }
+                if (sk.warning && Number.isFinite(d.warnStart)) _drawDangerZone('circle', sk.x, sk.y, 78, (this.elapsed - d.warnStart) / 1.2, 0.7, now, 0, 0, Math.PI * 2, false, false);
+            }
+            ctx.save(); ctx.globalAlpha = open; ctx.strokeStyle = color; ctx.lineWidth = 2;
+            if (sk === d.portals[0] && !low && fo.trails !== false) {
+                const a = d.portals[0], b = d.portals[1];
+                ctx.globalAlpha = 0.15 + Math.min(0.35, d.transits.length * 0.035) * (fo.reducedMotion ? 1 : 0.7 + 0.3 * Math.sin(now * 0.014));
+                ctx.lineWidth = 1; ctx.beginPath(); ctx.moveTo(a.x, a.y); ctx.lineTo(b.x, b.y); ctx.stroke();
+            }
+            ctx.globalAlpha = open;
+            const shake = sk.warning && !fo.reducedMotion ? Math.sin(now * 0.055) * 3 : 0;
+            ctx.translate(sk.x + shake, sk.y);
+            const sprite = _getRiftSprite();
+            if (sprite && fo.glow !== false) ctx.drawImage(sprite, -76 * open, -76 * open, 152 * open, 152 * open);
+            ctx.fillStyle = 'rgba(14, 5, 32, 0.82)'; ctx.beginPath(); ctx.arc(0, 0, 30 * open, 0, Math.PI * 2); ctx.fill();
+            ctx.strokeStyle = color; ctx.lineWidth = 2.2;
+            ctx.beginPath(); ctx.arc(0, 0, 56 * open, 0, Math.PI * 2); ctx.stroke();
+            ctx.beginPath(); ctx.arc(0, 0, 30 * open, 0, Math.PI * 2); ctx.stroke();
+            const ticks = low ? 6 : 12;
+            for (let k = 0; k < ticks; k++) {
+                const a = k * Math.PI * 2 / ticks, r = 48 * open;
+                ctx.beginPath(); ctx.moveTo(Math.cos(a) * r, Math.sin(a) * r); ctx.lineTo(Math.cos(a) * (r + 5), Math.sin(a) * (r + 5)); ctx.stroke();
+            }
+            const index = d.portals.indexOf(sk), incoming = d.transits.filter(q => q.to === index);
+            if (incoming.length) {
+                const remaining = Math.min(...incoming.map(q => q.remaining));
+                const r = 28 + 17 * Math.max(0, remaining / 0.35);
+                ctx.strokeStyle = '#f9d5ff'; ctx.lineWidth = 2; ctx.beginPath(); ctx.arc(0, 0, r, 0, Math.PI * 2); ctx.stroke();
+                if (!low && fo.particles !== false) { ctx.globalAlpha = 0.35; ctx.beginPath(); ctx.arc(0, 0, r + 5, 0, Math.PI * 2); ctx.stroke(); }
+                const shot = incoming[0], aim = Math.atan2(shot.targetY - sk.y, shot.targetX - sk.x) + shot.fanOffset;
+                ctx.globalAlpha = 0.85; ctx.strokeStyle = '#f9d5ff'; ctx.lineWidth = 1.5;
+                ctx.beginPath(); ctx.moveTo(Math.cos(aim) * 58, Math.sin(aim) * 58); ctx.lineTo(Math.cos(aim) * (low ? 88 : 122), Math.sin(aim) * (low ? 88 : 122)); ctx.stroke();
+            }
+            ctx.restore();
+        }
+
+        // Attack 13 opens linked rifts, exchanges their positions, then crosses their rings.
         _updateAttack13(dt, canvasW, canvasH, rift1X, rift2X, bossY, speedScale, isHard) {
             const t = this.scriptTime;
 
@@ -2914,39 +3214,53 @@
                 this.thoughtCube2.spawn(rift2X, 190, Math.min(canvasW - 120, aimX13 + 120), 130, 2);
             }
 
-            // Portals and slow zones at 0.3s
+            // Circular slow fields share the portals' capture radius and position.
             if (t >= 0.3 && !this.lastSpawnTimes['att13_rifts']) {
                 this.lastSpawnTimes['att13_rifts'] = true;
-                this.skills.push({
-                    type: 'rift',
-                    x: rift1X,
-                    y: 220,
-                    w: 160,
-                    h: 160,
-                    duration: 35.0,
-                    elapsed: 0
-                });
-                this.skills.push({
-                    type: 'rift',
-                    x: rift2X,
-                    y: 220,
-                    w: 160,
-                    h: 160,
-                    duration: 35.0,
-                    elapsed: 0
-                });
-                this.slowZones.push({ x: rift1X - 80, y: 220, w: 160, h: 160, age: 0, maxAge: 50.0, slowFactor: 0.35 });
-                this.slowZones.push({ x: rift2X - 80, y: 220, w: 160, h: 160, age: 0, maxAge: 50.0, slowFactor: 0.35 });
+                const portals = [rift1X, rift2X].map(x => ({ type: 'rift', linked: true, x, y: canvasH * 0.42, w: 112, h: 112, duration: 29.7, elapsed: 0 }));
+                const zones = portals.map(p => ({ x: p.x - 56, y: p.y - 56, w: 112, h: 112, radius: 56, linked: true, age: 0, maxAge: 30, slowFactor: 0.35 }));
+                this.dimension = { portals, zones, transits: [], width: canvasW, shipY: this._lastPlayerY,
+                    openedAt: this.elapsed, soundAt: {}, warning: false, sliding: false };
+                this.skills.push(...portals); this.slowZones.push(...zones); this.pool.portalController = this;
             }
 
-            // Flank ripple waves (max 48 bullets)
-            const cycle = 1.8;
-            const tLast = this.lastSpawnTimes['att13_pulse'] || (0.3 - cycle);
-            if (t - tLast >= cycle) {
-                this.lastSpawnTimes['att13_pulse'] = t;
-                const activeRift = Math.floor(t / cycle) % 2 ? rift2X : rift1X;
-                this._fireFan(activeRift, 220, Math.PI * 0.5, isHard ? 4 : 3, 0.48, 135 * speedScale,
-                    { style: 'ring', radius: 6, cause: 'rift' });
+            const d = this.dimension;
+            if (!d) return;
+            const cycle = 2;
+            const tLast = this.lastSpawnTimes['att13_pulse'] ?? -0.5;
+            if (t < 18 && t - tLast >= cycle && !d.sliding && !d.warning) {
+                const index = (this.lastSpawnTimes.att13_side || 0) % 2;
+                const p = d.portals[index], boss = this._bossOrigin;
+                const aim = Math.atan2(p.y - boss.y, p.x - boss.x), count = isHard ? 6 : 5;
+                const speed = Math.min(320, Math.hypot(p.x - boss.x, p.y - boss.y) / 0.9) * speedScale;
+                const flight = Math.hypot(p.x - boss.x, p.y - boss.y) / (speed * 1.1) + 0.25;
+                const swapPeriod = isHard ? 4.2 : 5;
+                let flightClear = true;
+                for (let at = 8; at + 2.3 <= 18; at += swapPeriod) {
+                    if (t < at + 1.2 && t + flight >= at + 1.2) flightClear = false;
+                }
+                if (flightClear) {
+                    this.lastSpawnTimes['att13_pulse'] = t; this.lastSpawnTimes.att13_side = index + 1;
+                    for (let i = 0; i < count; i++) {
+                        const offset = i === Math.floor(count / 2) ? 0 : (i / (count - 1) - 0.5) * 0.16;
+                        const a = aim + offset;
+                        this._queueShot(boss.x, boss.y, Math.cos(a) * speed, Math.sin(a) * speed,
+                            { style: 'void_shard', radius: 4.5, portalFeed: true, portalFanOffset: a - aim, locked: true, maxAge: 6 });
+                    }
+                }
+            }
+            if (t >= 8 && t < 18 && t - (this.lastSpawnTimes.att13_ring ?? 4) >= 4) {
+                this.lastSpawnTimes.att13_ring = t;
+                this._dimensionRing(d.portals[Math.floor(t / 4) % 2], 8, 95, 0);
+            }
+            if (t >= 18) {
+                const gap = (isHard ? 32 : 38) * Math.PI / 180, period = isHard ? 2.8 : 3.2;
+                const last = this.lastSpawnTimes.att13_cross ?? (18.6 - period);
+                if (t - last >= period) {
+                    this.lastSpawnTimes.att13_cross = t;
+                    this._sound('duel-portal-cross', canvasW / 2, canvasH * 0.42);
+                    for (const p of d.portals) this._dimensionRing(p, 14, 230 * speedScale, gap);
+                }
             }
         }
 

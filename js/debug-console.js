@@ -22,216 +22,319 @@ window._debugGameSpeed = 1;
 window._debugClickSpawnType = '';
 window._debugAutoplay = false;
 
-// Autoplay: a real threat-aware pilot instead of a random walk. Every tick
-// it scans the whole `enemies` array (bullets, chains, anything else with a
-// linear vx/vy) for whatever is on a collision course with the player's own
-// y-row, works out where each one will actually be when it gets there (pure
-// line geometry - since x and y both integrate as pos += v*dt every frame,
-// the arrival x is just current x plus (vx/vy) times the remaining vertical
-// distance, so real dt units never even come into it), and steers toward
-// whichever of "stay / step left / step right" scores least dangerous,
-// weighted by how soon and how close each threat is. Gets more cautious as
-// lives drop. Skill Shift's own cooldown scales hard with how it's used
-// (cancelSkillShift, js/skills/skill-shift.js): entering the domain and just cancelling
-// under 2s costs only ~1.1s CD and still wipes every enemy bullet within
-// ~45% of the screen on exit, while an actual teleport always costs the
-// full 9s regardless of hold length - so the pilot treats them as two
-// different tools, a cheap panic-clear for moderate heat and a real
-// (longer-held, bigger-distance) reposition saved for serious danger or low
-// lives, rather than always doing the same short-hold-then-teleport combo.
-// A (self-homing orbs) and S (summon) fire purely on cooldown since there's
-// never a wrong time for either; D (pull+instakill) and F's normal sweep
-// only fire with a real enemy on screen so they're not wasted into empty
-// air, though a banked Great Sage gem still fires through F unconditionally
-// since that's free and never touches F's own cooldown. Cancer's Riptide
-// Surge gets the same Space priority it has for a real player: a banked
-// release fires the instant it's ready. When nothing's dangerous, movement
-// keeps a slow continuous patrol across the middle of the screen instead of
-// parking still, so it's always mid-repositioning for whatever shows up
-// next. Meant for hands-off soak testing (e.g. watching [PROF]/[LONGTASK]
-// output over a long run) without needing to actually play.
+// Autoplay: a threat-aware pilot that steers every frame. It measures where
+// every enemy, bullet and chain is heading, simulates walking the ship to
+// about thirty points across the screen over the next 0.8s, and takes the
+// walk whose path overlaps the least danger, leaning toward standing under
+// the nearest real enemy since shots only go up. When even the safest walk
+// still overlaps something it spends Skill Shift: a short cancel-only hold for
+// moderate heat (cheap ~1.1s CD, wipes nearby bullets on exit) or a long hold
+// and real teleport for serious heat or low lives. A, S and G fire on cooldown,
+// D and F only with a real enemy on screen, banked Space releases fire the
+// moment they are ready, and the sigil picker is answered with a random card.
+// Meant for hands-off soak testing without needing to actually play.
 let _autoplayTimer = null;
 let _autoplayShiftReleaseAt = 0;   // 0 = not currently holding Shift
 let _autoplayShiftMode = null;     // 'clear' (cancel only) or 'teleport', set when the hold starts
 let _autoplayChargeReleaseAt = 0;  // 0 = not currently holding Space
 let _autoplayPatrolDir = 1;        // continuous idle sweep direction when nothing's dangerous
+let _autoplayLastTickAt = 0;       // performance.now() of the previous tick, turns pixel deltas into per-frame speeds
+let _autoplaySkillsAt = 0;         // skills are polled on their own slower cadence than steering
+let _autoplayGoalX = null;         // the x the pilot is currently walking to, kept between ticks so it does not dither
+let _autoplayVelocity = new WeakMap(); // measured {x, y, vx, vy} per enemy, for bodies that move without a plain vx/vy
+window._autoplayStats = { tickMs: 0, ticks: 0, shiftClear: 0, shiftTeleport: 0, maxDanger: 0, lastDanger: 0, goalX: null, aimX: null };
 
-const AUTOPLAY_DANGER_LOOKAHEAD = 100; // in vx/vy's own per-frame units (~1.6s at 60fps)
-const AUTOPLAY_STEP = 90; // px a candidate dodge step is scored against
+const AUTOPLAY_HORIZON = 48;        // frames of the future every candidate walk is simulated over (0.8s at 60fps)
+const AUTOPLAY_SAMPLE = 3;          // the simulation checks every 3rd frame
+const AUTOPLAY_CANDIDATES = 29;     // stay put plus walks to points spread over the reachable part of the screen
+const AUTOPLAY_MAX_THREATS = 70;    // only the closest threats to the ship's row are simulated
 
-// Every live threat that will cross the player's y-row within the lookahead
-// window, with where it'll actually be when it gets there.
-function _autoplayScanThreats() {
+// Moving things are measured between ticks so enemy bodies, chains and anything
+// else that drifts without exposing vx/vy still get a velocity. Bullets keep
+// their own exact vx/vy.
+function _autoplayThreatVelocity(e, frames) {
+    const prev = _autoplayVelocity.get(e);
+    let vx = 0, vy = 0;
+    if (typeof e.vx === 'number' && typeof e.vy === 'number' && e.type && e.type.startsWith('enemy_bullet')) {
+        vx = e.vx; vy = e.vy;
+    } else if (prev && frames > 0) {
+        vx = (e.x - prev.x) / frames; vy = (e.y - prev.y) / frames;
+        vx = prev.vx * 0.4 + vx * 0.6; vy = prev.vy * 0.4 + vy * 0.6; // a little smoothing so one teleport does not look like a rocket
+    } else if (typeof e.vx === 'number' && typeof e.vy === 'number') {
+        vx = e.vx; vy = e.vy;
+    }
+    _autoplayVelocity.set(e, { x: e.x, y: e.y, vx, vy });
+    return { vx, vy };
+}
+
+// Everything that can hurt the ship, with position, velocity and a hit radius
+// (the part of its own size that actually collides plus a safety fringe).
+function _autoplayScanThreats(frames) {
     const threats = [];
     for (const e of enemies) {
-        if (e.hp <= 0 || e.inCoronation) continue;
-        if (typeof e.vx !== 'number' || typeof e.vy !== 'number' || e.vy <= 0.01) continue;
+        if (e.hp <= 0 || e.inCoronation || e._tut || e.type === 'veilshroud_echo') continue;
+        const v = _autoplayThreatVelocity(e, frames);
+        const isBullet = !!(e.type && e.type.startsWith('enemy_bullet'));
+        const radius = isBullet ? e.size : (e.size ? e.size * 0.5 : 20);
         const dy = player.y - e.y;
-        if (dy <= 0) continue; // already past the player's row
-        const framesToArrival = dy / e.vy;
-        if (framesToArrival > AUTOPLAY_DANGER_LOOKAHEAD) continue; // too far out to plan around yet
-        const arrivalX = e.x + e.vx * framesToArrival;
-        const radius = e.type && e.type.startsWith('enemy_bullet') ? e.size : (e.size ? e.size / 2 : 20);
-        threats.push({ arrivalX, radius, framesToArrival });
+        // already below the ship and moving away: it can no longer reach the ship's row
+        if (dy < -(radius + 30) && v.vy >= 0) continue;
+        // too far above to matter inside the horizon
+        if (dy > 0 && v.vy <= 0.01 && dy > radius + 40) continue;
+        if (dy > 0 && v.vy > 0.01 && dy / v.vy > AUTOPLAY_HORIZON + 20) continue;
+        threats.push({ x: e.x, y: e.y, vx: v.vx, vy: v.vy, radius, isBullet, dyAbs: Math.abs(dy) });
+    }
+    // Boss skills that live in their own arrays instead of `enemies`. Each is
+    // reduced to a moving circle (t0 = frames until it starts to move, 0 when
+    // it already flies) or a one-shot line that hits at fireAt.
+    for (const b of marchosiasBlades) {
+        if (b.hitPlayer || b.hp <= 0) continue;
+        threats.push({ x: b.x, y: b.y, vx: b.vx, vy: b.vy, radius: b.radius, t0: b.active ? 0 : Math.max(0, b.delay / 16.67), isBullet: true, dyAbs: Math.abs(player.y - b.y) });
+    }
+    for (const s of (window._urielHolySwords || [])) {
+        if (s._hitPlayer) continue;
+        threats.push({ x: s.x, y: s.y, vx: s.vx, vy: s.vy, radius: 46, t0: 0, isBullet: true, dyAbs: Math.abs(player.y - s.y) });
+    }
+    for (const l of raphaelLasers) {
+        if (l.fired) continue;
+        const delay = Math.max(0, l.delay / 16.67);
+        threats.push({ seg: { x1: l.start.x, y1: l.start.y, x2: l.end.x, y2: l.end.y }, fireAt: delay, radius: 15, dyAbs: 0 });
+    }
+    if (threats.length > AUTOPLAY_MAX_THREATS) {
+        threats.sort((a, b) => a.dyAbs - b.dyAbs);
+        threats.length = AUTOPLAY_MAX_THREATS;
     }
     return threats;
 }
-// Aggregate danger score if the player were standing at x - higher for
-// threats that are both closer to x and sooner to arrive.
-function _autoplayDangerAt(threats, x, margin) {
+
+// distance from a point to a line segment, squared
+function _autoplaySegDist2(px, py, s) {
+    const dx = s.x2 - s.x1, dy = s.y2 - s.y1, len2 = dx * dx + dy * dy;
+    const u = len2 > 0 ? Math.max(0, Math.min(1, ((px - s.x1) * dx + (py - s.y1) * dy) / len2)) : 0;
+    const cx = s.x1 + dx * u - px, cy = s.y1 + dy * u - py;
+    return cx * cx + cy * cy;
+}
+
+// Walks the ship from startX toward goalX at its real speed and adds up how
+// badly every threat overlaps it along the way, earlier overlaps counting more.
+function _autoplayWalkDanger(threats, startX, goalX, stepPerFrame, margin) {
+    const dir = goalX > startX ? 1 : -1, total = Math.abs(goalX - startX);
+    const py = player.y, hr = player.hitRadius;
     let danger = 0;
-    for (const t of threats) {
-        const band = t.radius + player.hitRadius + margin;
-        const d = Math.abs(x - t.arrivalX);
-        if (d < band) danger += (band - d) / Math.max(t.framesToArrival, 4);
+    for (let f = 0; f <= AUTOPLAY_HORIZON; f += AUTOPLAY_SAMPLE) {
+        const px = startX + dir * Math.min(total, stepPerFrame * f);
+        const urgency = 1 / (1 + f / 14);
+        for (const t of threats) {
+            let d2;
+            const band = t.radius + hr + margin;
+            if (t.seg) {
+                // a laser only hurts at the moment it fires
+                if (Math.abs(f - t.fireAt) > AUTOPLAY_SAMPLE) continue;
+                d2 = _autoplaySegDist2(px, py, t.seg);
+            } else {
+                const fly = Math.max(0, f - (t.t0 || 0));
+                const dx = px - (t.x + t.vx * fly), dy = py - (t.y + t.vy * fly);
+                d2 = dx * dx + dy * dy;
+            }
+            if (d2 >= band * band) continue;
+            const depth = 1 - Math.sqrt(d2) / band;
+            danger += depth * depth * urgency * (t.radius + hr + 4 > Math.sqrt(d2) ? 4 : 1); // an actual touch is far worse than a close pass
+        }
     }
     return danger;
 }
 
-// Extracted out of _setDebugAutoplay's setInterval callback so a fast-
-// forwarded simulation (e.g. a verification script driving update()
-// directly, without real wall-clock time passing) can call this same
-// decision logic on its own simulated cadence instead of waiting on the
-// real 200ms interval below, which never fires while that kind of script
-// blocks the event loop between real ticks.
+// The enemy worth standing under: the closest real body above the ship, with
+// bosses weighed as nearer than they are because killing them ends the wave.
+function _autoplayAimX() {
+    let best = null, bestScore = Infinity;
+    for (const e of enemies) {
+        if (e.hp <= 0 || e.inCoronation || !e.type || e.type.startsWith('enemy_bullet') || e.type === 'abyssal_chain' || e.type === 'veilshroud_echo') continue;
+        if (e.y > player.y - 20) continue;
+        const dist = Math.hypot(e.x - player.x, (player.y - e.y) * 0.5);
+        const score = dist - (e.size > 90 ? 220 : 0);
+        if (score < bestScore) { bestScore = score; best = e; }
+    }
+    return best ? best.x : null;
+}
+
+// Picks a card and confirms it the way a click would, so a run never stalls on the sigil picker.
+function _autoplayHandleSigilPicker() {
+    const p = window._sigilPicker;
+    if (!p) return false;
+    if (p.phase === 'choosing_sigil') {
+        if (!p.selectedSigil && p.options.length) p.selectedSigil = p.options[Math.floor(Math.random() * p.options.length)];
+        if (p.selectedSigil && performance.now() - p.startTime > 2200) {
+            p.phase = 'fly_in';
+            p.flyStart = performance.now();
+            p.flyParticles = [];
+        }
+    }
+    return true;
+}
+
+// Steering runs every tick (every frame in the browser), skills are polled on a
+// slower beat. Also callable by a verification script that drives update()
+// itself, at any cadence, without waiting on a real timer.
 function _autoplayTick() {
-        if (!window._debugAutoplay || typeof gameState === 'undefined' || gameState !== 'playing' || gamePaused) return;
-        const now = performance.now();
+    if (!window._debugAutoplay || typeof gameState === 'undefined' || gameState !== 'playing' || gamePaused) return;
+    if (_autoplayHandleSigilPicker()) { keys.left = false; keys.right = false; return; }
+    const now = performance.now();
+    const frames = _autoplayLastTickAt ? Math.max(1, Math.min(12, (now - _autoplayLastTickAt) / 16.667 * (window._debugGameSpeed || 1))) : 1;
+    _autoplayLastTickAt = now;
+    window._autoplayStats.ticks++;
 
-        // More cautious the fewer lives are left: a wider safety margin
-        // means every threat starts getting dodged earlier and further out.
-        const livesNow = typeof lives === 'number' ? lives : START_LIVES;
-        const margin = 55 + Math.max(0, START_LIVES - livesNow) * 5;
+    // More cautious the fewer lives are left: a wider safety margin
+    // means every threat starts getting dodged earlier and further out.
+    const livesNow = typeof lives === 'number' ? lives : START_LIVES;
+    const margin = 28 + Math.max(0, START_LIVES - livesNow) * 3;
 
-        // Skill economy: A (self-homing orbs) and S (summons an ally) are
-        // never a wrong time to use, so they stay pure on-cooldown. D
-        // (pull+instakill) and F's normal sweep only fire with a real
-        // target on screen - excludes bullets/chains/coronation, same
-        // filter the mechanics themselves use for "a real enemy". A
-        // banked Great Sage gem always fires through F regardless (it's
-        // free and never touches F's own cooldown, see activateSkillF).
+    if (now - _autoplaySkillsAt >= 150) {
+        _autoplaySkillsAt = now;
+        // A, S and G never have a wrong moment so they stay on cooldown. D (pull
+        // and instakill) and F's sweep only fire with a real enemy on screen;
+        // a banked Great Sage gem always fires through F (free, no F cooldown).
         const _realEnemyCount = enemies.filter(e =>
             !e.type.startsWith('enemy_bullet') && e.type !== 'abyssal_chain' && e.type !== 'veilshroud_echo' && !e.inCoronation).length;
         const _greatSageGemReady = typeof _hasBuff === 'function' && _hasBuff('cuop_bao_tang')
             && typeof _greatSageGems !== 'undefined' && _greatSageGems.length > 0;
-
         if (typeof activateSkillA === 'function') activateSkillA();
         if (typeof activateSkillS === 'function') activateSkillS();
         if (typeof activateSkillD === 'function' && _realEnemyCount > 0) activateSkillD();
         if (typeof activateSkillF === 'function' && (_realEnemyCount > 0 || _greatSageGemReady)) activateSkillF();
         if (typeof activateSkillG === 'function') activateSkillG();
-
-        // Cancer's Riptide Surge, Leo's Divine Fate, then Capricorn's Mountainfall: a banked release is
-        // free (doesn't touch any other cooldown) and just needs a Space press
-        // whenever it's ready, same priority Space itself gives it in input.js.
+        // a banked Space release (Cancer, Leo, Capricorn) is free, so it fires the moment it is ready
         if ((window._tidalSurgeReady || window._leoFateReady || window._capricornReady) && typeof _releaseReadySpaceSigil === 'function'
             && !(typeof player !== 'undefined' && player._silenced)) {
             _releaseReadySpaceSigil();
         }
+    }
 
-        // Movement + Skill Shift engage: both driven off the same
-        // threat scan, since "is walking alone enough" is exactly the
-        // signal that decides whether Shift is even worth spending.
-        if (_autoplayShiftReleaseAt === 0) {
-            const threats = _autoplayScanThreats();
-            const leftX = Math.max(player.width / 2, player.x - AUTOPLAY_STEP);
-            const rightX = Math.min(canvas.width - player.width / 2, player.x + AUTOPLAY_STEP);
-            const dHere = _autoplayDangerAt(threats, player.x, margin);
-            const dLeft = _autoplayDangerAt(threats, leftX, margin);
-            const dRight = _autoplayDangerAt(threats, rightX, margin);
-
-            let dir = 0, bestScore = dHere; // 0 = stay, ties favor staying put
-            if (dLeft < bestScore) { bestScore = dLeft; dir = -1; }
-            if (dRight < bestScore) { bestScore = dRight; dir = 1; }
-
-            if (bestScore < 0.05 && dir === 0) {
-                // Nothing dangerous anywhere nearby: don't just park -
-                // keep a slow continuous patrol sweep across the middle
-                // of the screen (never standing still) so there's always
-                // equal room to dodge either way the instant something
-                // shows up, and it still visibly "plays" during a lull.
-                const center = canvas.width / 2, patrolRange = 160;
-                if (player.x <= center - patrolRange) _autoplayPatrolDir = 1;
-                else if (player.x >= center + patrolRange) _autoplayPatrolDir = -1;
-                dir = _autoplayPatrolDir;
-            }
-            keys.left = dir < 0;
-            keys.right = dir > 0;
-
-            // bestScore is "how dangerous the safest available option
-            // still is" - if walking alone can't get it near zero,
-            // Skill Shift is genuinely worth spending here.
-            if (bestScore > 0.05 && !skillShiftActive && now - lastSkillShift >= skillShiftCooldown
-                && !(typeof player !== 'undefined' && player._silenced)) {
-                const critical = bestScore > 0.6 || livesNow <= 3;
-                keys.left = false; keys.right = false; // Iron Body covers us during the hold, no need to also drift
-                skillShiftActive = true;
-                window._shiftActive = true;
-                // Force FULL tier for the domain's own showcase effects, same reasoning as input.js's real activation.
-                if (window._smartQuality !== false && typeof window._applyGfxLevel === 'function') window._applyGfxLevel(0);
-                skillShiftChargeStart = now;
-                if (window.AudioMgr) { window.AudioMgr.enterTimeDomain(); window.AudioMgr.playSfx('shift-hold'); }
-                if (typeof _hasBuff === 'function' && _hasBuff('coi_mong')) {
-                    window._coiMongEndTime = now + 2500; // docs/combat-scaling-rebalance.md Part 5
-                    for (const _e of enemies) {
-                        if (_e.type.startsWith('enemy_bullet') || _e.type === 'abyssal_chain' || _e.inCoronation) continue;
-                        if (!_e._yogMark) {
-                            _e._yogMark = true; _e._yogMarkStart = now; _e._yogMarkAccum = 0;
-                            applyVulnerability(_e);
-                        }
-                    }
-                }
-                // Moderate heat: short hold, cancel only, cheap ~1.1s CD.
-                // Serious heat (or lives running low): hold toward full
-                // charge and actually teleport, accepting the flat 9s CD.
-                _autoplayShiftMode = critical ? 'teleport' : 'clear';
-                _autoplayShiftReleaseAt = now + (critical ? 2900 : 1800);
-            }
-        } else if (now >= _autoplayShiftReleaseAt) {
-            _autoplayShiftReleaseAt = 0;
-            if (skillShiftActive) {
-                if (_autoplayShiftMode === 'teleport') {
-                    const threats = _autoplayScanThreats();
-                    const maxDist = canvas.width / 2;
-                    const leftX = Math.max(player.width / 2, player.x - maxDist);
-                    const rightX = Math.min(canvas.width - player.width / 2, player.x + maxDist);
-                    const dir = _autoplayDangerAt(threats, leftX, margin) <= _autoplayDangerAt(threats, rightX, margin) ? 'left' : 'right';
-                    executeShiftTeleport(dir);
-                } else {
-                    cancelSkillShift(); // no reposition needed - just the cheap CD + bullet wipe on exit
-                }
-            }
-            _autoplayShiftMode = null;
+    // Movement and Skill Shift both come from the same walk simulation: the
+    // pilot scores walking to many points across the screen and the safest one
+    // wins, so "walking alone is not enough" is exactly the signal for Shift.
+    if (_autoplayShiftReleaseAt === 0) {
+        const threats = _autoplayScanThreats(frames);
+        const step = player.speed * (window._phoneMoveMult || 1);
+        const minX = player.width / 2, maxX = canvas.width - player.width / 2;
+        const aimX = _autoplayAimX();
+        const reach = step * AUTOPLAY_HORIZON * 0.75;
+        const lo = Math.max(minX, player.x - reach), hi = Math.min(maxX, player.x + reach);
+        let goal = player.x, bestCost = Infinity, bestDanger = Infinity;
+        for (let i = 0; i < AUTOPLAY_CANDIDATES; i++) {
+            const cx = i === 0 ? player.x : lo + (hi - lo) * ((i - 1) / (AUTOPLAY_CANDIDATES - 2));
+            const danger = cx === player.x
+                ? _autoplayWalkDanger(threats, player.x, player.x, step, margin)
+                : _autoplayWalkDanger(threats, player.x, cx, step, margin);
+            // shots only go up, so standing under a target is worth a little; walking far costs a little
+            const aim = aimX === null ? 0 : Math.min(Math.abs(cx - aimX), 500) * 0.0035;
+            const travel = Math.abs(cx - player.x) * 0.0006;
+            const stick = _autoplayGoalX !== null && Math.abs(cx - _autoplayGoalX) < 30 ? -0.05 : 0;
+            const cost = danger * 10 + aim + travel + stick;
+            if (cost < bestCost) { bestCost = cost; bestDanger = danger; goal = cx; }
         }
 
-        // Charged Space shot: hold to maxChargeTime for a max-multiplier
-        // charged bullet (Cycle of Flow's insta-fire path is left to the
-        // instant branch below, matching the real keydown's own check).
-        if (_autoplayChargeReleaseAt === 0) {
-            if (!charging && !laserActive && !skillShiftActive) {
-                if (typeof _hasBuff === 'function' && _hasBuff('dong_chay_luan_hoi')) {
-                    if (now >= laserCooldownEnd && typeof _activateOverloadLaser === 'function') {
-                        _activateOverloadLaser(now);
-                        if (typeof _piscesInstantCast === 'function') _piscesInstantCast('SPC');
+        let dir = 0;
+        if (Math.abs(goal - player.x) > step * 0.9) dir = goal > player.x ? 1 : -1;
+        if (dir === 0 && bestDanger < 0.02 && aimX === null) {
+            // nothing to shoot or avoid: sweep gently across the middle so the ship is never parked
+            const center = canvas.width / 2, patrolRange = 160;
+            if (player.x <= center - patrolRange) _autoplayPatrolDir = 1;
+            else if (player.x >= center + patrolRange) _autoplayPatrolDir = -1;
+            dir = _autoplayPatrolDir;
+        }
+        _autoplayGoalX = goal;
+        keys.left = dir < 0;
+        keys.right = dir > 0;
+        window._autoplayStats.lastDanger = bestDanger;
+        window._autoplayStats.goalX = Math.round(goal);
+        window._autoplayStats.aimX = aimX === null ? null : Math.round(aimX);
+        if (bestDanger > window._autoplayStats.maxDanger) window._autoplayStats.maxDanger = bestDanger;
+
+        // even the safest walk still overlaps something: Skill Shift is worth spending
+        if (bestDanger > 0.9 && !skillShiftActive && now - lastSkillShift >= skillShiftCooldown
+            && !(typeof player !== 'undefined' && player._silenced)) {
+            const critical = bestDanger > 3 || livesNow <= 3;
+            keys.left = false; keys.right = false; // Iron Body covers us during the hold, no need to also drift
+            skillShiftActive = true;
+            window._shiftActive = true;
+            // Force FULL tier for the domain's own showcase effects, same reasoning as input.js's real activation.
+            if (window._smartQuality !== false && typeof window._applyGfxLevel === 'function') window._applyGfxLevel(0);
+            skillShiftChargeStart = now;
+            if (window.AudioMgr) { window.AudioMgr.enterTimeDomain(); window.AudioMgr.playSfx('shift-hold'); }
+            if (typeof _hasBuff === 'function' && _hasBuff('coi_mong')) {
+                window._coiMongEndTime = now + 2500; // docs/combat-scaling-rebalance.md Part 5
+                for (const _e of enemies) {
+                    if (_e.type.startsWith('enemy_bullet') || _e.type === 'abyssal_chain' || _e.inCoronation) continue;
+                    if (!_e._yogMark) {
+                        _e._yogMark = true; _e._yogMarkStart = now; _e._yogMarkAccum = 0;
+                        applyVulnerability(_e);
                     }
-                } else {
-                    charging = true; chargeStartTime = now;
-                    if (window.AudioMgr) window.AudioMgr.startCharging();
-                    _autoplayChargeReleaseAt = now + maxChargeTime;
                 }
             }
-        } else if (now >= _autoplayChargeReleaseAt) {
-            _autoplayChargeReleaseAt = 0;
-            if (charging && !laserActive) {
-                const chargeDuration = now - chargeStartTime;
-                if (chargeDuration < overloadChargeTime) {
-                    const multiplier = 1 + ((Math.min(chargeDuration, maxChargeTime) / maxChargeTime) * (maxMultiplier - 1));
-                    fireChargedBullet(Math.min(multiplier, maxMultiplier));
-                }
-                charging = false;
-                if (window.AudioMgr) window.AudioMgr.stopCharging();
+            // Moderate heat: short hold, cancel only, cheap ~1.1s CD.
+            // Serious heat (or lives running low): hold toward full
+            // charge and actually teleport, accepting the flat 9s CD.
+            _autoplayShiftMode = critical ? 'teleport' : 'clear';
+            _autoplayShiftReleaseAt = now + (critical ? 2900 : 1800);
+            if (critical) window._autoplayStats.shiftTeleport++; else window._autoplayStats.shiftClear++;
+        }
+    } else if (now >= _autoplayShiftReleaseAt) {
+        _autoplayShiftReleaseAt = 0;
+        if (skillShiftActive) {
+            if (_autoplayShiftMode === 'teleport') {
+                const threats = _autoplayScanThreats(frames);
+                const step = player.speed * (window._phoneMoveMult || 1);
+                const maxDist = canvas.width / 2;
+                const leftX = Math.max(player.width / 2, player.x - maxDist);
+                const rightX = Math.min(canvas.width - player.width / 2, player.x + maxDist);
+                const dir = _autoplayWalkDanger(threats, leftX, leftX, step, 40) <= _autoplayWalkDanger(threats, rightX, rightX, step, 40) ? 'left' : 'right';
+                executeShiftTeleport(dir);
+            } else {
+                cancelSkillShift(); // no reposition needed - just the cheap CD + bullet wipe on exit
             }
         }
+        _autoplayShiftMode = null;
+    }
+
+    // Charged Space shot: hold to maxChargeTime for a max-multiplier
+    // charged bullet (Cycle of Flow's insta-fire path is left to the
+    // instant branch below, matching the real keydown's own check).
+    if (_autoplayChargeReleaseAt === 0) {
+        if (!charging && !laserActive && !skillShiftActive) {
+            if (typeof _hasBuff === 'function' && _hasBuff('dong_chay_luan_hoi')) {
+                if (now >= laserCooldownEnd && typeof _activateOverloadLaser === 'function') {
+                    _activateOverloadLaser(now);
+                    if (typeof _piscesInstantCast === 'function') _piscesInstantCast('SPC');
+                }
+            } else {
+                charging = true; chargeStartTime = now;
+                if (window.AudioMgr) window.AudioMgr.startCharging();
+                _autoplayChargeReleaseAt = now + maxChargeTime;
+            }
+        }
+    } else if (now >= _autoplayChargeReleaseAt) {
+        _autoplayChargeReleaseAt = 0;
+        if (charging && !laserActive) {
+            const chargeDuration = now - chargeStartTime;
+            if (chargeDuration < overloadChargeTime) {
+                const multiplier = 1 + ((Math.min(chargeDuration, maxChargeTime) / maxChargeTime) * (maxMultiplier - 1));
+                fireChargedBullet(Math.min(multiplier, maxMultiplier));
+            }
+            charging = false;
+            if (window.AudioMgr) window.AudioMgr.stopCharging();
+        }
+    }
+}
+
+// Steering has to react every frame, not on a coarse interval, because the ship
+// covers about 100px in 200ms.
+function _autoplayLoop() {
+    if (!window._debugAutoplay) { _autoplayTimer = null; return; }
+    const began = performance.now();
+    try { _autoplayTick(); } catch (err) { console.error('[autoplay]', err); }
+    window._autoplayStats.tickMs += performance.now() - began;
+    _autoplayTimer = requestAnimationFrame(_autoplayLoop);
 }
 
 function _setDebugAutoplay(on) {
@@ -242,7 +345,11 @@ function _setDebugAutoplay(on) {
         _autoplayShiftMode = null;
         _autoplayChargeReleaseAt = 0;
         _autoplayPatrolDir = 1;
-        _autoplayTimer = setInterval(_autoplayTick, 200);
+        _autoplayLastTickAt = 0;
+        _autoplaySkillsAt = 0;
+        _autoplayGoalX = null;
+        _autoplayVelocity = new WeakMap();
+        _autoplayTimer = requestAnimationFrame(_autoplayLoop);
     } else {
         keys.left = false;
         keys.right = false;
@@ -251,7 +358,7 @@ function _setDebugAutoplay(on) {
         _autoplayShiftReleaseAt = 0;
         _autoplayShiftMode = null;
         _autoplayChargeReleaseAt = 0;
-        if (_autoplayTimer) { clearInterval(_autoplayTimer); _autoplayTimer = null; }
+        if (_autoplayTimer) { cancelAnimationFrame(_autoplayTimer); _autoplayTimer = null; }
     }
 }
 
