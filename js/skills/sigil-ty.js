@@ -316,7 +316,7 @@ function _tyOpenArray() {
         if (_tyIsTarget(e) && !_isCCImmune(e) && !_capIsGoliath(e)
             && Math.hypot(e.x - player.x, e.y - player.y) <= 220) e._tySlowEnd = window._tyClock + 2000;
     }
-    if (window.AudioMgr) window.AudioMgr.playSfxAt('ty-array-open', _tyArray.x, _tyArray.y);
+    if (window.AudioMgr) { window.AudioMgr.playSfxAt('ty-array-open', _tyArray.x, _tyArray.y); window.AudioMgr.playSfx('ty-serpent-cry'); }
     return true;
 }
 

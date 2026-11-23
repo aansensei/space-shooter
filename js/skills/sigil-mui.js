@@ -282,6 +282,7 @@ function _muiRelease() {
     const ch = typeof canvas !== 'undefined' && canvas ? canvas.height : 720;
     window._muiQi = 0;
     window._muiReady = false;
+    window._muiScreenFx = null;
     window._muiWindupMs = MUI_WINDUP_MS;
     window._muiWindupFx = {
         id: ++window._muiWindupId,
@@ -317,6 +318,13 @@ function _muiStartLegion(now) {
 
     const px = typeof player !== 'undefined' && player ? player.x : 400;
     const py = typeof player !== 'undefined' && player ? player.y : 500;
+    window._muiScreenFx = { start: window._muiClock, age: 0, endAge: -1, phase: 0, x: px, y: py };
+    if (typeof _setShake === 'function'
+        && !window._gfxLevel && !(typeof _mobPerf !== 'undefined' && _mobPerf)
+        && window._screenShakeEnabled !== false && !window._fxOpts?.reducedMotion
+        && !(typeof matchMedia === 'function' && matchMedia('(prefers-reduced-motion: reduce)').matches)) {
+        _setShake(3, 210);
+    }
     const arr = window._muiArray;
     arr.active = true;
     arr.id = ++window._muiArrayCounter;
@@ -325,6 +333,7 @@ function _muiStartLegion(now) {
     arr.tickAccum = MUI_ARRAY_TICK_MS;
     _muiArrayPickCenters(px, py, typeof canvas !== 'undefined' && canvas ? canvas.width : 1280, Math.random, arr.zones);
     _muiPlaySfx('mui-legion-burst', px, py, 0, null);
+    _muiPlaySfx('mui-warden-cry', px, py, 0, null);
     _muiPlaySfx('mui-array-open', px, py - MUI_ARRAY_ABOVE_SHIP, 0, null);
 }
 
@@ -612,6 +621,15 @@ function _muiBeginFrame(deltaTime, now) {
         _muiAddQi(deltaTime / 1000);
     }
 
+    const screenFx = window._muiScreenFx;
+    if (screenFx) {
+        screenFx.age = window._muiClock - screenFx.start;
+        screenFx.phase = window._muiRemainMs <= 600 ? 2 : screenFx.age < 700 ? 0 : 1;
+        if (window._muiRemainMs === 0) {
+            screenFx.endAge = Math.max(0, screenFx.age - MUI_LEGION_MS);
+            if (screenFx.endAge >= 500) window._muiScreenFx = null;
+        }
+    }
     _muiUpdateArray(deltaTime, now);
 }
 
@@ -782,6 +800,7 @@ function _muiReset() {
     window._muiReady = false;
     window._muiWindupMs = 0;
     window._muiWindupFx = null;
+    window._muiScreenFx = null;
     window._muiWindupId = 0;
     window._muiLegionJustStarted = false;
     window._muiRemainMs = 0;

@@ -160,6 +160,7 @@
             this.hpBarHeavyShake = 0;
             this.bossPhaseMorph = 0;
             this._phaseAudioStep = 0;
+            this._phaseRoarPlayed = false;
             this._lockedSweepDirection = 1;
             this._shieldBreakAnim = 0;
             this._shieldRestoreAnim = 0;
@@ -575,6 +576,7 @@
             this.result = null;
             this.quit = false;
             this._idleVoice = null;
+            this._openingRoar = null;
             this._lowHpVo5 = false;
             this._cockpit = null;
             this._failedVoicePlayed = false;
@@ -821,6 +823,7 @@
                 this.bossVel = { x: 0, y: 0 };
                 this._evolutionShards = [];
                 this._phaseAudioStep = 0;
+                this._phaseRoarPlayed = false;
                 this.transitionInfo = { phase: nextPhase, prevPhase: currentPhase, nextIndex: nextAttackId };
                 this.recoveryRemaining = Math.max(this.recoveryRemaining, 1.5);
                 // Free shield recharge on phase transition
@@ -1035,6 +1038,8 @@
                         try { window.AudioMgr.stopEgregorCrawl(); } catch (_) {}
                     }
                     this.beginAttack(ATTACK_SEQUENCE[this.chosenAttackIndex]);
+                    // the first form answers with its own roar once the fight has begun
+                    this._openingRoar = { wait: 0.4, tries: 0 };
                 }
                 return;
             }
@@ -1083,6 +1088,11 @@
                                 size: 8 + (sh % 4) * 4, life: 1.1, maxLife: 1.1
                             });
                         }
+                    }
+                    // the form that just emerged answers with its own roar, boosted and held back half a second so the evolve roar does not bury it; a busy mix may refuse it, so it is retried until the morph ends
+                    if (!this._phaseRoarPlayed && tEl >= burstAt + 0.5 && tEl < 4.4 && window.AudioMgr
+                        && window.AudioMgr.playSfxAt('egregor-idle-p' + nextP + '-roar', this.bossPos.x, this.bossPos.y, nextP, 1.9)) {
+                        this._phaseRoarPlayed = true;
                     }
                     this.bossPhaseMorph = nextP - 2 + smoothRelease((tEl - 2.78) / 1.28);
                     if (tEl >= 3.35 && this._phaseAudioStep < 3) {
@@ -1374,6 +1384,16 @@
             const def = this.attacks && Attacks.ATTACK_DEFS[this.attacks.currentAttackId];
             if (!am || !def || !(def.phase >= 1 && def.phase <= 3)) return;
             const v = this._idleVoice || (this._idleVoice = { clock: 0, next: 8 + Math.random() * 6, lastRoar: -999 });
+            const opening = this._openingRoar;
+            if (opening) {
+                opening.wait -= dt;
+                if (opening.wait <= 0) {
+                    // a busy mix can refuse the sound, so it is retried a few times, then dropped
+                    if (am.playSfxAt('egregor-idle-p1-roar', this.bossPos.x, this.bossPos.y, 1, 1.5)) { this._openingRoar = null; v.lastRoar = v.clock; }
+                    else if (++opening.tries >= 4) this._openingRoar = null;
+                    else opening.wait = 0.5;
+                }
+            }
             v.clock += dt;
             if (v.clock < v.next || this.attacks.elapsed < 1.5 || this.shiftActive) return;
             const status = typeof am.getDuelAudioStatus === 'function' ? am.getDuelAudioStatus() : null;

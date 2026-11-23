@@ -727,6 +727,8 @@
         'mui-blade-launch': 0.65, 'mui-iron-block': 0.85, 'mui-legion-end': 0.85,
         'mui-qi-ready': 0.75, 'mui-root-bind': 0.80, 'mui-blade-hit': 0.60,
         'mui-pool-echo': 0.70,
+        // the zodiac cries: Mui's horn call when the Legion bursts, Ty's hiss when the Serpent Array opens
+        'mui-warden-cry': 0.90, 'ty-serpent-cry': 0.90,
     };
 
     // Positional sfx fall off with distance from the player ship. maxRangeFrac
@@ -1228,7 +1230,8 @@
     function _duelGain(sound, key) {
         return sfxGain(key) * _duelGroupVolumes[sound.group];
     }
-    function playDuelSfx(key, x, y, phase = 1) {
+    // boost scales the cue for the moments it has to stand above a loud mix (a form change roar)
+    function playDuelSfx(key, x, y, phase = 1, boost = 1) {
         if (!actx || !_duelActive || _duelPaused || _timeFrozen || state.muted) return null;
         const family = _duelFamilies[key];
         const logical = family ? key : key.replace(/-[abc]$/, '');
@@ -1248,7 +1251,7 @@
         if (phase >= 2 && _duelSounds[actual + '-p' + phase]) actual += '-p' + phase;
         const sound = _duelSounds[actual], pool = state.pool[actual];
         if (!sound || !pool) return null;
-        const gainValue = _duelGain(sound, actual);
+        const gainValue = _duelGain(sound, actual) * (boost > 0 ? boost : 1);
         if (gainValue <= 0) return null;
         _duelLast[logical] = now;
         if (family) _duelRound[key] = (_duelRound[key] || 0) + 1;
@@ -1422,8 +1425,8 @@
         tutorialLast.clear();
     }
 
-    function playSfxAt(key, x, y, phase) {
-        if (_duelSounds[key] || _duelFamilies[key]) return playDuelSfx(key, x, y, phase);
+    function playSfxAt(key, x, y, phase, boost) {
+        if (_duelSounds[key] || _duelFamilies[key]) return playDuelSfx(key, x, y, phase, boost);
         if (_timeFrozen) return;
         const p = state.pool[key];
         if (!p) return;
@@ -1982,6 +1985,8 @@
         _makeTyPool('ty-serpents-rise', 'skill-s-summon.mp3');
         _makeTyPool('ty-bite', 'enemy-hit.wav');
         _makeTyPool('ty-scale-break', 'shield-hit.wav');
+        _makePool('ty-serpent-cry', 'assets/audio/sfx/ty-serpent-cry.mp3', 1, false, true);
+        _makePool('mui-warden-cry', 'assets/audio/sfx/mui-warden-cry.mp3', 1, false, true);
         _makePool('mui-legion-call', 'assets/audio/sfx/mui-legion-call.mp3', 1, true, true);
         _makePool('mui-legion-burst', 'assets/audio/sfx/mui-legion-burst.mp3', 1, false, true);
         _makePool('mui-array-open', 'assets/audio/sfx/mui-array-open.mp3', 1, false, true);

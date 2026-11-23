@@ -2525,12 +2525,13 @@ function draw(deltaTime) {
 
     if (gameState === "playing") {
         _drawAmmitEntrances();
+        if (typeof _drawMuiScreenUnder === 'function') _drawMuiScreenUnder();
+        if (typeof _drawMuiArray === 'function') _drawMuiArray();
         _drawEnemyDangerWarnings();
         drawBossShockwaves();
         _drawUrielSwordTelegraphs();
         _drawRaphaelWisdomTelegraphs();
         _drawTyGround();
-        if (typeof _drawMuiArray === 'function') _drawMuiArray();
         sentinels.forEach(drawSentinel);
         // Vanguard Network threads (5+ sentinels)
         if (sentinels.length >= 5) _drawVanguardThreads();
@@ -2600,6 +2601,7 @@ function draw(deltaTime) {
         if (typeof _drawMuiCallDetail === 'function') _drawMuiCallDetail();
         if (typeof _drawMuiBlades === 'function') _drawMuiBlades();
         if (typeof _drawMuiImpacts === 'function') _drawMuiImpacts();
+        if (typeof _drawMuiScreenOver === 'function') _drawMuiScreenOver();
         if (typeof _drawBloodArrowTargetRings === 'function') _drawBloodArrowTargetRings();
         _drawVineBinds(); // Phōtokrystos DNT Vine Bind : growth + slow aura, on top of rooted enemies
         if (window._usePixi && window._pixiDrawBullets) {
