@@ -68,18 +68,31 @@
     // Decoded buffers by src, so a one-shot can start without a promise hop.
     const _decodedBuffers = {};
     const _decodeQueue = [];
-    let _decoding = 0;
-    function _queueDecode(load) {
+    let _decoding = 0, _decodingBig = 0;
+    // 2 = ui cues the player triggers right away, 1 = other short cues, 0 = music and the ambient bed.
+    // Music is big, so it queues behind every short cue and only one runs at a time.
+    function _decodePriority(src) {
+        if (/\/bgm\/(?!egregor-opening)|ingame\.mp3/.test(src)) return 0;
+        return /\/(click|hover|overlay|sigil-|new-wave|autoshot|enemy-|shield-hit|life-lost|skill-ready)/.test(src) ? 2 : 1;
+    }
+    function _queueDecode(load, priority = 1) {
         return new Promise(resolve => {
-            _decodeQueue.push({ load, resolve });
+            const job = { load, resolve, priority };
+            let at = _decodeQueue.length;
+            while (at > 0 && _decodeQueue[at - 1].priority < priority) at--;
+            _decodeQueue.splice(at, 0, job);
             _pumpDecodes();
         });
     }
     function _pumpDecodes() {
-        while (_decoding < 3 && _decodeQueue.length) {
-            const job = _decodeQueue.shift(); _decoding++;
+        while (_decoding < 4 && _decodeQueue.length) {
+            const at = _decodeQueue.findIndex(j => j.priority > 0 || _decodingBig === 0);
+            if (at < 0) return;
+            const job = _decodeQueue.splice(at, 1)[0]; _decoding++;
+            if (job.priority === 0) _decodingBig++;
             Promise.resolve().then(job.load).catch(() => null).then(buf => {
-                _decoding--; job.resolve(buf); _pumpDecodes();
+                _decoding--; if (job.priority === 0) _decodingBig--;
+                job.resolve(buf); _pumpDecodes();
             });
         }
     }
@@ -88,7 +101,7 @@
         if (_bufferCache[src]) return _bufferCache[src];
         const p = _queueDecode(() => fetch(src)
             .then(r => { if (!r.ok) { if (optional) return null; throw Error('Audio unavailable'); } return r.arrayBuffer(); })
-            .then(ab => ab && actx.decodeAudioData(ab)))
+            .then(ab => ab && actx.decodeAudioData(ab)), _decodePriority(src))
             .then(buf => {
                 if (buf && _bufferCache[src] === p) _decodedBuffers[src] = buf;
                 // Failed loads retain their settled promise until the next page load.
@@ -108,7 +121,8 @@
     const MAX_SFX_VOICES = 24;
     let _liveVoices = 0;
     function _playVoice(src, gainValue, bypass, capped) {
-        capped = capped || _duelActive;
+        // ship voices are rare and carry the defeat and low health calls, so a busy fight never drops them
+        capped = (capped || _duelActive) && !src.includes('/voice/');
         if (!actx || gainValue <= 0) return { cancel() {} };
         let cancelled = false, liveNode = null, liveGain = null;
         const start = buf => {
@@ -373,7 +387,8 @@
                 playing = false; token++; stopNodes(); parts.clear();
             },
         };
-        if (actx) loop.prepare();
+        // the 14MB bed waits until the menu cues have had the bandwidth; play() fetches it itself if needed sooner
+        if (actx) setTimeout(() => loop.prepare(), 6000);
         return loop;
     }
 
@@ -1071,15 +1086,15 @@
                 const rank = s => s.group === 'ui' ? 0 : /sensor|portal|emerge|lock-on/.test(s.key) ? 1 : s.loop ? 3 : 2;
                 return rank(a) - rank(b) || a.duration - b.duration;
             });
+            // the ship voices (defeat, low health, phase calls) are not duel sounds but play in every fight
+            const voices = Object.keys(state.pool).filter(k => k.startsWith('vo-')).map(k => state.pool[k].src);
+            const sources = order.filter(s => !s.optional).map(s => 'assets/audio/sfx/' + s.key + '.mp3');
+            sources.splice(order.filter(s => s.group === 'ui' && !s.optional).length, 0, ...voices);
+            // six at a time instead of one after another, so the wait is a few round trips rather than ninety
+            let next = 0;
             const result = [];
-            for (const sound of order) {
-                if (sound.optional) continue;
-                await new Promise(resolve => {
-                    if (window.requestIdleCallback) window.requestIdleCallback(resolve, { timeout: 100 });
-                    else setTimeout(resolve, 12);
-                });
-                result.push(await _decodeBuffer('assets/audio/sfx/' + sound.key + '.mp3'));
-            }
+            const worker = async () => { while (next < sources.length) result.push(await _decodeBuffer(sources[next++])); };
+            await Promise.all(Array.from({ length: 6 }, worker));
             return result;
         })();
         return _duelPrepared;
