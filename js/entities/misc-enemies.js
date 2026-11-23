@@ -305,14 +305,16 @@ function updateApostleCoronation(enemy, deltaTime) {
         // Must be at least partially visible on screen
         if (enemy.y < 0) return;
 
-        // Global limit: max 3 in 5 seconds
+        // One transformation start per eight seconds, sharing the roster's limits.
         const now = performance.now();
-        window._coronationHistory = window._coronationHistory.filter(t => now - t < 5000);
-        if (window._coronationHistory.length >= 3) return;
+        window._coronationHistory = window._coronationHistory.filter(t => now - t < 8000);
+        if (window._coronationHistory.length >= 1) return;
 
         const baseChance = enemy.y < canvas.height / 2 ? 0.0067 : 0.01;
         const chance = baseChance + (window._coronationDeathBonus || 0);
         if (Math.random() >= chance) return;
+        const type = _getCoronationTransformType();
+        if (!type) return;
 
         // Trigger Coronation, reset death bonus
         window._coronationDeathBonus = 0;
@@ -320,6 +322,12 @@ function updateApostleCoronation(enemy, deltaTime) {
         enemy.inCoronation = true;
         enemy.coronationTimer = 0;
         enemy.coronationDuration = 2200;
+        enemy._coronationType = type;
+        const tier = _waveTierForType(type);
+        _recordWaveSpawn(tier);
+        _waveNextSpecialAt += enemy.coronationDuration;
+        if (tier === 'elite' || tier === 'dominator') _waveNextMajorAt += enemy.coronationDuration;
+        if (tier === 'dominator') _waveNextDominatorAt += enemy.coronationDuration;
         createParticles(enemy.x, enemy.y, 20, '#ffd700', 3, 8);
         if (window.AudioMgr) window.AudioMgr.playSfxAt('coronation', enemy.x, enemy.y);
     } else {
@@ -335,10 +343,11 @@ function updateApostleCoronation(enemy, deltaTime) {
             );
         }
         if (enemy.coronationTimer >= enemy.coronationDuration) {
+            if (gameElapsedTime < _waveNextDispatchAt) return;
             if (window.AudioMgr) window.AudioMgr.playSfxAt('metal-hit', enemy.x, enemy.y);
             addExplosion(enemy.x, enemy.y, enemy.size * 3, '#ffd700');
             createParticles(enemy.x, enemy.y, 40, '#ffd700', 4, 14);
-            _spawnCoronationResult(enemy);
+            if (!_spawnCoronationResult(enemy)) return;
             enemy.hp = 0; // remove original apostle silently (no kill credit)
             enemy._coronationConsumed = true;
         }

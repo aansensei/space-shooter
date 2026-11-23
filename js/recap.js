@@ -2261,7 +2261,11 @@ function openRecap(container, data, lang, onPlayAgain, onMainMenu) {
       for (let i = 0; i < elRankSegs.length; i++) {
         elRankSegs[i].style.width = (Math.max(0, Math.min(1, rankPos * RC_RANK_ORDER.length - i)) * 100).toFixed(1) + "%";
       }
-      if (elRankStamp && countProg >= 1 && !elRankStamp.classList.contains("rc-rank-stamped")) elRankStamp.classList.add("rc-rank-stamped");
+      if (elRankStamp && countProg >= 1 && !elRankStamp.classList.contains("rc-rank-stamped")) {
+        elRankStamp.classList.add("rc-rank-stamped");
+        // the Showdown victory seal lands with the stamp
+        if (window._runGameMode === "showdown" && window._duelSession && window._duelSession.result === "victory" && window.AudioMgr) window.AudioMgr.playSfx("duel-victory-seal");
+      }
     }
 
     // 3. Charts progressive draw (starts at 327ms, duration 864ms)

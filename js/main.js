@@ -2189,6 +2189,7 @@ function update(rawDeltaTime) {
     // Wave's Full Roster" button flips _debugWaveRosterActive to drive one
     // real wave through it (countdown, banner, trickle) then flips it back.
     if ((!window._debugSessionActive || window._debugWaveRosterActive) && !window._tutorialActive && window._runGameMode !== 'showdown') _updateWaveSystem(deltaTime, currentTime);
+    if (!window._tutorialActive && window._runGameMode !== 'showdown') _updateLeviathanQuota(deltaTime);
     if (window._tutorialActive && typeof updateTutorial === 'function') updateTutorial(deltaTime, currentTime);
     if (window._runGameMode === 'showdown' && typeof window._duelUpdate === 'function') window._duelUpdate(deltaTime / 1000, currentTime);
     _profChk3.push(performance.now());
@@ -2990,10 +2991,7 @@ function update(rawDeltaTime) {
     }
 }
 
-// Was 15000, doubled to 30000 (waves 1-10 were cramming their whole roster
-// into a tight 15s window), then eased once more to 36000 - still felt like
-// too much pressure at 30s. Still denser than the wave-11+ trickle spawner
-// by design, just not frantic.
+// Nominal roster timeline. Admission limits can extend it while enemies live.
 const WAVE_SPAWN_DURATION = 36000;
 const WAVE_REST_DURATION = 4000;
 const WAVE_TEMPLATES = [
@@ -3140,15 +3138,81 @@ function _spawnWaveTier(tier) {
 function _spawnWaveGoliath() {
     const _preGolLen = enemies.length;
     _spawnWaveTier('goliath');
-    if (enemies.length > _preGolLen) _applyWaveGrowth(enemies[enemies.length - 1]);
+    if (enemies.length > _preGolLen) {
+        _applyWaveGrowth(enemies[_preGolLen]);
+        _recordWaveSpawn('goliath');
+    }
 }
 
-// First wave that uses the live trickle spawner instead of the fixed 15s
-// _waveQueue. Briefly dropped to 1 to spread every wave's spawns out and
-// cut lag, but that made waves 1-10 feel too slow/low-pressure - reverted
-// back to 11, matching the original tuning (waves below that are short
-// enough the fixed window works fine).
+// Early waves retain their authored timeline; later waves use a live budget.
 const _WAVE_TRICKLE_MIN = 11;
+
+const _WAVE_SPECIAL_TYPES = new Set(['marchosias', 'veilshroud', 'uriel',
+    'thaelis', 'thaelis_cocoon', 'raphael', 'egregor', 'ammit', 'dargruel', 'leviathan']);
+const _WAVE_MAJOR_TYPES = new Set(['thaelis', 'thaelis_cocoon', 'raphael',
+    'egregor', 'ammit', 'dargruel', 'leviathan']);
+
+function _waveTierForType(type) {
+    if (type === 'dargruel' || type === 'leviathan') return 'dominator';
+    return _WAVE_MAJOR_TYPES.has(type) ? 'elite' : 'abnormal';
+}
+
+function _isLiveWaveBody(e) {
+    return e.hp > 0 && !e._markedForDeath && !e.type.startsWith('enemy_bullet')
+        && e.type !== 'abyssal_chain' && e.type !== 'veilshroud_echo' && e.type !== 'debug_dummy';
+}
+
+// Summoned bodies occupy space too; projectiles and immortal portals do not.
+function _waveSpawnLoad() {
+    const load = { bodies: 0, specials: 0, majors: 0, dominators: 0, boss: false, projectiles: 0 };
+    for (const e of enemies) {
+        if (e.type.startsWith('enemy_bullet')) { load.projectiles++; continue; }
+        if (!_isLiveWaveBody(e)) continue;
+        load.bodies++;
+        if (_WAVE_SPECIAL_TYPES.has(e.type)) load.specials++;
+        if (_WAVE_MAJOR_TYPES.has(e.type)) load.majors++;
+        if (e.type === 'dargruel' || e.type === 'leviathan') load.dominators++;
+        if (e.type === 'goliath') load.boss = true;
+        // A transforming Apostle reserves its destination tier before it arrives.
+        if (e.inCoronation && e._coronationType) {
+            load.specials++;
+            if (_WAVE_MAJOR_TYPES.has(e._coronationType)) load.majors++;
+            if (e._coronationType === 'dargruel' || e._coronationType === 'leviathan') load.dominators++;
+        }
+    }
+    return load;
+}
+
+function _canSpawnWaveTier(tier, load = _waveSpawnLoad(), replacing = false) {
+    if (gameElapsedTime < _waveNextDispatchAt) return false;
+    const phone = window._deviceTier === 'phone';
+    const cap = _waveNumber === 1 ? (phone ? 10 : 14) : (phone ? 12 : 16);
+    if (!replacing && load.bodies >= cap) return false;
+    if (tier === 'apostle' || tier === 'goliath') return true;
+    const specialCap = load.boss ? 3 : _waveNumber <= 2 ? 3 : _waveNumber <= 4 ? 4 : 5 + Math.min(1, Math.floor((_waveNumber - 5) / 10));
+    if (load.specials >= specialCap || gameElapsedTime < _waveNextSpecialAt) return false;
+    // Hold new specialist patterns while the screen already carries a dense volley.
+    if (load.projectiles >= (phone ? 80 : 120)) return false;
+    if (tier === 'elite' || tier === 'dominator') {
+        const majorCap = load.boss || _waveNumber <= 8 ? 2 : 3;
+        if (load.majors >= majorCap || gameElapsedTime < _waveNextMajorAt) return false;
+    }
+    if (tier === 'dominator' && (load.dominators >= (_waveNumber < 12 || load.boss ? 1 : 2)
+        || gameElapsedTime < _waveNextDominatorAt)) return false;
+    return true;
+}
+
+function _recordWaveSpawn(tier) {
+    const boss = enemies.some(e => e.type === 'goliath' && _isLiveWaveBody(e));
+    _waveNextDispatchAt = gameElapsedTime + (window._deviceTier === 'phone' ? 550 : 450);
+    if (tier === 'goliath') {
+        _waveNextSpecialAt = Math.max(_waveNextSpecialAt, gameElapsedTime + 6000);
+    } else if (tier !== 'apostle') {
+        _waveNextSpecialAt = gameElapsedTime + (boss ? 3000 : 2000);
+        if (tier === 'elite' || tier === 'dominator') _waveNextMajorAt = gameElapsedTime + (boss ? 6000 : 5500);
+        if (tier === 'dominator') _waveNextDominatorAt = gameElapsedTime + 12000;
+    }
+}
 
 // Per-wave enemy growth, uncapped: every wave past the first permanently
 // adds +20 flat MaxHP to whatever an enemy already spawns with. Applied once
@@ -3175,7 +3239,7 @@ function _spawnWaveEnemyBuffed(tier) {
     if (tier === 'apostle') spawnApostle();
     else _spawnWaveTier(tier);
     if (enemies.length > _preSpawnLen) {
-        const _ne = enemies[enemies.length - 1];
+        const _ne = enemies[_preSpawnLen];
         if (window._goliathWaveHpBuff && window._goliathWaveHpBuff !== 1 && _ne.type !== 'goliath') {
             _ne.maxHp = Math.ceil(_ne.maxHp * window._goliathWaveHpBuff);
             _ne.hp = Math.ceil(_ne.hp * window._goliathWaveHpBuff);
@@ -3184,7 +3248,10 @@ function _spawnWaveEnemyBuffed(tier) {
         // Rolled last, so the +20% Max HP sits on top of the wave growth and
         // Goliath's Alpha buff rather than being multiplied by them after.
         _tryAdminBlessing(_ne);
+        _recordWaveSpawn(tier);
+        return true;
     }
+    return false;
 }
 
 // Administrator's Blessing: Kanade marks an enemy on the way in. Tougher in
@@ -3238,23 +3305,22 @@ function _waveTrickleBudgetLeft() {
     return B ? B.normals + B.abnormals + B.elites + B.dominators : 0;
 }
 
-// Picks and spawns one enemy from the remaining wave-11+ budget, honouring
-// the same elite/dominator min-gaps the fixed queue uses so their skills
-// never stack. isSurge relaxes the random tier rolls (a surge wants the
-// heavier tiers). Returns false when the budget is empty or everything
-// left is still gap-blocked this tick.
-function _trickleSpawnOne(isSurge) {
+// Picks an eligible tier without discarding budget entries blocked by pressure.
+function _trickleSpawnOne() {
     const B = _waveSpawnBudget;
     if (!B) return false;
-    const eliteOk = B.elites > 0 && _waveLastEliteAt >= 2500;
-    const domOk = B.dominators > 0 && _waveLastDomAt >= 3500;
+    const load = _waveSpawnLoad();
+    const eliteOk = B.elites > 0 && _waveLastEliteAt >= 2500 && _canSpawnWaveTier('elite', load);
+    const domOk = B.dominators > 0 && _waveLastDomAt >= 3500 && _canSpawnWaveTier('dominator', load);
+    const abnOk = B.abnormals > 0 && _canSpawnWaveTier('abnormal', load);
+    const normalOk = B.normals > 0 && _canSpawnWaveTier('apostle', load);
 
     let tier = null;
-    if (domOk && (isSurge || Math.random() < 0.5)) tier = 'dominator';
-    else if (eliteOk && (isSurge || Math.random() < 0.55)) tier = 'elite';
-    else if (B.abnormals > 0 && Math.random() < 0.5) tier = 'abnormal';
-    else if (B.normals > 0) tier = 'apostle';
-    else if (B.abnormals > 0) tier = 'abnormal';
+    if (domOk && Math.random() < 0.5) tier = 'dominator';
+    else if (eliteOk && Math.random() < 0.55) tier = 'elite';
+    else if (abnOk && Math.random() < 0.5) tier = 'abnormal';
+    else if (normalOk) tier = 'apostle';
+    else if (abnOk) tier = 'abnormal';
     else if (eliteOk) tier = 'elite';
     else if (domOk) tier = 'dominator';
     else return false;
@@ -3267,43 +3333,18 @@ function _trickleSpawnOne(isSurge) {
     return true;
 }
 
-// Live rate-controlled spawner for waves 11+. Holds the on-screen count
-// near a cap that grows slowly with the wave number, spawns on a variable
-// gap with occasional lulls, and every 16-28s fires a "surge": a rapid
-// batch that briefly ignores the cap, so high waves still spike in
-// pressure instead of being a flat trickle. The wave ends only once the
-// whole budget is spent AND the last enemy is dead.
+// Later waves release one budget entry per beat, with short occasional lulls.
 function _updateWaveTrickle(deltaTime) {
     _waveLastEliteAt += deltaTime;
     _waveLastDomAt += deltaTime;
     if (_waveTrickleBudgetLeft() <= 0) return;
 
-    // Base 18 -> 24 (+33%), then another pass +35% on top -> 32: waves 11+
-    // still felt low-pressure with too few enemies allowed on screen at once.
-    const cap = 32 + Math.floor((_waveNumber - 10) / 3);
-    const active = enemies.filter(e => !e.type.startsWith('enemy_bullet') && e.type !== 'abyssal_chain' && e.type !== 'veilshroud_echo').length;
-
-    _waveSurgeAt -= deltaTime;
-    if (_waveSurgeAt <= 0) {
-        // Base surge size 4 -> 5 (+25%), fires more often (16-28s -> 11.8-20.6s, ~35% faster).
-        // Phone gets a trimmed surge (not a hard cap-active clamp) so it still
-        // spikes above the steady trickle, just a bit lighter than PC/tablet.
-        const _phoneSurgeMult = window._deviceTier === 'phone' ? 0.85 : 1;
-        const surgeCount = Math.ceil(Math.min(_waveTrickleBudgetLeft(), 12, 5 + Math.floor((_waveNumber - 10) / 3)) * _phoneSurgeMult);
-        for (let k = 0; k < surgeCount; k++) { if (!_trickleSpawnOne(true)) break; }
-        _waveSurgeAt = 11800 + Math.random() * 8800;
-        _waveNextSpawnAt = 2600 + Math.random() * 1800; // lull right after a surge (~25% shorter)
-        return;
-    }
-
     _waveNextSpawnAt -= deltaTime;
-    if (_waveNextSpawnAt <= 0 && active < cap) {
-        if (_trickleSpawnOne(false)) {
-            // Normal gap 650-1150ms -> 480-850ms, occasional lull 2000-4000ms
-            // -> 1500-3000ms - both ~35% faster, same 15% lull chance.
-            _waveNextSpawnAt = (Math.random() < 0.15) ? 1500 + Math.random() * 1500 : 480 + Math.random() * 370;
+    if (_waveNextSpawnAt <= 0) {
+        if (_trickleSpawnOne()) {
+            _waveNextSpawnAt = Math.random() < 0.12 ? 1500 + Math.random() * 1000 : 650 + Math.random() * 350;
         } else {
-            _waveNextSpawnAt = 500; // gap-blocked, retry soon
+            _waveNextSpawnAt = 200;
         }
     }
 }
@@ -3399,6 +3440,10 @@ function _updateWaveSystem(deltaTime, now) {
             }
             window._goliathWaveHpBuff = 1;
             _adminBlessedThisWave = 0;
+            _waveNextDispatchAt = gameElapsedTime;
+            _waveNextSpecialAt = gameElapsedTime;
+            _waveNextMajorAt = gameElapsedTime;
+            _waveNextDominatorAt = gameElapsedTime;
             // Timeline Distortion is per boss fight, never cumulative: whatever
             // the previous milestone rolled comes off here before the next one
             // rolls its own.
@@ -3407,10 +3452,7 @@ function _updateWaveSystem(deltaTime, now) {
                 _startTimelineDistortion(_waveNumber);
             }
             if (_waveNumber >= _WAVE_TRICKLE_MIN) {
-                // Waves 11+: live trickle spawner instead of a fixed 15s
-                // queue - the whole enemy count no longer has to land
-                // inside one window, so high waves stop dumping 100+
-                // enemies at once and lagging.
+                // Later waves spend a live budget under the same admission limits.
                 const _tmpl = _getWaveTemplate(_waveNumber);
                 _waveSpawnBudget = {
                     normals: _tmpl.normals, abnormals: _tmpl.abnormals,
@@ -3418,7 +3460,6 @@ function _updateWaveSystem(deltaTime, now) {
                 };
                 _waveQueue = [];
                 _waveNextSpawnAt = 600;
-                _waveSurgeAt = 9000 + Math.random() * 6000; // first surge 9-15s in
                 _waveLastEliteAt = 9999;
                 _waveLastDomAt = 9999;
                 // Kanade's cutscene summons him itself once its animation
@@ -3442,22 +3483,20 @@ function _updateWaveSystem(deltaTime, now) {
     if (_waveSpawnBudget) {
         _updateWaveTrickle(deltaTime);
     } else {
-        const _cap = (typeof _platform !== 'undefined' && _platform === 'mobile') ? 25 : Infinity;
-        while (_waveQueue.length > 0 && _waveQueue[0].at <= _waveQueueTimer) {
-            const active = enemies.filter(e => !e.type.startsWith('enemy_bullet') && e.type !== 'abyssal_chain' && e.type !== 'veilshroud_echo').length;
-            // Wait for room instead of discarding the entry - shifting it off
-            // unconditionally (checking the cap only after) silently deleted
-            // whatever was due right when the cap was hit, on mobile. Break
-            // instead of shift+skip so it's still at the front of the queue
-            // to retry the instant a slot opens up, next frame or later.
-            if (active >= _cap) break;
-            const entry = _waveQueue.shift();
-            _spawnWaveEnemyBuffed(entry.tier === 'apostle' ? 'apostle' : entry.tier);
+        // Search only due entries. Blocked specialists wait while Apostles can
+        // still enter; an overdue backlog never catches up in a single frame.
+        const load = _waveSpawnLoad();
+        for (let i = 0; i < _waveQueue.length && _waveQueue[i].at <= _waveQueueTimer; i++) {
+            if (!_canSpawnWaveTier(_waveQueue[i].tier, load)) continue;
+            const entry = _waveQueue.splice(i, 1)[0];
+            _spawnWaveEnemyBuffed(entry.tier);
+            break;
         }
     }
     const _spawnDone = _waveSpawnBudget ? (_waveTrickleBudgetLeft() <= 0) : (_waveQueue.length === 0);
     if (_spawnDone) {
-        const _alive = enemies.filter(e => !e.type.startsWith('enemy_bullet') && e.type !== 'abyssal_chain' && e.type !== 'veilshroud_echo' && e.type !== 'debug_dummy').length;
+        const _living = enemies.filter(_isLiveWaveBody);
+        const _alive = _living.length;
         if (_alive === 0) {
             if (window._timelineDistortion && window._timelineDistortion.id !== 'stack_overflow') _clearTimelineDistortion();
             // Debug "Spawn Wave's Full Roster" runs exactly one wave through
@@ -3486,15 +3525,11 @@ function _updateWaveSystem(deltaTime, now) {
             _waveForceEndTimer = 0;
         } else {
             _waveForceEndTimer += deltaTime;
-            // Waves 11+ are meant to end on killing the last enemy, not on a
-            // timer - keep only a long safety net for an enemy stuck off
-            // screen. Waves 1-10 keep the original 12s force-end.
-            const _feLimit = _waveNumber >= _WAVE_TRICKLE_MIN ? 45000 : 12000;
-            if (_waveForceEndTimer >= _feLimit) {
-                _wavePhase = 'rest';
-                _waveRestTimer = window._debugWaveRosterActive ? 0 : 1000;
-                _waveForceEndTimer = 0;
-                window._debugWaveRosterActive = false;
+            // Only retire a stranded offscreen remainder. Combatants on the
+            // field must clear before another wave can add its own roster.
+            if (_waveForceEndTimer >= 45000 && _living.every(e =>
+                e.y < -(e.size || 0) * 2 || e.y > canvas.height + (e.size || 0))) {
+                for (const e of _living) e.hp = 0;
             }
         }
     }
@@ -3710,8 +3745,9 @@ function startGame() {
     player.atk = PLAYER_BASE_ATK;
     window._walpurgisAppliedStacks = 0;
     _waveQueue = []; _waveQueueTimer = 0; _waveAnnouncedAt = 0; _waveForceEndTimer = 0;
+    _waveNextDispatchAt = 0; _waveNextSpecialAt = 0; _waveNextMajorAt = 0; _waveNextDominatorAt = 0;
     window._tdSkipBannerAt = 0;
-    _waveSpawnBudget = null; _waveNextSpawnAt = 0; _waveSurgeAt = 0; _waveLastEliteAt = 0; _waveLastDomAt = 0;
+    _waveSpawnBudget = null; _waveNextSpawnAt = 0; _waveLastEliteAt = 0; _waveLastDomAt = 0;
     window._vanguardState = { recentDamage: [], fuseTriggered: false, fuseCooldownEnd: 0 };
     window._blessingRegenTimer = 0;
     accurateParryActive = false;

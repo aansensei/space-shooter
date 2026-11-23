@@ -66,16 +66,25 @@ function spawnLeviathan() {
 }
 
 function _ensureLeviathanQuota(lev) {
-    const killable = enemies.filter(e =>
-        e !== lev &&
-        e.type !== 'leviathan' &&
-        !e.type.startsWith('enemy_bullet') &&
-        e.type !== 'abyssal_chain' &&
-        e.type !== 'veilshroud_echo' &&
-        !e.inCoronation
-    ).length;
-    const needed = lev.afoKillQuota - killable;
-    for (let i = 0; i < needed; i++) spawnApostle();
+    if (!lev || lev.type !== 'leviathan') return;
+    lev._quotaSupport = true;
+    lev._quotaSupportTimer = 0;
+}
+
+// A missing kill quota requests one Apostle per beat, sharing roster capacity.
+// Recount after every death so a lone shielded Leviathan cannot strand a wave.
+function _updateLeviathanQuota(deltaTime) {
+    for (const lev of enemies) {
+        if (lev.type !== 'leviathan' || !lev._quotaSupport || !_isLiveWaveBody(lev) || !lev.afoShieldActive) continue;
+        lev._quotaSupportTimer = Math.max(0, (lev._quotaSupportTimer || 0) - deltaTime);
+        if (lev._quotaSupportTimer > 0 || !_canSpawnWaveTier('apostle')) continue;
+        const killable = enemies.filter(e => e !== lev && e.type !== 'leviathan'
+            && _isLiveWaveBody(e) && !e.inCoronation && e.type !== 'embryo').length;
+        if (lev.afoKillQuota - lev.afoKillCount <= killable) continue;
+        _spawnWaveEnemyBuffed('apostle');
+        lev._quotaSupportTimer = 900;
+        break;
+    }
 }
 
 function _applyLeviathanEnvy(lev) {

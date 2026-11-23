@@ -5,7 +5,7 @@
 //
 // One cache, versioned by CACHE_NAME. Bump the version string whenever the
 // CORE_FILES list changes so old clients pick up the new set on next visit.
-const CACHE_VERSION = 'v733';
+const CACHE_VERSION = 'v736';
 const CACHE_NAME = 'pisces-cache-' + CACHE_VERSION;
 
 // App shell: everything needed for the game to boot and run at all.
@@ -159,6 +159,11 @@ const CORE_FILES = [
     'assets/audio/voice/ship/vo-lowhp5.mp3',
     'assets/audio/voice/ship/vo-lowhp3.mp3',
     'assets/audio/voice/ship/vo-failed.mp3',
+    'assets/audio/voice/ship/vo-victory.mp3',
+    'assets/audio/sfx/duel-victory-bloom.mp3',
+    'assets/audio/sfx/duel-victory-seal.mp3',
+    'assets/audio/sfx/duel-victory-fanfare.mp3',
+    'assets/audio/sfx/duel-victory-afterglow.mp3',
     'assets/audio/voice/ship/vo-phase3.mp3',
     'assets/images/duel/weapons/sword-icon.png',
     'assets/images/duel/weapons/sword-bullet.png',

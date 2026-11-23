@@ -437,9 +437,9 @@ Spawns continuously from the start. HP starts between **22–42** and scales up 
 - **Above the midscreen line**: **0.67% per second** base chance.
 - **Below the midscreen line**: **1% per second** base chance.
 - **Death bonus**: Each Apostle that dies normally adds **+0.67%** (above midline) or **+1%** (below) to all remaining Apostles' base chance — cumulative. Resets to 0 when a Coronation triggers.
-- **Global limit**: At most **3 Coronations** can trigger within any 5-second window.
+- **Global limit**: At most **1 Coronation** starts per **8 seconds**, sharing the wave specialist caps and spacing. Its destination tier is reserved during the animation. Without an available slot the Apostle stays targetable and does not start transforming.
 - When triggered, the Apostle undergoes a ≈2.2s animation. During this time: it is **slowed 45%**, **immortal** (immune to all damage), and **untargetable** (cannot be selected by Sentinels, Skill A, or any player mechanic).
-- After the animation ends, the Apostle is consumed and replaced by a higher-tier enemy — always **Marchosias**, **Thaelis**, or **Dargruel**; can also be **Veilshroud**, **Egregor**, or **Leviathan** if their respective caps allow. No wave restriction applies. The spawned enemy starts with full HP and a **1-hit Iron Body** (blocks exactly one hit from any source).
+- After the animation ends, the Apostle is consumed and replaced by an eligible higher-tier enemy: Marchosias, Thaelis, Dargruel, Veilshroud, Egregor, or Leviathan, subject to species and shared caps. Wave 1 cannot trigger Coronation; Dominators require wave 3. The result starts at full HP with **1-hit Iron Body**.
 - Coronation transformations do not grant kill score.
 
 ---
@@ -867,13 +867,13 @@ The wave spawner does not follow these labels exactly. Its Abnormal pool is Marc
 
 ## Spawn System
 
-Enemies spawn in **waves**. Each wave defines an exact count per tier — all queued enemies are guaranteed to spawn within a **15-second spawning window**.
+Enemies spawn in **waves**. Each wave defines a roster per tier. Wave 1 has a nominal **15-second** timeline; waves 2-10 use **36 seconds**. Admission limits extend this timeline while enemies remain alive. Wave 11 onward spends a live budget with the same limits.
 
 **Wave flow:**
 
-- **Spawning phase (15s):** Apostles mix singles (62%) and bursts of 2–4 (38%). Higher-tier enemies are spaced proportionally across the 15s window. The HUD shows a pulsing `◉ X enemies` indicator while active.
-- **Clear condition:** If all enemies are dead while the queue is empty, the wave ends after **3 seconds** ("WAVE CLEARED"). If enemies are still alive 12 seconds after the queue empties, the wave force-ends after a 1-second delay.
-- **Rest phase (4s):** A countdown announces the next wave number before it begins.
+- **Spawning phase:** Due entries wait for room. At most one roster or Leviathan reinforcement enters per **450ms** on PC/tablet or **550ms** on phones. Blocked higher tiers do not obstruct eligible Apostles. An overdue queue never releases a catch-up burst. Later waves include short lulls and have no cap-bypassing surges.
+- **Clear condition:** The queue or budget must be empty and every living enemy body gone. On-screen survivors prevent the next wave from starting. After 45 seconds with an empty queue, a non-boss wave can retire a remainder only if every survivor is stranded offscreen. Boss waves always require a full clear.
+- **Rest phase (5s after a normal clear):** A countdown announces the next wave. Waves 5 and 10 can open the Sigil picker instead.
 
 **Wave templates (repeats from wave 9 onward):**
 
@@ -890,7 +890,23 @@ Enemies spawn in **waves**. Each wave defines an exact count per tier — all qu
 | 9 | 64 | 14 | 12 | 8 | — |
 | 10+ | +5/wave | +1/wave | +1/wave | +1/wave | 1 every 5th wave |
 
-Within each tier, enemies are chosen randomly from the pool: **Abnormals** (Marchosias, Veilshroud), **Elites** (Thaelis, Raphael, Egregor), **Dominators** (Dargruel, Leviathan). Individual on-screen caps apply; there is no combined cap. **Goliath** (Digiform) spawns exactly once, outside every other tier, on any wave number divisible by 5.
+Within each tier, enemies are chosen randomly: **Abnormals** (Marchosias, Veilshroud, Uriel), **Elites** (Thaelis, Raphael, Egregor, Ammit), **Dominators** (Dargruel, Leviathan). Uriel and Ammit do not enter Goliath waves. Species caps still apply. **Goliath** spawns exactly once on each wave divisible by 5; its Alpha cull still removes one third of the queued roster.
+
+**Shared admission limits:**
+
+| Limit | Regular waves | While Goliath is alive |
+|---|---|---|
+| Living bodies | 16 PC/tablet, 12 phone; wave 1 uses 14/10 | Same, including Goliath |
+| Abnormal + Elite + Dominator | Wave 2: 3; waves 3-4: 4; waves 5-14: 5; wave 15+: 6 | 3 escorts |
+| Elite + Dominator | Waves 2-8: 2; later: 3 | 2 escorts |
+| Dominators | 1 through wave 11; later: 2 | 1 escort |
+| Specialist arrival gap | 2s across higher tiers | 3s; 6s opening grace |
+| Elite/Dominator arrival gap | 5.5s shared | 6s shared |
+| Dominator arrival gap | 12s | 12s |
+
+These limits gate new arrivals. Summoned guards/minions occupy body capacity and may temporarily push the count above the admission ceiling. Pending Coronations reserve their destination tier. New specialists also wait when **120 enemy bullets** are active (**80** on phones). Existing attacks and warning art continue normally.
+
+**Leviathan quota support:** Missing killable targets enter as individual Apostles, at most one per **900ms**, sharing roster capacity and arrival spacing. The remaining need accounts for kills earned and live killable targets. Support stops once the quota is covered or the shield breaks, and can resume if targets disappear before satisfying it.
 
 ### Walpurgis (Huyết Dạ)
 

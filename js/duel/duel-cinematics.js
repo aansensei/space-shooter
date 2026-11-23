@@ -1465,7 +1465,7 @@
         const dim = ease((time - (win ? 1.6 : .75)) / .5);
         ctx.globalAlpha = dim * .65; ctx.fillStyle = '#030610'; ctx.fillRect(0, 0, w, h);
         ctx.restore();
-        if (!win) shipReport(ctx, w, h, session);
+        shipReport(ctx, w, h, session);
     }
 
     root.DuelCinematics = {

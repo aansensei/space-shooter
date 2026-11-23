@@ -426,6 +426,11 @@ let _waveQueue = [];
 let _waveQueueTimer = 0;
 let _waveAnnouncedAt = 0;
 let _waveForceEndTimer = 0;
+// Simulation-time deadlines shared by the roster and Leviathan reinforcements.
+let _waveNextDispatchAt = 0;
+let _waveNextSpecialAt = 0;
+let _waveNextMajorAt = 0;
+let _waveNextDominatorAt = 0;
 let _yuukiBonus = 0;
 // Separate tier counter for Yuuki's target-Max-HP bonus (per AanSensei: this
 // part alone maxes out by wave 20; the damage-multiplier bonus above keeps
@@ -463,12 +468,11 @@ const ADMIN_BLESSING_TYPES = {
 };
 let _adminBlessedThisWave = 0;
 
-// Wave 11+ live trickle spawner (replaces the fixed-15s _waveQueue at high
-// waves - see _updateWaveTrickle). Budget is the remaining per-tier count
+// Wave 11+ live trickle spawner (see _updateWaveTrickle).
+// Budget is the remaining per-tier count
 // for the current wave; the rest are countdown/count-up timers in ms.
 let _waveSpawnBudget = null;
 let _waveNextSpawnAt = 0;
-let _waveSurgeAt = 0;
 let _waveLastEliteAt = 0;
 let _waveLastDomAt = 0;
 

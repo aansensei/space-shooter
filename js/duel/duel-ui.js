@@ -213,6 +213,7 @@
             'duel.report.lowhp5': 'Barrier integrity failing. The vessel is malfunctioning.',
             'duel.report.lowhp3': 'Core systems have failed. The vessel will not hold.',
             'duel.report.failed': 'Vessel integrity lost. Mission failed.',
+            'duel.report.victory': 'Report: target neutralized. Mission complete.',
             'duel.tip.shift': 'Hold SHIFT to slow time down. While you hold it, tap the left or right arrow to blink sideways.',
             'duel.tip.f': 'Press F to charge a sweep that wipes out every bullet it passes. Ready again after 7 seconds.',
 
@@ -369,6 +370,7 @@
             'duel.report.lowhp5': 'Độ toàn vẹn của rào chắn đang suy giảm. Con tàu trục trặc.',
             'duel.report.lowhp3': 'Hệ thống lõi đã hỏng. Con tàu sẽ không trụ nổi.',
             'duel.report.failed': 'Độ toàn vẹn của con tàu đã mất. Nhiệm vụ thất bại.',
+            'duel.report.victory': 'Báo cáo: mục tiêu đã bị vô hiệu hóa. Nhiệm vụ hoàn thành.',
             'duel.tip.shift': 'Giữ SHIFT để làm chậm thời gian. Trong lúc giữ, bấm mũi tên trái hoặc phải để dịch chuyển sang ngang.',
             'duel.tip.f': 'Bấm F để nạp một đường quét xóa sạch mọi viên đạn nó đi qua. Dùng lại được sau 7 giây.',
 

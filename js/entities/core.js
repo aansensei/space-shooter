@@ -2360,27 +2360,34 @@ function _triggerVanguardFuse() {
 }
 
 // CORONATION (Đăng Cơ), Apostle transformation passive
-// Max 3 per 5-second window, 0.67%/s above midscreen, 1%/s below
+// At most one start per 8 seconds, subject to the shared specialist capacity.
 // Death bonus: mỗi apostle chết +0.67% base chance (reset khi có 1 đứa trigger)
 if (!window._coronationHistory) window._coronationHistory = [];
 if (window._coronationDeathBonus === undefined) window._coronationDeathBonus = 0;
 
 function _getCoronationTransformType() {
+    if (_waveNumber < 2) return null;
     const _cn = performance.now();
     const _levCount  = enemies.filter(e => e.type === 'leviathan').length;
     const _veilCount = enemies.filter(e => e.type === 'veilshroud').length;
     const _egrCount  = enemies.filter(e => e.type === 'egregor').length;
     const _levCdOk   = !window._lastLeviathanKillTime || (_cn - window._lastLeviathanKillTime) >= 8000;
     const _egrCdOk   = !window._lastEgregorKillTime   || (_cn - window._lastEgregorKillTime)   >= 6000;
-    const pool = ['marchosias', 'thaelis', 'dargruel'];
+    const pool = [];
+    if (enemies.filter(e => _isLiveWaveBody(e) && e.type === 'marchosias').length < 2) pool.push('marchosias');
+    if (enemies.filter(e => _isLiveWaveBody(e) && e.type === 'thaelis').length < 3) pool.push('thaelis');
+    if (_waveNumber >= 3 && enemies.filter(e => _isLiveWaveBody(e) && e.type === 'dargruel').length < 2) pool.push('dargruel');
     if (_veilCount < 2 && _egrCount === 0) pool.push('veilshroud');
-    if (_levCdOk && _levCount < 1) pool.push('leviathan');
+    if (_waveNumber >= 3 && _levCdOk && _levCount < 1) pool.push('leviathan');
     if (_egrCdOk && _egrCount < 1 && _veilCount === 0) pool.push('egregor');
-    return pool[Math.floor(Math.random() * pool.length)];
+    const load = _waveSpawnLoad();
+    const eligible = pool.filter(type => _canSpawnWaveTier(_waveTierForType(type), load, true));
+    return eligible.length ? eligible[Math.floor(Math.random() * eligible.length)] : null;
 }
 
 function _spawnCoronationResult(enemy) {
-    const type = _getCoronationTransformType();
+    const type = enemy._coronationType || _getCoronationTransformType();
+    if (!type) return false;
     if (type === 'marchosias') spawnMarchosias();
     else if (type === 'veilshroud') spawnVeilshroud();
     else if (type === 'thaelis') spawnThaelis();
@@ -2397,6 +2404,8 @@ function _spawnCoronationResult(enemy) {
     }
     // If Coronation produced a Leviathan, ensure enough killable enemies exist for its AFO quota
     if (type === 'leviathan' && spawned) _ensureLeviathanQuota(spawned);
+    _recordWaveSpawn(_waveTierForType(type));
+    return true;
 }
 
 // GOLIATH — Digiform prototype boss, tầng giữa Dominator và

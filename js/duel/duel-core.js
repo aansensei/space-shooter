@@ -288,6 +288,7 @@
             this.active = false;
             this.state = 'idle';
             this._cancelOpeningVoice();
+            this._cancelVictoryCues();
             if (window.AudioMgr) window.AudioMgr.exitDuelEvolutionDuck();
             this.pool.reset();
             this.resetPlayerBullets();
@@ -367,6 +368,32 @@
             call('stopEgregorCrawl');
             call('stopLowHp');
             if (typeof am.stopDuelBattleTheme === 'function') am.stopDuelBattleTheme(.5);
+        }
+
+        // victory sounds that outlive the burst: they run on timers so stopDuelAudio at the recap does not cut them
+        _victoryAfter(ms, fn) {
+            const id = setTimeout(() => { this._victoryTimers = (this._victoryTimers || []).filter(v => v !== id); fn(); }, ms);
+            (this._victoryTimers || (this._victoryTimers = [])).push(id);
+        }
+
+        _cancelVictoryCues() {
+            for (const id of this._victoryTimers || []) clearTimeout(id);
+            this._victoryTimers = [];
+            for (const h of this._victoryHandles || []) { try { if (h && h.cancel) h.cancel(0.4); } catch (_) {} }
+            this._victoryHandles = [];
+        }
+
+        // the ship report and its panel come as Egregor falls, with the epic cue under the voice; the afterglow follows once the cue has ended
+        _playVictoryCues() {
+            const am = window.AudioMgr;
+            if (!am || this.practiceMode) return;
+            const keep = h => { (this._victoryHandles || (this._victoryHandles = [])).push(h); };
+            this._victoryAfter(600, () => keep(am.playSfx('duel-victory-bloom')));
+            this._victoryAfter(1200, () => {
+                keep(am.playSfx('vo-victory')); keep(am.playSfx('duel-victory-fanfare'));
+                this._showReport('victory', 'report', 4.6);
+            });
+            this._victoryAfter(10500, () => { if (this.state === 'result') keep(am.playSfx('duel-victory-afterglow')); });
         }
 
         openRecapScreen() {
@@ -460,6 +487,7 @@
                 window._runGameMode = 'showdown';
             }
             this.state = 'opponent_select';
+            this._cancelVictoryCues();
             if (window.AudioMgr) { window.AudioMgr.setDuelAudioActive(true); window.AudioMgr.prepareDuel(); }
             this._fxDamage.length = 0;
             this._fxDamageClock = 0;
@@ -743,7 +771,8 @@
                 this.state = 'victory_burst';
                 window.AudioMgr?.stopDuelBattleTheme?.(1.5);
                 window.AudioMgr?.playSfx('egregor-death-fracture');
-                this.victoryBurstTime = 2.2;
+                this._playVictoryCues();
+                this.victoryBurstTime = 5.0;
                 this.burstTotalTime = 0;
                 this.result = 'victory';
                 this.stats.livesRemaining = this.lives;
@@ -757,7 +786,7 @@
                         self.state = 'result';
                         self.openRecapScreen();
                     }
-                }, 3000);
+                }, 5600);
                 if (Bullets && typeof Bullets.cancelAllBullets === 'function') {
                     Bullets.cancelAllBullets(this.pool);
                 } else {
@@ -1112,7 +1141,7 @@
                 if(!this._r3AshPlayed){this._r3AshPlayed=true;window.AudioMgr?.playSfx('egregor-death-ash');}
                 this.victoryBurstTime -= dt;
                 this.burstTotalTime = (this.burstTotalTime || 0) + dt;
-                if (this.victoryBurstTime <= 0 || this.burstTotalTime >= 3.0) {
+                if (this.victoryBurstTime <= 0 || this.burstTotalTime >= 5.2) {
                     this.state = 'result';
                     this.openRecapScreen();
                 }
@@ -2450,7 +2479,7 @@
                 contractScale = 1 - 0.16 * build * (1 - release);
                 chargeGlow = 0.85 * build * (1 - release);
             } else if (this.state === 'victory_burst') {
-                collapseProgress = Math.max(0, Math.min(1, 1.0 - (this.victoryBurstTime / 2.2)));
+                collapseProgress = Math.max(0, Math.min(1, (this.burstTotalTime || 0) / 2.2));
                 if (!window._fxOpts?.reducedMotion) {
                     trembleX = Math.sin(performance.now() * 0.08) * (1 - collapseProgress) * 9;
                     trembleY = Math.cos(performance.now() * 0.07) * (1 - collapseProgress) * 7;

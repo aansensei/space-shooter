@@ -1087,7 +1087,7 @@
                 return rank(a) - rank(b) || a.duration - b.duration;
             });
             // the ship voices (defeat, low health, phase calls) are not duel sounds but play in every fight
-            const voices = Object.keys(state.pool).filter(k => k.startsWith('vo-')).map(k => state.pool[k].src);
+            const voices = Object.keys(state.pool).filter(k => k.startsWith('vo-') || k.startsWith('duel-victory')).map(k => state.pool[k].src);
             const sources = order.filter(s => !s.optional).map(s => 'assets/audio/sfx/' + s.key + '.mp3');
             sources.splice(order.filter(s => s.group === 'ui' && !s.optional).length, 0, ...voices);
             // six at a time instead of one after another, so the wait is a few round trips rather than ninety
@@ -1414,6 +1414,8 @@
     SFX_BASE['vo-lowhp5'] = 1.0;
     SFX_BASE['vo-lowhp3'] = 1.0;
     SFX_BASE['vo-failed'] = 1.0;
+    // the victory report is mastered at the defeat voice level; the music under it sits 8 dB lower in the file itself
+    Object.assign(SFX_BASE, { 'vo-victory': 1.0, 'duel-victory-bloom': 1.0, 'duel-victory-seal': 1.0, 'duel-victory-fanfare': 1.0, 'duel-victory-afterglow': 1.0 });
     function _voicePartSrc(name) { return VOICE_DIR + name + '.mp3'; }
     // Total length in seconds. Uses the real decoded lengths once they are known, else the measured fallback.
     function getVoiceSequenceDuration(id) {
@@ -1993,15 +1995,18 @@
         _makePool('vo-lowhp5', 'assets/audio/voice/ship/vo-lowhp5.mp3', 1, true);
         _makePool('vo-lowhp3', 'assets/audio/voice/ship/vo-lowhp3.mp3', 1, true);
         _makePool('vo-failed', 'assets/audio/voice/ship/vo-failed.mp3', 1, true);
+        _makePool('vo-victory', 'assets/audio/voice/ship/vo-victory.mp3', 1, true);
+        for (const key of ['duel-victory-bloom', 'duel-victory-seal', 'duel-victory-fanfare', 'duel-victory-afterglow']) _makePool(key, 'assets/audio/sfx/' + key + '.mp3', 1, true);
         for (const sound of DUEL_SOUNDS) {
             const key = sound.key;
             SFX_BASE[key] = sound.group === 'ambience' ? .28 : sound.group === 'large' ? .82 : key.startsWith('boss-bullet') ? .28 : key.startsWith('graze') ? .12 : key.startsWith('boss-hit') ? .46 : sound.group === 'ui' ? .65 : .62;
             _makePool(key, 'assets/audio/sfx/' + key + '.mp3', 2, sound.group === 'large');
         }
-        // Phase 1 idle set, measured against the fight mix: the breath sits about as loud as boss hits, the bed and murmur
-        // underneath it, and the growls, coos and roar are clearly heard over the combat
-        Object.assign(SFX_BASE, { 'egregor-idle-p1-bed': 1.25, 'egregor-idle-p1-breath': 1.6, 'egregor-idle-p1-murmur': 1.0,
-            'egregor-idle-p1-growl-a': 1.15, 'egregor-idle-p1-growl-b': 1.15, 'egregor-idle-p1-coo-a': 1.15, 'egregor-idle-p1-coo-b': 1.15, 'egregor-idle-p1-roar': 1.0 });
+        // Phase 1 idle set, set against the fight mix with the battle theme playing: the bed and murmur are the quiet
+        // files, so they get the most lift; the breath and one-shots peak close to full scale, so only a little (the master
+        // limiter catches the rest)
+        Object.assign(SFX_BASE, { 'egregor-idle-p1-bed': 2.8, 'egregor-idle-p1-breath': 1.8, 'egregor-idle-p1-murmur': 2.6,
+            'egregor-idle-p1-growl-a': 1.45, 'egregor-idle-p1-growl-b': 1.3, 'egregor-idle-p1-coo-a': 1.3, 'egregor-idle-p1-coo-b': 1.3, 'egregor-idle-p1-roar': 1.4 });
         _makePool('egregor-death-roar',      'assets/audio/sfx/egregor-death-roar.mp3',      1, true); // bypass duck so it stays clear
         _makePool('egregor-tempest-strike',  'assets/audio/sfx/egregor-tempest-strike.mp3',  2);
         // Tempest cues. The -b and -c keys play the same file so three portals firing in one frame are not dropped by the per-key repeat guard.
