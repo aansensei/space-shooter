@@ -870,6 +870,16 @@
             border: 1px solid rgba(255, 255, 255, 0.7);
         }
 
+        /* the prompt stays hidden, and clicks are ignored, until the menu sounds are decoded */
+        #click-to-start.cts-loading {
+            cursor: progress;
+        }
+
+        #click-to-start.cts-loading .cts-prompt {
+            visibility: hidden;
+            animation: none;
+        }
+
         #click-to-start .cts-prompt {
             color: #ffffff;
             font-size: 0.74rem;
@@ -1193,7 +1203,7 @@
     </div>
 
     <!-- Click-to-start (che toàn màn hình, click để unlock audio) -->
-    <div id="click-to-start">
+    <div id="click-to-start" class="cts-loading">
         <div class="cts-mark">
             <img class="cts-logo" src="assets/images/site/ncta-logo-white.webp" alt="ncta" width="640" height="299" draggable="false">
             <span class="cts-shine" aria-hidden="true"><i></i></span>
@@ -1204,6 +1214,25 @@
     <script>
         // Touch screens are told to tap, mice to click.
         if (window.matchMedia && matchMedia('(pointer: coarse)').matches) document.getElementById('cts-prompt').textContent = 'Tap anywhere to start';
+
+        // This listener is registered first, so it swallows a click that arrives while the title card is still loading.
+        // Once the menu theme, its space bed, the interface cues and the hyperjump sound are decoded the prompt appears.
+        // A slow connection never traps the player: after 12 seconds the prompt appears anyway.
+        (() => {
+            const cts = document.getElementById('click-to-start');
+            cts.addEventListener('click', e => { if (cts.classList.contains('cts-loading')) e.stopImmediatePropagation(); });
+            const ready = () => cts.classList.remove('cts-loading');
+            const hyperjump = new Promise(resolve => {
+                const el = document.getElementById('snd-hyperjump');
+                if (!el || el.readyState >= 3) return resolve();
+                el.addEventListener('canplaythrough', resolve, { once: true });
+                el.addEventListener('error', resolve, { once: true });
+            });
+            window.addEventListener('load', () => {
+                const menu = window.AudioMgr && window.AudioMgr.prepareMenu ? window.AudioMgr.prepareMenu() : Promise.resolve();
+                Promise.race([Promise.all([menu, hyperjump]), new Promise(resolve => setTimeout(resolve, 12000))]).catch(() => { }).then(ready);
+            });
+        })();
     </script>
 
     <div id="white-flash"></div>
@@ -5150,7 +5179,7 @@
 
     <script src="js/vendor/pixi.min.js"></script>
     <script src="js/canvas-guard.js?v=20261106a"></script>
-    <script src="js/audio.js?v=20261122-dimension1"></script>
+    <script src="js/audio.js?v=20261124-menuload"></script>
     <script src="js/offline.js?v=20261123a"></script>
     <script src="js/background.js?v=20261106a"></script>
     <script src="js/config.js?v=20261122-spawn1"></script>

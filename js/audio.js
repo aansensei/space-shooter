@@ -898,6 +898,16 @@
         const enemy = /^(tut-|ammit|egregor|dimension|goliath|dargruel|leviathan|uriel|raphael|phantom|veilshroud|kanade|stack-overflow|timeline-distortion|dau-|ty-|mui-)/;
         for (const key of Object.keys(state.pool)) if (!enemy.test(key) && !_duelSounds[key]) _decodeBuffer(state.pool[key].src);
     }
+    // Decodes everything the title screen needs for its first seconds: the menu theme, the space bed that will play under it
+    // and the interface cues. Resolves when all of them are ready, so the start prompt can wait for a complete mix.
+    function prepareMenu() {
+        const menu = BGM_LIST.find(t => t.menuOnly);
+        if (state.menuSpaceIdx < 0) state.menuSpaceIdx = Math.floor(Math.random() * MENU_SPACE_SRC.length);
+        const jobs = [_decodeBuffer(MENU_SPACE_SRC[state.menuSpaceIdx])];
+        if (menu) jobs.push(_decodeBuffer(menu.src));
+        for (const key of Object.keys(state.pool)) if (/^(click|hover|overlay)/.test(key)) jobs.push(_decodeBuffer(state.pool[key].src));
+        return Promise.all(jobs);
+    }
     function prepareSigil(id) {
         if (id === 'dau' || id === 'ty' || id === 'mui') for (const key of Object.keys(state.pool)) if (key.startsWith(id + '-')) _decodeBuffer(state.pool[key].src, !!state.pool[key].optional);
     }
@@ -2256,7 +2266,7 @@
     _boot();
 
     window.AudioMgr = {
-        prepareEnemy, prepareGameplay, prepareSigil, prepareDuel,
+        prepareEnemy, prepareGameplay, prepareSigil, prepareDuel, prepareMenu,
         debugLoops, ensureRunLoops, playDuelSfx, startDuelLoop, stopDuelLoop, syncDuelLoops, stopDuelAudio, setDuelAudioActive,
         setDuelGroupVolume, setDuelAmbienceEnabled, getDuelAudioStatus,
         getDuelAmbienceEnabled: () => _duelAmbience,
