@@ -35,6 +35,10 @@ It is a hobby project made for the love of the genre. The bullet-hell spirit (a 
 
 ![Gameplay](assets/images/site/gameplay.png)
 
+![The Wraith Warden calls the Legion of Souls](assets/images/site/legion.gif)
+
+*The Wraith Warden sigil calling the Legion of Souls: five seconds of spectral blades across the whole battlefield.*
+
 ## Features
 
 - **Ten boss-class enemies.** Veilshroud, Uriel, Thaelis, Raphael, Marchosias, Egregor, Ammit, Dargruel, Leviathan and Goliath each break a different rule: barriers, shields that heal, rifts, gateways, waves you must read.
