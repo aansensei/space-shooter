@@ -5335,7 +5335,13 @@
                 _swRefreshing = true;
                 location.reload();
             };
+            // A first visit has no controller yet: the worker that installs and claims the page is only
+            // catching up with a page that was just fetched fresh, so reloading would drop the player back
+            // on the start screen and cut the menu music for nothing. Only a worker replacing another one
+            // means the page in memory is out of date.
+            let _swHadController = !!navigator.serviceWorker.controller;
             navigator.serviceWorker.addEventListener('controllerchange', () => {
+                if (!_swHadController) { _swHadController = true; return; }
                 // Reloading unconditionally here force-kicks the player back
                 // to the main menu mid-run the instant a new SW takes over —
                 // defer it until they're not actually in a game.
