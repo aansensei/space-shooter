@@ -2,8 +2,8 @@
 // Ammit governs its attacks and defenses on simulation time.
 
 // The middle damage range is controlled by hide reduction and flat armor.
-const AMMIT_TUNE_DR = 0.52;
-const AMMIT_TUNE_ARMOR = 340;
+const AMMIT_TUNE_DR = 0.46;
+const AMMIT_TUNE_ARMOR = 280;
 const AMMIT_TUNE_EXPOSED_ARMOR = 40;
 const AMMIT_TUNE_EXPOSED_DR = 0.15;
 const AMMIT_TUNE_CAST_DR = 0.10;
