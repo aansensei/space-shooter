@@ -8,9 +8,9 @@ const AMMIT_TUNE_EXPOSED_ARMOR = 40;
 const AMMIT_TUNE_EXPOSED_DR = 0.15;
 const AMMIT_TUNE_CAST_DR = 0.10;
 const AMMIT_TUNE_ENRAGE_DR = 0.08;
-const AMMIT_TUNE_HIT_CAP = 0.18;
+const AMMIT_TUNE_HIT_CAP = 0.22;
 const AMMIT_TUNE_WRAP_FRAC = 0.08;
-const AMMIT_TUNE_LOSS_FRAC = 0.22;
+const AMMIT_TUNE_LOSS_FRAC = 0.28;
 const AMMIT_TUNE_LOSS_WINDOW = 2500;
 const AMMIT_TUNE_HEART_DR = 0.02;
 const AMMIT_TUNE_HEART_DAMAGE = 0.06;
@@ -261,7 +261,7 @@ function _ammitWrapSoak(enemy, source, dmg) {
     return left;
 }
 
-// Rolling limit on health lost: a burst can take at most 22% of Max HP at once, then 22% more for every 2.5s that pass, so no
+// Rolling limit on health lost: a burst can take at most 28% of Max HP at once, then 28% more for every 2.5s that pass, so no
 // stack of true damage or damage amplifiers can empty Ammit before it has cast anything.
 function _ammitClampHpLoss(enemy, dmg) {
     if (enemy.type !== 'ammit' || !enemy._amReal) return dmg;
