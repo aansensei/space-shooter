@@ -900,13 +900,17 @@
     }
     // Decodes everything the title screen needs for its first seconds: the menu theme, the space bed that will play under it
     // and the interface cues. Resolves when all of them are ready, so the start prompt can wait for a complete mix.
-    function prepareMenu() {
+    // onProgress(done, total) runs as each file finishes, decoded or not.
+    function prepareMenu(onProgress) {
         const menu = BGM_LIST.find(t => t.menuOnly);
         if (state.menuSpaceIdx < 0) state.menuSpaceIdx = Math.floor(Math.random() * MENU_SPACE_SRC.length);
         const jobs = [_decodeBuffer(MENU_SPACE_SRC[state.menuSpaceIdx])];
         if (menu) jobs.push(_decodeBuffer(menu.src));
         for (const key of Object.keys(state.pool)) if (/^(click|hover|overlay)/.test(key)) jobs.push(_decodeBuffer(state.pool[key].src));
-        return Promise.all(jobs);
+        const total = jobs.length;
+        let done = 0;
+        if (onProgress) onProgress(0, total);
+        return Promise.all(jobs.map(job => job.then(() => { if (onProgress) onProgress(++done, total); })));
     }
     function prepareSigil(id) {
         if (id === 'dau' || id === 'ty' || id === 'mui') for (const key of Object.keys(state.pool)) if (key.startsWith(id + '-')) _decodeBuffer(state.pool[key].src, !!state.pool[key].optional);

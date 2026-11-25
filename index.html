@@ -876,8 +876,24 @@
         }
 
         #click-to-start.cts-loading .cts-prompt {
-            visibility: hidden;
-            animation: none;
+            display: none;
+        }
+
+        #click-to-start .cts-load {
+            color: #ffffff;
+            opacity: 0.7;
+            font-size: 0.74rem;
+            letter-spacing: 7px;
+            padding-left: 7px;
+            text-align: center;
+            text-transform: uppercase;
+            font-family: 'Courier New', monospace;
+            font-variant-numeric: tabular-nums;
+            animation: cts-in 0.8s 0.24s ease-out both;
+        }
+
+        #click-to-start:not(.cts-loading) .cts-load {
+            display: none;
         }
 
         #click-to-start .cts-prompt {
@@ -931,6 +947,7 @@
         }
 
         @media (max-width: 600px) {
+            #click-to-start .cts-load,
             #click-to-start .cts-prompt {
                 font-size: 0.68rem;
                 letter-spacing: 5px;
@@ -1209,6 +1226,7 @@
             <span class="cts-shine" aria-hidden="true"><i></i></span>
         </div>
         <div class="cts-rule" aria-hidden="true"><i></i></div>
+        <span class="cts-load" id="cts-load" role="status">Loading</span>
         <span class="cts-prompt" id="cts-prompt">Click anywhere to start</span>
     </div>
     <script>
@@ -1216,20 +1234,25 @@
         if (window.matchMedia && matchMedia('(pointer: coarse)').matches) document.getElementById('cts-prompt').textContent = 'Tap anywhere to start';
 
         // This listener is registered first, so it swallows a click that arrives while the title card is still loading.
-        // Once the menu theme, its space bed, the interface cues and the hyperjump sound are decoded the prompt appears.
+        // Once the menu theme, its space bed, the interface cues and the hyperjump sound are decoded the prompt appears,
+        // and until then a counter shows how many of those files are ready.
         // A slow connection never traps the player: after 12 seconds the prompt appears anyway.
         (() => {
             const cts = document.getElementById('click-to-start');
             cts.addEventListener('click', e => { if (cts.classList.contains('cts-loading')) e.stopImmediatePropagation(); });
             const ready = () => cts.classList.remove('cts-loading');
+            const counter = document.getElementById('cts-load');
+            let audioDone = 0, audioTotal = 0, jumpDone = 0;
+            const showCount = () => { if (audioTotal) counter.textContent = 'Loading ' + (audioDone + jumpDone) + ' / ' + (audioTotal + 1) + ' files'; };
             const hyperjump = new Promise(resolve => {
                 const el = document.getElementById('snd-hyperjump');
                 if (!el || el.readyState >= 3) return resolve();
                 el.addEventListener('canplaythrough', resolve, { once: true });
                 el.addEventListener('error', resolve, { once: true });
-            });
+            }).then(() => { jumpDone = 1; showCount(); });
             window.addEventListener('load', () => {
-                const menu = window.AudioMgr && window.AudioMgr.prepareMenu ? window.AudioMgr.prepareMenu() : Promise.resolve();
+                const progress = (done, total) => { audioDone = done; audioTotal = total; showCount(); };
+                const menu = window.AudioMgr && window.AudioMgr.prepareMenu ? window.AudioMgr.prepareMenu(progress) : Promise.resolve();
                 Promise.race([Promise.all([menu, hyperjump]), new Promise(resolve => setTimeout(resolve, 12000))]).catch(() => { }).then(ready);
             });
         })();
@@ -5179,7 +5202,7 @@
 
     <script src="js/vendor/pixi.min.js"></script>
     <script src="js/canvas-guard.js?v=20261106a"></script>
-    <script src="js/audio.js?v=20261124-menuload"></script>
+    <script src="js/audio.js?v=20261124-menucount"></script>
     <script src="js/offline.js?v=20261123a"></script>
     <script src="js/background.js?v=20261106a"></script>
     <script src="js/config.js?v=20261122-spawn1"></script>
