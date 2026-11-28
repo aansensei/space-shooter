@@ -583,11 +583,11 @@ HP: **2,500–4,500**. Permanent **50% Damage Reduction** at all times.
 
 **Available after:** Wave 2 | **Spawn rate:** 5% → 13% | **Cap:** 2 on screen | **Score on kill:** Max HP × k points | **Speed:** ~1.6 u/s
 
-HP: **2,112–4,092**. Permanent **45% Damage Reduction** on its body at all times.
+HP: **2,112 to 4,092**. Permanent **45% Damage Reduction** on its body at all times.
 
 **Sword & Barrier**
 
-Marchosias carries a rotating **Arc Barrier** — a glowing 90-degree arc that continuously tracks and faces the player. The barrier and Marchosias's body HP are **completely independent pools**, and the barrier's pool is about **1.86 times** Marchosias's Max HP at spawn.
+Marchosias carries a rotating **Arc Barrier** , a glowing 90-degree arc that continuously tracks and faces the player. The barrier and Marchosias's body HP are **completely independent pools**, and the barrier's pool is about **1.86 times** Marchosias's Max HP at spawn.
 
 *Barrier properties:*
 
@@ -596,7 +596,7 @@ Marchosias carries a rotating **Arc Barrier** — a glowing 90-degree arc that c
 - While the arc barrier is alive, Marchosias and the barrier gain **+10% evade** (applies to both body hits and barrier hits).
 - **Piercing attacks** (Spirit Arc Blade, Boomerang, Overload Laser) that connect with the barrier first: body damage is reduced **−30%**, the barrier takes **+15% extra damage**, and the attack continues through. **True damage** bypasses the Arc Barrier entirely and hits the body directly. All other attacks are fully absorbed by the barrier, **Chain Lightning** (Glory for Justice, Skill A and Tesla) included: an arc has no direction to check, so the barrier soaks it from wherever it comes. **Last Ward:** below **30% HP**, while the barrier still stands, it soaks **every** hit meant for the body, true damage and damage over time included, and a golden ring shows it around Marchosias. Breaking the barrier ends it.
 - **Lifesteal per hit:** each hit on the barrier heals the barrier for **5% of damage dealt** (max 1000 HP); Marchosias's body heals for **10% of damage dealt** (max 1000 HP, overflow → **50% converted to shield** on Marchosias's body).
-- **Barrier break:** when the barrier's HP reaches 0, Marchosias immediately gains **5 Iron Body layers** (**7** when the barrier breaks below 30% HP, never more than 7 at once; counted the way Raphael's Custos Aeternus counts, one layer per **250 ms**, so a burst such as a Skill A cast spends one and damage over time cannot touch them; Marchosias is CC immune while any layer stands), gains **+20% DR**, heals **40% Max HP** (overflow → 50% shield), and gains a **shield equal to 15% Max HP + 15% of HP lost**. The **+20% DR is removed** when the barrier revives. Revive time depends on sword cycle: if all 4 swords were used before the barrier breaks → burst explosion animation, fixed **3-second** revive; otherwise **4–5 seconds** (5s at start, scaling to 4s at 3 min).
+- **Barrier break:** when the barrier's HP reaches 0, Marchosias immediately gains **5 Iron Body layers** (**7** when the barrier breaks below 30% HP, never more than 7 at once; counted the way Raphael's Custos Aeternus counts, one layer per **250 ms**, so a burst such as a Skill A cast spends one and damage over time cannot touch them; Marchosias is CC immune while any layer stands), gains **+20% DR**, heals **40% Max HP** (overflow → 50% shield), and gains a **shield equal to 15% Max HP + 15% of HP lost**. The **+20% DR is removed** when the barrier revives. Revive time depends on sword cycle: if all 5 swords were used before the barrier breaks → burst explosion animation, fixed **3-second** revive; otherwise **4 to 5 seconds** (5s at start, scaling to 4s at 3 min).
 - **Tracking speed** scales from ×1.0 at match start up to **×1.67 at 3 minutes** of play.
 
 *Sword trigger conditions:*
@@ -605,29 +605,40 @@ Marchosias carries a rotating **Arc Barrier** — a glowing 90-degree arc that c
 - If the barrier is fully destroyed, a Sword is queued immediately.
 - When Marchosias's body HP drops to **1%**, all queued Swords fire simultaneously (spread slightly apart). The count is displayed as Roman numerals below Marchosias at all times (dim dot when none are queued).
 
-Each Marchosias can trigger a **maximum of 4 Swords per barrier cycle** — the counter resets each time the barrier revives. Two Roman numeral counters are displayed below Marchosias at all times: **green** shows the active sword queue, **gold (I→IV)** shows how many cycle swords have been used — glows bright gold at IV to signal that the next barrier break will use the 3-second revive. Each Marchosias has its own independent **0.5-second cooldown** between triggers. **Pressure Clock:** with no Sword queued for **8 seconds** (6 seconds below 50% HP, 4.5 seconds below 30%) it casts one on its own. These free Swords are not counted in the 4 per barrier cycle, so they never shorten the revive. Every barrier break also sends out a **shockwave**: a ship within **420px** is slowed **25% for 1 second**. Multiple queued Swords count down their 1-second windups in parallel and fire independently. **Swords cannot be interrupted** — even if Marchosias dies mid-windup, all pending Swords still fire from the death position.
+Each Marchosias can trigger a **maximum of 5 Swords per barrier cycle** , the counter resets each time the barrier revives. Two Roman numeral counters are displayed below Marchosias at all times: **green** shows the active sword queue, **gold (I→V)** shows how many cycle swords have been used , glows bright gold at V to signal that the next barrier break will use the 3-second revive. Each Marchosias has its own independent **0.5-second cooldown** between triggers. **Pressure Clock:** with no Sword queued for **8 seconds** (6 seconds below 50% HP, 4.5 seconds below 30%) it casts one on its own. These free Swords are not counted in the 5 per barrier cycle, so they never shorten the revive. Every barrier break also sends out a **shockwave**: a ship within **420px** is slowed **25% for 1 second**. Multiple queued Swords count down their 750ms windups in parallel and fire independently. **Swords cannot be interrupted** , even if Marchosias dies mid-windup, all pending Swords still fire from the death position.
 
 *Sword sequence:*
 
-1. A static orange warning beam extends from Marchosias to **your position at the moment of trigger** for 1 second.
-2. After 1 second, an orange arc projectile (radius 88) launches along that exact line. It does not home.
+1. A static orange warning beam extends from Marchosias to **your position at the moment of trigger** for **750ms**, with an 88px half-width matching the swept blade hitbox.
+2. After **750ms**, a jade-spined, flame-orange sword (radius 88) launches along that exact line. It does not home.
 3. Hits the player → all normal protective layers apply (Orb Sacrifice → Final Defense → Last Stand → lose a life).
-4. Hits a Sentinel → deals **27%** of that Sentinel's Max HP on the 1st hit, **23%** on the 2nd, **21%** on the 3rd and beyond.
-5. **Cannot be destroyed or deflected by anything.** Persists until it exits the screen.
+4. Direct Sword damage is about 8% stronger; rain stays at 0.25 ATK per beat. Hits a Sentinel: deals **1.75 / 1.49 / 1.36 x the Sword's snapshotted ATK** to the first / second / third and later Sentinels.
+5. In flight it erases discrete allied projectiles along their swept relative paths before on-hit effects. This includes normal player and Sentinel shots and gold spears (`bullets`), launched offensive `skillAOrbs`, `spiritBullets`, `bladeArcProjectiles`, `scatteredProjectiles`, `photoBrangs`, `_shadowOrbs`, flying `_solArrows`, `teslaBolts`, launched `_muiBlades`, `_tyShards`, `_gobSequences[].swords`, flying `_dauNeedles` and `_dauReflections`. It loses no speed, damage or durability. Windups do not cut. Also cuts launched Yuusha crescents (_yuushaBlades), arrows (_yuushaProjectiles), Mage crystals (_yuushaSquad[].crystal), and traveling Pisces fish projectiles (_piscesFishPool); the summoned party members stay intact.
+6. Mountainfall screens stop it, and Dau can reflect it before impact. Otherwise it pierces and persists until it exits the screen. Goliath's Joker copy keeps its own visuals and mechanics.
+
+**Scorched Ground and Sword Rain**
+
+- The first player or Sentinel contacted by a Sword creates one stationary **120px radius** zone for **2 seconds**, including death-launched Swords. Each Sword creates at most one zone. Zones outlive Marchosias, with at most **8** active, discarding the oldest.
+- The first **600ms** are a circular danger warning. Rain strikes at **600 / 950 / 1300 / 1650ms**. Each zone consumes at most **one player hit attempt**, even if Mountainfall, Yuusha redirect, an orb or another protection blocks it. An unprotected rain hit costs **1 life**.
+- First entry consumes that zone's single slow application: **25% for 750ms**. It combines with other movement slows by minimum multiplier, never addition. Existing CC immunity and Mountainfall block it.
+- Each rain strike deals **0.25 x snapshotted Sword ATK** to a Sentinel in the circle through the ordinary skill damage and Mountainfall pipeline. Each Sentinel accepts at most one rain hit per **350ms**, shared across overlapping zones; four beats total **1.0 x ATK** before defenses.
+- Rain and slow timers use simulation `deltaTime`, obeying the same pause, cutscene and time scaling as Swords. Starting, restarting or leaving a run, including debug exit, clears them.
+- Continuous beams and lasers, effect zones and rings, melee attacks, summoned entities (including spirits, Spinners and Serpents), and Skill A defensive or orbiting orbs remain intact. Launched offensive Skill A orbs can be cut. Tesla bolts, golden needles and thrown blades are discrete shots and can be cut.
+- Effects share jade cores, orange cutting edges and fang/wing plates. Cached canvases cover blades, barrier plates, minion wards and scorched ground. Low graphics and reduced motion omit decorative trails and sparks; danger geometry stays visible.
 
 **Normal Attack**
 
 Every second, fires **2 bullets** simultaneously at the nearest player or Sentinel. Each bullet's HP equals ⌈1.25% of Marchosias's current HP⌉.
 
-**Assimilation — Death Passive**
+**Assimilation , Death Passive**
 
-At 0 HP, explodes and spawns **3 Minion Robots**, each inheriting **25–35%** of Marchosias's Max HP at random, then boosted by a further **+30%**. If the Arc Barrier still stood at the moment of death, a **4th minion** with **25%** of Marchosias's Max HP joins them. Each minion has **75% innate Damage Reduction**, and no single hit can exceed **50% of its max Max HP**. Every minion also carries a **ward**, a small barrier worth **20% of the barrier Marchosias had**, drawn as a small arc facing the ship. It works as a shield on the minion, which the ordinary shield cap holds to 50% of the minion's HP. The minions **spread over the hosts in range**, the host with the fewest minions first, instead of piling onto one.
+At 0 HP, explodes and spawns **3 Minion Robots**, each inheriting **25 to 35%** of Marchosias's Max HP at random, then boosted by a further **+30%**. If the Arc Barrier still stood at the moment of death, a **4th minion** with **25%** of Marchosias's Max HP joins them. Each minion has **75% innate Damage Reduction**, and no single hit can exceed **50% of its max Max HP**. Every minion also carries a **ward**, a small barrier worth **20% of the barrier Marchosias had**, drawn as a small arc facing the ship. It works as a shield on the minion, which the ordinary shield cap holds to 50% of the minion's HP. The minions **spread over the hosts in range**, the host with the fewest minions first, instead of piling onto one.
 
 Each minion scans within **170px** for a valid host (excluding other Marchosias):
 
-**Host found → Parasite Mode:** Attaches as a **Parasite Shield** (up to 15% of the host's Max HP, and its ward adds up to 5% more) — absorbs damage before all other shields, including Raphael shields. Completely buff-immune: no heals, no regeneration, no DR bonuses can affect it. A green rotating ring marks infected hosts.
+**Host found → Parasite Mode:** Attaches as a **Parasite Shield** (up to 15% of the host's Max HP, and its ward adds up to 5% more) , absorbs damage before all other shields, including Raphael shields. Completely buff-immune: no heals, no regeneration, no DR bonuses can affect it. A green rotating ring marks infected hosts.
 
-**No host nearby → Hunt Mode:** Charges the player at **+55% speed**, and runs faster the less HP it has left (**+75% of the HP fraction it has lost, at most +50%**), firing bullets and dealing contact damage. During hunt mode the minion rescans every 500ms — if a valid host enters range, it attaches immediately. Minions flash a glowing ring to signal their presence in the bullet chaos.
+**No host nearby → Hunt Mode:** Charges the player at **+55% speed**, and runs faster the less HP it has left (**+75% of the HP fraction it has lost, at most +50%**), firing bullets and dealing contact damage. During hunt mode the minion rescans every 500ms , if a valid host enters range, it attaches immediately. Minions flash a glowing ring to signal their presence in the bullet chaos.
 
 ---
 

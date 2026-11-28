@@ -391,6 +391,7 @@ function _endRun(quit) {
         return;
     }
     _ammitReset();
+    _resetMarchosiasEffects();
     if (typeof _muiReset === 'function' && _muiHasSpec()) _muiReset();
     gameState = "gameover";
     if (window._timelineDistortion && window._timelineDistortion.id !== 'stack_overflow') _clearTimelineDistortion();
@@ -502,6 +503,7 @@ function update(rawDeltaTime) {
     const deltaTime = rawDeltaTime * timeScale; // Bẻ cong deltaTime vật lý
     const dt = deltaTime / 16.67;
 
+    _marchBeginFrame(deltaTime);
     _leoBeginFrame(deltaTime, currentTime);
     if (typeof _dauBeginFrame === 'function') _dauBeginFrame(deltaTime, currentTime);
     if (typeof _muiBeginFrame === 'function') _muiBeginFrame(deltaTime, currentTime);
@@ -868,6 +870,8 @@ function update(rawDeltaTime) {
 
     if (typeof _thaelisLaneSlowMult === 'function') _dimBreakMult = Math.min(_dimBreakMult, _thaelisLaneSlowMult());
     if (typeof _marchosiasShockSlowMult === 'function') _dimBreakMult = Math.min(_dimBreakMult, _marchosiasShockSlowMult());
+    _dimBreakMult = Math.min(_dimBreakMult, _marchRainSlowMult(deltaTime));
+    _updateMarchosiasRain(deltaTime);
 
     const _xBeforeMove = player.x;
     // A phone's play area is narrow enough that full speed crosses most of
@@ -1501,7 +1505,7 @@ function update(rawDeltaTime) {
                             owner: enemy,
                             x: enemy.x, y: enemy.y,
                             vx: Math.cos(angle) * 13.2, vy: Math.sin(angle) * 13.2,
-                            angle, radius: 88,
+                            angle, radius: MARCH_SWORD_RADIUS,
                             delay: windup.timer > 0 ? windup.timer : 0,
                             active: windup.timer <= 0,
                             originX: enemy.x, originY: enemy.y,
@@ -1889,10 +1893,12 @@ function update(rawDeltaTime) {
 
             // MARCHOSIAS
             if (enemy.type === 'marchosias') {
+                enemy._barrierHitMs = Math.max(0, (enemy._barrierHitMs || 0) - deltaTime);
+                enemy._barrierReviveFxMs = Math.max(0, (enemy._barrierReviveFxMs || 0) - deltaTime);
                 // Trigger Sword khi HP còn <= 1% lần đầu tiên
                 if (!enemy.swordLastStandTriggered && enemy.hp <= enemy.maxHp * 0.01) {
                     enemy.swordLastStandTriggered = true;
-                    if ((enemy._barrierSwordsThisCycle || 0) >= 4 && enemy.arcBarrier && enemy.arcBarrier.hp > 0) {
+                    if ((enemy._barrierSwordsThisCycle || 0) >= MARCH_SWORD_CYCLE_MAX && enemy.arcBarrier && enemy.arcBarrier.hp > 0) {
                         enemy.arcBarrier.hp = 0;
                         _triggerArcBarrierBreak(enemy);
                     }
@@ -1907,6 +1913,7 @@ function update(rawDeltaTime) {
                         enemy.arcBarrier = { hp: enemy.maxHp, maxHp: enemy.maxHp, angle: enemy.arcBarrier.angle, hitCount: 0 };
                         enemy.DR = Math.max(0.45, (enemy.DR || 0.45) - 0.20);
                         enemy._barrierSwordsThisCycle = 0;
+                        enemy._barrierReviveFxMs = 400;
                         addExplosion(enemy.x, enemy.y, enemy.size * 0.9, '#00ff88');
                         createParticles(enemy.x, enemy.y, 25, '#00ff88', 2, 6);
                     }
@@ -1961,7 +1968,7 @@ function update(rawDeltaTime) {
                             owner: enemy,
                             x: enemy.x, y: enemy.y,
                             vx: Math.cos(angle) * 13.2, vy: Math.sin(angle) * 13.2,
-                            angle: angle, radius: 88,
+                            angle: angle, radius: MARCH_SWORD_RADIUS,
                             delay: 0, active: true,
                             originX: enemy.x, originY: enemy.y,
                             targetX: tx, targetY: ty, // corridor edge persistence
@@ -1969,7 +1976,7 @@ function update(rawDeltaTime) {
                             hitEnemies: [], hitPlayer: false,
                             atk: enemy.atk,
                         });
-                        if (window.AudioMgr) window.AudioMgr.playSfxAt('spirit-arc-slash', enemy.x, enemy.y);
+                        _marchPlaySfx('spirit-arc-slash', enemy.x, enemy.y);
                         // Ghost đã được push khi windup bắt đầu, chỉ cần xoá windup
                         enemy.marchosiasWindups.splice(wi, 1);
                     }
@@ -2089,7 +2096,7 @@ function update(rawDeltaTime) {
                             owner: enemy,
                             x: enemy.x, y: enemy.y,
                             vx: Math.cos(angle) * 13.2, vy: Math.sin(angle) * 13.2,
-                            angle, radius: 88,
+                            angle, radius: MARCH_SWORD_RADIUS,
                             delay: windup.timer > 0 ? windup.timer : 0,
                             active: windup.timer <= 0,
                             originX: enemy.x, originY: enemy.y,
@@ -2232,11 +2239,13 @@ function update(rawDeltaTime) {
     if (bullets.length > _BULLET_CAP) bullets.splice(0, bullets.length - _BULLET_CAP);
     _profChk3.push(performance.now());
 
+    updateMarchosiasBlades(deltaTime);
     const _enemyGrid = _buildEnemyGrid();
     _profChk3.push(performance.now());
     _gridCandidates.length = 0;
     for (let i = bullets.length - 1; i >= 0; i--) {
         let b = bullets[i];
+        const _marchAx = b.x, _marchAy = b.y;
         if (b.type === 'sentinel_special') {
             // The spear homes in on its target. When that target dies or hides (Uriel in Camouflage) it turns to the nearest enemy it
             // has not pierced yet, and with nothing in reach it keeps flying along its heading.
@@ -2252,6 +2261,7 @@ function update(rawDeltaTime) {
             if (!_mobPerf && ((b._trail = (b._trail || 0) + dt) > 1.1)) { b._trail = 0; createParticles(b.x - Math.cos(b._heading) * 22, b.y - Math.sin(b._heading) * 22, 1, '#ffd98a', 1, 4); }
         } else { b.x += b.vx * dt; b.y += b.vy * dt; }
 
+        if (_marchCutsShot(b, _marchAx, _marchAy, b.size || 4)) { bullets.splice(i, 1); continue; }
         if (b.y < -b.size || b.y > canvas.height + b.size || b.x < -b.size || b.x > canvas.width + b.size) { bullets.splice(i, 1); continue; }
 
         // Uriel's death barrier blocks everything player-side: normal
@@ -2571,7 +2581,7 @@ function update(rawDeltaTime) {
     updateEnergyOrbs(deltaTime, gameElapsedTime); _profChk2.push(performance.now());
     updateTeslaCoils(deltaTime, currentTime); _profChk2.push(performance.now());
     updateTeslaBolts(deltaTime, currentTime);
-    updateMarchosiasBlades(deltaTime); _profChk2.push(performance.now());
+    _profChk2.push(performance.now());
     updateThaelisWaves(deltaTime);
     updateRaphaelWisdomOrbs(deltaTime); _profChk2.push(performance.now());
     updateRaphaelWisdomZones(deltaTime); _profChk2.push(performance.now());
@@ -3741,6 +3751,7 @@ function startGame() {
     bossShockwaves = [];
     raphaelLasers = [];
     marchosiasBlades = [];
+    _resetMarchosiasEffects();
     _thaelisWaves.length = 0; _thaelisSlashes.length = 0; _thaelisCutFx.length = 0; _thaelisDeathFx.length = 0; _thaelisClock = 0;
     window._levDeathLasers = [];
     window._levDeathLaserSoundPending = false;

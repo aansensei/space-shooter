@@ -425,6 +425,7 @@ function _tyBeginFrame(ms) {
         if (now - s.spawnTime >= s.lifeMs) { s.active = false; continue; }
         const travelMs = Math.min(ms, now - s.spawnTime);
         const ax = s.x, ay = s.y; s.x += s.vx * travelMs / 1000; s.y += s.vy * travelMs / 1000;
+        if (typeof _marchCutsShot === 'function' && _marchCutsShot(s, ax, ay, 7)) { s.active = false; continue; }
         const vx = s.x - ax, vy = s.y - ay, len2 = vx * vx + vy * vy;
         for (let j = 0; j < enemies.length; j++) {
             const e = enemies[j]; if (!_tyIsTarget(e)) continue;

@@ -166,6 +166,7 @@ function updateSkillA(deltaTime) {
 
     for (let i = skillAOrbs.length - 1; i >= 0; i--) {
         let orb = skillAOrbs[i];
+        const _marchAx = orb.x, _marchAy = orb.y;
         // When player is silenced, orbs stop targeting and return to orbit
         const playerSilenced = typeof player !== 'undefined' && player._silenced;
         if (orb.target && playerSilenced) {
@@ -177,6 +178,7 @@ function updateSkillA(deltaTime) {
         if (orb._pierced) {
             orb.x += orb._pvx * dt;
             orb.y += orb._pvy * dt;
+            if (_marchCutSkillAOrb(i, orb, _marchAx, _marchAy)) continue;
             particles.push({ x: orb.x, y: orb.y, vx: -orb._pvx * 0.1, vy: -orb._pvy * 0.1, lifetime: 200, maxLifetime: 200, size: 4, color: 'rgba(0, 200, 255, 0.7)' });
             if (_libraBloodOrbs && typeof _spawnSolArrowParticle === 'function') {
                 _spawnSolArrowParticle({
@@ -230,6 +232,7 @@ function updateSkillA(deltaTime) {
             orb.speed += 0.8 * dt;
             orb.x += (dx / dist) * orb.speed * dt;
             orb.y += (dy / dist) * orb.speed * dt;
+            if (_marchCutSkillAOrb(i, orb, _marchAx, _marchAy)) continue;
             particles.push({
                 x: orb.x, y: orb.y, vx: -(dx / dist) * 2, vy: -(dy / dist) * 2,
                 lifetime: 200, maxLifetime: 200, size: 4, color: orb.isDefensive ? 'rgba(255, 255, 0, 0.7)' : 'rgba(0, 255, 255, 0.7)'
@@ -444,8 +447,10 @@ function updateScatteredProjectiles(deltaTime) {
     let dt = deltaTime / 16.67;
     for (let i = scatteredProjectiles.length - 1; i >= 0; i--) {
         let proj = scatteredProjectiles[i];
+        const _marchAx = proj.x, _marchAy = proj.y;
         proj.x += proj.vx * dt;
         proj.y += proj.vy * dt;
+        if (typeof _marchCutsShot === 'function' && _marchCutsShot(proj, _marchAx, _marchAy, proj.size || 4)) { scatteredProjectiles.splice(i, 1); continue; }
         proj.lifetime -= deltaTime;
         if (proj.lifetime <= 0) { scatteredProjectiles.splice(i, 1); continue; }
 
@@ -478,3 +483,11 @@ function updateScatteredProjectiles(deltaTime) {
     }
 }
 
+
+function _marchCutSkillAOrb(index, orb, ax, ay) {
+    if (orb.isDefensive || typeof _marchCutsShot !== 'function' || !_marchCutsShot(orb, ax, ay, orb.size || 8)) return false;
+    if (orb.target) orb.target.isTargetedByA = false;
+    skillAOrbs.splice(index, 1);
+    updateDefensiveOrbs(); rebalanceSkillAOrbs();
+    return true;
+}

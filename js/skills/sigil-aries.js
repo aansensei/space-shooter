@@ -65,8 +65,10 @@ function updateGateOfBabylon(deltaTime) {
             seq.swords.forEach(sw => {
                 if (sw.alpha <= 0) return;
                 activeSwords++;
+                const _marchAx = sw.x, _marchAy = sw.y;
                 sw.x += sw.vx * dt;
                 sw.y += sw.vy * dt;
+                if (typeof _marchCutsShot === 'function' && _marchCutsShot(sw, _marchAx, _marchAy, 7)) { sw.alpha = 0; return; }
                 for (const en of enemies) {
                     if (sw.hitEnemies.has(en)) continue;
                     if (!_skillDCanTarget(en) || en.hp <= 0 || en._markedForDeath) continue;

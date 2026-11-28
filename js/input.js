@@ -87,6 +87,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     if (mainMenuBtn) {
         const _goToMenu = () => {
+            _resetMarchosiasEffects();
             if (typeof _muiReset === 'function' && window._muiWindupFx) _muiReset();
             gameState = "start";
             hideStartButton();

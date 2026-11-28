@@ -517,6 +517,7 @@ function updatePhotoBrangs(deltaTime) {
 
     for (let i = photoBrangs.length - 1; i >= 0; i--) {
         const b = photoBrangs[i];
+        const _marchAx = b.x, _marchAy = b.y;
         b.rotation += 0.42 * dt;
 
         // Recall mode: bay về phía tinh linh (nhanh hơn 60%)
@@ -528,6 +529,7 @@ function updatePhotoBrangs(deltaTime) {
                 b.vy += (_rdy / _rd * 35 - b.vy) * 0.28;
                 b.x  += b.vx * dt;
                 b.y  += b.vy * dt;
+                if (typeof _marchCutsShot === 'function' && _marchCutsShot(b, _marchAx, _marchAy, b._radius || BRANG_R_DEFAULT)) { photoBrangs.splice(i, 1); continue; }
                 if (_rd < 35) {
                     photoBrangs.splice(i, 1);
                     // Phóng pending nếu còn
@@ -573,6 +575,7 @@ function updatePhotoBrangs(deltaTime) {
             b.vx += (dx / d * spd - b.vx) * 0.18;
             b.vy += (dy / d * spd - b.vy) * 0.18;
 
+            if (typeof _marchCutsShot === 'function' && _marchCutsShot({ x: b.x + b.vx * dt, y: b.y + b.vy * dt }, b.x, b.y, b._radius || BRANG_R_DEFAULT)) { photoBrangs.splice(i, 1); continue; }
             // Hit: any overlap between boomerang and enemy
             const BRANG_R = b._radius || BRANG_R_DEFAULT;
             const hitDist = (tgt.size / 2) + BRANG_R; // generous, any edge contact
@@ -666,6 +669,7 @@ function updatePhotoBrangs(deltaTime) {
 
         b.x += b.vx * dt;
         b.y += b.vy * dt;
+        if (typeof _marchCutsShot === 'function' && _marchCutsShot(b, _marchAx, _marchAy, b._radius || BRANG_R_DEFAULT)) { photoBrangs.splice(i, 1); continue; }
 
         // Destroy enemy bullets along path
         for (let ei = enemies.length - 1; ei >= 0; ei--) {
@@ -723,8 +727,10 @@ function updateBladeArcProjectiles(deltaTime) {
     }
     for (let i = bladeArcProjectiles.length - 1; i >= 0; i--) {
         let arc = bladeArcProjectiles[i];
+        const _marchAx = arc.x, _marchAy = arc.y;
         arc.x += arc.vx * dt;
         arc.y += arc.vy * dt;
+        if (typeof _marchCutsShot === 'function' && _marchCutsShot(arc, _marchAx, _marchAy, arc.radius || 8)) { bladeArcProjectiles.splice(i, 1); continue; }
         if (arc.x < -arc.radius || arc.x > canvas.width + arc.radius || arc.y < -arc.radius || arc.y > canvas.height + arc.radius) {
             bladeArcProjectiles.splice(i, 1);
             continue;
@@ -1053,6 +1059,7 @@ function updateSpiritBullets(deltaTime) {
     let dt = deltaTime / 16.67;
     for (let i = spiritBullets.length - 1; i >= 0; i--) {
         let b = spiritBullets[i];
+        const _marchAx = b.x, _marchAy = b.y;
         if (b.vx !== undefined && b.vy !== undefined && b.target === null) {
             // Directional bullet (no homing)
             b.x += b.vx * dt;
@@ -1070,6 +1077,7 @@ function updateSpiritBullets(deltaTime) {
                 b.y += (dy / d) * speed * dt;
             }
         } else { b.y -= 8.8 * dt * (b.speedMultiplier || 1); }
+        if (typeof _marchCutsShot === 'function' && _marchCutsShot(b, _marchAx, _marchAy, b.size || 4)) { spiritBullets.splice(i, 1); continue; }
         b.lifetime -= deltaTime;
         for (let enemy of enemies) {
             if (enemy.type === 'abyssal_chain') continue; // piercing

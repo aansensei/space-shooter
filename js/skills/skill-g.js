@@ -494,8 +494,10 @@ function updateTeslaBolts(deltaTime, currentTime) {
 
         b.trail.push({ x: b.x, y: b.y });
         if (b.trail.length > 7) b.trail.shift();
+        const _marchAx = b.x, _marchAy = b.y;
         b.x += Math.cos(b.angle) * b.speed * dt;
         b.y += Math.sin(b.angle) * b.speed * dt;
+        if (typeof _marchCutsShot === 'function' && _marchCutsShot(b, _marchAx, _marchAy, 9)) { teslaBolts.splice(i, 1); continue; }
 
         // Piercing: the bolt doesn't despawn on its first hit, it keeps flying
         // through every enemy in its path (hitEnemies stops a repeat hit on

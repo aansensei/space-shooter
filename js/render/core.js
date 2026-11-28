@@ -2527,6 +2527,7 @@ function draw(deltaTime) {
         _drawAmmitEntrances();
         if (typeof _drawMuiScreenUnder === 'function') _drawMuiScreenUnder();
         if (typeof _drawMuiArray === 'function') _drawMuiArray();
+        _drawMarchRain();
         _drawEnemyDangerWarnings();
         drawBossShockwaves();
         _drawUrielSwordTelegraphs();

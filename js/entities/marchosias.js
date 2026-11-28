@@ -3,6 +3,8 @@
 // minion), the arc barrier absorb/break/counter-sword kit. Extracted from
 // entities.js. Must load after entities.js and before main.js.
 
+const MARCH_SWORD_WINDUP_MS = 750, MARCH_SWORD_CYCLE_MAX = 5, MARCH_SWORD_RADIUS = 88;
+
 // Returns true if the hit was fully absorbed by the arcBarrier (false = passes through)
 function checkMarchosiasArcBarrier(enemy, source, bx, by) {
     if (enemy.type !== 'marchosias' || !enemy.arcBarrier || enemy.arcBarrier.hp <= 0) return false;
@@ -14,6 +16,7 @@ function checkMarchosiasArcBarrier(enemy, source, bx, by) {
 
     // Arc barrier has +15% evade (stacks on top of Mar's body evade)
     if (Math.random() < 0.15) {
+        _marchBarrierContact(enemy, bx, by, 'evade');
         _tryTriggerMarchosiasCounter(enemy);
         addExplosion(enemy.x, enemy.y, enemy.size * 0.45, '#aaddff');
         return true;
@@ -29,6 +32,7 @@ function checkMarchosiasArcBarrier(enemy, source, bx, by) {
     // nothing left standing between it and the body, so the body eats the
     // full remaining damage instead of just its usual 20% cut.
     if (source._barrierPiercing) {
+        _marchBarrierContact(enemy, bx, by, 'pierce');
         let barrierDmg = Math.ceil((source.damage || 0) * 0.70 + effectiveHp * (source.percentDamage || 0) * 0.70);
         if (gloryForJusticeActive) barrierDmg = Math.ceil(barrierDmg * 1.55); // docs/combat-scaling-rebalance.md Part 3
         barrierDmg = Math.min(barrierDmg, Math.ceil(enemy.arcBarrier.hp * 0.35));
@@ -59,6 +63,7 @@ function checkMarchosiasArcBarrier(enemy, source, bx, by) {
 // reaches the body. Chain lightning and Last Ward use it too, since an arc or a damage tick has no direction to check.
 function _soakIntoArcBarrier(enemy, source, bx, by) {
     if (enemy.type !== 'marchosias' || !enemy.arcBarrier || enemy.arcBarrier.hp <= 0) return false;
+    _marchBarrierContact(enemy, bx, by, 'soak');
     const effectiveHp = enemy.arcBarrier.maxHp;
     let dmg = Math.ceil((source.damage || 0) + (effectiveHp * (source.percentDamage || 0)));
     if (gloryForJusticeActive) dmg = Math.ceil(dmg * 1.55); // docs/combat-scaling-rebalance.md Part 3
@@ -87,6 +92,8 @@ function applyMarchosiasSkillASplit(enemy, dmgProps) {
         dealDamage(enemy, dmgProps);
         return;
     }
+    _marchBarrierContact(enemy, enemy.x + Math.cos(enemy.arcBarrier.angle) * (enemy.size / 2 + 16),
+        enemy.y + Math.sin(enemy.arcBarrier.angle) * (enemy.size / 2 + 16), 'pierce');
     const barrierEffectiveHp = enemy.arcBarrier.maxHp;
     let barrierDmg = Math.ceil((dmgProps.damage || 0) * 0.70 + barrierEffectiveHp * (dmgProps.percentDamage || 0) * 0.70);
     barrierDmg = Math.min(barrierDmg, Math.ceil(enemy.arcBarrier.hp * 0.35));
@@ -125,7 +132,7 @@ const MARCH_BREAK_IRON_BODY = 5, MARCH_BREAK_IRON_BODY_LOW = 7, MARCH_IRON_BODY_
 const MARCH_SHOCK_RANGE = 420, MARCH_SHOCK_MS = 1000, MARCH_SHOCK_SLOW = 0.75;
 function _marchosiasBreakShock(enemy) {
     addExplosion(enemy.x, enemy.y, enemy.size * 2.2, '#ff9a3c');
-    createParticles(enemy.x, enemy.y, 16, '#ffb070', 3, 10);
+    if (!window._fxOpts?.reducedMotion) createParticles(enemy.x, enemy.y, _mobPerf || _gfxLevel >= 2 ? 4 : 16, '#ffb070', 3, 10);
     if (typeof _setShake === 'function') _setShake(5, 180);
     if (Math.hypot(player.x - enemy.x, player.y - enemy.y) <= MARCH_SHOCK_RANGE) window._marchosiasShockUntil = performance.now() + MARCH_SHOCK_MS;
 }
@@ -150,14 +157,15 @@ function _updateMarchosiasPressure(enemy, deltaTime) {
 }
 
 function _triggerArcBarrierBreak(enemy) {
-    const _fullCycle = (enemy._barrierSwordsThisCycle || 0) >= 4;
+    const _fullCycle = (enemy._barrierSwordsThisCycle || 0) >= MARCH_SWORD_CYCLE_MAX;
     if (_fullCycle) {
-        if (window.AudioMgr) window.AudioMgr.playSfxAt('metal-hit', enemy.x, enemy.y);
+        _marchPlaySfx('metal-hit', enemy.x, enemy.y);
         addExplosion(enemy.x, enemy.y, enemy.size * 1.4, '#00ff88');
         addExplosion(enemy.x, enemy.y, enemy.size * 0.6, '#aaffd8');
-        createParticles(enemy.x, enemy.y, 28, '#00ff88', 3, 12);
-        createParticles(enemy.x, enemy.y, 10, '#ffffff', 2, 6);
-        for (let i = 0; i < 3; i++) {
+        const low = _mobPerf || _gfxLevel >= 2, reduced = window._fxOpts?.reducedMotion;
+        if (!reduced) createParticles(enemy.x, enemy.y, low ? 5 : 28, '#00ff88', 3, 12);
+        if (!low && !reduced) createParticles(enemy.x, enemy.y, 10, '#ffffff', 2, 6);
+        for (let i = 0; i < (low || reduced ? 0 : 3); i++) {
             const r = _acquireParticle();
             r.isBarrierBreakRing = true;
             r.x = enemy.x; r.y = enemy.y;
@@ -170,7 +178,7 @@ function _triggerArcBarrierBreak(enemy) {
     }
     marchoBarrierBursts.push({
         x: enemy.x, y: enemy.y, size: enemy.size, angle: enemy.arcBarrier.angle,
-        lifetime: 650, maxLifetime: 650,
+        lifetime: 650, maxLifetime: 650, fullCycle: _fullCycle,
     });
     _tryTriggerMarchosiasCounter(enemy);
     _marchosiasBreakShock(enemy);
@@ -193,7 +201,7 @@ function _triggerArcBarrierBreak(enemy) {
     enemy._arcBarrierReviveAt = gameElapsedTime + _reviveDelay;
 }
 
-// sword trigger, max 4 per barrier cycle, 500ms cd between casts
+// I cap paid casts per barrier cycle and keep the 500ms cast gap.
 // free cast (pressure clock) skips the cap and the counter, so it never shortens the barrier revive
 const MARCH_SWORD_COOLDOWN_MS = 500;
 function _tryTriggerMarchosiasCounter(enemy, free) {
@@ -202,16 +210,16 @@ function _tryTriggerMarchosiasCounter(enemy, free) {
     if (enemy.hp <= 0 || enemy._markedForDeath) return;
     if (!enemy.marchosiasWindups) enemy.marchosiasWindups = [];
     if (enemy.lastSwordTriggerTime && now - enemy.lastSwordTriggerTime < MARCH_SWORD_COOLDOWN_MS) return;
-    if (!free && (enemy._barrierSwordsThisCycle || 0) >= 4) return;
+    if (!free && (enemy._barrierSwordsThisCycle || 0) >= MARCH_SWORD_CYCLE_MAX) return;
     enemy.lastSwordTriggerTime = now;
     if (!free) enemy._barrierSwordsThisCycle = (enemy._barrierSwordsThisCycle || 0) + 1;
     const _wTx = player.x, _wTy = player.y;
-    enemy.marchosiasWindups.push({ timer: 1000, target: { x: _wTx, y: _wTy } });
+    enemy.marchosiasWindups.push({ timer: MARCH_SWORD_WINDUP_MS, target: { x: _wTx, y: _wTy } });
     if (!enemy._ghostWindups) enemy._ghostWindups = [];
     enemy._ghostWindups.push({
         targetX: _wTx, targetY: _wTy,
         originX: enemy.x, originY: enemy.y,
-        freezeTimer: 1000,
+        freezeTimer: MARCH_SWORD_WINDUP_MS,
         fadeTimer: 1200, maxFade: 1200,
     });
 }
@@ -230,7 +238,7 @@ function _fireMarchosiasDeathSwords(enemy) {
             owner: enemy,
             x: enemy.x, y: enemy.y,
             vx: Math.cos(angle) * 13.2, vy: Math.sin(angle) * 13.2,
-            angle, radius: 88,
+            angle, radius: MARCH_SWORD_RADIUS,
             delay: 0, active: true, // fire immediately
             hitEnemies: [], hitPlayer: false,
             originX: enemy.x, originY: enemy.y,
@@ -238,6 +246,11 @@ function _fireMarchosiasDeathSwords(enemy) {
         });
     });
     enemy.marchosiasWindups = [];
+    _marchPlaySfx('spirit-arc-slash', enemy.x, enemy.y);
+    if (enemy._ghostWindups) for (let i = 0; i < enemy._ghostWindups.length; i++) {
+        enemy._ghostWindups[i].freezeTimer = 0;
+        enemy._ghostWindups[i].originX = enemy.x; enemy._ghostWindups[i].originY = enemy.y;
+    }
 }
 
 function spawnMarchosias() {
@@ -344,4 +357,11 @@ function spawnMarchosiasMinion(parentX, parentY, parentMaxHp, opts) {
             _addEnemyShield(enemies[enemies.length - 1], wardHp);
         }
     }
+}
+
+function _marchBarrierContact(enemy, x, y, kind) {
+    enemy._barrierHitX = Number.isFinite(x) ? x : enemy.x;
+    enemy._barrierHitY = Number.isFinite(y) ? y : enemy.y;
+    enemy._barrierHitKind = kind;
+    enemy._barrierHitMs = 180;
 }

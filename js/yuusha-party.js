@@ -1083,11 +1083,23 @@ function _updateYuushaPartyInner(deltaTime) {
             continue;
         }
         s.update(now, deltaTime);
+        const crystal = s.role === 'Mage' && s.crystal;
+        if (crystal && crystal.active && !crystal.exploded) {
+            const elapsed = Math.max(0, now - crystal.flyStart);
+            const end = _yEaseInQuad(Math.min(1, elapsed / 350));
+            const start = _yEaseInQuad(Math.min(1, Math.max(0, elapsed - deltaTime) / 350));
+            const dx = crystal.targetX - crystal.x, dy = crystal.targetY - crystal.y;
+            if (_marchCutsPath(crystal.x + dx * start, crystal.y + dy * start, crystal.x + dx * end, crystal.y + dy * end, 9)) {
+                crystal.active = false; crystal.exploded = false; s.state = 'idle';
+            }
+        }
     }
 
     const blades = window._yuushaBlades || [];
     for (const blade of blades) {
+        const marchX = blade.x, marchY = blade.y;
         blade.update();
+        if (_marchCutsShot(blade, marchX, marchY, blade.height / 2)) { blade.life = 0; continue; }
         if (typeof enemies !== 'undefined') {
             for (const e of enemies) {
                 if (e.hp <= 0 || blade.hitEnemies.has(e)) continue;
@@ -1120,7 +1132,9 @@ function _updateYuushaPartyInner(deltaTime) {
 
     const projs = window._yuushaProjectiles || [];
     for (const p of projs) {
+        const marchX = p.x, marchY = p.y;
         p.update();
+        if (_marchCutsShot(p, marchX, marchY, 6)) { p._dead = true; continue; }
         if (typeof enemies !== 'undefined' && !p._dead) {
             for (const e of enemies) {
                 if (e.hp <= 0 || p.hitEnemies.has(e)) continue;
@@ -1151,7 +1165,7 @@ function _updateYuushaPartyInner(deltaTime) {
         }
     }
     window._yuushaProjectiles = projs.filter(p =>
-        p.y > -50 && p.y < canvas.height + 50 && p.x > -50 && p.x < canvas.width + 50
+        !p._dead && p.y > -50 && p.y < canvas.height + 50 && p.x > -50 && p.x < canvas.width + 50
     );
 
     const zones = window._yuushaDotZones || [];

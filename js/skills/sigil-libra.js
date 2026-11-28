@@ -405,8 +405,10 @@ function updateSolArrows(deltaTime) {
             continue;
         }
         if (arrow.state === 'flying') {
+            const _marchAx = arrow.x, _marchAy = arrow.y;
             arrow.x += arrow.vx * dt;
             arrow.y += arrow.vy * dt;
+            if (typeof _marchCutsShot === 'function' && _marchCutsShot(arrow, _marchAx, _marchAy, arrow.isPrimary ? 12 : 8)) { window._solArrows.splice(i, 1); continue; }
 
             // Trail: droplets/mist/tendrils breaking off the flight path,
             // same shared visual language as the charge and impact phases.

@@ -1205,57 +1205,6 @@ function drawEnemy(enemy) {
         ctx.restore();
     }
 
-    // MARCHOSIAS ghost zones, 1 code path duy nhất (freeze khi windup, shrink sau khi bắn)
-    if (enemy.type === 'marchosias' && enemy._ghostWindups && enemy._ghostWindups.length > 0) {
-        const halfW = 36;
-        for (const gw of enemy._ghostWindups) {
-            const frozen = gw.freezeTimer > 0;
-            if (frozen) continue;
-            const alpha = frozen ? 1.0 : Math.max(0, gw.fadeTimer / gw.maxFade);
-            if (alpha <= 0) continue;
-            // Khi frozen: origin theo vị trí Mar hiện tại (Mar đang di chuyển)
-            // Khi fade: origin đã được lock tại vị trí Mar lúc chém ra
-            const ox = frozen ? enemy.x : gw.originX;
-            const oy = frozen ? enemy.y : gw.originY;
-            const angle4 = Math.atan2(gw.targetY - oy, gw.targetX - ox);
-            const len4 = Math.hypot(gw.targetX - ox, gw.targetY - oy) + 80;
-            // Khi frozen: full corridor, sau khi bắn: shrink từ phía Mar ra target
-            const visStart = frozen ? 0 : (1 - alpha) * len4;
-            const visLen = len4 - visStart;
-            if (visLen <= 0) continue;
-            ctx.save();
-            ctx.globalAlpha = alpha * 0.55 + 0.35;
-            ctx.translate(ox, oy);
-            ctx.rotate(angle4);
-            ctx.beginPath();
-            ctx.rect(visStart, -halfW - 1, visLen + 1, halfW * 2 + 2);
-            ctx.clip();
-            ctx.fillStyle = 'rgba(255,140,0,0.45)';
-            ctx.fillRect(visStart, -halfW, visLen, halfW * 2);
-            ctx.strokeStyle = 'rgba(255,220,120,0.6)';
-            ctx.lineWidth = 1;
-            ctx.setLineDash([14, 8]);
-            ctx.beginPath(); ctx.moveTo(visStart, 0); ctx.lineTo(len4, 0); ctx.stroke();
-            ctx.setLineDash([]);
-            // Outer dashed lines: only during freeze (windup). After blade fires they're drawn on the blade itself.
-            if (frozen) {
-                ctx.strokeStyle = 'rgba(255,210,0,0.92)';
-                ctx.lineWidth = 2.5;
-                ctx.setLineDash([10, 6]);
-                ctx.beginPath();
-                ctx.moveTo(visStart, -halfW); ctx.lineTo(len4, -halfW);
-                ctx.moveTo(visStart, halfW);  ctx.lineTo(len4, halfW);
-                ctx.stroke();
-                ctx.setLineDash([]);
-            }
-            ctx.restore();
-            // Where the blade will actually land, telegraphed the whole windup.
-            if (frozen && typeof _drawThreatRing === 'function') {
-                _drawThreatRing(gw.targetX, gw.targetY, halfW * 1.3, 1 - gw.freezeTimer / 1000);
-            }
-        }
-    }
-
     // MARCHOSIAS BLADE PROJECTILES
     // Marchosias blades drawn separately from global marchosiasBlades array
 
@@ -1565,47 +1514,6 @@ function _drawVulnerabilityIcon(enemy) {
     ctx.beginPath();
     ctx.arc(0, 0, R + 3.5, -Math.PI / 2, -Math.PI / 2 + Math.PI * 2 * remaining);
     ctx.stroke();
-
-    // Sword queue counter (green) + cycle counter (gold) — always visible while barrier alive
-    {
-        const queueCount = (enemy.marchosiasWindups || []).length;
-        const romans = ['·', 'I', 'II', 'III', 'IV', 'V', 'VI', 'VII', 'VIII'];
-        const roman = romans[Math.min(queueCount, romans.length - 1)];
-        const yOff = R + 22;
-        ctx.save();
-        if (queueCount > 0) {
-            if (!_mobPerf && _gfxLevel < 2) { ctx.shadowColor = '#00ff88'; ctx.shadowBlur = 10; }
-            ctx.fillStyle = '#00ff88';
-        } else {
-            ctx.fillStyle = 'rgba(0,255,136,0.35)';
-        }
-        ctx.font = `bold ${Math.max(11, Math.floor(R * 0.28))}px serif`;
-        ctx.textAlign = 'center';
-        ctx.textBaseline = 'middle';
-        ctx.fillText(roman, 0, yOff);
-        ctx.restore();
-    }
-    // Cycle sword counter (I–IV) in gold — visible only while barrier is alive
-    if (enemy.arcBarrier && enemy.arcBarrier.hp > 0) {
-        const cycleCount = enemy._barrierSwordsThisCycle || 0;
-        if (cycleCount > 0) {
-            const cycleRomans = ['I', 'II', 'III', 'IV'];
-            const cycleRoman = cycleRomans[Math.min(cycleCount - 1, 3)];
-            const atFull = cycleCount >= 4;
-            ctx.save();
-            if (atFull) {
-                if (!_mobPerf && _gfxLevel < 2) { ctx.shadowColor = '#ffaa00'; ctx.shadowBlur = 12; }
-                ctx.fillStyle = '#ffaa00';
-            } else {
-                ctx.fillStyle = `rgba(255,170,0,${0.3 + cycleCount * 0.15})`;
-            }
-            ctx.font = `bold ${Math.max(9, Math.floor(R * 0.22))}px serif`;
-            ctx.textAlign = 'center';
-            ctx.textBaseline = 'middle';
-            ctx.fillText(cycleRoman, 0, R + 36);
-            ctx.restore();
-        }
-    }
 
     ctx.restore();
 }

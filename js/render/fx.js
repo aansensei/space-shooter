@@ -71,6 +71,11 @@ function _drawDangerScripture(shape, radius, width, span, progress, low, now) {
 
 function _drawEnemyDangerWarnings() {
     const now = performance.now(), length = Math.hypot(canvas.width, canvas.height);
+    for (let i = 0; i < marchosiasBlades.length; i++) {
+        const b = marchosiasBlades[i];
+        if (b.active || b.delay <= 0) continue;
+        _drawDangerZone('strip', b.x, b.y, length, 1 - b.delay / MARCH_SWORD_WINDUP_MS, 0.3, now, b.angle, MARCH_SWORD_RADIUS);
+    }
     for (let i = 0; i < enemies.length; i++) {
         const e = enemies[i]; if (!(e.hp > 0)) continue;
         if (e.type === 'dargruel' && e._chainWindupActive && e.chainTimer > 0) {
@@ -80,8 +85,8 @@ function _drawEnemyDangerWarnings() {
         if (e.type === 'marchosias' && e._ghostWindups) for (let j = 0; j < e._ghostWindups.length; j++) {
             const g = e._ghostWindups[j]; if (g.freezeTimer <= 0) continue;
             const dx = g.targetX - e.x, dy = g.targetY - e.y;
-            _drawThreatRing(g.targetX, g.targetY, 36 * 1.3, 1 - g.freezeTimer / 1000);
-            _drawDangerZone('strip', e.x, e.y, Math.hypot(dx, dy) + 80, 1 - g.freezeTimer / 1000, 0.3, now, Math.atan2(dy, dx), 36);
+            _drawThreatRing(g.targetX, g.targetY, MARCH_SWORD_RADIUS, 1 - g.freezeTimer / MARCH_SWORD_WINDUP_MS);
+            _drawDangerZone('strip', e.x, e.y, length, 1 - g.freezeTimer / MARCH_SWORD_WINDUP_MS, 0.3, now, Math.atan2(dy, dx), MARCH_SWORD_RADIUS);
         }
         if (e.type !== 'goliath' || e.phase !== 'true_form' || e._deathPhase) continue;
         const scale = e.size / 460, x = e.x + GOLIATH_EYE_POS.x * scale, y = e.y + GOLIATH_EYE_POS.y * scale;

@@ -76,6 +76,9 @@ function _piscesUpdate(deltaTime) {
             fish.previous.x = fish.x; fish.previous.y = fish.y;
             fish.x += Math.cos(fish.angle) * PISCES_FISH_SPEED * travelMs;
             fish.y += Math.sin(fish.angle) * PISCES_FISH_SPEED * travelMs;
+            if (_marchCutsShot(fish, fish.previous.x, fish.previous.y, 10)) {
+                fish.active = false; fish.hits.length = 0; continue;
+            }
             for (const e of enemies) {
                 if (!_piscesCanTarget(e) || fish.hits.indexOf(e) >= 0) continue;
                 if (distToSegment(e, fish, fish.previous) > (e.size || 20) / 2 + 10) continue;

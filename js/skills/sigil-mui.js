@@ -720,6 +720,7 @@ function updateSoulBlades(deltaTime) {
             b.prevY = b.y;
             b.x += b.vx * dt;
             b.y += b.vy * dt;
+            if (typeof _marchCutsShot === 'function' && _marchCutsShot(b, b.prevX, b.prevY, 8)) { b.active = false; b.target = null; b.hitSet.clear(); b.trailLen = 0; continue; }
             b.stretch = 1.18;
 
             const tIdx = b.trailLen < MUI_TRAIL_MAX ? b.trailLen++ : (MUI_TRAIL_MAX - 1);

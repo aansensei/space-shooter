@@ -147,6 +147,8 @@ function _dauUpdateNeedles(deltaTime, currentTime) {
                 const dx = target.x - n.x, dy = target.y - n.y, dist = Math.hypot(dx, dy);
                 const travel = (n.kind === 0 ? 1.4 : 3.6) * deltaTime;
                 n.angle = Math.atan2(dy, dx);
+                const _marchTravel = Math.min(dist, travel), _marchX = n.x, _marchY = n.y;
+                if (typeof _marchCutsShot === 'function' && _marchCutsPath(_marchX, _marchY, _marchX + (dist ? dx / dist * _marchTravel : 0), _marchY + (dist ? dy / dist * _marchTravel : 0), 5)) { n.active = false; n.target = null; list[i] = list[list.length - 1]; list.pop(); continue; }
                 if (dist > travel + target.size * 0.25) {
                     n.x += dx / dist * travel; n.y += dy / dist * travel;
                     continue;
@@ -252,6 +254,8 @@ function _dauUpdateReflections(deltaTime) {
             const dx = target.x - r.x, dy = target.y - r.y, dist = Math.hypot(dx, dy);
             const travel = r.speed * deltaTime;
             r.angle = Math.atan2(dy, dx);
+            const _marchTravel = Math.min(dist, travel), _marchX = r.x, _marchY = r.y;
+            if (typeof _marchCutsShot === 'function' && _marchCutsPath(_marchX, _marchY, _marchX + (dist ? dx / dist * _marchTravel : 0), _marchY + (dist ? dy / dist * _marchTravel : 0), 5)) { r.active = false; r.target = null; list[i] = list[list.length - 1]; list.pop(); continue; }
             if (dist > travel + target.size * 0.25) {
                 r.x += dx / dist * travel; r.y += dy / dist * travel;
                 continue;

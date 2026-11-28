@@ -72,8 +72,10 @@ function updateShadowOrbs(deltaTime) {
     const dt = deltaTime / 16.67;
     for (let i = window._shadowOrbs.length - 1; i >= 0; i--) {
         const orb = window._shadowOrbs[i];
+        const _marchAx = orb.x, _marchAy = orb.y;
         orb.x += orb.vx * dt;
         orb.y += orb.vy * dt;
+        if (typeof _marchCutsShot === 'function' && _marchCutsShot(orb, _marchAx, _marchAy, orb.isLarge ? 15 : 10)) { window._shadowOrbs.splice(i, 1); continue; }
         for (const enemy of enemies) {
             if (enemy.type.startsWith('enemy_bullet') || enemy.type === 'abyssal_chain' || enemy.type === 'veilshroud_echo' || enemy.inCoronation || enemy.hp <= 0 || enemy._stealthed) continue;
             if (orb.hitEnemies.has(enemy)) continue;
